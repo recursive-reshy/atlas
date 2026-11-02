@@ -1,6 +1,6 @@
 # 0051. Manual database backups with SQLite's online backup, to a host folder
 
-- Status: Accepted
+- Status: Superseded by 0076
 - Date: 2026-10-21
 
 ## Context

@@ -1,0 +1,109 @@
+# Tasks — Atlas v0.10.0
+
+Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Each one is test-first (ADR 0007) and ends in its own commit.
+
+**Status:** ⬜ Not started · 🟨 In progress · ✅ Done (tests green, committed, pushed) · ⏸️ Deferred
+**Plan:** ⬜ Not approved · ✅ Approved (the link points to the saved plan)
+
+## How this file works
+- Work is grouped into checkpoints. Each checkpoint covers one or more phases.
+- **Start of a checkpoint:** in plan mode, write one plan for every task in it (files to touch, tests to write first, expected red → green path). Then stop. When Naresh approves it, save the plan to the linked file, tick the checkpoint's Plan cell, and commit.
+- **During a checkpoint:** work through its tasks without stopping. For each task: failing tests first → green → refactor → tick Status → commit (`feat(0.10-<id>): …`, `fix(0.10-<id>): …`, `refactor(0.10-<id>): …`, `chore(0.10-<id>): …`, plans as `docs(0.10-plan): checkpoint <x>`) → push.
+- **End of a checkpoint:** stop and report what was built, test/lint/typecheck results per package (and `test:browser` for web, and the agent's tests), browser screenshots (light and dark; phone width) of any screen touched, `pnpm e2e`, anything deferred, and any ADR that changes the TRD. Don't start the next checkpoint until Naresh says so.
+- Never start a task whose checkpoint Plan cell is ⬜.
+- If something isn't covered by the PRD, TRD or ADRs, stop and ask. Record the decision as the next ADR (from 0079) and add its number to the task's ADR column.
+- **Verify vendor facts** where the TRD says so (OpenAI, Obsidian Headless, Litestream, Google's Debian image): check the current docs for the pinned version and note any difference in the log line.
+- **No test touches the network, GCP, OpenAI, Obsidian or a real vault.**
+- **Cloud actions are Naresh's.** Claude Code never runs a command that creates, changes, deletes or costs anything in GCP, Tailscale or Obsidian. It writes and fixes the scripts and runbook; Naresh runs them (checkpoint E) and pastes the output back.
+- Existing tests pass unchanged, except where the TRD changes or removes them; list each changed or removed test file in the log line.
+- Add a one-line note to the log at the bottom whenever a task is ticked.
+
+---
+
+## Checkpoint A: Phases 1–2 (kick-off, rename)
+**Plan:** ⬜ [`plans/checkpoint-a.md`](plans/checkpoint-a.md)
+
+| ID | Task | ADRs | Status |
+| --- | --- | --- | --- |
+| **Phase 1** | **Kick-off** | | |
+| 1.1 | Version 0.10.0 in every `package.json`, `apps/agent/pyproject.toml`, the agent's `uv.lock` entry and the README status line; confirm `docs/README.md` lists v0.10.0 and ADRs 0073–0078 (added with the plan) | | ⬜ |
+| **Phase 2** | **Rename to Atlas (TRD §2)** | | |
+| 2.1 | Workspace packages `@mnemosyne/*` → `@atlas/*` (package names, every import, tsconfig paths, Vite/Vitest config, scripts), lockfile regenerated; one commit; all packages green | 0073 | ⬜ |
+| 2.2 | Python package `mnemosyne_agent` → `atlas_agent` (`git mv`, imports, `pyproject.toml` name `atlas-agent`, `uv.lock`, Dockerfile start command, Ruff/Pyright/pytest config); agent tests, Ruff, Pyright green | 0073 | ⬜ |
+| 2.3 | Runtime and UI names (TRD §2.1): Compose `name: atlas`, services `app`/`agent`, volume `data`, image names, `atlas.db`, `atlas_session`, logger names, page title, PWA manifest, drawer header, sign-in and not-allowed pages, drawer module label **Mnemosyne**; e2e project, image and service names; tag and folder defaults unchanged (tests prove it) | 0073 | ⬜ |
+| 2.4 | Name guard test (TRD §2.3); root README, root/server/web `CLAUDE.md`, `docs/README.md` say Atlas; README note on removing the old local volume (TRD §2.4); full run: all tests, lint, typecheck, build, browser tests, agent tests, `pnpm e2e`, `docker compose build` | 0073 | ⬜ |
+
+**Checkpoint A done when:** nothing but the allow-list says Mnemosyne; every check above green; the app runs locally as Atlas with the module labelled Mnemosyne. **Then Naresh** renames the GitHub repo, runs `git remote set-url`, moves the folder to `~/Documents/Github/atlas`, and reopens it in VS Code, Claude Code and the Claude desktop app before checkpoint B.
+
+---
+
+## Checkpoint B: Phase 3 (transcription)
+**Plan:** ⬜ [`plans/checkpoint-b.md`](plans/checkpoint-b.md)
+
+| ID | Task | ADRs | Status |
+| --- | --- | --- | --- |
+| **Phase 3** | **OpenAI transcription, no timestamps (TRD §3)** | | |
+| 3.1 | Shared: `VideoSource.text`, `Segment`/`Transcript` removed, `DownloadFormat` without `srt`, `splitParagraphs` replacing `groupParagraphs`; every fixture in shared, server and web updated in one commit so every package stays green (callers adapted minimally; real behaviour follows in 3.4–3.6) | 0074 | ⬜ |
+| 3.2 | Migration 10 (TRD §3.6, §4.1): `transcription_runs`, `usage_events` with `transcription`, health tables rebuilt with the new kind checks (old `whisper`/`backup` rows dropped); `transcriptionRuns.repository.ts` with isolation tests; `estimateTranscriptionCostUsd`; shared health kinds and usage category; tests from an empty and from a 0.9 database | 0062, 0066, 0074 | ⬜ |
+| 3.3 | `prepareAudio` (TRD §3.2): Opus/WebM encode, size check, silence-aware split, errors; tests with a small fixture and a lowered limit; verify the API's duration limit | 0074 | ⬜ |
+| 3.4 | `openaiTranscription.client.ts` (`transcribePieces`, `checkTranscriptionModel`) and config (`OPENAI_API_KEY`, `OPENAI_BASE_URL`, `TRANSCRIPTION_MODEL`; `WHISPER_*` ignored); `whisperServer.client.ts` deleted; tests per TRD §9 | 0074 | ⬜ |
+| 3.5 | Video adapter on the new pipeline, recording transcription runs (ok and error) with cost; summaries in the article shape for videos (`SummaryResult`, locked video instructions, `toUserMessage`, `summary.formatter`, `summary.cleanup`); downloads (`.md`/`.txt` via `splitParagraphs`, `srt.formatter`/`timestamps` deleted); admin usage shows transcription | 0029, 0074 | ⬜ |
+| 3.6 | Web: `SourcePane` paragraphs for videos, caret sync removed (`ReviewScreen`, `NoteEditor`, `caretText.ts` and tests, caret browser test), `.srt` button gone, usage table's transcription row; unit and browser tests (phone and desktop, light and dark) | 0034, 0074 | ⬜ |
+| 3.7 | e2e: fakes serve `GET /v1/models/gpt-transcribe` and `POST /v1/audio/transcriptions`; e2e Compose sets `OPENAI_BASE_URL` and a dummy key, drops `WHISPER_URL`; `pnpm e2e` green; `apps/server/CLAUDE.md` and `.env.example` files updated | 0053, 0074 | ⬜ |
+
+**Checkpoint B done when:** a video job on the Mac (with Naresh's real OpenAI key in his local `.env`) goes downloading → transcribing → summary with a plain-text transcript; the usage view shows its cost; every check green.
+
+---
+
+## Checkpoint C: Phase 4 (backups retired, status, onboarding)
+**Plan:** ⬜ [`plans/checkpoint-c.md`](plans/checkpoint-c.md)
+
+| ID | Task | ADRs | Status |
+| --- | --- | --- | --- |
+| **Phase 4** | **App-side operations (TRD §4, §5.4, §6.1)** | | |
+| 4.1 | `busy_timeout = 5000`; pre-migration and set-aside copies to `<db dir>/pre-migration/` (`backupDir` option removed); backup service, route(s), `BackupControls`, `config.backupDir` retired, `BACKUP_DIR` ignored; Compose and `.env.example` lose the backups mount and `BACKUP_HOST_PATH` | 0066, 0076 | ⬜ |
+| 4.2 | Status: transcription check (`checkTranscriptionModel`), whisper and backup checks removed, rows deleted at startup for checks no longer configured | 0050, 0074 | ⬜ |
+| 4.3 | Status: replication check from `LITESTREAM_METRICS_URL` (Prometheus text parser, error-counter rule, last-sync detail); tests with fixture metrics text; metric names verified against the pinned Litestream and kept in one commented constant | 0050, 0076 | ⬜ |
+| 4.4 | Status: vault-sync rows from `VAULT_SYNC_STATUS_DIR` (`VaultSyncStatusFile` in shared; missing, unparseable, failed, stale-heartbeat cases); per-user visibility (own row for members, all rows with names for the admin); web rows | 0050, 0065, 0075 | ⬜ |
+| 4.5 | `VAULT_CREATE_ENABLED`: `createVault` 403 when false, `can_create` on the onboarding response, onboarding page hides **New vault** and shows the ask-the-admin line; tests both ways | 0063, 0075 | ⬜ |
+
+**Checkpoint C done when:** no backup code or setting remains; the Status panel on the Mac shows Agent and Transcription only; rows for replication and vault sync appear in tests when configured; every check green.
+
+---
+
+## Checkpoint D: Phases 5–6 (deployment files, docs)
+**Plan:** ⬜ [`plans/checkpoint-d.md`](plans/checkpoint-d.md)
+
+| ID | Task | ADRs | Status |
+| --- | --- | --- | --- |
+| **Phase 5** | **Deployment (TRD §5–8)** | | |
+| 5.1 | Compose split (`docker-compose.yml`, `compose.local.yml`, `compose.prod.yml`), `COMPOSE_FILE` in `.env.example`, e2e layered on base + local; `scripts/compose.test.mjs`; local `docker compose up` and `pnpm e2e` still green | 0077 | ⬜ |
+| 5.2 | Sync image (`deploy/sync/Dockerfile`, pinned `obsidian-headless`, UID 1000) and `sync.sh` (restart with backoff, heartbeat, atomic status file, umask 022); script test with a fake `ob`; config directory path verified for the pinned version | 0075 | ⬜ |
+| 5.3 | `deploy/litestream/litestream.yml` (0.5 shape, GCS, 1 s, daily snapshot, 168 h, `:9090`); `restore` and `litestream` services in `compose.prod.yml` (UID 1000, `depends_on` order); keys verified against the pinned version | 0076 | ⬜ |
+| 5.4 | `deploy/vm/fetch-secrets.sh` (gcloud, else metadata token + REST; all-or-nothing; root-only tmpfs file), `deploy/vm/atlas.service`, `deploy/vm/atlas.env.example`; tests with a fake `gcloud`/`curl` | 0078 | ⬜ |
+| 5.5 | `deploy/vm/bootstrap.sh` (TRD §8.3), idempotent; `shellcheck` over `deploy/**/*.sh` wired into the root checks | 0077 | ⬜ |
+| 5.6 | `deploy/release.sh` and `deploy/vm/deploy.sh` (TRD §8.6), `deploy/release.env.example`; dry-run flags so both can be tested without pushing or restarting | 0077 | ⬜ |
+| **Phase 6** | **Docs** | | |
+| 6.1 | `docs/deploy.md` runbook: GCP resources (TRD §8.2, with monthly prices from Google's list on the day), bootstrap, Tailscale (§8.4), Obsidian login per user (§5.2), first deploy, deploy, rollback, secret rotation, restore (automatic and point in time), resize, adding the second user, shutting down the old project | 0075–0078 | ⬜ |
+| 6.2 | `google-cloud-setup.md` rewritten for the `atlas` project (In production; VM origin), `phone-access.md` rewritten for the VM, `backups.md` replaced by a pointer, README (variables table, setup, troubleshooting), root `CLAUDE.md` (hosting, deploy folder), `docs/README.md` | 0077 | ⬜ |
+
+**Checkpoint D done when:** every script passes its tests and `shellcheck`; both Compose configs validate; the runbook can be followed top to bottom without guessing (Naresh reads it before E).
+
+---
+
+## Checkpoint E: Phase 7 (cutover, with Naresh)
+**Plan:** ⬜ [`plans/checkpoint-e.md`](plans/checkpoint-e.md)
+
+| ID | Task | ADRs | Status |
+| --- | --- | --- | --- |
+| **Phase 7** | **Cutover** | | |
+| 7.1 | Naresh creates the GCP resources, secrets and OAuth client from the runbook; Claude Code fixes any runbook step that didn't match and records the project ID, registry and bucket names in `atlas.env` guidance | 0077, 0078 | ⬜ |
+| 7.2 | Naresh bootstraps the VM, joins Tailscale, sets up Obsidian Sync on the Mac, logs the VM's sync in (`sync-naresh`), and deploys 0.10.0 with `release.sh` / `deploy.sh`; Status panel shows Agent, Transcription, Replication and his Vault sync healthy | 0075–0078 | ⬜ |
+| 7.3 | Release checks with Naresh: sign in on phone and Mac; one video, one article and one feed item to saved notes that appear in Obsidian on the Mac; a note written on the Mac reaches the VM (linker or Melete sees it); a Melete review on the phone; `docker stats` during a video job (TRD §8.5); a test restore into a scratch path from the bucket; the Mac can sleep | 0076, 0077 | ⬜ |
+| 7.4 | `docs/v0.10.0/release-notes.md` from TRD §10, linked from `docs/README.md` (v0.10.0 done); README status line; note in the log when Naresh shuts down the old GCP project | | ⬜ |
+
+**Checkpoint E done when:** the release checks pass on the VM and the release notes are in place.
+
+---
+
+## Log

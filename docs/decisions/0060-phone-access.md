@@ -1,6 +1,6 @@
 # 0060. Phone access: localhost-only port, Tailscale Serve, installable web app
 
-- Status: Accepted
+- Status: Accepted (amended by 0061, 0077)
 - Date: 2026-10-22
 
 ## Context

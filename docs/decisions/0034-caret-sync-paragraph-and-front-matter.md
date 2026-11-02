@@ -1,6 +1,6 @@
 # 0034. Caret sync: match paragraphs by whole second, and ignore the front-matter
 
-- Status: Accepted
+- Status: Superseded by 0074
 - Date: 2026-10-18
 
 ## Context

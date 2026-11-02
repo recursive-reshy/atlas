@@ -1,6 +1,6 @@
 # 0002. Local transcription with whisper.cpp
 
-- Status: Accepted
+- Status: Superseded by 0074
 - Date: 2026-10-14
 
 ## Context

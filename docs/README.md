@@ -2,8 +2,9 @@
 
 ## Plans
 
-Each version has its own folder. The current version is 0.9.1.
+Each version has its own folder. The current version is 0.10.0 (planning).
 
+- **v0.10.0 (planning):** [PRD](v0.10.0/prd.md) · [TRD](v0.10.0/trd.md) · [Tasks](v0.10.0/tasks.md) · checkpoint plans in `v0.10.0/plans/`
 - **v0.9.1 (done):** [PRD](v0.9.1/prd.md) · [TRD](v0.9.1/trd.md) · [Tasks](v0.9.1/tasks.md) · [Release notes](v0.9.1/release-notes.md) · checkpoint plans in `v0.9.1/plans/`
 - **v0.9.0 (done):** [PRD](v0.9.0/prd.md) · [TRD](v0.9.0/trd.md) · [Tasks](v0.9.0/tasks.md) · [Release notes](v0.9.0/release-notes.md) · checkpoint plans in `v0.9.0/plans/`
 - **v0.8.0 (done):** [PRD](v0.8.0/prd.md) · [TRD](v0.8.0/trd.md) · [Tasks](v0.8.0/tasks.md) · [Release notes](v0.8.0/release-notes.md) · checkpoint plans in `v0.8.0/plans/`
@@ -24,9 +25,9 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | # | Decision | Status |
 |---|----------|--------|
 | [0001](decisions/0001-monorepo-pnpm-workspaces.md) | Monorepo with pnpm workspaces | Accepted |
-| [0002](decisions/0002-local-whisper-transcription.md) | Local transcription with whisper.cpp | Accepted |
+| [0002](decisions/0002-local-whisper-transcription.md) | Local transcription with whisper.cpp | Superseded by 0074 |
 | [0003](decisions/0003-audio-acquisition-yt-dlp-ffmpeg.md) | Audio acquisition with yt-dlp and ffmpeg | Accepted |
-| [0004](decisions/0004-runtime-docker-plus-native-whisper.md) | App in Docker, Whisper native on the host | Accepted |
+| [0004](decisions/0004-runtime-docker-plus-native-whisper.md) | App in Docker, Whisper native on the host | Superseded by 0074 |
 | [0005](decisions/0005-markdown-first-output.md) | Markdown-first output, Obsidian-ready | Accepted |
 | [0006](decisions/0006-async-job-model.md) | Asynchronous job model | Partly superseded by 0012, 0015 |
 | [0007](decisions/0007-tdd-vitest-supertest.md) | TDD with Vitest and Supertest | Accepted |
@@ -56,7 +57,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0031](decisions/0031-article-extraction.md) | Article extraction: Readability on linkedom, turndown to Markdown, fetch limits | Accepted |
 | [0032](decisions/0032-rss-feeds-inbox-poller.md) | RSS feeds with feedsmith, an inbox before summarizing, and a separate poller | Accepted (amended by 0038) |
 | [0033](decisions/0033-browser-mode-tests.md) | Browser-mode tests with Vitest and Playwright for real-DOM behaviour | Accepted |
-| [0034](decisions/0034-caret-sync-paragraph-and-front-matter.md) | Caret sync: match paragraphs by whole second, and ignore the front-matter | Accepted |
+| [0034](decisions/0034-caret-sync-paragraph-and-front-matter.md) | Caret sync: match paragraphs by whole second, and ignore the front-matter | Superseded by 0074 |
 | [0035](decisions/0035-gmail-intake.md) | Gmail intake: `@googleapis/gmail`, server-side OAuth, an encrypted refresh token, and a date-window sync | Accepted (amended by 0061) |
 | [0036](decisions/0036-newsletters-email-to-markdown.md) | Newsletters: email to Markdown with Readability first and unwrapped layout tables as fallback | Accepted (amended by 0040) |
 | [0037](decisions/0037-job-postings-dataset.md) | Job postings: Claude extraction into fixed columns plus JSON, deduplicated by platform job ID | Accepted (deferred by 0041) |
@@ -73,7 +74,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0048](decisions/0048-job-lifecycle-table.md) | One job lifecycle: a pure table of states and moves, enforced by `moveTo` | Accepted |
 | [0049](decisions/0049-structured-logging.md) | Structured logs: pino in the server, a JSON formatter in the agent, the job ID across both | Accepted |
 | [0050](decisions/0050-health-status.md) | Health status: one table per subject, one `recordCheck`, and a Status panel | Accepted |
-| [0051](decisions/0051-manual-database-backups.md) | Manual database backups with SQLite's online backup, to a host folder | Accepted |
+| [0051](decisions/0051-manual-database-backups.md) | Manual database backups with SQLite's online backup, to a host folder | Superseded by 0076 |
 | [0052](decisions/0052-data-router-and-settings-routes.md) | A data router, Settings as routed tabs, and one unsaved-changes guard | Accepted |
 | [0053](decisions/0053-e2e-smoke-test.md) | End-to-end smoke test: the real Compose stack against local fakes, driven by Playwright | Accepted |
 | [0054](decisions/0054-modules-share-the-vault-own-their-data.md) | Modules share the vault read-only and own their data | Accepted (amended by 0072) |
@@ -82,10 +83,10 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0057](decisions/0057-note-identity-and-scans.md) | Note identity: path plus body hash, on-demand scans | Accepted |
 | [0058](decisions/0058-melete-data-and-generator-loop.md) | Melete's data model and generator loop | Accepted |
 | [0059](decisions/0059-study-profile-and-folder-memory.md) | Study profile and per-profile folder memory | Accepted |
-| [0060](decisions/0060-phone-access.md) | Phone access: localhost-only port, Tailscale Serve, installable web app | Accepted (amended by 0061) |
+| [0060](decisions/0060-phone-access.md) | Phone access: localhost-only port, Tailscale Serve, installable web app | Accepted (amended by 0061, 0077) |
 | [0061](decisions/0061-google-sign-in-and-sessions.md) | Google sign-in and server-side sessions | Accepted (amended by 0071) |
 | [0062](decisions/0062-per-user-ownership-and-isolation.md) | Every row has an owner; isolation in the repositories | Accepted |
-| [0063](decisions/0063-per-user-vaults-and-onboarding.md) | Per-user vaults under one root, chosen at first sign-in | Accepted (amended by 0070) |
+| [0063](decisions/0063-per-user-vaults-and-onboarding.md) | Per-user vaults under one root, chosen at first sign-in | Accepted (amended by 0070, 0075) |
 | [0064](decisions/0064-shared-background-loops.md) | One background loop of each kind, round-robin by user | Accepted |
 | [0065](decisions/0065-user-and-app-settings.md) | Per-user settings, app settings, per-user seeding, split health | Accepted |
 | [0066](decisions/0066-fresh-baseline-schema.md) | A fresh baseline schema; old databases set aside | Accepted |
@@ -95,6 +96,12 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0070](decisions/0070-choose-a-new-vault-when-missing.md) | A user can choose a new vault when their folder is missing | Accepted (amends ADR 0063, TRD §2.1) |
 | [0071](decisions/0071-trusted-proxy-peers.md) | Forwarded headers are trusted from loopback and private-network peers | Accepted (amends ADR 0061, task 3.3) |
 | [0072](decisions/0072-learning-root-created-on-save.md) | The learning root is created on save in Settings | Accepted (amends ADR 0054) |
+| [0073](decisions/0073-rename-to-atlas.md) | The app is Atlas; Mnemosyne is its transcriber module | Accepted |
+| [0074](decisions/0074-openai-transcription-without-timestamps.md) | Transcription with OpenAI's gpt-transcribe, without timestamps | Accepted (supersedes 0002, 0004, 0034) |
+| [0075](decisions/0075-obsidian-headless-per-user.md) | Vaults on the VM are synced by Obsidian Headless, one container per user | Accepted (amends 0063) |
+| [0076](decisions/0076-litestream-replication.md) | Continuous replication with Litestream replaces manual backups | Accepted (supersedes 0051) |
+| [0077](decisions/0077-gcp-vm-hosting-and-deploys.md) | Hosting on one GCP VM: Compose files, images from the Mac, a bootstrap script | Accepted (amends 0060) |
+| [0078](decisions/0078-secrets-from-secret-manager.md) | Secrets are fetched from Secret Manager into memory when the stack starts | Accepted |
 
 ## Template for new ADRs
 

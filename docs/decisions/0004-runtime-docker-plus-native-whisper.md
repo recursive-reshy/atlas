@@ -1,6 +1,6 @@
 # 0004. App in Docker, Whisper native on the host
 
-- Status: Accepted
+- Status: Superseded by 0074
 - Date: 2026-10-14
 
 ## Context
