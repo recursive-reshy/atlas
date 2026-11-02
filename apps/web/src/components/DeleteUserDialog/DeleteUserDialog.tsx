@@ -50,7 +50,7 @@ export function DeleteUserDialog(
       <DialogContent>
         <Stack spacing={ 2 } sx={ { pt: 1 } }>
           <DialogContentText>
-            This deletes the user and all their data from Mnemosyne. It can't be undone. Their
+            This deletes the user and all their data from Atlas. It can't be undone. Their
             vault folder is not touched.
           </DialogContentText>
           <TextField

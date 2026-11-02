@@ -91,7 +91,7 @@ describe( 'requireUser', () => {
   const unauthenticated = ( response: request.Response ): void => {
     expect( response.status ).toBe( 401 )
     expect( response.body ).toEqual( { error: 'unauthenticated' } )
-    expect( setCookies( response.headers ).join( ';' ) ).toMatch( /mnemosyne_session=;/ )
+    expect( setCookies( response.headers ).join( ';' ) ).toMatch( /atlas_session=;/ )
   }
 
   it( 'answers 401 and clears the cookie when there is no cookie', async () => {

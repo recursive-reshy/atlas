@@ -20,7 +20,7 @@ import { runBackup } from '../services/backup.service.js'
 
 vi.mock( '../services/backup.service.js', () => ( { runBackup: vi.fn() } ) )
 
-const result = { file: 'mnemosyne-20261023-043000.db', bytes: 4096, at: '2026-10-22T20:30:00.000Z' }
+const result = { file: 'atlas-20261023-043000.db', bytes: 4096, at: '2026-10-22T20:30:00.000Z' }
 
 beforeEach( () => {
   vi.mocked( runBackup ).mockReset()

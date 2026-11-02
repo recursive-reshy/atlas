@@ -36,7 +36,7 @@ test( 'a member sees only their modules and none of the admin\'s data', async ( 
   const drawer = page.getByRole( 'navigation', { name: 'Main' } )
 
   await expect( drawer.getByRole( 'link', { name: 'Melete' } ) ).toBeVisible()
-  await expect( drawer.getByRole( 'link', { name: 'Transcriber' } ) ).toHaveCount( 0 )
+  await expect( drawer.getByRole( 'link', { name: 'Mnemosyne' } ) ).toHaveCount( 0 )
 
   // Settings has no Admin tab, and the admin's job is not theirs to see.
   await page.goto( '/settings/admin' )

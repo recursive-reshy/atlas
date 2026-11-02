@@ -26,7 +26,7 @@ if( !messageId || !validName ) {
 }
 
 await mkdir( config.dataDir, { recursive: true } )
-openDatabase( join( config.dataDir, 'mnemosyne.db' ) )
+openDatabase( join( config.dataDir, 'atlas.db' ) )
 
 try {
   // The fixture comes from the admin's mailbox

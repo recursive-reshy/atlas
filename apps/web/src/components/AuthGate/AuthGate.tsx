@@ -16,11 +16,11 @@ export function AuthGate(): ReactElement {
   const { me, isLoading, error } = useMe()
 
   if( isLoading ) {
-    return <GatePage title="Mnemosyne"><p role="status">Loading…</p></GatePage>
+    return <GatePage title="Atlas"><p role="status">Loading…</p></GatePage>
   }
 
   if( error !== null ) {
-    return <GatePage title="Mnemosyne"><Alert severity="error">{ error }</Alert></GatePage>
+    return <GatePage title="Atlas"><Alert severity="error">{ error }</Alert></GatePage>
   }
 
   if( me === null ) {

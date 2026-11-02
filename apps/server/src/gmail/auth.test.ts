@@ -396,7 +396,7 @@ describe( 'getGmailClient', () => {
 } )
 
 describe( 'withGmail', () => {
-  const reason = 'Google no longer accepts Mnemosyne\'s access '
+  const reason = 'Google no longer accepts Atlas\'s access '
     + '(revoked, expired, or the app is in Testing)'
 
   it( 'passes the client to the function and returns its result', async () => {

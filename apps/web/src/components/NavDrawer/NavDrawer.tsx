@@ -23,7 +23,7 @@ export const MINI_DRAWER_WIDTH = 64
 const NAV_ITEMS = [
   {
     module: 'transcriber',
-    label: 'Transcriber',
+    label: 'Mnemosyne',
     to: '/',
     icon: <TranscriberIcon />,
     isCurrent: ( pathname: string ): boolean => (

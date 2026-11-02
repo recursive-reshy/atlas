@@ -1,7 +1,7 @@
 // React
 import { useState } from 'react'
 
-const STORAGE_KEY = 'mnemosyne:nav-drawer'
+const STORAGE_KEY = 'atlas:nav-drawer'
 
 const readIsExpanded = (): boolean => {
   try {

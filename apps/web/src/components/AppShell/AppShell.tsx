@@ -61,7 +61,7 @@ export function AppShell( { children }: AppShellProps ): ReactElement {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" component="h1" noWrap>Mnemosyne</Typography>
+          <Typography variant="h6" component="h1" noWrap>Atlas</Typography>
         </Toolbar>
       </AppBar>
       <NavDrawer

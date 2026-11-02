@@ -48,7 +48,7 @@ RUN echo "--js-runtimes node" > /etc/yt-dlp.conf
 
 ENV NODE_ENV=production \
     PORT=3100 \
-    WORK_DIR=/tmp/mnemosyne \
+    WORK_DIR=/tmp/atlas \
     DATA_DIR=/data \
     VAULT_PATH=/vault \
     WEB_DIR=/app/web

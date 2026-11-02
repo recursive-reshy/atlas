@@ -8,9 +8,9 @@ import { isValidFolderName } from '@atlas/shared'
 
 const emptyAsUnset = ( value: unknown ): unknown => ( value === '' ? undefined : value )
 
-const defaultWorkDir = join( tmpdir(), 'mnemosyne' )
-const defaultDataDir = join( tmpdir(), 'mnemosyne-data' )
-const defaultBackupDir = join( tmpdir(), 'mnemosyne-backups' )
+const defaultWorkDir = join( tmpdir(), 'atlas' )
+const defaultDataDir = join( tmpdir(), 'atlas-data' )
+const defaultBackupDir = join( tmpdir(), 'atlas-backups' )
 const portSchema = z.coerce.number().int().min( 1 ).max( 65535 ).default( 3100 )
 const summaryTimeoutSchema = z.coerce.number().int().positive().default( 300_000 )
 const reviewTtlSchema = z.coerce.number().positive().default( 24 )

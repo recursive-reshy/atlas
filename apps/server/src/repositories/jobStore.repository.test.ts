@@ -513,8 +513,8 @@ describe( 'storage', () => {
   } )
 
   it( 'throws when a stored transcript no longer matches the schema', () => {
-    const directory = mkdtempSync( join( tmpdir(), 'mnemosyne-store-' ) )
-    const path = join( directory, 'mnemosyne.db' )
+    const directory = mkdtempSync( join( tmpdir(), 'atlas-store-' ) )
+    const path = join( directory, 'atlas.db' )
 
     try {
       openDatabase( path )

@@ -1,4 +1,4 @@
-# Layered over docker-compose.yml by e2e/run.sh under the project name mnemosyne-e2e.
+# Layered over docker-compose.yml by e2e/run.sh under the project name atlas-e2e.
 # The vaults folder, the backups folder and the secrets come from run.sh; nothing here touches the real instance.
 services:
   fakes:
@@ -13,9 +13,9 @@ services:
       timeout: 3s
       retries: 15
 
-  mnemosyne:
+  app:
     # Own image names, so a run never retags the images of the real instance.
-    image: mnemosyne-e2e:local
+    image: atlas-e2e:local
     # The base file reads the real .env; here every value is set below.
     env_file: !override []
     ports: !override
@@ -42,7 +42,7 @@ services:
         condition: service_healthy
 
   agent:
-    image: mnemosyne-agent-e2e:local
+    image: atlas-agent-e2e:local
     environment:
       ANTHROPIC_BASE_URL: http://fakes:4000
       ANTHROPIC_API_KEY: e2e

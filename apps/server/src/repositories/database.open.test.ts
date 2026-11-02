@@ -37,8 +37,8 @@ describe( 'openDatabase on a file', () => {
   let backupDir = ''
 
   beforeEach( () => {
-    directory = mkdtempSync( join( tmpdir(), 'mnemosyne-open-' ) )
-    databasePath = join( directory, 'mnemosyne.db' )
+    directory = mkdtempSync( join( tmpdir(), 'atlas-open-' ) )
+    databasePath = join( directory, 'atlas.db' )
     backupDir = join( directory, 'backups' )
     vi.useFakeTimers( { now: new Date( '2026-10-22T20:30:05Z' ), toFake: [ 'Date' ] } )
   } )

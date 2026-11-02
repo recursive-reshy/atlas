@@ -22,7 +22,7 @@ import {
 } from '../test-support/auth.js'
 import { config } from '../config.js'
 
-const vault = vi.hoisted( () => `/tmp/mnemosyne-vault-routes-${ process.pid }` )
+const vault = vi.hoisted( () => `/tmp/atlas-vault-routes-${ process.pid }` )
 
 // Its own vault, so this file can run beside the jobs routes tests, which wipe the shared one.
 vi.mock( '../config.js', async ( importOriginal ) => {

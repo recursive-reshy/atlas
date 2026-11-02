@@ -41,7 +41,7 @@ await mkdir( config.dataDir, { recursive: true } )
 
 try {
   const { setAside, preMigrationBackup } = openDatabase(
-    join( config.dataDir, 'mnemosyne.db' ),
+    join( config.dataDir, 'atlas.db' ),
     { backupDir: config.backupDir },
   )
 

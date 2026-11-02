@@ -54,7 +54,7 @@ vi.mock( '../clients/googleSignIn.client.js', async ( importOriginal ) => {
 
 const HOST = 'localhost:3100'
 const ORIGIN = `http://${ HOST }`
-const OAUTH_COOKIE = 'mnemosyne_oauth'
+const OAUTH_COOKIE = 'atlas_oauth'
 
 let fake: FakeGoogleSignIn
 
@@ -189,8 +189,8 @@ describe( 'GET /api/auth/callback', () => {
   const expectRefused = ( response: request.Response, error: string ): void => {
     expect( response.status ).toBe( 302 )
     expect( location( response ) ).toBe( `/signin?error=${ error }` )
-    expect( cookiesOf( response ).join( ';' ) ).not.toContain( 'mnemosyne_session=' )
-    expect( cookiesOf( response ).join( ';' ) ).toMatch( /mnemosyne_oauth=;/ )
+    expect( cookiesOf( response ).join( ';' ) ).not.toContain( 'atlas_session=' )
+    expect( cookiesOf( response ).join( ';' ) ).toMatch( /atlas_oauth=;/ )
   }
 
   const addMember = ( email = 'member@example.com' ): string => {
@@ -209,8 +209,8 @@ describe( 'GET /api/auth/callback', () => {
     const { state, cookie } = await begin( '/jobs/1' )
     const response = await callback( { state, cookie } )
     const sessionCookie = cookiesOf( response )
-      .find( ( line ) => line.startsWith( 'mnemosyne_session=' ) ) ?? ''
-    const token = cookieValue( response, 'mnemosyne_session' )
+      .find( ( line ) => line.startsWith( 'atlas_session=' ) ) ?? ''
+    const token = cookieValue( response, 'atlas_session' )
 
     expect( response.status ).toBe( 302 )
     expect( location( response ) ).toBe( '/jobs/1' )
@@ -222,7 +222,7 @@ describe( 'GET /api/auth/callback', () => {
       google_sub: 'sub-m',
       last_signin_at: expect.any( String ) as string,
     } )
-    expect( cookiesOf( response ).join( ';' ) ).toMatch( /mnemosyne_oauth=;/ )
+    expect( cookiesOf( response ).join( ';' ) ).toMatch( /atlas_oauth=;/ )
     expect( fake.exchanges[ 0 ] ).toMatchObject( { origin: ORIGIN, code: 'the-code' } )
     expect( fake.exchanges[ 0 ]?.codeVerifier )
       .toBe( payloadOf( cookie ).verifier )
@@ -309,7 +309,7 @@ describe( 'GET /api/auth/callback', () => {
         google_sub: 'sub-a',
       } )
       expect( listModules( admin?.id ?? '' ) ).toEqual( [] )
-      expect( findSession( hashToken( cookieValue( response, 'mnemosyne_session' ) ) )?.user_id )
+      expect( findSession( hashToken( cookieValue( response, 'atlas_session' ) ) )?.user_id )
         .toBe( admin?.id )
     } )
 
@@ -475,7 +475,7 @@ describe( 'POST /api/auth/signout', () => {
     const response = await agent.post( '/api/auth/signout' ).send( {} )
 
     expect( response.status ).toBe( 204 )
-    expect( cookiesOf( response ).join( ';' ) ).toMatch( /mnemosyne_session=;/ )
+    expect( cookiesOf( response ).join( ';' ) ).toMatch( /atlas_session=;/ )
     expect( findSession( hashToken( user.token ) ) ).toBeUndefined()
 
     const after = await signedIn( supertest.agent( app ), user ).get( '/api/me' )

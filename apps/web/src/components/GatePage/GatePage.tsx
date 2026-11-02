@@ -26,7 +26,7 @@ export function GatePage( { title, children }: GatePageProps ): ReactElement {
       <Paper variant="outlined" sx={ { width: '100%', maxWidth: '28rem', p: 3 } }>
         <Stack spacing={ 2 }>
           <Typography variant="overline" component="p" color="text.secondary">
-            Mnemosyne
+            Atlas
           </Typography>
           <Typography variant="h5" component="h1">{ title }</Typography>
           { children }

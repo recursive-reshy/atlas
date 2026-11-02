@@ -40,7 +40,7 @@ const isRoot = process.getuid?.() === 0
 let vault: string
 
 beforeEach( async () => {
-  vault = await mkdtemp( join( tmpdir(), 'mnemosyne-vault-' ) )
+  vault = await mkdtemp( join( tmpdir(), 'atlas-vault-' ) )
 } )
 
 afterEach( async () => {
@@ -131,7 +131,7 @@ describe( 'resolveFolder', () => {
 
   beforeEach( async () => {
     vault = await realpath( vault )
-    outside = await mkdtemp( join( tmpdir(), 'mnemosyne-outside-' ) )
+    outside = await mkdtemp( join( tmpdir(), 'atlas-outside-' ) )
   } )
 
   afterEach( async () => {
@@ -248,7 +248,7 @@ describe( 'listFolderTree', () => {
   } )
 
   it( 'does not follow or list symlinks', async () => {
-    const outside = await mkdtemp( join( tmpdir(), 'mnemosyne-outside-' ) )
+    const outside = await mkdtemp( join( tmpdir(), 'atlas-outside-' ) )
     await mkdir( join( outside, 'secret' ) )
     await mkdir( join( vault, 'Real' ) )
     await symlink( outside, join( vault, 'link' ) )
@@ -400,7 +400,7 @@ describe( 'resolveExistingFolder', () => {
   } )
 
   it( 'refuses a link that leads out of the vault', async () => {
-    const outside = await mkdtemp( join( tmpdir(), 'mnemosyne-outside-' ) )
+    const outside = await mkdtemp( join( tmpdir(), 'atlas-outside-' ) )
 
     try {
       await symlink( outside, join( vault, 'Escape' ) )
@@ -440,7 +440,7 @@ describe( 'existingFolderSync', () => {
   } )
 
   it( 'is false for a link that leads out of the vault', async () => {
-    const outside = await mkdtemp( join( tmpdir(), 'mnemosyne-outside-' ) )
+    const outside = await mkdtemp( join( tmpdir(), 'atlas-outside-' ) )
 
     try {
       await symlink( outside, join( vault, 'Escape' ) )

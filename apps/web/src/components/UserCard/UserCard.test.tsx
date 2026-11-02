@@ -64,14 +64,14 @@ describe( 'UserCard modules', () => {
   it( 'shows a switch per module, set from the user', () => {
     setup( adminUserFixture( { modules: [ 'melete' ] } ) )
 
-    expect( screen.getByRole( 'switch', { name: 'Transcriber' } ) ).not.toBeChecked()
+    expect( screen.getByRole( 'switch', { name: 'Mnemosyne' } ) ).not.toBeChecked()
     expect( screen.getByRole( 'switch', { name: 'Melete' } ) ).toBeChecked()
   } )
 
   it( 'turns a module on, keeping the others', async () => {
     const { user, onModulesChange } = setup( adminUserFixture( { modules: [ 'melete' ] } ) )
 
-    await user.click( screen.getByRole( 'switch', { name: 'Transcriber' } ) )
+    await user.click( screen.getByRole( 'switch', { name: 'Mnemosyne' } ) )
 
     expect( onModulesChange ).toHaveBeenCalledWith( [ 'transcriber', 'melete' ] )
   } )

@@ -34,7 +34,7 @@ let root = ''
 let dir = ''
 
 beforeEach( async () => {
-  root = await mkdtemp( join( tmpdir(), 'mnemosyne-backup-test-' ) )
+  root = await mkdtemp( join( tmpdir(), 'atlas-backup-test-' ) )
   dir = join( root, 'backups' )
 
   closeDatabase()
@@ -52,12 +52,12 @@ afterEach( async () => {
 describe( 'backupName', () => {
   it( 'uses Singapore time, without colons', () => {
     expect( backupName( new Date( '2026-10-22T20:30:05Z' ) ) )
-      .toBe( 'mnemosyne-20261023-043005.db' )
+      .toBe( 'atlas-20261023-043005.db' )
   } )
 
   it( 'zero-pads a midnight hour', () => {
     expect( backupName( new Date( '2026-10-22T16:00:00Z' ) ) )
-      .toBe( 'mnemosyne-20261023-000000.db' )
+      .toBe( 'atlas-20261023-000000.db' )
   } )
 } )
 
@@ -68,11 +68,11 @@ describe( 'runBackup', () => {
     const result = await runBackup( { dir } )
 
     expect( BackupResult.parse( result ) ).toEqual( {
-      file: 'mnemosyne-20261023-043000.db',
+      file: 'atlas-20261023-043000.db',
       bytes: ( await stat( join( dir, result.file ) ) ).size,
       at: '2026-10-22T20:30:00.000Z',
     } )
-    expect( await readdir( dir ) ).toEqual( [ 'mnemosyne-20261023-043000.db' ] )
+    expect( await readdir( dir ) ).toEqual( [ 'atlas-20261023-043000.db' ] )
 
     const copy = new Database( join( dir, result.file ), { readonly: true } )
 
@@ -127,11 +127,11 @@ describe( 'runBackup', () => {
 
   it( 'never touches a finished backup already in the folder', async () => {
     await mkdir( dir, { recursive: true } )
-    await writeFile( join( dir, 'mnemosyne-20200101-000000.db' ), 'old' )
+    await writeFile( join( dir, 'atlas-20200101-000000.db' ), 'old' )
 
     await runBackup( { dir } )
 
-    expect( await readFile( join( dir, 'mnemosyne-20200101-000000.db' ), 'utf8' ) ).toBe( 'old' )
+    expect( await readFile( join( dir, 'atlas-20200101-000000.db' ), 'utf8' ) ).toBe( 'old' )
     expect( await readdir( dir ) ).toHaveLength( 2 )
   } )
 } )

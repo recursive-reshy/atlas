@@ -29,7 +29,7 @@ describe( 'AddUserDialog', () => {
     expect( screen.getByRole( 'dialog', { name: 'Add user' } ) ).toBeInTheDocument()
     expect( screen.getByRole( 'textbox', { name: 'Google email' } ) ).toBeInTheDocument()
     expect( screen.getByRole( 'textbox', { name: 'Name' } ) ).toBeInTheDocument()
-    expect( screen.getByRole( 'checkbox', { name: 'Transcriber' } ) ).not.toBeChecked()
+    expect( screen.getByRole( 'checkbox', { name: 'Mnemosyne' } ) ).not.toBeChecked()
     expect( screen.getByRole( 'checkbox', { name: 'Melete' } ) ).not.toBeChecked()
   } )
 

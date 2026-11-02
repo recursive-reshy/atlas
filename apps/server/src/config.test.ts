@@ -24,9 +24,9 @@ describe( 'loadConfig', () => {
     expect( loadConfig( base ) ).toEqual( {
       port: 3100,
       whisperUrl: 'http://localhost:8178',
-      workDir: join( tmpdir(), 'mnemosyne' ),
-      dataDir: join( tmpdir(), 'mnemosyne-data' ),
-      backupDir: join( tmpdir(), 'mnemosyne-backups' ),
+      workDir: join( tmpdir(), 'atlas' ),
+      dataDir: join( tmpdir(), 'atlas-data' ),
+      backupDir: join( tmpdir(), 'atlas-backups' ),
       whisperModel: 'large-v3-turbo',
       webDir: undefined,
       anthropicApiKey: 'sk-test',
@@ -154,13 +154,13 @@ describe( 'loadConfig', () => {
 
   it( 'treats an empty DATA_DIR as unset', () => {
     expect( loadConfig( { ...base, DATA_DIR: '' } ).dataDir ).toBe(
-      join( tmpdir(), 'mnemosyne-data' ),
+      join( tmpdir(), 'atlas-data' ),
     )
   } )
 
   it( 'treats an empty BACKUP_DIR as unset', () => {
     expect( loadConfig( { ...base, BACKUP_DIR: '' } ).backupDir ).toBe(
-      join( tmpdir(), 'mnemosyne-backups' ),
+      join( tmpdir(), 'atlas-backups' ),
     )
   } )
 

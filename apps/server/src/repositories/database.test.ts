@@ -38,8 +38,8 @@ describe( 'openDatabase and closeDatabase', () => {
   let databasePath = ''
 
   beforeEach( () => {
-    directory = mkdtempSync( join( tmpdir(), 'mnemosyne-store-' ) )
-    databasePath = join( directory, 'mnemosyne.db' )
+    directory = mkdtempSync( join( tmpdir(), 'atlas-store-' ) )
+    databasePath = join( directory, 'atlas.db' )
   } )
 
   afterEach( () => {
@@ -117,7 +117,7 @@ describe( 'openDatabase and closeDatabase', () => {
 
     it( 'is refused with a message naming both schema versions', () => {
       expect( () => openDatabase( databasePath ) ).toThrow(
-        `This database is from a newer version of Mnemosyne (schema ${ newer }, `
+        `This database is from a newer version of Atlas (schema ${ newer }, `
         + `this version knows ${ CURRENT_VERSION }). `
         + 'Restore an older backup or upgrade the app.',
       )

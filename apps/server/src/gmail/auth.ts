@@ -31,7 +31,7 @@ const connectionOf = ( userId: string ): { kind: 'gmail_connection', id: string 
 const STATE_TTL_MS = 10 * 60 * 1000
 const MAX_STATES = 20
 const UNREADABLE_REASON = 'The stored Gmail access can\'t be read; reconnect'
-const REVOKED_REASON = 'Google no longer accepts Mnemosyne\'s access '
+const REVOKED_REASON = 'Google no longer accepts Atlas\'s access '
   + '(revoked, expired, or the app is in Testing)'
 
 export class GmailNotConfiguredError extends Error {

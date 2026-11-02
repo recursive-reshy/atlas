@@ -36,7 +36,7 @@ let webDir: string
 let app: typeof import( './app.js' )[ 'app' ]
 
 beforeAll( async () => {
-  webDir = await mkdtemp( join( tmpdir(), 'mnemosyne-appweb-' ) )
+  webDir = await mkdtemp( join( tmpdir(), 'atlas-appweb-' ) )
   await writeFile( join( webDir, 'index.html' ), '<div id="root"></div>' )
   state.webDir = webDir
 

@@ -43,7 +43,7 @@ describe( 'App', () => {
   it( 'shows the heading and the form on the home route', () => {
     renderWithRouter( '/' )
 
-    expect( screen.getByRole( 'heading', { level: 1, name: 'Mnemosyne' } ) ).toBeInTheDocument()
+    expect( screen.getByRole( 'heading', { level: 1, name: 'Atlas' } ) ).toBeInTheDocument()
     expect( screen.getByRole( 'form', { name: 'Add a video or article' } ) ).toBeInTheDocument()
   } )
 
@@ -70,7 +70,7 @@ describe( 'App', () => {
     mockedUseJob.mockReturnValue( { job: jobFixture( { status: 'downloading' } ), error: null } )
     renderWithRouter( `/jobs/${ jobId }` )
 
-    expect( screen.getByRole( 'heading', { level: 1, name: 'Mnemosyne' } ) ).toBeInTheDocument()
+    expect( screen.getByRole( 'heading', { level: 1, name: 'Atlas' } ) ).toBeInTheDocument()
     expect( screen.getByRole( 'status' ) ).toHaveTextContent( 'Downloading audio…' )
     expect( screen.queryByRole( 'form', { name: 'Add a video or article' } ) )
       .not.toBeInTheDocument()

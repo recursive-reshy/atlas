@@ -1,6 +1,6 @@
 {
-  "name": "Mnemosyne",
-  "short_name": "Mnemosyne",
+  "name": "Atlas",
+  "short_name": "Atlas",
   "start_url": "/melete",
   "scope": "/",
   "display": "standalone",

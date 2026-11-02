@@ -120,7 +120,7 @@ export const fetchResource = async (
   const controller = new AbortController()
   const timer = setTimeout( () => controller.abort(), timeoutMs )
   const headers: Record< string, string > = {
-    'User-Agent': `Mnemosyne/${ appVersion } (personal reader)`,
+    'User-Agent': `Atlas/${ appVersion } (personal reader)`,
     Accept: accept,
   }
 

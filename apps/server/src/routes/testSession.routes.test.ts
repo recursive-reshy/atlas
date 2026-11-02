@@ -58,7 +58,7 @@ const meWith = async ( cookie: string[] ): Promise< Me > => {
 }
 
 beforeEach( async () => {
-  base = await mkdtemp( join( tmpdir(), 'mnemosyne-test-session-' ) )
+  base = await mkdtemp( join( tmpdir(), 'atlas-test-session-' ) )
   originalVaultsPath = config.vaultsPath
   config.vaultsPath = base
   app = buildApp()

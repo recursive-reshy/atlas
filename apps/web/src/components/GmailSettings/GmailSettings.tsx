@@ -17,9 +17,9 @@ import { useGmailRedirectNotice } from '#src/hooks/useGmailRedirectNotice'
 import { ConfirmDialog } from '../ConfirmDialog'
 import { GmailSources } from '../GmailSources'
 
-const DISCONNECT_MESSAGE = 'Mnemosyne will revoke its access and forget the stored credentials. '
+const DISCONNECT_MESSAGE = 'Atlas will revoke its access and forget the stored credentials. '
   + 'Your sources, inbox items and collected jobs are kept.'
-const SETUP_URL = 'https://github.com/recursive-reshy/mnemosyne#google-cloud-setup-for-gmail'
+const SETUP_URL = 'https://github.com/recursive-reshy/atlas#google-cloud-setup-for-gmail'
 
 interface AccountCardProps {
   account: GmailAccount

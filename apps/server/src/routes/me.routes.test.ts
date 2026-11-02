@@ -23,7 +23,7 @@ let base: string
 let originalVaultsPath: string
 
 beforeEach( async () => {
-  base = await mkdtemp( join( tmpdir(), 'mnemosyne-me-' ) )
+  base = await mkdtemp( join( tmpdir(), 'atlas-me-' ) )
   originalVaultsPath = config.vaultsPath
   config.vaultsPath = base
 } )

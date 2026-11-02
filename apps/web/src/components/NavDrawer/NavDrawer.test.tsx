@@ -56,29 +56,29 @@ describe( 'NavDrawer, wide', () => {
   it( 'lists Transcriber as a link to the home page', () => {
     renderWithClient( <NavDrawer { ...defaults } /> )
 
-    expect( screen.getByRole( 'link', { name: 'Transcriber' } ) ).toHaveAttribute( 'href', '/' )
+    expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) ).toHaveAttribute( 'href', '/' )
   } )
 
   it.each( [ '/', '/jobs/3f2b8c1e' ] )( 'marks Transcriber as current on %s', ( route ) => {
     renderWithClient( <NavDrawer { ...defaults } />, { route } )
 
-    expect( screen.getByRole( 'link', { name: 'Transcriber' } ) )
+    expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) )
       .toHaveAttribute( 'aria-current', 'page' )
   } )
 
   it( 'keeps the item name when collapsed to icons', () => {
     renderWithClient( <NavDrawer { ...defaults } isExpanded={ false } /> )
 
-    expect( screen.getByRole( 'link', { name: 'Transcriber' } ) ).toBeInTheDocument()
+    expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) ).toBeInTheDocument()
   } )
 
   it( 'shows a tooltip with the name on hover when collapsed', async () => {
     const user = userEvent.setup()
     renderWithClient( <NavDrawer { ...defaults } isExpanded={ false } /> )
 
-    await user.hover( screen.getByRole( 'link', { name: 'Transcriber' } ) )
+    await user.hover( screen.getByRole( 'link', { name: 'Mnemosyne' } ) )
 
-    expect( await screen.findByRole( 'tooltip' ) ).toHaveTextContent( 'Transcriber' )
+    expect( await screen.findByRole( 'tooltip' ) ).toHaveTextContent( 'Mnemosyne' )
   } )
 
   it( 'has the colour mode control, as a group when expanded', () => {
@@ -98,7 +98,7 @@ describe( 'NavDrawer, Melete item', () => {
   it( 'links to Melete, after Transcriber and before Settings', () => {
     renderWithClient( <NavDrawer { ...defaults } /> )
 
-    const transcriber = screen.getByRole( 'link', { name: 'Transcriber' } )
+    const transcriber = screen.getByRole( 'link', { name: 'Mnemosyne' } )
     const melete = screen.getByRole( 'link', { name: 'Melete' } )
     const settings = screen.getByRole( 'link', { name: 'Settings' } )
 
@@ -116,7 +116,7 @@ describe( 'NavDrawer, Melete item', () => {
 
       expect( screen.getByRole( 'link', { name: 'Melete' } ) )
         .toHaveAttribute( 'aria-current', 'page' )
-      expect( screen.getByRole( 'link', { name: 'Transcriber' } ) )
+      expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) )
         .not.toHaveAttribute( 'aria-current' )
     },
   )
@@ -148,7 +148,7 @@ describe( 'NavDrawer, Settings item', () => {
   it( 'sits above the colour mode control, after the module items', () => {
     renderWithClient( <NavDrawer { ...defaults } /> )
 
-    const transcriber = screen.getByRole( 'link', { name: 'Transcriber' } )
+    const transcriber = screen.getByRole( 'link', { name: 'Mnemosyne' } )
     const settings = screen.getByRole( 'link', { name: 'Settings' } )
     const colourMode = screen.getByRole( 'group', { name: 'Colour mode' } )
 
@@ -163,7 +163,7 @@ describe( 'NavDrawer, Settings item', () => {
 
     expect( screen.getByRole( 'link', { name: 'Settings' } ) )
       .toHaveAttribute( 'aria-current', 'page' )
-    expect( screen.getByRole( 'link', { name: 'Transcriber' } ) )
+    expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) )
       .not.toHaveAttribute( 'aria-current' )
   } )
 
@@ -211,13 +211,13 @@ describe( 'NavDrawer, narrow', () => {
   it( 'shows nothing while closed', () => {
     renderWithClient( <NavDrawer { ...defaults } isNarrow /> )
 
-    expect( screen.queryByRole( 'link', { name: 'Transcriber' } ) ).not.toBeInTheDocument()
+    expect( screen.queryByRole( 'link', { name: 'Mnemosyne' } ) ).not.toBeInTheDocument()
   } )
 
   it( 'lists the items with labels when open, even if the wide drawer is collapsed', () => {
     renderWithClient( <NavDrawer { ...defaults } isNarrow isOpen isExpanded={ false } /> )
 
-    expect( screen.getByRole( 'link', { name: 'Transcriber' } ) ).toBeVisible()
+    expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) ).toBeVisible()
     expect( screen.getByRole( 'group', { name: 'Colour mode' } ) ).toBeInTheDocument()
   } )
 
@@ -226,7 +226,7 @@ describe( 'NavDrawer, narrow', () => {
     const onClose = vi.fn()
     renderWithClient( <NavDrawer { ...defaults } isNarrow isOpen onClose={ onClose } /> )
 
-    await user.click( screen.getByRole( 'link', { name: 'Transcriber' } ) )
+    await user.click( screen.getByRole( 'link', { name: 'Mnemosyne' } ) )
 
     expect( onClose ).toHaveBeenCalledTimes( 1 )
   } )
@@ -330,7 +330,7 @@ describe( 'NavDrawer, by module', () => {
   it( 'lists both modules for the admin', () => {
     renderWithClient( <NavDrawer { ...defaults } /> )
 
-    expect( screen.getByRole( 'link', { name: 'Transcriber' } ) ).toBeInTheDocument()
+    expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) ).toBeInTheDocument()
     expect( screen.getByRole( 'link', { name: 'Melete' } ) ).toBeInTheDocument()
   } )
 
@@ -338,7 +338,7 @@ describe( 'NavDrawer, by module', () => {
     signedInAs( memberFixture( { modules: [ 'transcriber' ] } ) )
     renderWithClient( <NavDrawer { ...defaults } /> )
 
-    expect( screen.getByRole( 'link', { name: 'Transcriber' } ) ).toBeInTheDocument()
+    expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) ).toBeInTheDocument()
     expect( screen.queryByRole( 'link', { name: 'Melete' } ) ).not.toBeInTheDocument()
   } )
 
@@ -347,7 +347,7 @@ describe( 'NavDrawer, by module', () => {
     renderWithClient( <NavDrawer { ...defaults } /> )
 
     expect( screen.getByRole( 'link', { name: 'Melete' } ) ).toBeInTheDocument()
-    expect( screen.queryByRole( 'link', { name: 'Transcriber' } ) ).not.toBeInTheDocument()
+    expect( screen.queryByRole( 'link', { name: 'Mnemosyne' } ) ).not.toBeInTheDocument()
   } )
 
   it( 'keeps Settings for every member', () => {

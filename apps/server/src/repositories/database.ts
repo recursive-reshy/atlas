@@ -478,7 +478,7 @@ export const openDatabase = (
     // Checked before anything is written, so a refused file is left exactly as it was.
     if( stored > target ) {
       throw new Error(
-        `This database is from a newer version of Mnemosyne (schema ${ stored }, `
+        `This database is from a newer version of Atlas (schema ${ stored }, `
         + `this version knows ${ target }). `
         + 'Restore an older backup or upgrade the app.',
       )

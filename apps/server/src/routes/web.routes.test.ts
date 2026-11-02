@@ -24,7 +24,7 @@ let webDir: string
 const app = express()
 
 beforeAll( async () => {
-  webDir = await mkdtemp( join( tmpdir(), 'mnemosyne-web-' ) )
+  webDir = await mkdtemp( join( tmpdir(), 'atlas-web-' ) )
   await mkdir( join( webDir, 'assets' ) )
   await writeFile( join( webDir, 'index.html' ), '<div id="root"></div>' )
   await writeFile( join( webDir, 'assets', 'app-abc123.js' ), 'console.log( 1 )' )

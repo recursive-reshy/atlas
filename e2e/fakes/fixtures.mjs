@@ -11,7 +11,7 @@ const articleHtml = ( title, paragraphs ) => `<!doctype html>
 <h1>${ title }</h1>
 ${ paragraphs.map( paragraph ).join( '\n' ) }
 </article>
-<footer>Fixture page for the Mnemosyne end-to-end test.</footer>
+<footer>Fixture page for the Atlas end-to-end test.</footer>
 </body>
 </html>
 `

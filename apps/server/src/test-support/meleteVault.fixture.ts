@@ -48,7 +48,7 @@ Each value in Rust has exactly one owner.
 
 // A learning root with two subjects, plus everything a scan has to skip or ignore
 export const createMeleteVault = async (): Promise< MeleteVault > => {
-  const base = await realpath( await mkdtemp( join( tmpdir(), 'mnemosyne-melete-' ) ) )
+  const base = await realpath( await mkdtemp( join( tmpdir(), 'atlas-melete-' ) ) )
   const vaultDir = 'vault'
   const vaultPath = join( base, vaultDir )
   const outsidePath = join( base, 'outside' )

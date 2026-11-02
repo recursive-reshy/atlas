@@ -229,7 +229,7 @@ describe( 'updateSettings for Melete', () => {
   let originalVaultsPath: string
 
   beforeEach( async () => {
-    vaultsDir = await mkdtemp( join( tmpdir(), 'mnemosyne-settings-' ) )
+    vaultsDir = await mkdtemp( join( tmpdir(), 'atlas-settings-' ) )
     vaultDir = join( vaultsDir, DEFAULT_TEST_VAULT )
     await mkdir( vaultDir )
     originalVaultsPath = config.vaultsPath
@@ -287,7 +287,7 @@ describe( 'updateSettings for Melete', () => {
   } )
 
   it( 'refuses a folder that leads out of the vault', async () => {
-    const outside = await mkdtemp( join( tmpdir(), 'mnemosyne-outside-' ) )
+    const outside = await mkdtemp( join( tmpdir(), 'atlas-outside-' ) )
 
     try {
       await symlink( outside, join( vaultDir, 'Learning' ) )

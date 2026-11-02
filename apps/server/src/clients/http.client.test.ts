@@ -73,7 +73,7 @@ describe( 'fetchResource', () => {
 
     await fetchResource( `${ base }/`, { ...options, accept: 'application/rss+xml' } )
 
-    expect( seen[ 'user-agent' ] ).toBe( `Mnemosyne/${ appVersion } (personal reader)` )
+    expect( seen[ 'user-agent' ] ).toBe( `Atlas/${ appVersion } (personal reader)` )
     expect( seen.accept ).toBe( 'application/rss+xml' )
   } )
 

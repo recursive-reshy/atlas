@@ -38,7 +38,7 @@ const exists = async ( path: string ): Promise< boolean > => {
 }
 
 beforeEach( async () => {
-  base = await realpath( await mkdtemp( join( tmpdir(), 'mnemosyne-onboarding-' ) ) )
+  base = await realpath( await mkdtemp( join( tmpdir(), 'atlas-onboarding-' ) ) )
   outside = join( base, 'outside' )
   await mkdir( outside )
   await mkdir( join( base, 'vaults' ) )

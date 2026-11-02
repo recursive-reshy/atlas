@@ -13,7 +13,7 @@ import { runBackup } from './backups.api'
 
 const fetchMock = vi.fn()
 const EMPTY_JSON = { headers: { 'Content-Type': 'application/json' }, body: '{}' }
-const result = { file: 'mnemosyne-20261023-043000.db', bytes: 4096, at: '2026-10-22T20:30:00.000Z' }
+const result = { file: 'atlas-20261023-043000.db', bytes: 4096, at: '2026-10-22T20:30:00.000Z' }
 
 beforeEach( () => {
   fetchMock.mockReset()

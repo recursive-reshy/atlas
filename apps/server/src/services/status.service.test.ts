@@ -228,13 +228,13 @@ describe( 'getStatus', () => {
         'backup',
         'default',
         at( 5 ),
-        JSON.stringify( { file: 'mnemosyne-20261022-180500.db', bytes: 1_572_864 } ),
+        JSON.stringify( { file: 'atlas-20261022-180500.db', bytes: 1_572_864 } ),
       )
 
       expect( rowOf( 'backup' ) ).toMatchObject( {
         state: 'ok',
         last_success_at: at( 5 ),
-        detail: 'mnemosyne-20261022-180500.db, 1.5 MB',
+        detail: 'atlas-20261022-180500.db, 1.5 MB',
       } )
     } )
 

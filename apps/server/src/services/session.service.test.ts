@@ -78,8 +78,8 @@ describe( 'cookieOptions', () => {
     expect( cookieOptions( true ).secure ).toBe( true )
   } )
 
-  it( 'names the cookie mnemosyne_session', () => {
-    expect( SESSION_COOKIE ).toBe( 'mnemosyne_session' )
+  it( 'names the cookie atlas_session', () => {
+    expect( SESSION_COOKIE ).toBe( 'atlas_session' )
   } )
 } )
 

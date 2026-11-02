@@ -12,7 +12,7 @@ import {
 // App
 import { useNavDrawer } from './useNavDrawer'
 
-const KEY = 'mnemosyne:nav-drawer'
+const KEY = 'atlas:nav-drawer'
 
 beforeEach( () => {
   window.localStorage.clear()

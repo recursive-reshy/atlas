@@ -7,4 +7,4 @@ import { join } from 'node:path'
 // that would fail tests at random. Must run before anything imports the config.
 const worker = process.env.VITEST_POOL_ID ?? '0'
 
-process.env.VAULTS_PATH = join( tmpdir(), `mnemosyne-test-vaults-${ worker }` )
+process.env.VAULTS_PATH = join( tmpdir(), `atlas-test-vaults-${ worker }` )

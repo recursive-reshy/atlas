@@ -171,7 +171,7 @@ describe( 'PATCH /api/settings for Melete', () => {
   let originalVaultsPath: string
 
   beforeEach( async () => {
-    vaultsDir = await mkdtemp( join( tmpdir(), 'mnemosyne-settings-routes-' ) )
+    vaultsDir = await mkdtemp( join( tmpdir(), 'atlas-settings-routes-' ) )
     vaultDir = join( vaultsDir, DEFAULT_TEST_VAULT )
     await mkdir( vaultDir )
     originalVaultsPath = config.vaultsPath

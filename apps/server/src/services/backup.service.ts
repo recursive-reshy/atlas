@@ -53,7 +53,7 @@ const makeSelfContained = ( path: string ): void => {
   }
 }
 
-export const backupName = ( date: Date ): string => `mnemosyne-${ backupStamp( date ) }.db`
+export const backupName = ( date: Date ): string => `atlas-${ backupStamp( date ) }.db`
 
 let running = false
 

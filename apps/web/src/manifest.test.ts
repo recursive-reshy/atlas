@@ -22,8 +22,8 @@ const manifest = JSON.parse( manifestText ) as Manifest
 
 describe( 'manifest.webmanifest', () => {
   it( 'names the app and opens it standalone on Melete', () => {
-    expect( manifest.name ).toBe( 'Mnemosyne' )
-    expect( manifest.short_name ).toBe( 'Mnemosyne' )
+    expect( manifest.name ).toBe( 'Atlas' )
+    expect( manifest.short_name ).toBe( 'Atlas' )
     expect( manifest.display ).toBe( 'standalone' )
     expect( manifest.scope ).toBe( '/' )
     expect( manifest.start_url ).toBe( '/melete' )
@@ -68,7 +68,7 @@ describe( 'index.html', () => {
     '<meta name="theme-color" content="#12141a" media="(prefers-color-scheme: dark)"',
     '<meta name="apple-mobile-web-app-capable" content="yes"',
     '<meta name="mobile-web-app-capable" content="yes"',
-    '<meta name="apple-mobile-web-app-title" content="Mnemosyne"',
+    '<meta name="apple-mobile-web-app-title" content="Atlas"',
     '<meta name="apple-mobile-web-app-status-bar-style" content="default"',
     'content="width=device-width, initial-scale=1.0, viewport-fit=cover"',
   ] )( 'contains %s', ( fragment ) => {

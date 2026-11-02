@@ -1,7 +1,9 @@
+name: atlas
+
 services:
-  mnemosyne:
+  app:
     build: .
-    image: mnemosyne:local
+    image: atlas-app:local
     ports:
       - "127.0.0.1:3100:3100"
     env_file: .env
@@ -13,7 +15,7 @@ services:
       STATUS_CHECK_INTERVAL_MINUTES: ${STATUS_CHECK_INTERVAL_MINUTES:-2}
       BACKUP_DIR: /backups
     volumes:
-      - mnemosyne-data:/data
+      - data:/data
       - ${VAULTS_HOST_PATH:?Set VAULTS_HOST_PATH in .env to the folder that holds the vaults}:/vaults
       - ${BACKUP_HOST_PATH:?Set BACKUP_HOST_PATH in .env to your backups folder}:/backups
     extra_hosts:
@@ -33,7 +35,7 @@ services:
 
   agent:
     build: apps/agent
-    image: mnemosyne-agent:local
+    image: atlas-agent:local
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY in .env}
       AGENT_SECRET: ${AGENT_SECRET:?Set AGENT_SECRET in .env}
@@ -53,4 +55,4 @@ services:
       retries: 3
 
 volumes:
-  mnemosyne-data:
+  data:

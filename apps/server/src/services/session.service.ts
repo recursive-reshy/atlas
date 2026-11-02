@@ -17,7 +17,7 @@ import { listModules } from '../repositories/userModules.repository.js'
 import { findUserById } from '../repositories/users.repository.js'
 import type { StoredUser } from '../repositories/users.repository.js'
 
-export const SESSION_COOKIE = 'mnemosyne_session'
+export const SESSION_COOKIE = 'atlas_session'
 
 const DAY_MS = 24 * 60 * 60 * 1000
 const REFRESH_AFTER_MS = 60 * 60 * 1000

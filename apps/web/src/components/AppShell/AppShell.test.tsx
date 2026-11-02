@@ -33,7 +33,7 @@ describe( 'AppShell, wide', () => {
   it( 'shows the app name as the h1 and the page content', () => {
     renderWithClient( <AppShell><p>Page</p></AppShell> )
 
-    expect( screen.getByRole( 'heading', { level: 1, name: 'Mnemosyne' } ) ).toBeInTheDocument()
+    expect( screen.getByRole( 'heading', { level: 1, name: 'Atlas' } ) ).toBeInTheDocument()
     expect( screen.getByRole( 'main' ) ).toHaveTextContent( 'Page' )
   } )
 
@@ -51,7 +51,7 @@ describe( 'AppShell, wide', () => {
 
     expect( drawerId ).toBeTruthy()
     expect( document.getElementById( drawerId! ) ).toContainElement(
-      screen.getByRole( 'link', { name: 'Transcriber' } ),
+      screen.getByRole( 'link', { name: 'Mnemosyne' } ),
     )
   } )
 
@@ -63,8 +63,8 @@ describe( 'AppShell, wide', () => {
 
     expect( hamburger() ).toHaveAccessibleName( 'Open navigation' )
     expect( hamburger() ).toHaveAttribute( 'aria-expanded', 'false' )
-    expect( screen.getByRole( 'link', { name: 'Transcriber' } ) ).toBeInTheDocument()
-    expect( window.localStorage.getItem( 'mnemosyne:nav-drawer' ) ).toBe( 'collapsed' )
+    expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) ).toBeInTheDocument()
+    expect( window.localStorage.getItem( 'atlas:nav-drawer' ) ).toBe( 'collapsed' )
 
     await user.click( hamburger() )
 
@@ -72,7 +72,7 @@ describe( 'AppShell, wide', () => {
   } )
 
   it( 'starts collapsed when that was the stored choice', () => {
-    window.localStorage.setItem( 'mnemosyne:nav-drawer', 'collapsed' )
+    window.localStorage.setItem( 'atlas:nav-drawer', 'collapsed' )
     renderWithClient( <AppShell><p>Page</p></AppShell> )
 
     expect( hamburger() ).toHaveAttribute( 'aria-expanded', 'false' )
@@ -90,11 +90,11 @@ describe( 'AppShell, narrow', () => {
 
     expect( hamburger() ).toHaveAccessibleName( 'Open navigation' )
     expect( hamburger() ).toHaveAttribute( 'aria-expanded', 'false' )
-    expect( screen.queryByRole( 'link', { name: 'Transcriber' } ) ).not.toBeInTheDocument()
+    expect( screen.queryByRole( 'link', { name: 'Mnemosyne' } ) ).not.toBeInTheDocument()
 
     await user.click( hamburger() )
 
-    expect( await screen.findByRole( 'link', { name: 'Transcriber' } ) ).toBeVisible()
+    expect( await screen.findByRole( 'link', { name: 'Mnemosyne' } ) ).toBeVisible()
   } )
 
   it( 'closes the overlay when an item is chosen, and goes there', async () => {
@@ -105,11 +105,11 @@ describe( 'AppShell, narrow', () => {
     )
 
     await user.click( hamburger() )
-    await user.click( await screen.findByRole( 'link', { name: 'Transcriber' } ) )
+    await user.click( await screen.findByRole( 'link', { name: 'Mnemosyne' } ) )
 
     expect( location().pathname ).toBe( '/' )
     await waitFor( () => {
-      expect( screen.queryByRole( 'link', { name: 'Transcriber' } ) ).not.toBeInTheDocument()
+      expect( screen.queryByRole( 'link', { name: 'Mnemosyne' } ) ).not.toBeInTheDocument()
     } )
   } )
 
@@ -118,11 +118,11 @@ describe( 'AppShell, narrow', () => {
     renderWithClient( <AppShell><p>Page</p></AppShell> )
 
     await user.click( hamburger() )
-    await screen.findByRole( 'link', { name: 'Transcriber' } )
+    await screen.findByRole( 'link', { name: 'Mnemosyne' } )
     await user.keyboard( '{Escape}' )
 
     await waitFor( () => {
-      expect( screen.queryByRole( 'link', { name: 'Transcriber' } ) ).not.toBeInTheDocument()
+      expect( screen.queryByRole( 'link', { name: 'Mnemosyne' } ) ).not.toBeInTheDocument()
     } )
   } )
 
@@ -132,6 +132,6 @@ describe( 'AppShell, narrow', () => {
 
     await user.click( hamburger() )
 
-    expect( window.localStorage.getItem( 'mnemosyne:nav-drawer' ) ).toBeNull()
+    expect( window.localStorage.getItem( 'atlas:nav-drawer' ) ).toBeNull()
   } )
 } )

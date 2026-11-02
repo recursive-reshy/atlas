@@ -34,7 +34,7 @@ import { seedUser } from './seedUser.service.js'
 import { vaultFolderMissing } from './vault.service.js'
 import { createSession } from './session.service.js'
 
-export const OAUTH_COOKIE = 'mnemosyne_oauth'
+export const OAUTH_COOKIE = 'atlas_oauth'
 export const OAUTH_COOKIE_MAX_AGE_MS = 10 * 60 * 1000
 
 export type SignInFailure = 'not_allowed' | 'expired' | 'failed'
@@ -64,7 +64,7 @@ const cookieKey = (): Buffer => {
     'sha256',
     config.gmail.encryptionKey,
     Buffer.alloc( 0 ),
-    'mnemosyne-oauth-cookie',
+    'atlas-oauth-cookie',
     32,
   ) )
 }

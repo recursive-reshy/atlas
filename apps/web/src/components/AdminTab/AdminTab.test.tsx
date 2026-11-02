@@ -174,7 +174,7 @@ describe( 'AdminTab', () => {
       'new@example.com',
     )
     await userEvent.type( screen.getByRole( 'textbox', { name: 'Name' } ), 'New' )
-    await userEvent.click( screen.getByRole( 'checkbox', { name: 'Transcriber' } ) )
+    await userEvent.click( screen.getByRole( 'checkbox', { name: 'Mnemosyne' } ) )
     await userEvent.click(
       within( screen.getByRole( 'dialog' ) ).getByRole( 'button', { name: 'Add user' } ),
     )

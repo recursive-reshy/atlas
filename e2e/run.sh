@@ -7,7 +7,7 @@ set -euo pipefail
 ROOT="$( cd "$( dirname "${BASH_SOURCE[ 0 ]}" )/.." && pwd )"
 cd "$ROOT"
 
-PROJECT=mnemosyne-e2e
+PROJECT=atlas-e2e
 COMPOSE=( docker compose -p "$PROJECT" --project-directory "$ROOT" -f "$ROOT/docker-compose.yml" -f "$ROOT/e2e/docker-compose.e2e.yml" )
 
 VAULTS_HOST_PATH="$( mktemp -d )"
