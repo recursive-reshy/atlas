@@ -92,7 +92,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 ---
 
 ## Checkpoint E: Phase 7 (cutover, with Naresh)
-**Plan:** ⬜ [`plans/checkpoint-e.md`](plans/checkpoint-e.md)
+**Plan:** ✅ [`plans/checkpoint-e.md`](plans/checkpoint-e.md)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
