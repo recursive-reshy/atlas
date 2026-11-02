@@ -13,7 +13,7 @@ test( 'nothing is failing, and Back up now writes a database file', async ( { pa
   const status = page.getByRole( 'heading', { name: 'Status' } ).locator( '..' )
 
   await expect( status.getByText( 'Loading status…' ) ).toBeHidden()
-  await expect( status.getByRole( 'row', { name: /whisper/i } ) ).toContainText( 'OK' )
+  await expect( status.getByRole( 'row', { name: /transcription/i } ) ).toContainText( 'OK' )
   await expect( status.getByText( 'Failing' ) ).toHaveCount( 0 )
   await expect( page.getByRole( 'link', { name: 'Settings', exact: true } ) ).toBeVisible()
 

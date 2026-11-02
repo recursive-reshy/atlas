@@ -40,7 +40,7 @@ describe( 'pages', () => {
     assert.match( response.body, /<link>http:\/\/fakes:4000\/article-2<\/link>/ )
   } )
 
-  it( 'answers /health with 200, standing in for whisper-server', () => {
+  it( 'answers /health with 200 for the Compose health check', () => {
     assert.equal( route( 'GET', '/health' ).status, 200 )
   } )
 
@@ -67,6 +67,30 @@ describe( 'GET /v1/models', () => {
       assert.equal( model.capabilities.effort.medium.supported, true )
       assert.ok( model.max_tokens > 0 )
     }
+  } )
+} )
+
+describe( 'OpenAI transcription', () => {
+  it( 'knows the gpt-transcribe model, so the Transcription status row is healthy', () => {
+    const response = route( 'GET', '/v1/models/gpt-transcribe' )
+
+    assert.equal( response.status, 200 )
+    assert.equal( JSON.parse( response.body ).id, 'gpt-transcribe' )
+  } )
+
+  it( 'answers 404 with an OpenAI-shaped error for any other model', () => {
+    const response = route( 'GET', '/v1/models/nope' )
+
+    assert.equal( response.status, 404 )
+    assert.match( JSON.parse( response.body ).error.message, /nope/ )
+  } )
+
+  it( 'answers a transcription upload with fixed text', () => {
+    const response = route( 'POST', '/v1/audio/transcriptions', 'multipart bytes' )
+
+    assert.equal( response.status, 200 )
+    assert.match( response.headers[ 'content-type' ], /json/ )
+    assert.ok( JSON.parse( response.body ).text.length > 20 )
   } )
 } )
 

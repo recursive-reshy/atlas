@@ -12,6 +12,8 @@ import {
 } from './fixtures.mjs'
 
 const SUBMIT_TOOL = 'submit_suggestions'
+const TRANSCRIPTION_MODEL = 'gpt-transcribe'
+const TRANSCRIPT = 'Welcome to the talk. Today we cover ownership.\n\nMemory safety comes free.'
 const USAGE = { input_tokens: 1200, output_tokens: 300 }
 
 const json = ( status, value ) => ( {
@@ -116,6 +118,18 @@ export const route = ( method, path, body = '' ) => {
     if( path === '/v1/models' ) {
       return json( 200, MODELS )
     }
+
+    if( path.startsWith( '/v1/models/' ) ) {
+      const id = decodeURIComponent( path.slice( '/v1/models/'.length ) )
+
+      return id === TRANSCRIPTION_MODEL
+        ? json( 200, { id, object: 'model' } )
+        : json( 404, { error: { message: `The model '${ id }' does not exist` } } )
+    }
+  }
+
+  if( method === 'POST' && path === '/v1/audio/transcriptions' ) {
+    return json( 200, { text: TRANSCRIPT } )
   }
 
   if( method === 'POST' && path === '/v1/messages' ) {

@@ -24,7 +24,8 @@ services:
       ANTHROPIC_BASE_URL: http://fakes:4000
       ANTHROPIC_API_KEY: e2e
       AGENT_SECRET: ${AGENT_SECRET:?run e2e/run.sh}
-      WHISPER_URL: http://fakes:4000
+      OPENAI_BASE_URL: http://fakes:4000
+      OPENAI_API_KEY: e2e
       ADMIN_EMAIL: admin@e2e.test
       # Mounts POST /api/test/session, which the server only allows under NODE_ENV=test (TRD §11.4)
       NODE_ENV: test
