@@ -24,6 +24,7 @@ import * as postings from './postings.repository.js'
 import * as promptProfiles from './promptProfiles.repository.js'
 import * as settings from './settings.repository.js'
 import * as summaryRuns from './summaryRuns.repository.js'
+import * as transcriptionRuns from './transcriptionRuns.repository.js'
 import * as userModules from './userModules.repository.js'
 
 // Repositories that hold users, sessions or app-wide values, or that read across users for the
@@ -54,6 +55,7 @@ const DATA_REPOSITORIES: Record< string, Record< string, unknown > > = {
   promptProfiles,
   settings,
   summaryRuns,
+  transcriptionRuns,
   userModules,
 }
 

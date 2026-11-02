@@ -64,6 +64,7 @@ const categories = ( cost: number | null ) => ( {
   linking: totals( cost ),
   melete: totals( cost ),
   extraction: totals( cost ),
+  transcription: totals( null ),
 } )
 
 const renderTab = ( mode: ( typeof MODES )[ number ] ): void => {

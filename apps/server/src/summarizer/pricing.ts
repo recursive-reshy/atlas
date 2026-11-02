@@ -35,3 +35,16 @@ export const estimateCostUsd = (
 
   return ( inputTokens * price.input + outputTokens * price.output ) / TOKENS_PER_PRICE_UNIT
 }
+
+// US dollars per minute of audio, from OpenAI's pricing page
+export const TRANSCRIPTION_PRICES_PER_MINUTE: Record< string, number > = {
+  'gpt-transcribe': 0.0045,
+}
+
+const SECONDS_PER_MINUTE = 60
+
+export const estimateTranscriptionCostUsd = ( model: string, seconds: number ): number | null => {
+  const price = TRANSCRIPTION_PRICES_PER_MINUTE[ model ]
+
+  return price === undefined ? null : ( seconds / SECONDS_PER_MINUTE ) * price
+}

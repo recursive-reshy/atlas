@@ -164,7 +164,7 @@ export type UsageRange = { from: string, to: string } | null
 
 const UsageRow = z.object( {
   user_id: z.string(),
-  category: z.enum( [ 'summary', 'linking', 'melete', 'extraction' ] ),
+  category: z.enum( [ 'summary', 'linking', 'melete', 'extraction', 'transcription' ] ),
   input_tokens: z.number(),
   output_tokens: z.number(),
   cost_usd: z.number().nullable(),

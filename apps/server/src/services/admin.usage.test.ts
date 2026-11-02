@@ -103,6 +103,7 @@ describe( 'getUsage', () => {
       linking: ZERO,
       melete: ZERO,
       extraction: ZERO,
+      transcription: ZERO,
     } )
     expect( mine?.transcription ).toEqual( { month_seconds: 0, all_time_seconds: 0 } )
   } )

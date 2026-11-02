@@ -26,7 +26,13 @@ const adminUser = {
 
 const totals = { input_tokens: 10, output_tokens: 5, cost_usd: 0.01, runs: 1 }
 const empty = { input_tokens: 0, output_tokens: 0, cost_usd: null, runs: 0 }
-const categories = { summary: totals, linking: empty, melete: empty, extraction: empty }
+const categories = {
+  summary: totals,
+  linking: empty,
+  melete: empty,
+  extraction: empty,
+  transcription: empty,
+}
 
 describe( 'AdminUser', () => {
   it( 'parses a member who has not signed in', () => {
@@ -91,7 +97,13 @@ describe( 'DeleteUserBody', () => {
 
 describe( 'UsageCategory', () => {
   it( 'lists the four categories', () => {
-    expect( UsageCategory.options ).toEqual( [ 'summary', 'linking', 'melete', 'extraction' ] )
+    expect( UsageCategory.options ).toEqual( [
+      'summary',
+      'linking',
+      'melete',
+      'extraction',
+      'transcription',
+    ] )
   } )
 } )
 

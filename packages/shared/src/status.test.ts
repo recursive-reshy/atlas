@@ -26,7 +26,17 @@ const row = {
 }
 
 describe( 'HealthKind', () => {
-  it.each( [ 'feed', 'gmail_source', 'gmail_connection', 'agent', 'whisper', 'backup' ] )(
+  it.each( [
+    'feed',
+    'gmail_source',
+    'gmail_connection',
+    'vault_sync',
+    'agent',
+    'whisper',
+    'backup',
+    'transcription',
+    'replication',
+  ] )(
     'accepts %s',
     ( kind ) => {
       expect( HealthKind.parse( kind ) ).toBe( kind )
@@ -40,8 +50,19 @@ describe( 'HealthKind', () => {
 
 describe( 'AppHealthKind and UserHealthKind', () => {
   it( 'split the kinds into app services and a user\'s own sources', () => {
-    expect( AppHealthKind.options ).toEqual( [ 'agent', 'whisper', 'backup' ] )
-    expect( UserHealthKind.options ).toEqual( [ 'feed', 'gmail_source', 'gmail_connection' ] )
+    expect( AppHealthKind.options ).toEqual( [
+      'agent',
+      'whisper',
+      'backup',
+      'transcription',
+      'replication',
+    ] )
+    expect( UserHealthKind.options ).toEqual( [
+      'feed',
+      'gmail_source',
+      'gmail_connection',
+      'vault_sync',
+    ] )
   } )
 
   it( 'cover HealthKind exactly', () => {

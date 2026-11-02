@@ -32,6 +32,7 @@ const empty = () => ( {
   linking: totals(),
   melete: totals(),
   extraction: totals(),
+  transcription: totals(),
 } )
 
 const userUsage = ( user_id: string, overrides: Partial< UserUsage > = {} ): UserUsage => ( {
@@ -101,12 +102,14 @@ describe( 'UsageSection', () => {
           linking: totals( { cost_usd: 0.5 } ),
           melete: totals( { cost_usd: null, runs: 2 } ),
           extraction: totals( { cost_usd: null } ),
+          transcription: totals(),
         },
         all_time: {
           summary: totals( { cost_usd: null } ),
           linking: totals( { cost_usd: null } ),
           melete: totals( { cost_usd: null } ),
           extraction: totals( { cost_usd: null } ),
+          transcription: totals(),
         },
       } ),
     ] ) )

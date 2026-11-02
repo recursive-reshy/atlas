@@ -144,7 +144,7 @@ describe( 'openDatabase and closeDatabase', () => {
 describe( 'runMigrations', () => {
   it( 'numbers migrations from SCHEMA_BASE and reads that as the stored version', () => {
     expect( SCHEMA_BASE ).toBe( 9 )
-    expect( migrations ).toHaveLength( 1 )
+    expect( migrations ).toHaveLength( 2 )
   } )
 
   const version = ( database: Database.Database ): unknown => {
@@ -373,6 +373,18 @@ const BASELINE_COLUMNS: Record< string, string[] > = {
     'error',
     'created_at',
   ],
+  transcription_runs: [
+    'id',
+    'user_id',
+    'job_id',
+    'model',
+    'audio_seconds',
+    'pieces',
+    'cost_usd',
+    'outcome',
+    'error',
+    'created_at',
+  ],
   link_runs: [
     'id',
     'user_id',
@@ -534,6 +546,7 @@ const BASELINE_INDEXES = [
   'melete_reviews_question',
   'melete_reviews_day',
   'melete_runs_note',
+  'transcription_runs_user',
 ]
 
 describe( 'the baseline schema', () => {
@@ -550,8 +563,8 @@ describe( 'the baseline schema', () => {
       .map( ( { name } ) => name )
   }
 
-  it( 'stores schema version 10 on an empty database', () => {
-    expect( getDatabase().pragma( 'user_version', { simple: true } ) ).toBe( 10 )
+  it( 'stores schema version 11 on an empty database', () => {
+    expect( getDatabase().pragma( 'user_version', { simple: true } ) ).toBe( 11 )
   } )
 
   it( 'creates exactly the 0.8 tables, unchanged, and the four user tables', () => {

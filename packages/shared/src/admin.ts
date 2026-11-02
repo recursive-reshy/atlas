@@ -44,7 +44,13 @@ export const DeleteUserBody = z.object( {
 } )
 export type DeleteUserBody = z.infer< typeof DeleteUserBody >
 
-export const UsageCategory = z.enum( [ 'summary', 'linking', 'melete', 'extraction' ] )
+export const UsageCategory = z.enum( [
+  'summary',
+  'linking',
+  'melete',
+  'extraction',
+  'transcription',
+] )
 export type UsageCategory = z.infer< typeof UsageCategory >
 
 export const UsageTotals = z.object( {
@@ -60,6 +66,7 @@ const CategoryTotals = z.object( {
   linking: UsageTotals,
   melete: UsageTotals,
   extraction: UsageTotals,
+  transcription: UsageTotals,
 } )
 
 export const UserUsage = z.object( {

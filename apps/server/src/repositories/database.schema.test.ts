@@ -69,9 +69,10 @@ describe( 'the schema guard', () => {
         .prepare( 'SELECT sql FROM sqlite_master WHERE name = ?' )
         .get( table ) as { sql: string } ).sql
 
-      expect( sql, `${ table } has the kind check` ).toMatch(
-        /CHECK \( \( kind IN \( 'agent', 'whisper', 'backup' \) \) = \( user_id IS NULL \) \)/,
-      )
+      const kinds = "'agent', 'whisper', 'backup', 'transcription', 'replication'"
+
+      expect( sql.replace( /\s+/g, ' ' ), `${ table } has the kind check` )
+        .toContain( `CHECK ( ( kind IN ( ${ kinds } ) ) = ( user_id IS NULL ) )` )
     }
   } )
 
@@ -85,7 +86,7 @@ describe( 'the schema guard', () => {
     expect( columns.map( ( { name } ) => name ) ).toContain( 'duration_seconds' )
   } )
 
-  it( 'has a usage_events view over the four run tables', () => {
+  it( 'has a usage_events view over the five run tables', () => {
     const columns = ( getDatabase().pragma( 'table_info(usage_events)' ) as Column[] )
       .map( ( { name } ) => name )
 

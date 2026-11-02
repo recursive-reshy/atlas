@@ -19,7 +19,8 @@ import type {
 // App
 import { formatCost, formatMinutes, sumCost } from './usageFormat'
 
-const CATEGORIES: { key: UsageCategory, label: string }[] = [
+// Claude's categories; transcription is OpenAI's and is shown by its minutes
+const CATEGORIES: { key: Exclude< UsageCategory, 'transcription' >, label: string }[] = [
   { key: 'summary', label: 'Summaries' },
   { key: 'linking', label: 'Linking' },
   { key: 'melete', label: 'Melete' },

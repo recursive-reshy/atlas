@@ -1,11 +1,18 @@
 // Packages
 import { z } from 'zod'
 
+// whisper and backup stay until the code that records them goes (tasks 3.4, 4.1, 4.2).
 // App services have one answer for everyone; a user's own sources belong to that user.
-export const AppHealthKind = z.enum( [ 'agent', 'whisper', 'backup' ] )
+export const AppHealthKind = z.enum( [
+  'agent',
+  'whisper',
+  'backup',
+  'transcription',
+  'replication',
+] )
 export type AppHealthKind = z.infer< typeof AppHealthKind >
 
-export const UserHealthKind = z.enum( [ 'feed', 'gmail_source', 'gmail_connection' ] )
+export const UserHealthKind = z.enum( [ 'feed', 'gmail_source', 'gmail_connection', 'vault_sync' ] )
 export type UserHealthKind = z.infer< typeof UserHealthKind >
 
 export const HealthKind = z.enum( [
