@@ -1,5 +1,5 @@
 // Shared
-import { ListModelsResponse } from '@mnemosyne/shared'
+import { ListModelsResponse } from '@atlas/shared'
 // Clients
 import { listSummaryModels } from '../clients/anthropicModels.client.js'
 // Errors

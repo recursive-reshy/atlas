@@ -1,5 +1,5 @@
 // Shared
-import type { HealthKind } from '@mnemosyne/shared'
+import type { HealthKind } from '@atlas/shared'
 // Clients
 import { checkHealth } from '../clients/agent.client.js'
 import { checkWhisperHealth } from '../clients/whisperServer.client.js'

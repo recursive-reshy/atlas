@@ -1,6 +1,6 @@
 // Shared
-import { GetSettingsResponse } from '@mnemosyne/shared'
-import type { UpdateSettingsBody } from '@mnemosyne/shared'
+import { GetSettingsResponse } from '@atlas/shared'
+import type { UpdateSettingsBody } from '@atlas/shared'
 // App
 import { request } from './request'
 

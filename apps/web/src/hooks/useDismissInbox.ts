@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
-import type { InboxItemRef } from '@mnemosyne/shared'
+import type { InboxItemRef } from '@atlas/shared'
 // App
 import { dismissInbox } from '../api/inbox.api'
 import { feedKeys, gmailKeys, inboxKeys } from './queryKeys'

@@ -6,7 +6,7 @@ import type {
   GmailSource,
   PreviewGmailSourceResponse,
   UpdateGmailSourceBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

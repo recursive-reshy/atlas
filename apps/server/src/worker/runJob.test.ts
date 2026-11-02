@@ -8,7 +8,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { Segment } from '@mnemosyne/shared'
+import { Segment } from '@atlas/shared'
 // Errors
 import { ConflictError, NotFoundError } from '../errors.js'
 // Services

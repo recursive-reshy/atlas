@@ -1,7 +1,7 @@
 // Packages
 import type { gmail_v1 } from '@googleapis/gmail'
 // Shared
-import type { GmailLabel, GmailMatch } from '@mnemosyne/shared'
+import type { GmailLabel, GmailMatch } from '@atlas/shared'
 // Gmail
 import { withGmail } from './auth.js'
 

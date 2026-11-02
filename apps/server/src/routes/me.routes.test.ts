@@ -11,7 +11,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { Me } from '@mnemosyne/shared'
+import { Me } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Config

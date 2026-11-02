@@ -7,7 +7,7 @@ import {
   beforeEach,
 } from 'vitest'
 // Shared
-import { GetGmailAccountResponse, ListGmailLabelsResponse } from '@mnemosyne/shared'
+import { GetGmailAccountResponse, ListGmailLabelsResponse } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Test support

@@ -7,8 +7,8 @@ import type { Express } from 'express'
 // Packages
 import supertest from 'supertest'
 // Shared
-import { ModuleId } from '@mnemosyne/shared'
-import type { Role } from '@mnemosyne/shared'
+import { ModuleId } from '@atlas/shared'
+import type { Role } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Middleware

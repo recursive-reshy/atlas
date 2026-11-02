@@ -6,7 +6,7 @@ import {
   ListPromptVersionsResponse,
   PromptProfile,
   PromptProfileResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Test support

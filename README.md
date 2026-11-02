@@ -208,7 +208,7 @@ The server reads these environment variables. Empty values count as unset.
 - `AGENT_SECRET` (at least 32 characters; `openssl rand -hex 32`) must be the same for the app and the agent service; in Docker one `.env` value feeds both. Without it the server starts with linking off and Settings says how to set it up. `AGENT_TIMEOUT_MS` is how long the server waits for one linking run; the agent's own run limit is 90 seconds. The agent service reads `ANTHROPIC_API_KEY`, `AGENT_SECRET` and `VAULTS_ROOT` (the vaults folder, mounted read-only; each request names the person's vault folder and the agent refuses anything that isn't a real folder directly inside it), plus optional limits named `AGENT_MAX_TURNS`, `AGENT_MAX_TOOL_CALLS`, `AGENT_MAX_OUTPUT_TOKENS`, `AGENT_RUN_TIMEOUT_SECONDS`, `AGENT_MAX_SUGGESTIONS`, `AGENT_LIST_NOTES_LIMIT`, `AGENT_SEARCH_HITS_LIMIT`, `AGENT_SEARCH_SNIPPET_CHARS`, `AGENT_READ_NOTE_CHARS` and `AGENT_LINK_TARGETS_LIMIT` (the defaults are in `apps/agent/src/mnemosyne_agent/config.py`).
 - `ANTHROPIC_API_KEY` lives in `.env` only, never in the repo. In Docker, `.env` at the repo root feeds both compose and the container.
 - For development, copy `apps/server/.env.example` to `apps/server/.env` and set `ANTHROPIC_API_KEY`, `ADMIN_EMAIL`, `APP_ORIGINS` (`http://localhost:5173`), the three Google variables and `VAULTS_PATH` (a folder that holds one folder per person; any folder works for trying it out). Add `http://localhost:5173/api/auth/callback` to the Google client for sign-in. `pnpm dev` loads it, and the integration tests load it too.
-- **The agent service outside Docker.** It needs [uv](https://docs.astral.sh/uv/) and Python 3.14. Run `ANTHROPIC_API_KEY=… AGENT_SECRET=… VAULTS_ROOT=/path/to/vaults pnpm --filter @mnemosyne/agent dev` (port 8100, reloading), and put the same `AGENT_SECRET` and `AGENT_URL=http://localhost:8100` in `apps/server/.env`. The agent only reads vaults, so any copy of a vaults folder works. Stop the agent container first if it is running.
+- **The agent service outside Docker.** It needs [uv](https://docs.astral.sh/uv/) and Python 3.14. Run `ANTHROPIC_API_KEY=… AGENT_SECRET=… VAULTS_ROOT=/path/to/vaults pnpm --filter @atlas/agent dev` (port 8100, reloading), and put the same `AGENT_SECRET` and `AGENT_URL=http://localhost:8100` in `apps/server/.env`. The agent only reads vaults, so any copy of a vaults folder works. Stop the agent container first if it is running.
 
 ## Development
 
@@ -217,17 +217,17 @@ pnpm install
 pnpm dev                                        # server on :3100, web on :5173 (proxies /api)
 pnpm test                                       # unit tests, all packages (the agent's pytest included)
 pnpm --filter web test:browser                  # real-browser tests (Chromium and WebKit)
-pnpm --filter @mnemosyne/server test:integration  # real yt-dlp, ffmpeg and whisper-server
+pnpm --filter @atlas/server test:integration  # real yt-dlp, ffmpeg and whisper-server
 pnpm lint
 pnpm typecheck
 pnpm build
-pnpm --filter @mnemosyne/agent exec uv run pytest -m docker   # builds the agent image and checks it (needs Docker)
+pnpm --filter @atlas/agent exec uv run pytest -m docker   # builds the agent image and checks it (needs Docker)
 pnpm e2e                                        # the whole stack against local fakes (needs Docker; slow)
 ```
 
 `pnpm e2e` builds the Compose stack under its own project name and port (3101) with a temporary vault and backups folder, serves pages, a feed, Whisper's health and the Anthropic API from local fakes, runs the Playwright tests, signed in through a test-only session route that exists only in that stack (`E2E_TEST_SIGNIN`, refused outside `NODE_ENV=test`): an article through summary, linking and save; a feed and its inbox; the Status panel and **Back up now**; Melete; and a member who chooses a vault and sees only their own modules and data and tears everything down, including its volume. It never touches your running instance or the network. It is not part of `pnpm test`; run it at the end of each piece of work and before a release.
 
-`pnpm --filter @mnemosyne/server fixture:gmail <messageId> <name> [display name]` saves a real email from the connected account as a test fixture in `apps/server/src/test-support/gmail/`, with your address, name and the links reduced to a host and a generic path. No test touches Gmail or the network; they use these fixtures and fakes.
+`pnpm --filter @atlas/server fixture:gmail <messageId> <name> [display name]` saves a real email from the connected account as a test fixture in `apps/server/src/test-support/gmail/`, with your address, name and the links reduced to a host and a generic path. No test touches Gmail or the network; they use these fixtures and fakes.
 
 Stop the container first (`docker compose stop`): the dev server and the container both use port 3100. Open <http://localhost:5173> while developing. The integration tests need whisper-server running; the Claude integration test also needs `ANTHROPIC_API_KEY` and is skipped without it.
 
@@ -265,7 +265,7 @@ On a stop signal the server stops taking work and lets a running job finish, for
 - **A Gmail source shows "Label not found in Gmail".** A label it uses was deleted in Gmail. Edit the source and pick the labels again; the rest keep working.
 - **An email won't summarize ("too little text" or "too long").** Some emails are mostly images or links. They stay in the inbox; open the email from its link, or dismiss it.
 - **Settings says linking isn't set up.** `AGENT_SECRET` is empty or shorter than 32 characters in the server's environment. Set it in `.env` (`openssl rand -hex 32`) and run `docker compose up -d --build`. Notes summarized in the meantime have no link suggestions; open one in review and use **Run linking**.
-- **The Status panel shows the agent service as Failing, or a note shows "Agent service unreachable".** The server can't reach the agent. Check `docker compose ps` (the `agent` container should be healthy) and `docker compose logs agent`; the agent exits at startup with a message if `ANTHROPIC_API_KEY`, `AGENT_SECRET` or `VAULTS_ROOT` is wrong. While it is down, new summaries go to review without suggestions; use **Run linking** or **Retry linking** once it is back. Outside Docker, check that `AGENT_URL` points at the running `pnpm --filter @mnemosyne/agent dev`.
+- **The Status panel shows the agent service as Failing, or a note shows "Agent service unreachable".** The server can't reach the agent. Check `docker compose ps` (the `agent` container should be healthy) and `docker compose logs agent`; the agent exits at startup with a message if `ANTHROPIC_API_KEY`, `AGENT_SECRET` or `VAULTS_ROOT` is wrong. While it is down, new summaries go to review without suggestions; use **Run linking** or **Retry linking** once it is back. Outside Docker, check that `AGENT_URL` points at the running `pnpm --filter @atlas/agent dev`.
 - **A note shows "Agent service rejected the secret".** The app and the agent have different `AGENT_SECRET` values. Use one value for both and restart both.
 - **"Agent service timed out".** A run took longer than `AGENT_TIMEOUT_MS` on the server side. Retry linking; a very large vault or a slow model can need it raised (the agent has its own 90-second run limit, `AGENT_RUN_TIMEOUT_SECONDS`).
 - **A link suggestion is marked Stale.** You edited the note after linking and the phrase it pointed at is gone or has changed. **Add to Related** puts the link under `## Related` instead, or reject it.

@@ -7,7 +7,7 @@ import {
   beforeEach,
 } from 'vitest'
 // Shared
-import { GetHealthErrorsResponse, GetStatusResponse } from '@mnemosyne/shared'
+import { GetHealthErrorsResponse, GetStatusResponse } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Test support

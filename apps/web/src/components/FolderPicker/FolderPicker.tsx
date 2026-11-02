@@ -10,8 +10,8 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 // Shared
-import { isValidFolderName } from '@mnemosyne/shared'
-import type { FolderNode } from '@mnemosyne/shared'
+import { isValidFolderName } from '@atlas/shared'
+import type { FolderNode } from '@atlas/shared'
 // App
 import { filterTree, withExtraFolders } from './treeNodes'
 import { FolderTree } from './FolderTree'

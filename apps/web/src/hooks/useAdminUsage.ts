@@ -1,7 +1,7 @@
 // Packages
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 // Shared
-import type { UsageResponse } from '@mnemosyne/shared'
+import type { UsageResponse } from '@atlas/shared'
 // App
 import { getUsage } from '../api/admin.api'
 import { adminKeys } from './queryKeys'

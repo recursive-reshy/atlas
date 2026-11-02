@@ -6,7 +6,7 @@ import List from '@mui/material/List'
 import ListItem from '@mui/material/ListItem'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { HealthKind } from '@mnemosyne/shared'
+import type { HealthKind } from '@atlas/shared'
 // App
 import { useHealthErrors } from '#src/hooks/useHealthErrors'
 

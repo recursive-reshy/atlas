@@ -8,7 +8,7 @@ The relevant ADRs are 0003–0009, 0012, 0014, 0015, 0020–0022, 0023, 0027–0
 
 - Node 24 LTS, ESM, TypeScript `strict`.
 - Express 5, Zod.
-- pnpm workspaces. Shared contracts come from `@mnemosyne/shared`.
+- pnpm workspaces. Shared contracts come from `@atlas/shared`.
 - Vitest and Supertest.
 - `tsc` builds `src/` to `dist/`, and production runs `node dist/src/server.js`. In development, `tsx` runs the source directly.
 - better-sqlite3 for the job store, `@anthropic-ai/sdk` for summaries, `ts-fsrs` for Melete's scheduling.
@@ -131,7 +131,7 @@ The order is routes → controllers → services → repositories, and every req
 - Every exported function has explicit parameter and return types. No `any`; use `unknown` and narrow it.
 - Use erasable syntax only: no `enum`, no `namespace`, no parameter properties. For a fixed set of values, use a string-literal union or an `as const` object.
 - Structured values are Zod schemas with `z.infer` types. Request input and external tool output are parsed with Zod, never cast with `as`.
-- Request bodies, response shapes, `Job`, `JobStatus`, `Segment`, `Transcript` and `DownloadFormat` live in `@mnemosyne/shared`, because the web app imports them too. Controllers import them and never define them locally. Only schemas no other package uses, such as a route param or a client's raw output, may be local.
+- Request bodies, response shapes, `Job`, `JobStatus`, `Segment`, `Transcript` and `DownloadFormat` live in `@atlas/shared`, because the web app imports them too. Controllers import them and never define them locally. Only schemas no other package uses, such as a route param or a client's raw output, may be local.
 - Annotate the exported app as `Express` and every exported router as `Router`. Without it, declaration emit fails under pnpm (TS2883).
 
 **Naming**
@@ -147,7 +147,7 @@ The order is routes → controllers → services → repositories, and every req
   3. `// Services`, `// Repositories`, `// Clients` and so on, by layer
 - Relative and aliased imports use the `.js` extension, as `tsc` emits them; TypeScript and tsx resolve it to the `.ts` source.
 - Use the `#src/*` alias whenever a relative import would climb two or more levels (`../../`). Relative imports are fine within a folder or one level up. The alias is a Node subpath import in `package.json`: the `development` condition points at `./src/*` (set by `tsx --conditions=development` and `customConditions` in `tsconfig.json`), and `default` points at `./dist/src/*`. Don't add `paths` aliases to `tsconfig.json`: Node doesn't read them at runtime.
-- `@mnemosyne/shared` is imported by its package name, never by a relative path.
+- `@atlas/shared` is imported by its package name, never by a relative path.
 
 **Code shape**
 - Destructure what a handler uses from the request in its parameter list: `( { params, body }: Request, res: Response )`.
@@ -173,7 +173,7 @@ feedsRoutes.post( '/feeds', addFeed )
 // Express
 import { Request, Response } from 'express'
 // Shared
-import { CreateFeedBody, FeedResponse, ListFeedsResponse } from '@mnemosyne/shared'
+import { CreateFeedBody, FeedResponse, ListFeedsResponse } from '@atlas/shared'
 // Services
 import { createFeed, listFeeds } from '../services/feeds.service.js'
 

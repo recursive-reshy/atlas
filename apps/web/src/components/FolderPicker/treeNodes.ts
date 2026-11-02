@@ -1,5 +1,5 @@
 // Shared
-import type { FolderNode } from '@mnemosyne/shared'
+import type { FolderNode } from '@atlas/shared'
 
 export interface TreeNode {
   name: string

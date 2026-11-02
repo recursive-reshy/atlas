@@ -14,7 +14,7 @@ import {
   GetNextReviewResponse,
   GradeAnswerResponse,
   RecordReviewResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Errors
 import {
   ConflictError,

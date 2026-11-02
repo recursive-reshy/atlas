@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { GetMeleteTodayResponse } from '@mnemosyne/shared'
+import type { GetMeleteTodayResponse } from '@atlas/shared'
 // App
 import { getMeleteToday } from '../api/melete.api'
 import { meleteKeys } from './queryKeys'

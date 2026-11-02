@@ -1,5 +1,5 @@
 // Shared
-import type { Feed, InboxItem } from '@mnemosyne/shared'
+import type { Feed, InboxItem } from '@atlas/shared'
 
 type FeedInboxItem = Extract< InboxItem, { kind: 'feed' } >
 

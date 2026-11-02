@@ -214,12 +214,12 @@ importers:
       '@anthropic-ai/sdk':
         specifier: ^0.137.0
         version: 0.137.0(zod@4.6.7)
+      '@atlas/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@googleapis/gmail':
         specifier: 22.0.2
         version: 22.0.2
-      '@mnemosyne/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@mozilla/readability':
         specifier: 0.6.0
         version: 0.6.0
@@ -296,6 +296,9 @@ importers:
 
   apps/web:
     dependencies:
+      '@atlas/shared':
+        specifier: workspace:*
+        version: link:../../packages/shared
       '@emotion/react':
         specifier: ^11.14.0
         version: 11.14.0(@types/react@19.3.0)(react@19.3.1)
@@ -305,9 +308,6 @@ importers:
       '@mdxeditor/editor':
         specifier: ^4.3.3
         version: 4.3.3(@codemirror/language@6.13.1)(@lezer/highlight@1.2.5)(@types/react-dom@19.3.0(@types/react@19.3.0))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)(typescript@6.0.3)(yjs@13.6.33)
-      '@mnemosyne/shared':
-        specifier: workspace:*
-        version: link:../../packages/shared
       '@mui/icons-material':
         specifier: ^9.5.0
         version: 9.5.0(@mui/material@9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1))(@types/react@19.3.0)(react@19.3.1)

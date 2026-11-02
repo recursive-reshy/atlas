@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { UsageResponse, UsageTotals, UserUsage } from '@mnemosyne/shared'
+import type { UsageResponse, UsageTotals, UserUsage } from '@atlas/shared'
 // App
 import { useAdminUsage } from '#src/hooks/useAdminUsage'
 import { adminUserFixture, meFixture } from '#src/test-support/me.fixture'

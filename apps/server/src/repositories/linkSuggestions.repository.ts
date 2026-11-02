@@ -1,8 +1,8 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { StoredLinkSuggestion } from '@mnemosyne/shared'
-import type { LinkSuggestion, LinkSuggestionStatus } from '@mnemosyne/shared'
+import { StoredLinkSuggestion } from '@atlas/shared'
+import type { LinkSuggestion, LinkSuggestionStatus } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 

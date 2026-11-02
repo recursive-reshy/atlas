@@ -6,7 +6,7 @@ import {
   beforeEach,
 } from 'vitest'
 // Shared
-import type { LinkSuggestion } from '@mnemosyne/shared'
+import type { LinkSuggestion } from '@atlas/shared'
 // Repositories
 import { insertLinkRun } from './linkRuns.repository.js'
 import { findLatestVersion, findProfileBySeedKey } from './promptProfiles.repository.js'

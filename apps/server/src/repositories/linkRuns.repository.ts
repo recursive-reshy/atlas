@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { LinkRun, LinkUsageSummary } from '@mnemosyne/shared'
+import { LinkRun, LinkUsageSummary } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 

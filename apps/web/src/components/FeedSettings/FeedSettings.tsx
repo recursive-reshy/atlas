@@ -9,7 +9,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 // Shared
-import { FeedCheckInterval } from '@mnemosyne/shared'
+import { FeedCheckInterval } from '@atlas/shared'
 // App
 import { useFeeds } from '#src/hooks/useFeeds'
 import { useMe } from '#src/hooks/useMe'

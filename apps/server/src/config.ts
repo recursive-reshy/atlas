@@ -4,7 +4,7 @@ import { join } from 'node:path'
 // Packages
 import { z } from 'zod'
 // Shared
-import { isValidFolderName } from '@mnemosyne/shared'
+import { isValidFolderName } from '@atlas/shared'
 
 const emptyAsUnset = ( value: unknown ): unknown => ( value === '' ? undefined : value )
 

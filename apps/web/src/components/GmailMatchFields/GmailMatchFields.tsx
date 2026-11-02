@@ -8,7 +8,7 @@ import TextField from '@mui/material/TextField'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 // Shared
-import type { GmailLabel } from '@mnemosyne/shared'
+import type { GmailLabel } from '@atlas/shared'
 // App
 import { MAX_LABELS } from '#src/gmailMatch'
 import type { MatchDraft } from '#src/gmailMatch'

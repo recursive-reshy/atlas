@@ -10,7 +10,7 @@ import {
   PreviewGmailSourceBody,
   PreviewGmailSourceResponse,
   UpdateGmailSourceBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Middleware
 import { currentUser } from '../middleware/auth.js'
 // Services

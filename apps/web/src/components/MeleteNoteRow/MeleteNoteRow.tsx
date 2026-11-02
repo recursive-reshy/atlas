@@ -8,7 +8,7 @@ import Switch from '@mui/material/Switch'
 import Typography from '@mui/material/Typography'
 import { Link as RouterLink } from 'react-router'
 // Shared
-import type { MeleteNote } from '@mnemosyne/shared'
+import type { MeleteNote } from '@atlas/shared'
 
 interface MeleteNoteRowProps {
   note: MeleteNote

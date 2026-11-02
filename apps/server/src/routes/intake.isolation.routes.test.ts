@@ -11,7 +11,7 @@ import {
   ListFeedsResponse,
   ListGmailSourcesResponse,
   ListInboxResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Repositories

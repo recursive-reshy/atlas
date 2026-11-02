@@ -1,5 +1,5 @@
 // Shared
-import type { Me } from '@mnemosyne/shared'
+import type { Me } from '@atlas/shared'
 
 export type SettingsTab = {
   value: 'prompts' | 'models' | 'sources' | 'admin'

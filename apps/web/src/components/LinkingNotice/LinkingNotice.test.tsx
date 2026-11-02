@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { AgentStatus, LinkState } from '@mnemosyne/shared'
+import type { AgentStatus, LinkState } from '@atlas/shared'
 // App
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { LinkingNotice } from './LinkingNotice'

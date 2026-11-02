@@ -1,5 +1,5 @@
 // Shared
-import { SourceDocument, cleanText, normalizeTag } from '@mnemosyne/shared'
+import { SourceDocument, cleanText, normalizeTag } from '@atlas/shared'
 // Clients
 import type { Summary } from '../clients/claude.client.js'
 

@@ -1,5 +1,5 @@
 // Shared
-import { Me, VaultChoice } from '@mnemosyne/shared'
+import { Me, VaultChoice } from '@atlas/shared'
 // App
 import { ApiError } from './apiError'
 import { request } from './request'

@@ -12,8 +12,8 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import { serializeNote } from '@mnemosyne/shared'
-import type { Job } from '@mnemosyne/shared'
+import { serializeNote } from '@atlas/shared'
+import type { Job } from '@atlas/shared'
 // App
 import { ApiError } from '#src/api/apiError'
 import {

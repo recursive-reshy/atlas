@@ -7,7 +7,7 @@ import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { Job, RegenerateSummaryBody } from '@mnemosyne/shared'
+import type { Job, RegenerateSummaryBody } from '@atlas/shared'
 // App
 import { parseTimestampSeconds } from '#src/timestamp'
 import { useDiscardJob } from '#src/hooks/useDiscardJob'

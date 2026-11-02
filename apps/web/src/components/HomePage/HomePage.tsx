@@ -6,7 +6,7 @@ import Alert from '@mui/material/Alert'
 import Stack from '@mui/material/Stack'
 import { useLocation, useNavigate } from 'react-router'
 // Shared
-import type { CreateJobBody, Settings } from '@mnemosyne/shared'
+import type { CreateJobBody, Settings } from '@atlas/shared'
 // App
 import { createJob } from '#src/api/jobs.api'
 import { useJobs } from '#src/hooks/useJobs'

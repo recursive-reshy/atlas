@@ -17,7 +17,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { Me, VaultChoice } from '@mnemosyne/shared'
+import { Me, VaultChoice } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Config

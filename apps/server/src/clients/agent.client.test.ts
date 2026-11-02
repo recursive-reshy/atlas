@@ -9,7 +9,7 @@ import {
   type MockInstance,
 } from 'vitest'
 // Shared
-import type { LinkRequest, LinkResponse } from '@mnemosyne/shared'
+import type { LinkRequest, LinkResponse } from '@atlas/shared'
 // Clients
 import {
   AgentError,

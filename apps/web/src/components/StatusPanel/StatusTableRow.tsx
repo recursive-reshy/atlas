@@ -7,7 +7,7 @@ import TableCell from '@mui/material/TableCell'
 import TableRow from '@mui/material/TableRow'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { StatusRow } from '@mnemosyne/shared'
+import type { StatusRow } from '@atlas/shared'
 // App
 import { formatAgo } from '#src/checkedAt'
 import { BackupControls } from './BackupControls'

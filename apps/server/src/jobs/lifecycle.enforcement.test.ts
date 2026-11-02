@@ -8,7 +8,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { JobStatus, SourceType } from '@mnemosyne/shared'
+import { JobStatus, SourceType } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

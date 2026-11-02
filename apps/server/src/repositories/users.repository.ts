@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { Role, UserStatus } from '@mnemosyne/shared'
+import { Role, UserStatus } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 

@@ -6,7 +6,7 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 // Shared
-import type { MeleteRating } from '@mnemosyne/shared'
+import type { MeleteRating } from '@atlas/shared'
 
 const RATINGS: { rating: MeleteRating, label: string, key: string }[] = [
   { rating: 'again', label: 'Again', key: '1' },

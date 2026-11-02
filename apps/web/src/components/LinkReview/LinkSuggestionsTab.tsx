@@ -1,8 +1,8 @@
 // React
 import type { ReactElement } from 'react'
 // Shared
-import { insertLink, isStale } from '@mnemosyne/shared'
-import type { Job, StoredLinkSuggestion } from '@mnemosyne/shared'
+import { insertLink, isStale } from '@atlas/shared'
+import type { Job, StoredLinkSuggestion } from '@atlas/shared'
 // App
 import { useAcceptLinkSuggestions } from '#src/hooks/useAcceptLinkSuggestions'
 import type { AutosaveState } from '#src/hooks/useAutosaveDraft'

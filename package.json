@@ -1,5 +1,5 @@
 {
-  "name": "mnemosyne",
+  "name": "atlas",
   "version": "0.10.0",
   "private": true,
   "type": "module",
@@ -17,6 +17,6 @@
     "typecheck": "pnpm -r typecheck",
     "build": "pnpm -r build",
     "dev": "pnpm -r --parallel dev",
-    "e2e": "pnpm --filter @mnemosyne/e2e e2e"
+    "e2e": "pnpm --filter @atlas/e2e e2e"
   }
 }

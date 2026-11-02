@@ -4,7 +4,7 @@ import {
   applyLockedProperties,
   lockedPropertiesFor,
   serializeNote,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 
 interface NoteInput {
   title: string

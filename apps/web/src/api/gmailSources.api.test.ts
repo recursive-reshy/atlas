@@ -1,5 +1,5 @@
 // Shared
-import type { CreateGmailSourceBody } from '@mnemosyne/shared'
+import type { CreateGmailSourceBody } from '@atlas/shared'
 // Vitest
 import {
   afterEach,

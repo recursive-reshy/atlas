@@ -20,7 +20,7 @@ import {
   SubmitPastedTextBody,
   UpdateDraftBody,
   UpdateDraftResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Middleware
 import { currentUser } from '../middleware/auth.js'
 // Services

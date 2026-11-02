@@ -8,7 +8,7 @@ import Stack from '@mui/material/Stack'
 import Switch from '@mui/material/Switch'
 import TextField from '@mui/material/TextField'
 // Shared
-import type { MeleteSubject, UpdateMeleteSubjectBody } from '@mnemosyne/shared'
+import type { MeleteSubject, UpdateMeleteSubjectBody } from '@atlas/shared'
 
 interface SubjectControlsProps {
   subject: MeleteSubject

@@ -1,5 +1,5 @@
 // Shared
-import { ModuleId } from '@mnemosyne/shared'
+import { ModuleId } from '@atlas/shared'
 // Repositories
 import { getDatabase, inTransaction } from './database.js'
 

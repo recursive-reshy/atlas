@@ -1,5 +1,5 @@
 // Shared
-import type { MeleteQuestionsOutput } from '@mnemosyne/shared'
+import type { MeleteQuestionsOutput } from '@atlas/shared'
 // Repositories
 import type { GeneratedQuestion } from '../repositories/meleteQuestions.repository.js'
 

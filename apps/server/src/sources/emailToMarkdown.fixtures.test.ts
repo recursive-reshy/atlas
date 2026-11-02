@@ -1,7 +1,7 @@
 // Packages
 import { describe, it, expect } from 'vitest'
 // Shared
-import { ARTICLE_LIMITS } from '@mnemosyne/shared'
+import { ARTICLE_LIMITS } from '@atlas/shared'
 // Sources
 import { emailToMarkdown } from './emailToMarkdown.js'
 // Test support

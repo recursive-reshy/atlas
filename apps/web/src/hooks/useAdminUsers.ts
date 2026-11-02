@@ -2,7 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
-import type { AdminUser, CreateUserBody, UpdateUserBody } from '@mnemosyne/shared'
+import type { AdminUser, CreateUserBody, UpdateUserBody } from '@atlas/shared'
 // App
 import {
   createUser,

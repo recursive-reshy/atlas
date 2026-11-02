@@ -8,7 +8,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import { GetMeleteTodayResponse } from '@mnemosyne/shared'
+import { GetMeleteTodayResponse } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Config

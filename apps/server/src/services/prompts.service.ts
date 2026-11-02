@@ -1,8 +1,8 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import type { ModuleId } from '@mnemosyne/shared'
-import { PromptProfile, PromptPurpose, PromptVersion } from '@mnemosyne/shared'
+import type { ModuleId } from '@atlas/shared'
+import { PromptProfile, PromptPurpose, PromptVersion } from '@atlas/shared'
 // Errors
 import { ConflictError, NotFoundError, ValidationError } from '../errors.js'
 import { modulesFor } from './modules.service.js'

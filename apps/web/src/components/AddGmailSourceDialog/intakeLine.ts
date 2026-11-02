@@ -1,5 +1,5 @@
 // Shared
-import type { Backfill, GmailDestination } from '@mnemosyne/shared'
+import type { Backfill, GmailDestination } from '@atlas/shared'
 
 const BACKFILL_CAP = 200
 

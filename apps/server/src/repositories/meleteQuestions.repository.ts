@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { MeleteFsrsState, MeleteQuestionState } from '@mnemosyne/shared'
+import { MeleteFsrsState, MeleteQuestionState } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 

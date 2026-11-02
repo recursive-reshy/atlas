@@ -1,5 +1,5 @@
 // Shared
-import { Transcript, groupParagraphs } from '@mnemosyne/shared'
+import { Transcript, groupParagraphs } from '@atlas/shared'
 
 export const formatTxt = ( { segments }: Transcript ): string => {
   const paragraphs = groupParagraphs( segments )

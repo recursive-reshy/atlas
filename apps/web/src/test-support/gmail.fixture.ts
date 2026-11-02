@@ -5,7 +5,7 @@ import type {
   GmailSource,
   InboxItem,
   PreviewGmailSourceResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 
 export const gmailAccountFixture = ( overrides: Partial< GmailAccount > = {} ): GmailAccount => {
   return {

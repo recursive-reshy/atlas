@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 // Shared
-import type { SourceType } from '@mnemosyne/shared'
+import type { SourceType } from '@atlas/shared'
 // App
 import { downloadUrl } from '#src/api/jobs.api'
 

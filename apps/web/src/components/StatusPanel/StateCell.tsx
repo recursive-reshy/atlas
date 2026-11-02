@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { HealthState } from '@mnemosyne/shared'
+import type { HealthState } from '@atlas/shared'
 // App
 import { STATE_COLORS, STATE_ICONS, STATE_LABELS } from './statusLabels'
 

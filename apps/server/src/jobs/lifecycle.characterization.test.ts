@@ -13,7 +13,7 @@ import {
   JobStatus,
   SourceDocument,
   SourceType,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

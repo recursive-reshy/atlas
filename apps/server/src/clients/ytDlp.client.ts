@@ -3,7 +3,7 @@ import { mkdir, readdir } from 'node:fs/promises'
 import path from 'node:path'
 import { z } from 'zod'
 // Shared
-import { TranscriptMeta } from '@mnemosyne/shared'
+import { TranscriptMeta } from '@atlas/shared'
 // Clients
 import { runCommand } from './runCommand.js'
 

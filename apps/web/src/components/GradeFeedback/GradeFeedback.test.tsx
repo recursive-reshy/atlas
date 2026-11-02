@@ -3,7 +3,7 @@ import { screen } from '@testing-library/react'
 // Vitest
 import { describe, expect, it } from 'vitest'
 // Shared
-import type { GradeAnswerResponse } from '@mnemosyne/shared'
+import type { GradeAnswerResponse } from '@atlas/shared'
 // App
 import { meleteGradeFixture } from '#src/test-support/melete.fixture'
 import { renderWithClient } from '#src/test-support/renderWithClient'

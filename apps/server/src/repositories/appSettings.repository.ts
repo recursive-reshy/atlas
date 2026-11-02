@@ -1,5 +1,5 @@
 // Shared
-import { AppSettingKey } from '@mnemosyne/shared'
+import { AppSettingKey } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 

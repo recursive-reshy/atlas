@@ -1,11 +1,11 @@
 // Shared
-import { ListInboxResponse, SummarizeInboxResponse } from '@mnemosyne/shared'
+import { ListInboxResponse, SummarizeInboxResponse } from '@atlas/shared'
 import type {
   InboxItem,
   InboxItemRef,
   Job,
   SummarizeInboxBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { request, send } from './request'
 

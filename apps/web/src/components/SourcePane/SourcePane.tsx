@@ -7,8 +7,8 @@ import Link from '@mui/material/Link'
 import Paper from '@mui/material/Paper'
 import Typography from '@mui/material/Typography'
 // Shared
-import { formatClock, groupParagraphs } from '@mnemosyne/shared'
-import type { SourceDocument, SourceType } from '@mnemosyne/shared'
+import { formatClock, groupParagraphs } from '@atlas/shared'
+import type { SourceDocument, SourceType } from '@atlas/shared'
 
 const PANE_SX = {
   position: 'relative',

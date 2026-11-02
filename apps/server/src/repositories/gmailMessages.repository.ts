@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { AlertEmailStatus } from '@mnemosyne/shared'
+import { AlertEmailStatus } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 

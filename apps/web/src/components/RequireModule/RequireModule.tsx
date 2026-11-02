@@ -3,7 +3,7 @@ import type { ReactElement } from 'react'
 // Packages
 import { Navigate, Outlet } from 'react-router'
 // Shared
-import type { ModuleId } from '@mnemosyne/shared'
+import type { ModuleId } from '@atlas/shared'
 // App
 import { useMe } from '#src/hooks/useMe'
 import { homeFor } from '#src/moduleHome'

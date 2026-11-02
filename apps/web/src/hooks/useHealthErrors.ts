@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { HealthError, HealthKind } from '@mnemosyne/shared'
+import type { HealthError, HealthKind } from '@atlas/shared'
 // App
 import { getHealthErrors } from '../api/status.api'
 import { statusKeys } from './queryKeys'

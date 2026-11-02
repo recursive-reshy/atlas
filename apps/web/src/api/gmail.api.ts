@@ -1,6 +1,6 @@
 // Shared
-import { GetGmailAccountResponse, ListGmailLabelsResponse } from '@mnemosyne/shared'
-import type { GmailAccount, GmailLabel } from '@mnemosyne/shared'
+import { GetGmailAccountResponse, ListGmailLabelsResponse } from '@atlas/shared'
+import type { GmailAccount, GmailLabel } from '@atlas/shared'
 // App
 import { request, send } from './request'
 

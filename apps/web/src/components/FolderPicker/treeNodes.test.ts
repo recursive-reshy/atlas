@@ -1,7 +1,7 @@
 // Vitest
 import { describe, expect, it } from 'vitest'
 // Shared
-import type { FolderNode } from '@mnemosyne/shared'
+import type { FolderNode } from '@atlas/shared'
 // App
 import { filterTree, withExtraFolders } from './treeNodes'
 

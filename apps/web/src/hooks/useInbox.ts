@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { InboxItem } from '@mnemosyne/shared'
+import type { InboxItem } from '@atlas/shared'
 // App
 import { listInbox } from '../api/inbox.api'
 import { inboxKeys } from './queryKeys'

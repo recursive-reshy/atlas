@@ -8,7 +8,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { Link as RouterLink } from 'react-router'
 // Shared
-import type { AgentStatus, LinkState } from '@mnemosyne/shared'
+import type { AgentStatus, LinkState } from '@atlas/shared'
 
 const BUTTON_SX = { '&.Mui-disabled': { pointerEvents: 'auto', cursor: 'not-allowed' } } as const
 

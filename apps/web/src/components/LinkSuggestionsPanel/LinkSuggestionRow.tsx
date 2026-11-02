@@ -7,8 +7,8 @@ import ListItem from '@mui/material/ListItem'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import { hasWikilink, isStale } from '@mnemosyne/shared'
-import type { StoredLinkSuggestion, SuggestionKind } from '@mnemosyne/shared'
+import { hasWikilink, isStale } from '@atlas/shared'
+import type { StoredLinkSuggestion, SuggestionKind } from '@atlas/shared'
 
 const KIND_CHIPS = {
   existing_note: { label: 'Existing note', color: 'primary', variant: 'outlined' },

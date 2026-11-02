@@ -21,7 +21,7 @@ import {
 } from 'vitest'
 import Database from 'better-sqlite3'
 // Shared
-import { BackupResult } from '@mnemosyne/shared'
+import { BackupResult } from '@atlas/shared'
 // Errors
 import { ConflictError } from '../errors.js'
 // Repositories

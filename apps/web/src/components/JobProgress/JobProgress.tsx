@@ -14,7 +14,7 @@ import ListItemText from '@mui/material/ListItemText'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { Job, SubmitPastedTextBody } from '@mnemosyne/shared'
+import type { Job, SubmitPastedTextBody } from '@atlas/shared'
 // App
 import { PasteTextDialog } from '../PasteTextDialog'
 

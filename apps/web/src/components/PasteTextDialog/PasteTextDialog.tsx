@@ -11,8 +11,8 @@ import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
 import Stack from '@mui/material/Stack'
 // Shared
-import { ARTICLE_LIMITS } from '@mnemosyne/shared'
-import type { SubmitPastedTextBody } from '@mnemosyne/shared'
+import { ARTICLE_LIMITS } from '@atlas/shared'
+import type { SubmitPastedTextBody } from '@atlas/shared'
 // App
 import { PastedTextFields } from '../PastedTextFields'
 

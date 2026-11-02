@@ -1,7 +1,7 @@
 // Express
 import { Request, Response } from 'express'
 // Shared
-import { GetSettingsResponse, UpdateSettingsBody } from '@mnemosyne/shared'
+import { GetSettingsResponse, UpdateSettingsBody } from '@atlas/shared'
 // Middleware
 import { currentUser } from '../middleware/auth.js'
 // Services

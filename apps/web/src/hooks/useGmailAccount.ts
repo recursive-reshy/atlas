@@ -2,7 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
-import type { GmailAccount } from '@mnemosyne/shared'
+import type { GmailAccount } from '@atlas/shared'
 // App
 import { disconnectGmail, getGmailAccount } from '../api/gmail.api'
 import { gmailKeys } from './queryKeys'

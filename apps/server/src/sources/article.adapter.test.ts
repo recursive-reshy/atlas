@@ -7,8 +7,8 @@ import {
   beforeEach,
 } from 'vitest'
 // Shared
-import { Job } from '@mnemosyne/shared'
-import type { ArticleSource } from '@mnemosyne/shared'
+import { Job } from '@atlas/shared'
+import type { ArticleSource } from '@atlas/shared'
 // Sources
 import { articleAdapter } from './article.adapter.js'
 import { fetchArticle } from './extractArticle.js'

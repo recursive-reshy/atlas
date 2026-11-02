@@ -1,5 +1,5 @@
 // Shared
-import { Transcript } from '@mnemosyne/shared'
+import { Transcript } from '@atlas/shared'
 
 export const transcriptFixture: Transcript = {
   meta: {

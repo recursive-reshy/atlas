@@ -1,5 +1,5 @@
 // Shared
-import type { AdminUser, Me } from '@mnemosyne/shared'
+import type { AdminUser, Me } from '@atlas/shared'
 
 export const meFixture = ( overrides: Partial< Me > = {} ): Me => ( {
   id: '3f1c1c6e-5d0a-4a52-9a43-0c8f0e6d1a01',

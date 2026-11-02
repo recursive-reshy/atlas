@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { MeleteQuestion } from '@mnemosyne/shared'
+import type { MeleteQuestion } from '@atlas/shared'
 // App
 import { meleteQuestionFixture } from '#src/test-support/melete.fixture'
 import { renderWithClient } from '#src/test-support/renderWithClient'

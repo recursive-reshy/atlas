@@ -5,7 +5,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 // Shared
-import type { ModelOption, PromptProfile } from '@mnemosyne/shared'
+import type { ModelOption, PromptProfile } from '@atlas/shared'
 
 export interface SummaryOptionsProps {
   profiles: PromptProfile[]

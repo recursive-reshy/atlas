@@ -1,6 +1,6 @@
 // Shared
-import { GetHealthErrorsResponse, GetStatusResponse } from '@mnemosyne/shared'
-import type { HealthError, HealthKind } from '@mnemosyne/shared'
+import { GetHealthErrorsResponse, GetStatusResponse } from '@atlas/shared'
+import type { HealthError, HealthKind } from '@atlas/shared'
 // App
 import { request } from './request'
 

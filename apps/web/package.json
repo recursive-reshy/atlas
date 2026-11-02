@@ -1,5 +1,5 @@
 {
-  "name": "@mnemosyne/web",
+  "name": "@atlas/web",
   "version": "0.10.0",
   "private": true,
   "type": "module",
@@ -19,7 +19,7 @@
     "@emotion/react": "^11.14.0",
     "@emotion/styled": "^11.14.1",
     "@mdxeditor/editor": "^4.3.3",
-    "@mnemosyne/shared": "workspace:*",
+    "@atlas/shared": "workspace:*",
     "@mui/icons-material": "^9.5.0",
     "@mui/material": "^9.5.0",
     "@mui/x-tree-view": "^9.16.0",

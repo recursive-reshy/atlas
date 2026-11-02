@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { MeleteReviewMode } from '@mnemosyne/shared'
+import type { MeleteReviewMode } from '@atlas/shared'
 // App
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { ReviewHeader } from './ReviewHeader'

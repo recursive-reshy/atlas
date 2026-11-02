@@ -2,7 +2,7 @@
 // Packages
 import { describe, it, expect } from 'vitest'
 // Shared
-import { Guidance } from '@mnemosyne/shared'
+import { Guidance } from '@atlas/shared'
 // Summarizer
 import {
   LOCKED_INSTRUCTIONS_ARTICLE,

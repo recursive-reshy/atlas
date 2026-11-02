@@ -4,7 +4,7 @@ import type {
   LinkUsageSummary,
   SummaryRun,
   SummaryUsage,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Vitest
 import { describe, expect, it } from 'vitest'
 // App

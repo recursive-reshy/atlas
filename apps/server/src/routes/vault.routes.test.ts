@@ -11,7 +11,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import { ListFoldersResponse } from '@mnemosyne/shared'
+import { ListFoldersResponse } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Test support

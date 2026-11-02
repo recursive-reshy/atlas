@@ -10,7 +10,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { ListJobsResponse } from '@mnemosyne/shared'
+import { ListJobsResponse } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Config

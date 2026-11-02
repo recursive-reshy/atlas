@@ -1,8 +1,8 @@
 // Express
 import type { Request, Response } from 'express'
 // Shared
-import { CreateUserBody, DeleteUserBody, UpdateUserBody } from '@mnemosyne/shared'
-import type { AdminUser, UsageResponse } from '@mnemosyne/shared'
+import { CreateUserBody, DeleteUserBody, UpdateUserBody } from '@atlas/shared'
+import type { AdminUser, UsageResponse } from '@atlas/shared'
 // Middleware
 import { currentUser } from '../middleware/auth.js'
 // Services

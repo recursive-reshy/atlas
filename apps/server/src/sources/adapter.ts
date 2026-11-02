@@ -1,5 +1,5 @@
 // Shared
-import type { Job, SourceDocument } from '@mnemosyne/shared'
+import type { Job, SourceDocument } from '@atlas/shared'
 // Services
 import type { StepStatus } from '../services/jobs.service.js'
 

@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 // Shared
-import type { SourceType } from '@mnemosyne/shared'
+import type { SourceType } from '@atlas/shared'
 
 interface SourceTypeSwitchProps {
   value: SourceType

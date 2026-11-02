@@ -1,7 +1,7 @@
 // Packages
 import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 // Shared
-import { VAULT_MISSING_MESSAGE } from '@mnemosyne/shared'
+import { VAULT_MISSING_MESSAGE } from '@atlas/shared'
 // App
 import { ApiError } from './api/apiError'
 import { meKeys } from './hooks/queryKeys'

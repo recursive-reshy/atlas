@@ -4,7 +4,7 @@ import type {
   Feed,
   PreviewFeedResponse,
   UpdateFeedBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Errors
 import { BadGatewayError, ConflictError, NotFoundError } from '../errors.js'
 // Clients

@@ -1,5 +1,5 @@
 // Shared
-import type { MeleteReviewCounts } from '@mnemosyne/shared'
+import type { MeleteReviewCounts } from '@atlas/shared'
 // Melete
 import { dayStart } from './day.js'
 // Repositories

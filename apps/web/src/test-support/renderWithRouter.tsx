@@ -9,7 +9,7 @@ import type { InitialEntry, Location } from 'react-router'
 import { render } from '@testing-library/react'
 import type { RenderResult } from '@testing-library/react'
 // Shared
-import type { Me } from '@mnemosyne/shared'
+import type { Me } from '@atlas/shared'
 // App
 import { meKeys } from '#src/hooks/queryKeys'
 import { createQueryClient } from '#src/queryClient'

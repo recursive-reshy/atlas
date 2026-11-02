@@ -1,7 +1,7 @@
 // Packages
 import { useState } from 'react'
 // Shared
-import { parseNote, serializeNote } from '@mnemosyne/shared'
+import { parseNote, serializeNote } from '@atlas/shared'
 // Testing Library
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

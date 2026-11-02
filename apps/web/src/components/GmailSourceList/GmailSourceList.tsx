@@ -15,7 +15,7 @@ import Stack from '@mui/material/Stack'
 import Switch from '@mui/material/Switch'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { GmailSource, UpdateGmailSourceBody } from '@mnemosyne/shared'
+import type { GmailSource, UpdateGmailSourceBody } from '@atlas/shared'
 // App
 import { formatChecked } from '#src/checkedAt'
 import { GmailSourceMatch } from './GmailSourceMatch'

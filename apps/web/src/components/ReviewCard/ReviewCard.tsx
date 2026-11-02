@@ -13,7 +13,7 @@ import type {
   MeleteReviewItem,
   MeleteReviewMode,
   RecordReviewBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { useGradeAnswer, useRecordReview } from '#src/hooks/useMeleteMutations'
 import { GradeFeedback } from '../GradeFeedback'

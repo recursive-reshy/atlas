@@ -7,8 +7,8 @@ import {
   MeleteReviewMode,
   Settings,
   UpdateSettingsBody,
-} from '@mnemosyne/shared'
-import type { ModuleId } from '@mnemosyne/shared'
+} from '@atlas/shared'
+import type { ModuleId } from '@atlas/shared'
 // Clients
 import { AgentError, checkHealth, fetchInstructions } from '../clients/agent.client.js'
 import { resolveFolder } from '../clients/vault.client.js'

@@ -3,7 +3,7 @@ import type { ReactElement } from 'react'
 // Packages
 import { useNavigate } from 'react-router'
 // Shared
-import { parseNote, serializeNote } from '@mnemosyne/shared'
+import { parseNote, serializeNote } from '@atlas/shared'
 // Testing Library
 import { fireEvent, screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

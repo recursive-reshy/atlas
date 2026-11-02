@@ -2,7 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
-import type { CreatePromptProfileBody, PromptProfile } from '@mnemosyne/shared'
+import type { CreatePromptProfileBody, PromptProfile } from '@atlas/shared'
 // App
 import {
   createProfile,

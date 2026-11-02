@@ -1,14 +1,14 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { AppHealthKind } from '@mnemosyne/shared'
+import { AppHealthKind } from '@atlas/shared'
 import type {
   GetStatusResponse,
   HealthError,
   HealthKind,
   HealthState,
   StatusRow,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

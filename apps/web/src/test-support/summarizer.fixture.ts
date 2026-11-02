@@ -4,7 +4,7 @@ import type {
   ListModelsResponse,
   PromptProfile,
   PromptVersion,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 
 export const BUSINESS_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a01'
 export const LINKER_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a09'

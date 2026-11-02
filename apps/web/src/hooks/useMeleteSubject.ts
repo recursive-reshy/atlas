@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { MeleteNote, MeleteSubject } from '@mnemosyne/shared'
+import type { MeleteNote, MeleteSubject } from '@atlas/shared'
 // App
 import { getMeleteSubject } from '../api/melete.api'
 import { POLL_INTERVAL_MS } from './useJob'

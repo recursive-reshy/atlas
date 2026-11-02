@@ -7,7 +7,7 @@ import {
   beforeEach,
 } from 'vitest'
 // Shared
-import { GetStatusResponse, type StatusRow } from '@mnemosyne/shared'
+import { GetStatusResponse, type StatusRow } from '@atlas/shared'
 // Errors
 import { NotFoundError } from '../errors.js'
 // Repositories

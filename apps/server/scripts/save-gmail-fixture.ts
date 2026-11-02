@@ -19,7 +19,7 @@ const validName = name !== undefined && /^[A-Za-z0-9][A-Za-z0-9_-]*$/.test( name
 
 if( !messageId || !validName ) {
   console.error(
-    'Usage: pnpm --filter @mnemosyne/server fixture:gmail <messageId> <name> [display name]',
+    'Usage: pnpm --filter @atlas/server fixture:gmail <messageId> <name> [display name]',
   )
   console.error( 'The name may only use letters, digits, - and _.' )
   process.exit( 1 )

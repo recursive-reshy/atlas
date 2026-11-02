@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { FolderNode } from '@mnemosyne/shared'
+import type { FolderNode } from '@atlas/shared'
 // App
 import { FolderPicker } from './FolderPicker'
 

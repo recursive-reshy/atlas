@@ -1,5 +1,5 @@
 // Shared
-import { SourceDocument, formatClock } from '@mnemosyne/shared'
+import { SourceDocument, formatClock } from '@atlas/shared'
 // Clients
 import type { Summary } from '../clients/claude.client.js'
 // Formatters

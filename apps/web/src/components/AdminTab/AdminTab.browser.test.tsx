@@ -15,7 +15,7 @@ import {
 } from 'vitest'
 import { page } from 'vitest/browser'
 // Shared
-import type { UsageTotals } from '@mnemosyne/shared'
+import type { UsageTotals } from '@atlas/shared'
 // App
 import { useAdminUsage } from '#src/hooks/useAdminUsage'
 import { useAdminUsers } from '#src/hooks/useAdminUsers'

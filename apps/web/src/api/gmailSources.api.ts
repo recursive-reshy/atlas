@@ -3,13 +3,13 @@ import {
   GmailSourceResponse,
   ListGmailSourcesResponse,
   PreviewGmailSourceResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 import type {
   CreateGmailSourceBody,
   GmailMatch,
   GmailSource,
   UpdateGmailSourceBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { request, send } from './request'
 

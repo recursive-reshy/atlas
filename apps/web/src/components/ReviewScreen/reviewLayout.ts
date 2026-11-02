@@ -1,5 +1,5 @@
 // Shared
-import { parseNote } from '@mnemosyne/shared'
+import { parseNote } from '@atlas/shared'
 // App
 import type { AutosaveStatus } from '#src/hooks/useAutosaveDraft'
 

@@ -13,7 +13,7 @@ import DialogTitle from '@mui/material/DialogTitle'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Stack from '@mui/material/Stack'
 // Shared
-import type { Feed } from '@mnemosyne/shared'
+import type { Feed } from '@atlas/shared'
 
 interface DeleteFeedDialogProps {
   feed: Feed

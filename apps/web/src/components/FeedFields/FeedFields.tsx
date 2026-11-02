@@ -7,7 +7,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 // Shared
-import type { PromptProfile } from '@mnemosyne/shared'
+import type { PromptProfile } from '@atlas/shared'
 
 interface FeedFieldsProps {
   name: string

@@ -7,7 +7,7 @@ import List from '@mui/material/List'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { StoredLinkSuggestion } from '@mnemosyne/shared'
+import type { StoredLinkSuggestion } from '@atlas/shared'
 // App
 import { LinkSuggestionRow } from './LinkSuggestionRow'
 

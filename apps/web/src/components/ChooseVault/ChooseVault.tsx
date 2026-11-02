@@ -14,7 +14,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 // Shared
-import { VaultDir } from '@mnemosyne/shared'
+import { VaultDir } from '@atlas/shared'
 // App
 import { useSignOut } from '#src/hooks/useSignOut'
 import { useVaultChoices } from '#src/hooks/useVaultChoices'

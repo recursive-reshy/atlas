@@ -15,7 +15,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { Me } from '@mnemosyne/shared'
+import { Me } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

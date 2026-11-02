@@ -10,7 +10,7 @@ import {
 } from 'vitest'
 import { userEvent } from 'vitest/browser'
 // Shared
-import { serializeNote } from '@mnemosyne/shared'
+import { serializeNote } from '@atlas/shared'
 // App
 import { updateDraft } from '#src/api/jobs.api'
 import { acceptLinkSuggestions, listLinkSuggestions } from '#src/api/linkSuggestions.api'

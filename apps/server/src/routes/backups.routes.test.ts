@@ -8,7 +8,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import { BackupResult } from '@mnemosyne/shared'
+import { BackupResult } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Test support

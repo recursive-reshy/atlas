@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
-import type { AcceptLinkSuggestionsBody, LinkSuggestionsResponse } from '@mnemosyne/shared'
+import type { AcceptLinkSuggestionsBody, LinkSuggestionsResponse } from '@atlas/shared'
 // App
 import { acceptLinkSuggestions } from '../api/linkSuggestions.api'
 import { jobKeys, linkSuggestionKeys } from './queryKeys'

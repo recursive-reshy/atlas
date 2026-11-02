@@ -10,7 +10,7 @@ import { basename, join } from 'node:path'
 // Packages
 import Database from 'better-sqlite3'
 // Shared
-import type { BackupResult } from '@mnemosyne/shared'
+import type { BackupResult } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

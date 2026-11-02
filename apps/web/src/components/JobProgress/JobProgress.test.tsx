@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { Job } from '@mnemosyne/shared'
+import type { Job } from '@atlas/shared'
 // App
 import { jobFixture } from '#src/test-support/job.fixture'
 import { JobProgress } from './JobProgress'

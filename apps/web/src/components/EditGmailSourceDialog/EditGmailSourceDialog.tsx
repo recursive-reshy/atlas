@@ -12,7 +12,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { GmailSource, PromptProfile, UpdateGmailSourceBody } from '@mnemosyne/shared'
+import type { GmailSource, PromptProfile, UpdateGmailSourceBody } from '@atlas/shared'
 // App
 import { fromMatch, matchKey, toMatch } from '#src/gmailMatch'
 import type { MatchDraft } from '#src/gmailMatch'

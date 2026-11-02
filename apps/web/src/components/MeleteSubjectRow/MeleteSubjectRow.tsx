@@ -8,7 +8,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { Link as RouterLink } from 'react-router'
 // Shared
-import type { MeleteSubject } from '@mnemosyne/shared'
+import type { MeleteSubject } from '@atlas/shared'
 
 interface MeleteSubjectRowProps {
   subject: MeleteSubject

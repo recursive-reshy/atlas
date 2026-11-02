@@ -1,12 +1,12 @@
 // Shared
-import { ARTICLE_LIMITS, detectSourceType } from '@mnemosyne/shared'
+import { ARTICLE_LIMITS, detectSourceType } from '@atlas/shared'
 import type {
   InboxItem,
   InboxItemRef,
   Job,
   SummarizeInboxBody,
   SummarizeInboxResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Errors
 import { ConflictError, UnprocessableError, ValidationError } from '../errors.js'
 // Gmail

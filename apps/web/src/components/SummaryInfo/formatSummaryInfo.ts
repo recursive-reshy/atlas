@@ -1,5 +1,5 @@
 // Shared
-import type { LinkUsageSummary, SummaryUsage } from '@mnemosyne/shared'
+import type { LinkUsageSummary, SummaryUsage } from '@atlas/shared'
 
 const SMALL_COST_USD = 0.01
 

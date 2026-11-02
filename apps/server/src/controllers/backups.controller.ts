@@ -1,7 +1,7 @@
 // Express
 import { Request, Response } from 'express'
 // Shared
-import type { BackupResult } from '@mnemosyne/shared'
+import type { BackupResult } from '@atlas/shared'
 // Services
 import { runBackup } from '../services/backup.service.js'
 

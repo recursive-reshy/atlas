@@ -8,7 +8,7 @@ import IconButton from '@mui/material/IconButton'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 // Shared
-import { normalizeTag } from '@mnemosyne/shared'
+import { normalizeTag } from '@atlas/shared'
 // App
 
 const FIXED_TAG = 'mnemosyne'

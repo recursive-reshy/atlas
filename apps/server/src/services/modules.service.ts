@@ -1,5 +1,5 @@
 // Shared
-import { ModuleId } from '@mnemosyne/shared'
+import { ModuleId } from '@atlas/shared'
 // Repositories
 import { listModules } from '../repositories/userModules.repository.js'
 import { findUserById } from '../repositories/users.repository.js'

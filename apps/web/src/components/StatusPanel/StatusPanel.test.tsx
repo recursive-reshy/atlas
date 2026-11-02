@@ -11,7 +11,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { StatusRow } from '@mnemosyne/shared'
+import type { StatusRow } from '@atlas/shared'
 // App
 import { GMAIL_CONNECT_URL } from '#src/api/gmail.api'
 import { useHealthErrors } from '#src/hooks/useHealthErrors'

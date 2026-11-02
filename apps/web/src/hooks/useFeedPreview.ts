@@ -2,7 +2,7 @@
 import { useMutation } from '@tanstack/react-query'
 import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
-import type { PreviewFeedResponse } from '@mnemosyne/shared'
+import type { PreviewFeedResponse } from '@atlas/shared'
 // App
 import { previewFeed } from '../api/feeds.api'
 

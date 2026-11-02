@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { lstat } from 'node:fs/promises'
 import { join } from 'node:path'
 // Shared
-import type { ModuleId } from '@mnemosyne/shared'
+import type { ModuleId } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

@@ -7,7 +7,7 @@ import {
   beforeEach,
 } from 'vitest'
 // Shared
-import { JobStatus } from '@mnemosyne/shared'
+import { JobStatus } from '@atlas/shared'
 // Lifecycle
 import { statusesWhere } from '../jobs/lifecycle.js'
 // Repositories

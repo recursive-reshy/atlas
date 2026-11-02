@@ -8,7 +8,7 @@ import ListItemText from '@mui/material/ListItemText'
 import ListSubheader from '@mui/material/ListSubheader'
 import { Link } from 'react-router'
 // Shared
-import type { PromptProfile } from '@mnemosyne/shared'
+import type { PromptProfile } from '@atlas/shared'
 
 const LINKER = 'linker'
 

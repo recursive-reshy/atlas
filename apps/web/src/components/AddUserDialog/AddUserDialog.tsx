@@ -15,7 +15,7 @@ import FormHelperText from '@mui/material/FormHelperText'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 // Shared
-import { CreateUserBody, ModuleId } from '@mnemosyne/shared'
+import { CreateUserBody, ModuleId } from '@atlas/shared'
 // App
 import { MODULE_LABELS } from '#src/moduleLabels'
 

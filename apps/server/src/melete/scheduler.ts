@@ -8,7 +8,7 @@ import {
 } from 'ts-fsrs'
 import type { Card, FSRS, Grade } from 'ts-fsrs'
 // Shared
-import type { MeleteFsrsState, MeleteRating } from '@mnemosyne/shared'
+import type { MeleteFsrsState, MeleteRating } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Repositories

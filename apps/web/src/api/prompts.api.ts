@@ -3,13 +3,13 @@ import {
   ListPromptProfilesResponse,
   ListPromptVersionsResponse,
   PromptProfileResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 import type {
   CreatePromptProfileBody,
   PromptProfile,
   PromptPurpose,
   PromptVersion,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { request, send } from './request'
 

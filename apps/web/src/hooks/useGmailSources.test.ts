@@ -1,7 +1,7 @@
 // Testing Library
 import { act } from '@testing-library/react'
 // Shared
-import type { CreateGmailSourceBody } from '@mnemosyne/shared'
+import type { CreateGmailSourceBody } from '@atlas/shared'
 // Vitest
 import {
   beforeEach,

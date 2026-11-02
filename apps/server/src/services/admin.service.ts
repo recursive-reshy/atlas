@@ -1,5 +1,5 @@
 // Shared
-import { ModuleId, UsageCategory } from '@mnemosyne/shared'
+import { ModuleId, UsageCategory } from '@atlas/shared'
 import type {
   AdminUser,
   CreateUserBody,
@@ -7,7 +7,7 @@ import type {
   UsageResponse,
   UsageTotals,
   UserUsage,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

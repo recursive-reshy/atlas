@@ -1,5 +1,5 @@
 // Shared
-import { ListModelsResponse } from '@mnemosyne/shared'
+import { ListModelsResponse } from '@atlas/shared'
 // App
 import { request } from './request'
 

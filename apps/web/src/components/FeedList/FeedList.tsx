@@ -18,7 +18,7 @@ import type {
   Feed,
   PromptProfile,
   UpdateFeedBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { formatChecked } from '#src/checkedAt'
 

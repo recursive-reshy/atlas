@@ -14,7 +14,7 @@ import {
   ListFeedsResponse,
   ListInboxResponse,
   PreviewFeedResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Test support

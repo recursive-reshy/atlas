@@ -13,7 +13,7 @@ import DialogTitle from '@mui/material/DialogTitle'
 import FormControlLabel from '@mui/material/FormControlLabel'
 import Stack from '@mui/material/Stack'
 // Shared
-import type { GmailSource } from '@mnemosyne/shared'
+import type { GmailSource } from '@atlas/shared'
 
 interface DeleteGmailSourceDialogProps {
   source: GmailSource

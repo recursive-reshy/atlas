@@ -6,7 +6,7 @@ import {
   beforeEach,
 } from 'vitest'
 // Shared
-import type { PostingDetails } from '@mnemosyne/shared'
+import type { PostingDetails } from '@atlas/shared'
 // Repositories
 import { insertMessageIfNew } from './gmailMessages.repository.js'
 import { insertSource } from './gmailSources.repository.js'

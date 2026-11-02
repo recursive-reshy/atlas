@@ -5,7 +5,7 @@ import Chip from '@mui/material/Chip'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { GmailSource } from '@mnemosyne/shared'
+import type { GmailSource } from '@atlas/shared'
 
 const QUERY_SX = { fontFamily: 'monospace', overflowWrap: 'anywhere' } as const
 

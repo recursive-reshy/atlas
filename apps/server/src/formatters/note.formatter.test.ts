@@ -1,7 +1,7 @@
 // Packages
 import { describe, it, expect } from 'vitest'
 // Shared
-import { SourceDocument, TranscriptMeta } from '@mnemosyne/shared'
+import { SourceDocument, TranscriptMeta } from '@atlas/shared'
 // Formatters
 import { formatNote } from './note.formatter.js'
 

@@ -5,7 +5,7 @@ import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 // Shared
-import { ARTICLE_LIMITS } from '@mnemosyne/shared'
+import { ARTICLE_LIMITS } from '@atlas/shared'
 
 const HELPER_SX = { display: 'flex', justifyContent: 'space-between', gap: 2 } as const
 

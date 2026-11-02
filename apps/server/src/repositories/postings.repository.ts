@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { ListPostingsQuery, PostingDetails } from '@mnemosyne/shared'
+import { ListPostingsQuery, PostingDetails } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 import { ALERT_EMAIL_SELECT, StoredAlertEmail } from './gmailMessages.repository.js'

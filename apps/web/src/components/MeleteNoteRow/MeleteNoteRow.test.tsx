@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { MeleteNote } from '@mnemosyne/shared'
+import type { MeleteNote } from '@atlas/shared'
 // App
 import { meleteNoteFixture, NOTE_ID } from '#src/test-support/melete.fixture'
 import { renderWithClient } from '#src/test-support/renderWithClient'

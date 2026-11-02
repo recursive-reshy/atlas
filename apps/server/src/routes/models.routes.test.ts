@@ -7,7 +7,7 @@ import {
   beforeEach,
 } from 'vitest'
 // Shared
-import { ListModelsResponse } from '@mnemosyne/shared'
+import { ListModelsResponse } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Test support

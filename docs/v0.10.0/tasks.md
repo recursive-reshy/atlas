@@ -28,7 +28,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 | **Phase 1** | **Kick-off** | | |
 | 1.1 | Version 0.10.0 in every `package.json`, `apps/agent/pyproject.toml`, the agent's `uv.lock` entry and the README status line; confirm `docs/README.md` lists v0.10.0 and ADRs 0073–0078 (added with the plan) | | ✅ |
 | **Phase 2** | **Rename to Atlas (TRD §2)** | | |
-| 2.1 | Workspace packages `@mnemosyne/*` → `@atlas/*` (package names, every import, tsconfig paths, Vite/Vitest config, scripts), lockfile regenerated; one commit; all packages green | 0073 | ⬜ |
+| 2.1 | Workspace packages `@mnemosyne/*` → `@atlas/*` (package names, every import, tsconfig paths, Vite/Vitest config, scripts), lockfile regenerated; one commit; all packages green | 0073 | ✅ |
 | 2.2 | Python package `mnemosyne_agent` → `atlas_agent` (`git mv`, imports, `pyproject.toml` name `atlas-agent`, `uv.lock`, Dockerfile start command, Ruff/Pyright/pytest config); agent tests, Ruff, Pyright green | 0073 | ⬜ |
 | 2.3 | Runtime and UI names (TRD §2.1): Compose `name: atlas`, services `app`/`agent`, volume `data`, image names, `atlas.db`, `atlas_session`, logger names, page title, PWA manifest, drawer header, sign-in and not-allowed pages, drawer module label **Mnemosyne**; e2e project, image and service names; tag and folder defaults unchanged (tests prove it) | 0073 | ⬜ |
 | 2.4 | Name guard test (TRD §2.3); root README, root/server/web `CLAUDE.md`, `docs/README.md` say Atlas; README note on removing the old local volume (TRD §2.4); full run: all tests, lint, typecheck, build, browser tests, agent tests, `pnpm e2e`, `docker compose build` | 0073 | ⬜ |
@@ -108,3 +108,4 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 
 ## Log
 - 1.1 ✅ Version 0.10.0 in six package.json files, pyproject.toml, uv.lock (`uv lock --check` passes) and the README status line; `appVersion` reads package.json so no test changed; docs/README.md already lists v0.10.0 and ADRs 0073–0078.
+- 2.1 ✅ Workspace packages are `@atlas/*` (root package `atlas`), 322 files rewritten by one scripted replace outside `docs/`, lockfile regenerated; no test file changed beyond the import line. One `pnpm test` run showed a web unit failure under parallel load that did not repeat (web unit rerun green, 1665 tests); server, shared, agent, web browser, lint, typecheck and build green.

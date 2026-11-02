@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { PromptPurpose, PromptVersion, PromptVersionSource } from '@mnemosyne/shared'
+import { PromptPurpose, PromptVersion, PromptVersionSource } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 

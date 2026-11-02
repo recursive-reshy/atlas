@@ -15,7 +15,7 @@ import type {
   UsageCategory,
   UsageResponse,
   UserUsage,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { formatCost, formatMinutes, sumCost } from './usageFormat'
 

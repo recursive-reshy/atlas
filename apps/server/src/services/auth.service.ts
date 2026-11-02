@@ -7,8 +7,8 @@ import {
   timingSafeEqual,
 } from 'node:crypto'
 // Shared
-import { ModuleId } from '@mnemosyne/shared'
-import type { Me } from '@mnemosyne/shared'
+import { ModuleId } from '@atlas/shared'
+import type { Me } from '@atlas/shared'
 // Clients
 import { SignInError, createGoogleSignInClient } from '../clients/googleSignIn.client.js'
 import type { GoogleSignInClient } from '../clients/googleSignIn.client.js'

@@ -9,7 +9,7 @@ The setup, configuration and troubleshooting are in the [root README](../../READ
 Needs [uv](https://docs.astral.sh/uv/).
 
 ```sh
-ANTHROPIC_API_KEY=… AGENT_SECRET=$(openssl rand -hex 32) VAULTS_ROOT=/path/to/vaults pnpm --filter @mnemosyne/agent dev
+ANTHROPIC_API_KEY=… AGENT_SECRET=$(openssl rand -hex 32) VAULTS_ROOT=/path/to/vaults pnpm --filter @atlas/agent dev
 ```
 
 `VAULTS_ROOT` is the folder that holds one folder per user; each request names its user's vault by `vault_dir` (ADR 0063). It listens on port 8100. Use the same `AGENT_SECRET` and `AGENT_URL=http://localhost:8100` in `apps/server/.env`.
@@ -17,9 +17,9 @@ ANTHROPIC_API_KEY=… AGENT_SECRET=$(openssl rand -hex 32) VAULTS_ROOT=/path/to/
 ## Checks
 
 ```sh
-pnpm --filter @mnemosyne/agent test        # pytest
-pnpm --filter @mnemosyne/agent lint        # ruff check
-pnpm --filter @mnemosyne/agent typecheck   # pyright
+pnpm --filter @atlas/agent test        # pytest
+pnpm --filter @atlas/agent lint        # ruff check
+pnpm --filter @atlas/agent typecheck   # pyright
 cd apps/agent && uv run pytest -m docker   # builds the image; needs Docker
 ```
 

@@ -1,5 +1,5 @@
 {
-  "name": "@mnemosyne/agent",
+  "name": "@atlas/agent",
   "version": "0.10.0",
   "private": true,
   "scripts": {

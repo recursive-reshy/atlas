@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { PromptVersion } from '@mnemosyne/shared'
+import type { PromptVersion } from '@atlas/shared'
 // App
 import { listVersions } from '../api/prompts.api'
 import { promptKeys } from './queryKeys'

@@ -13,7 +13,7 @@ import ListItem from '@mui/material/ListItem'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { InboxItem } from '@mnemosyne/shared'
+import type { InboxItem } from '@atlas/shared'
 // App
 import { formatDate } from '#src/formatDate'
 import { FeedChip } from '../FeedChip'

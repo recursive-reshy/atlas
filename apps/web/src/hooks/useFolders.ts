@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { FolderNode } from '@mnemosyne/shared'
+import type { FolderNode } from '@atlas/shared'
 // App
 import { listFolders } from '../api/vault.api'
 import { vaultKeys } from './queryKeys'

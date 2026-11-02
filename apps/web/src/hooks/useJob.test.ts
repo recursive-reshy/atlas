@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { Job } from '@mnemosyne/shared'
+import type { Job } from '@atlas/shared'
 // App
 import { ApiError } from '../api/apiError'
 import { getJob } from '../api/jobs.api'

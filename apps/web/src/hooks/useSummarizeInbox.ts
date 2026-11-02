@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
-import type { InboxItem, Job, SummarizeInboxBody } from '@mnemosyne/shared'
+import type { InboxItem, Job, SummarizeInboxBody } from '@atlas/shared'
 // App
 import { listInbox, summarizeInbox } from '../api/inbox.api'
 import {

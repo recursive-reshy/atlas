@@ -7,7 +7,7 @@ import Paper from '@mui/material/Paper'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { MeleteQuestion } from '@mnemosyne/shared'
+import type { MeleteQuestion } from '@atlas/shared'
 // App
 import { formatDate } from '#src/formatDate'
 

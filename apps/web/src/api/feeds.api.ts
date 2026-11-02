@@ -3,12 +3,12 @@ import {
   FeedResponse,
   ListFeedsResponse,
   PreviewFeedResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 import type {
   CreateFeedBody,
   Feed,
   UpdateFeedBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { request, send } from './request'
 

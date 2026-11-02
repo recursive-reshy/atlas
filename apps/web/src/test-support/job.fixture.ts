@@ -1,5 +1,5 @@
 // Shared
-import type { Job } from '@mnemosyne/shared'
+import type { Job } from '@atlas/shared'
 
 export const jobFixture = ( overrides: Partial< Job > = {} ): Job => {
   return {

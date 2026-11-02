@@ -13,7 +13,7 @@ import {
   SourceDocument,
   Transcript,
   parseNote,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

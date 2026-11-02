@@ -6,7 +6,7 @@ import {
   ListJobsResponse,
   SaveJobResponse,
   UpdateDraftResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 import type {
   CreateJobBody,
   DownloadFormat,
@@ -15,7 +15,7 @@ import type {
   SourceDocument,
   SubmitPastedTextBody,
   UpdateDraftBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { request, send } from './request'
 

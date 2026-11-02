@@ -1,5 +1,5 @@
 // Shared
-import type { GmailMatch } from '@mnemosyne/shared'
+import type { GmailMatch } from '@atlas/shared'
 
 export const MAX_LABELS = 10
 

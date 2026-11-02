@@ -6,7 +6,7 @@ import ListItem from '@mui/material/ListItem'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { StatusRow } from '@mnemosyne/shared'
+import type { StatusRow } from '@atlas/shared'
 // App
 import { formatAgo } from '#src/checkedAt'
 import { BackupControls } from './BackupControls'

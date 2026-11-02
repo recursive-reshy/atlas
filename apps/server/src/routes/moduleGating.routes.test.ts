@@ -7,7 +7,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import { ListModelsResponse, ListPromptProfilesResponse } from '@mnemosyne/shared'
+import { ListModelsResponse, ListPromptProfilesResponse } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Clients

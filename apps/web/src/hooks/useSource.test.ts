@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { SourceDocument } from '@mnemosyne/shared'
+import type { SourceDocument } from '@atlas/shared'
 // App
 import { ApiError } from '../api/apiError'
 import { getSource } from '../api/jobs.api'

@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { MeleteReviewCounts, MeleteReviewItem } from '@mnemosyne/shared'
+import type { MeleteReviewCounts, MeleteReviewItem } from '@atlas/shared'
 // App
 import { getNextReview } from '../api/melete.api'
 import { meleteKeys } from './queryKeys'

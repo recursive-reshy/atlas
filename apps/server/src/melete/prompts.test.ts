@@ -2,7 +2,7 @@
 // Packages
 import { describe, it, expect } from 'vitest'
 // Shared
-import { Guidance } from '@mnemosyne/shared'
+import { Guidance } from '@atlas/shared'
 // Melete
 import {
   DEFAULT_MELETE_GRADING_GUIDANCE,

@@ -15,7 +15,7 @@ import type {
   Backfill,
   CreateGmailSourceBody,
   PromptProfile,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { matchKey, toMatch } from '#src/gmailMatch'
 import type { MatchDraft } from '#src/gmailMatch'

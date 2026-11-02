@@ -8,7 +8,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { Navigate, useNavigate, useParams } from 'react-router'
 // Shared
-import { Job, detectSourceType } from '@mnemosyne/shared'
+import { Job, detectSourceType } from '@atlas/shared'
 // App
 import { createJob } from '#src/api/jobs.api'
 import { useJob } from '#src/hooks/useJob'

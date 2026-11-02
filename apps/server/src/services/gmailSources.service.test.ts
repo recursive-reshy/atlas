@@ -8,7 +8,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import type { CreateGmailSourceBody, GmailMatch } from '@mnemosyne/shared'
+import type { CreateGmailSourceBody, GmailMatch } from '@atlas/shared'
 // Errors
 import { ConflictError, NotFoundError, ValidationError } from '../errors.js'
 // Gmail

@@ -9,7 +9,7 @@ import ListItem from '@mui/material/ListItem'
 import Typography from '@mui/material/Typography'
 import { Link as RouterLink } from 'react-router'
 // Shared
-import type { Job } from '@mnemosyne/shared'
+import type { Job } from '@atlas/shared'
 // App
 import { formatExpiry } from '#src/expiry'
 import { FeedChip } from '../FeedChip'

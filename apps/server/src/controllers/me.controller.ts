@@ -1,8 +1,8 @@
 // Express
 import type { Request, Response } from 'express'
 // Shared
-import { ClaimVaultBody, CreateVaultBody } from '@mnemosyne/shared'
-import type { Me, VaultChoice } from '@mnemosyne/shared'
+import { ClaimVaultBody, CreateVaultBody } from '@atlas/shared'
+import type { Me, VaultChoice } from '@atlas/shared'
 // Middleware
 import { currentUser } from '../middleware/auth.js'
 // Services

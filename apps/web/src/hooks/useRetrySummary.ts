@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
-import type { Job } from '@mnemosyne/shared'
+import type { Job } from '@atlas/shared'
 // App
 import { retrySummary } from '../api/jobs.api'
 import { jobKeys } from './queryKeys'

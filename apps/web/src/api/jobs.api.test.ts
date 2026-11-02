@@ -1,5 +1,5 @@
 // Shared
-import type { DownloadFormat } from '@mnemosyne/shared'
+import type { DownloadFormat } from '@atlas/shared'
 // Vitest
 import {
   afterEach,

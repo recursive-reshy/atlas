@@ -8,7 +8,7 @@ import Stack from '@mui/material/Stack'
 import Tab from '@mui/material/Tab'
 import Tabs from '@mui/material/Tabs'
 // Shared
-import type { Job, SourceDocument } from '@mnemosyne/shared'
+import type { Job, SourceDocument } from '@atlas/shared'
 // App
 import type { AutosaveState } from '#src/hooks/useAutosaveDraft'
 import { useLinkSuggestions } from '#src/hooks/useLinkSuggestions'

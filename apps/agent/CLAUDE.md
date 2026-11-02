@@ -41,7 +41,7 @@ uv run pytest -m docker
 uv run python -m mnemosyne_agent.contract.export
 ```
 
-`pnpm --filter @mnemosyne/agent test|lint|typecheck` runs the first three through `package.json`, and the root `pnpm test|lint|typecheck` includes them. All three must pass before a task is ticked. Never run `ruff format`, `black`, `yapf` or `isort`: they destroy the house style below. Run `ruff check` without `--fix` and fix findings by hand. Never enable Ruff's import-sorting rules (`I`), the pycodestyle whitespace and blank-line rules (`E1`, `E2`, `E3`, `W`) or the trailing-comma rules (`COM`) in `pyproject.toml`; they contradict the house style.
+`pnpm --filter @atlas/agent test|lint|typecheck` runs the first three through `package.json`, and the root `pnpm test|lint|typecheck` includes them. All three must pass before a task is ticked. Never run `ruff format`, `black`, `yapf` or `isort`: they destroy the house style below. Run `ruff check` without `--fix` and fix findings by hand. Never enable Ruff's import-sorting rules (`I`), the pycodestyle whitespace and blank-line rules (`E1`, `E2`, `E3`, `W`) or the trailing-comma rules (`COM`) in `pyproject.toml`; they contradict the house style.
 
 ## Code style
 

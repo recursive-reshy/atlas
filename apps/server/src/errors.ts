@@ -3,7 +3,7 @@ import { NextFunction, Request, Response } from 'express'
 // Packages
 import { ZodError } from 'zod'
 // Shared
-import { ErrorResponse, VAULT_MISSING_MESSAGE } from '@mnemosyne/shared'
+import { ErrorResponse, VAULT_MISSING_MESSAGE } from '@atlas/shared'
 // Logging
 import { logger } from './logger.js'
 

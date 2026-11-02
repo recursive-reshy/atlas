@@ -1,6 +1,6 @@
 /* eslint-disable @stylistic/max-len -- prompt lines are one paragraph each, verbatim from TRD §5 */
 // Shared
-import type { SourceType } from '@mnemosyne/shared'
+import type { SourceType } from '@atlas/shared'
 
 export const LOCKED_INSTRUCTIONS_VIDEO = `You summarize the transcript of a video for a personal Obsidian vault.
 

@@ -18,7 +18,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { GetSettingsResponse } from '@mnemosyne/shared'
+import { GetSettingsResponse } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Test support

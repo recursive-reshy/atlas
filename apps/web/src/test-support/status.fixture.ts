@@ -1,5 +1,5 @@
 // Shared
-import type { GetStatusResponse, StatusRow } from '@mnemosyne/shared'
+import type { GetStatusResponse, StatusRow } from '@atlas/shared'
 
 export const statusRowFixture = ( overrides: Partial< StatusRow > = {} ): StatusRow => {
   return {

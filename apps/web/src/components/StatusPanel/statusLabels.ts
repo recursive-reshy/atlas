@@ -3,7 +3,7 @@ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
 import ErrorIcon from '@mui/icons-material/Error'
 import RemoveCircleOutlineIcon from '@mui/icons-material/RemoveCircleOutlineOutlined'
 // Shared
-import type { HealthKind, HealthState } from '@mnemosyne/shared'
+import type { HealthKind, HealthState } from '@atlas/shared'
 
 export const KIND_LABELS = {
   feed: 'Feed',

@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import { AdminUser, UsageResponse } from '@mnemosyne/shared'
+import { AdminUser, UsageResponse } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 import { config } from '../config.js'

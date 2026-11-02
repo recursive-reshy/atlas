@@ -1,5 +1,5 @@
 // Shared
-import type { SourceType } from '@mnemosyne/shared'
+import type { SourceType } from '@atlas/shared'
 // Sources
 import type { SourceAdapter } from './adapter.js'
 import { articleAdapter } from './article.adapter.js'

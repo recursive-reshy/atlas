@@ -1,7 +1,7 @@
 // Express
 import type { RequestHandler } from 'express'
 // Shared
-import type { ModuleId } from '@mnemosyne/shared'
+import type { ModuleId } from '@atlas/shared'
 // Errors
 import { NotFoundError } from '../errors.js'
 // Middleware

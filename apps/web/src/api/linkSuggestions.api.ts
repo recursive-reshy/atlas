@@ -3,14 +3,14 @@ import {
   GetJobResponse,
   LinkSuggestionsResponse,
   ListLinkSuggestionsResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 import type {
   AcceptLinkSuggestionsBody,
   Job,
   RejectLinkSuggestionsBody,
   RunLinkingBody,
   StoredLinkSuggestion,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { request } from './request'
 

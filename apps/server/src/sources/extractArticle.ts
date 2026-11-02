@@ -2,8 +2,8 @@
 import { Readability } from '@mozilla/readability'
 import { parseHTML } from 'linkedom'
 // Shared
-import { ARTICLE_LIMITS } from '@mnemosyne/shared'
-import type { ArticleSource } from '@mnemosyne/shared'
+import { ARTICLE_LIMITS } from '@atlas/shared'
+import type { ArticleSource } from '@atlas/shared'
 // Clients
 import { fetchResource } from '../clients/http.client.js'
 // Sources

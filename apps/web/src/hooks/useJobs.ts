@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { Job } from '@mnemosyne/shared'
+import type { Job } from '@atlas/shared'
 // App
 import { listJobs } from '../api/jobs.api'
 import { jobKeys } from './queryKeys'

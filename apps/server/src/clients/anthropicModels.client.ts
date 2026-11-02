@@ -1,7 +1,7 @@
 // Packages
 import Anthropic from '@anthropic-ai/sdk'
 // Shared
-import { ModelOption } from '@mnemosyne/shared'
+import { ModelOption } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Summarizer

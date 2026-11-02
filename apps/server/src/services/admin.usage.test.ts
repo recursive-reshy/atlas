@@ -1,7 +1,7 @@
 // Packages
 import { describe, it, expect } from 'vitest'
 // Shared
-import { UsageResponse } from '@mnemosyne/shared'
+import { UsageResponse } from '@atlas/shared'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
 // Services

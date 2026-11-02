@@ -1,5 +1,5 @@
 // Shared
-import { JobStatus, LinkState, SourceType } from '@mnemosyne/shared'
+import { JobStatus, LinkState, SourceType } from '@atlas/shared'
 // Errors
 import { ConflictError } from '../errors.js'
 

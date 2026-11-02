@@ -8,8 +8,8 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { ARTICLE_LIMITS } from '@mnemosyne/shared'
-import type { InboxItemRef } from '@mnemosyne/shared'
+import { ARTICLE_LIMITS } from '@atlas/shared'
+import type { InboxItemRef } from '@atlas/shared'
 // Errors
 import { ConflictError, UnprocessableError, ValidationError } from '../errors.js'
 // Repositories

@@ -4,7 +4,7 @@ import type {
   CreateGmailSourceBody,
   GmailDestination,
   GmailMatch,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 
 interface NewsletterChoices {
   profileId: string

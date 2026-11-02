@@ -8,8 +8,8 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 // Shared
-import { NoteParseError, parseNote, serializeNote } from '@mnemosyne/shared'
-import type { ParsedNote } from '@mnemosyne/shared'
+import { NoteParseError, parseNote, serializeNote } from '@atlas/shared'
+import type { ParsedNote } from '@atlas/shared'
 // App
 import { TagInput } from '../TagInput'
 

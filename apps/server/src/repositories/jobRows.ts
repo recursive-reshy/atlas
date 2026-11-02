@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { Job, SourceDocument } from '@mnemosyne/shared'
+import { Job, SourceDocument } from '@atlas/shared'
 
 // Row mapping shared by the job store and the system repository; not a repository itself
 

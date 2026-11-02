@@ -8,7 +8,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 import { Link as RouterLink, useSearchParams } from 'react-router'
 // Shared
-import type { MeleteReviewMode } from '@mnemosyne/shared'
+import type { MeleteReviewMode } from '@atlas/shared'
 // App
 import { useDropQuestion } from '#src/hooks/useMeleteMutations'
 import { useNextReview } from '#src/hooks/useNextReview'

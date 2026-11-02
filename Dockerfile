@@ -19,9 +19,9 @@ COPY apps/server/src apps/server/src
 COPY packages/shared/src packages/shared/src
 COPY apps/web/public apps/web/public
 COPY apps/web/src apps/web/src
-RUN pnpm --filter @mnemosyne/shared --filter @mnemosyne/server build \
-  && pnpm --filter @mnemosyne/web build \
-  && pnpm --filter @mnemosyne/server deploy --legacy --prod /deploy
+RUN pnpm --filter @atlas/shared --filter @atlas/server build \
+  && pnpm --filter @atlas/web build \
+  && pnpm --filter @atlas/server deploy --legacy --prod /deploy
 
 
 FROM node:24-slim

@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { StoredLinkSuggestion } from '@mnemosyne/shared'
+import type { StoredLinkSuggestion } from '@atlas/shared'
 // App
 import { listLinkSuggestions } from '../api/linkSuggestions.api'
 import { linkSuggestionKeys } from './queryKeys'

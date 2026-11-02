@@ -24,7 +24,7 @@ import {
   parseFolderPath,
   parseNote,
   serializeNote,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Clients
 import type { TokenUsage } from '../clients/claude.client.js'
 import { existingFolderSync, writeNote } from '../clients/vault.client.js'

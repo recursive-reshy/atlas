@@ -6,7 +6,7 @@ import type {
   CreateGmailSourceBody,
   GmailSource,
   UpdateGmailSourceBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import {
   checkAllGmailSources,

@@ -11,7 +11,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import type { LinkResponse } from '@mnemosyne/shared'
+import type { LinkResponse } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Clients

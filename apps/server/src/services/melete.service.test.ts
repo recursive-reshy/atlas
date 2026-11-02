@@ -12,7 +12,7 @@ import {
   GetMeleteNoteResponse,
   GetMeleteSubjectResponse,
   GetMeleteTodayResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Errors
 import { ConflictError, NotFoundError } from '../errors.js'
 // Repositories

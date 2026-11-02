@@ -6,7 +6,7 @@ import type {
   GetSettingsResponse,
   Settings,
   UpdateSettingsBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { getSettings, updateSettings } from '../api/settings.api'
 import { meleteKeys, settingsKeys } from './queryKeys'

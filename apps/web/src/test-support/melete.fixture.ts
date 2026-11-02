@@ -8,7 +8,7 @@ import type {
   MeleteQuestion,
   MeleteReviewItem,
   MeleteSubject,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 
 export const SUBJECT_ID = '3b1c8f2e-6a4d-4e0b-9c57-1d2e3f4a5b6c'
 export const NOTE_ID = '5c2d9a3f-7b5e-4f1c-8d68-2e3f4a5b6c7d'

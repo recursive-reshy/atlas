@@ -12,7 +12,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import { serializeNote } from '@mnemosyne/shared'
+import { serializeNote } from '@atlas/shared'
 // App
 import { ApiError } from '#src/api/apiError'
 import {

@@ -13,7 +13,7 @@ import MenuItem from '@mui/material/MenuItem'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 // Shared
-import type { SummarizeInboxBody } from '@mnemosyne/shared'
+import type { SummarizeInboxBody } from '@atlas/shared'
 // App
 import { useModels } from '#src/hooks/useModels'
 import { usePromptProfiles } from '#src/hooks/usePromptProfiles'

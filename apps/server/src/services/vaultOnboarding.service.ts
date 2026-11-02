@@ -8,8 +8,8 @@ import {
 } from 'node:fs/promises'
 import { join } from 'node:path'
 // Shared
-import { VaultDir } from '@mnemosyne/shared'
-import type { VaultChoice } from '@mnemosyne/shared'
+import { VaultDir } from '@atlas/shared'
+import type { VaultChoice } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

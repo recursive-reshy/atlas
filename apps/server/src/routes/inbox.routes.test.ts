@@ -13,8 +13,8 @@ import {
   FeedResponse,
   ListInboxResponse,
   SummarizeInboxResponse,
-} from '@mnemosyne/shared'
-import type { InboxItemRef } from '@mnemosyne/shared'
+} from '@atlas/shared'
+import type { InboxItemRef } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Test support

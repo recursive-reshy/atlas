@@ -8,8 +8,8 @@ import {
   MeleteQuestionsOutput,
   SourceDocument,
   cleanText,
-} from '@mnemosyne/shared'
-import type { VideoSource } from '@mnemosyne/shared'
+} from '@atlas/shared'
+import type { VideoSource } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

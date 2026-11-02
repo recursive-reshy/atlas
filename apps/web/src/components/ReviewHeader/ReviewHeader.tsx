@@ -13,7 +13,7 @@ import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Typography from '@mui/material/Typography'
 import { Link as RouterLink } from 'react-router'
 // Shared
-import type { MeleteReviewMode } from '@mnemosyne/shared'
+import type { MeleteReviewMode } from '@atlas/shared'
 
 interface ReviewHeaderProps {
   subjectName: string

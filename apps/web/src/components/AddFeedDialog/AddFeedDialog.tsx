@@ -12,7 +12,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { CreateFeedBody, PreviewFeedResponse, PromptProfile } from '@mnemosyne/shared'
+import type { CreateFeedBody, PreviewFeedResponse, PromptProfile } from '@atlas/shared'
 // App
 import { formatDate } from '#src/formatDate'
 import { useFeedPreview } from '#src/hooks/useFeedPreview'

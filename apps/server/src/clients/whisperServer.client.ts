@@ -3,7 +3,7 @@ import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { z } from 'zod'
 // Shared
-import { Segment } from '@mnemosyne/shared'
+import { Segment } from '@atlas/shared'
 
 const REQUEST_TIMEOUT_MS = 3_600_000
 const HEALTH_TIMEOUT_MS = 3_000

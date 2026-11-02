@@ -45,7 +45,7 @@ If something isn't covered by the PRD, TRD, ADRs or the approved plan (a new dep
 ## Rules that span apps
 
 - **TDD, always.** Write the failing test first, run it and watch it fail for the right reason, write the least code that passes, then refactor while green. Each app's `CLAUDE.md` says how this runs there.
-- **Contracts live in `packages/shared`** as Zod schemas, imported by package name (`@mnemosyne/shared`). Neither app redefines a shape the other one uses. One exception (ADR 0043): the agent service's contract is Pydantic-first (`apps/agent/src/mnemosyne_agent/contract/`), mirrored by hand in `packages/shared/src/agent.ts`, and a contract change is one commit covering the models, the committed JSON Schema export, the golden examples and the Zod mirror.
+- **Contracts live in `packages/shared`** as Zod schemas, imported by package name (`@atlas/shared`). Neither app redefines a shape the other one uses. One exception (ADR 0043): the agent service's contract is Pydantic-first (`apps/agent/src/mnemosyne_agent/contract/`), mirrored by hand in `packages/shared/src/agent.ts`, and a contract change is one commit covering the models, the committed JSON Schema export, the golden examples and the Zod mirror.
 - **The server never spawns Whisper.** It calls whisper-server over HTTP at `WHISPER_URL`.
 - **The stored transcript is the source of truth.** Markdown, SRT and TXT are rendered from it by pure formatters; Markdown is never stored as the canonical data.
 - **No secrets in the repo.** Environment files stay out of git; `.env.example` lists the variable names only.

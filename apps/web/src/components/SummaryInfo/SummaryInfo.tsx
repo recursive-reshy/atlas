@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { LinkUsageSummary, SummaryUsage } from '@mnemosyne/shared'
+import type { LinkUsageSummary, SummaryUsage } from '@atlas/shared'
 // App
 import { useModels } from '#src/hooks/useModels'
 import { formatLinkInfo, formatSummaryInfo } from './formatSummaryInfo'

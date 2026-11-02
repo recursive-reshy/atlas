@@ -2,7 +2,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
-import type { GetStatusResponse } from '@mnemosyne/shared'
+import type { GetStatusResponse } from '@atlas/shared'
 // App
 import { refreshStatus } from '../api/status.api'
 import { statusKeys } from './queryKeys'

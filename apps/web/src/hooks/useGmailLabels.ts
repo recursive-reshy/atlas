@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { GmailLabel } from '@mnemosyne/shared'
+import type { GmailLabel } from '@atlas/shared'
 // App
 import { listGmailLabels } from '../api/gmail.api'
 import { gmailKeys } from './queryKeys'

@@ -2,7 +2,7 @@
 import { lstatSync } from 'node:fs'
 import { join } from 'node:path'
 // Shared
-import { ListFoldersResponse } from '@mnemosyne/shared'
+import { ListFoldersResponse } from '@atlas/shared'
 // Clients
 import { listFolderTree } from '../clients/vault.client.js'
 // Config

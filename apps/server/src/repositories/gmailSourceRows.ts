@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { GmailDestination, GmailMatch } from '@mnemosyne/shared'
+import { GmailDestination, GmailMatch } from '@atlas/shared'
 
 // Row mapping shared by the Gmail sources repository and the system repository; not a repository
 

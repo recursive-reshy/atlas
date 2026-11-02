@@ -8,7 +8,7 @@ import Box from '@mui/material/Box'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 // Shared
-import { parseNote } from '@mnemosyne/shared'
+import { parseNote } from '@atlas/shared'
 
 export type NoteEditorMode = 'rich-text' | 'source'
 

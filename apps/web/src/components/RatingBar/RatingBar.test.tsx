@@ -13,7 +13,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { MeleteRating } from '@mnemosyne/shared'
+import type { MeleteRating } from '@atlas/shared'
 // App
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { RatingBar } from './RatingBar'

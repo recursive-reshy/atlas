@@ -1,5 +1,5 @@
 // Shared
-import { BackupResult } from '@mnemosyne/shared'
+import { BackupResult } from '@atlas/shared'
 // App
 import { request } from './request'
 

@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 // Packages
 import { useQueryClient } from '@tanstack/react-query'
 // Shared
-import type { Job, UpdateDraftBody } from '@mnemosyne/shared'
+import type { Job, UpdateDraftBody } from '@atlas/shared'
 // App
 import { updateDraft } from '../api/jobs.api'
 import type { AutosaveState, AutosaveStatus, Values } from './autosaveDraft.types'

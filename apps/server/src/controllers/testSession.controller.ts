@@ -3,7 +3,7 @@ import type { Request, Response } from 'express'
 // Packages
 import { z } from 'zod'
 // Shared
-import { ModuleId, VaultDir } from '@mnemosyne/shared'
+import { ModuleId, VaultDir } from '@atlas/shared'
 // Middleware
 import { requestScheme } from '../middleware/requestOrigin.js'
 // Services

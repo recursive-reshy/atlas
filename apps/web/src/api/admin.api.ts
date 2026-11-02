@@ -1,6 +1,6 @@
 // Shared
-import { AdminUser, UsageResponse } from '@mnemosyne/shared'
-import type { CreateUserBody, UpdateUserBody } from '@mnemosyne/shared'
+import { AdminUser, UsageResponse } from '@atlas/shared'
+import type { CreateUserBody, UpdateUserBody } from '@atlas/shared'
 // App
 import { request, send } from './request'
 

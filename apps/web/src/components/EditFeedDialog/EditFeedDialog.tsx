@@ -10,7 +10,7 @@ import DialogContent from '@mui/material/DialogContent'
 import DialogTitle from '@mui/material/DialogTitle'
 import Stack from '@mui/material/Stack'
 // Shared
-import type { Feed, PromptProfile, UpdateFeedBody } from '@mnemosyne/shared'
+import type { Feed, PromptProfile, UpdateFeedBody } from '@atlas/shared'
 import { FeedFields } from '../FeedFields'
 
 interface EditFeedDialogProps {

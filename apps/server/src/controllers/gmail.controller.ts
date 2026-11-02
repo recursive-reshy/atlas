@@ -3,7 +3,7 @@ import { Request, Response } from 'express'
 // Packages
 import { z } from 'zod'
 // Shared
-import { GetGmailAccountResponse, ListGmailLabelsResponse } from '@mnemosyne/shared'
+import { GetGmailAccountResponse, ListGmailLabelsResponse } from '@atlas/shared'
 // Middleware
 import { currentUser } from '../middleware/auth.js'
 import { currentOrigin } from '../middleware/requestOrigin.js'

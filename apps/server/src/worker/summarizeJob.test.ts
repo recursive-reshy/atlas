@@ -7,7 +7,7 @@ import {
   beforeEach,
 } from 'vitest'
 // Shared
-import { Transcript, parseNote } from '@mnemosyne/shared'
+import { Transcript, parseNote } from '@atlas/shared'
 // Services
 import {
   completeAcquisition,

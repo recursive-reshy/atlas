@@ -9,7 +9,7 @@ import Snackbar from '@mui/material/Snackbar'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { GmailAccount } from '@mnemosyne/shared'
+import type { GmailAccount } from '@atlas/shared'
 // App
 import { GMAIL_CONNECT_URL } from '#src/api/gmail.api'
 import { useGmailAccount } from '#src/hooks/useGmailAccount'

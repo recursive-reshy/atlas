@@ -10,8 +10,8 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { Job, SourceDocument } from '@mnemosyne/shared'
-import type { Segment } from '@mnemosyne/shared'
+import { Job, SourceDocument } from '@atlas/shared'
+import type { Segment } from '@atlas/shared'
 // Clients
 import { downloadAudio } from '../clients/ytDlp.client.js'
 import { convertToWav } from '../clients/ffmpeg.client.js'

@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { InboxItem } from '@mnemosyne/shared'
+import type { InboxItem } from '@atlas/shared'
 // App
 import { useDismissInbox } from '#src/hooks/useDismissInbox'
 import { useInbox } from '#src/hooks/useInbox'

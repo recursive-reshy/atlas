@@ -11,7 +11,7 @@ import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
 import Stack from '@mui/material/Stack'
 // Shared
-import type { Job, RegenerateSummaryBody } from '@mnemosyne/shared'
+import type { Job, RegenerateSummaryBody } from '@atlas/shared'
 // App
 import { useModels } from '#src/hooks/useModels'
 import { usePromptProfiles } from '#src/hooks/usePromptProfiles'

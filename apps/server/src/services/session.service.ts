@@ -2,7 +2,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 import type { CookieOptions } from 'express'
 // Shared
-import { ModuleId } from '@mnemosyne/shared'
+import { ModuleId } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Repositories

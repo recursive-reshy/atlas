@@ -11,7 +11,7 @@ import ListItem from '@mui/material/ListItem'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { GradeAnswerResponse, MeleteGrade } from '@mnemosyne/shared'
+import type { GradeAnswerResponse, MeleteGrade } from '@atlas/shared'
 
 // The verdict is shown as text and an icon as well as a colour.
 const VERDICTS = {

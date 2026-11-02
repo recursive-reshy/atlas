@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { SourceDocument, Transcript } from '@mnemosyne/shared'
+import type { SourceDocument, Transcript } from '@atlas/shared'
 // App
 import { SourcePane } from './SourcePane'
 

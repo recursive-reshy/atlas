@@ -7,7 +7,7 @@ import Button from '@mui/material/Button'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { AdminUser, UpdateUserBody } from '@mnemosyne/shared'
+import type { AdminUser, UpdateUserBody } from '@atlas/shared'
 // App
 import { useAdminUsers } from '#src/hooks/useAdminUsers'
 import { AddUserDialog } from '../AddUserDialog'

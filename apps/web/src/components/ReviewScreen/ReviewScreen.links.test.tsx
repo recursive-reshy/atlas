@@ -1,6 +1,6 @@
 // Shared
-import { insertLink, serializeNote } from '@mnemosyne/shared'
-import type { Job, StoredLinkSuggestion } from '@mnemosyne/shared'
+import { insertLink, serializeNote } from '@atlas/shared'
+import type { Job, StoredLinkSuggestion } from '@atlas/shared'
 // Testing Library
 import { fireEvent, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'

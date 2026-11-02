@@ -1,7 +1,7 @@
 // Packages
 import { describe, it, expect } from 'vitest'
 // Shared
-import { SourceDocument, Transcript } from '@mnemosyne/shared'
+import { SourceDocument, Transcript } from '@atlas/shared'
 // Clients
 import type { ArticleSummaryResult, Summary, SummaryResult } from '../clients/claude.client.js'
 // Formatters

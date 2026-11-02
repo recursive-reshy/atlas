@@ -10,7 +10,7 @@ import Snackbar from '@mui/material/Snackbar'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { InboxItem, InboxItemRef } from '@mnemosyne/shared'
+import type { InboxItem, InboxItemRef } from '@atlas/shared'
 // App
 import { useDismissInbox } from '#src/hooks/useDismissInbox'
 import { useInbox } from '#src/hooks/useInbox'

@@ -1,7 +1,7 @@
 // Express
 import { Request, Response } from 'express'
 // Shared
-import { ListModelsResponse } from '@mnemosyne/shared'
+import { ListModelsResponse } from '@atlas/shared'
 // Middleware
 import { currentUser } from '../middleware/auth.js'
 // Services

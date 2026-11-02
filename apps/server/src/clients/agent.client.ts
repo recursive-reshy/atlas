@@ -1,6 +1,6 @@
 // Shared
-import { InstructionsResponse, LinkResponse } from '@mnemosyne/shared'
-import type { LinkRequest } from '@mnemosyne/shared'
+import { InstructionsResponse, LinkResponse } from '@atlas/shared'
+import type { LinkRequest } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Logging

@@ -7,7 +7,7 @@ import {
   MeleteQuestion,
   MeleteSubject,
   UpdateMeleteSubjectBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Errors
 import { ConflictError, NotFoundError } from '../errors.js'
 // Melete

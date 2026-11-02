@@ -11,7 +11,7 @@ import DialogTitle from '@mui/material/DialogTitle'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 // Shared
-import { Guidance, ProfileName } from '@mnemosyne/shared'
+import { Guidance, ProfileName } from '@atlas/shared'
 
 const TEXT = {
   create: { title: 'New profile', action: 'Create' },

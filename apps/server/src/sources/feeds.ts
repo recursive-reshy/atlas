@@ -4,8 +4,8 @@ import { createHash } from 'node:crypto'
 import { parseFeed } from 'feedsmith'
 import { parseHTML } from 'linkedom'
 // Shared
-import { ARTICLE_LIMITS, detectSourceType } from '@mnemosyne/shared'
-import type { SourceType } from '@mnemosyne/shared'
+import { ARTICLE_LIMITS, detectSourceType } from '@atlas/shared'
+import type { SourceType } from '@atlas/shared'
 // Errors
 import { ValidationError } from '../errors.js'
 // Clients

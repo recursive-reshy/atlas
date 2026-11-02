@@ -3,7 +3,7 @@ import type { ReactElement } from 'react'
 // Packages
 import Typography from '@mui/material/Typography'
 // Shared
-import { noteBasename } from '@mnemosyne/shared'
+import { noteBasename } from '@atlas/shared'
 // App
 
 const WRAP_STYLE = { overflowWrap: 'anywhere' } as const

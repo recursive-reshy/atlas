@@ -12,7 +12,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { ArticleSource, ARTICLE_LIMITS } from '@mnemosyne/shared'
+import { ArticleSource, ARTICLE_LIMITS } from '@atlas/shared'
 // Clients
 import { HttpStatusError, TooLargeError } from '../clients/http.client.js'
 // Sources

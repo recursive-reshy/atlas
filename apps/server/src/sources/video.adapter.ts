@@ -1,7 +1,7 @@
 // Packages
 import { rm } from 'node:fs/promises'
 // Shared
-import { VideoSource } from '@mnemosyne/shared'
+import { VideoSource } from '@atlas/shared'
 // Clients
 import { downloadAudio } from '../clients/ytDlp.client.js'
 import { convertToWav } from '../clients/ffmpeg.client.js'

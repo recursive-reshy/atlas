@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { MeleteGeneration } from '@mnemosyne/shared'
+import { MeleteGeneration } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 

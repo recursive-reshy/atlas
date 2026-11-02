@@ -7,8 +7,8 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 // Shared
-import { CreateJobBody, detectSourceType } from '@mnemosyne/shared'
-import type { SourceType } from '@mnemosyne/shared'
+import { CreateJobBody, detectSourceType } from '@atlas/shared'
+import type { SourceType } from '@atlas/shared'
 // App
 import { SourceTypeSwitch } from '../SourceTypeSwitch'
 import { PasteSection } from './PasteSection'

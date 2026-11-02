@@ -6,14 +6,14 @@ import {
   GetNextReviewResponse,
   GradeAnswerResponse,
   RecordReviewResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 import type {
   GradeAnswerBody,
   MeleteQuestion,
   MeleteSubject,
   RecordReviewBody,
   UpdateMeleteSubjectBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import { request } from './request'
 

@@ -8,7 +8,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 // Shared
-import { Guidance } from '@mnemosyne/shared'
+import { Guidance } from '@atlas/shared'
 // App
 import { ConfirmDialog } from '../ConfirmDialog'
 

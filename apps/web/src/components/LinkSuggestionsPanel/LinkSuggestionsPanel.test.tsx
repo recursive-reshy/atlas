@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import type { StoredLinkSuggestion } from '@mnemosyne/shared'
+import type { StoredLinkSuggestion } from '@atlas/shared'
 // App
 import { linkSuggestionFixture } from '#src/test-support/linkSuggestion.fixture'
 import { LinkSuggestionsPanel } from './LinkSuggestionsPanel'

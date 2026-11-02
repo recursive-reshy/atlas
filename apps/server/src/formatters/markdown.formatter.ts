@@ -1,5 +1,5 @@
 // Shared
-import { Transcript, formatClock, groupParagraphs } from '@mnemosyne/shared'
+import { Transcript, formatClock, groupParagraphs } from '@atlas/shared'
 // Formatters
 import { quoted, singleLine } from './frontmatter.js'
 import { youTubeVideoId } from './youtube.js'

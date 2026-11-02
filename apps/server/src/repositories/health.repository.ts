@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { HealthError, HealthKind } from '@mnemosyne/shared'
+import { HealthError, HealthKind } from '@atlas/shared'
 // Repositories
 import { getDatabase, inTransaction } from './database.js'
 

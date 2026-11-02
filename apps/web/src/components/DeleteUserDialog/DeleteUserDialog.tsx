@@ -12,7 +12,7 @@ import DialogTitle from '@mui/material/DialogTitle'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 // Shared
-import type { AdminUser } from '@mnemosyne/shared'
+import type { AdminUser } from '@atlas/shared'
 
 type DeleteUserDialogProps = {
   user: AdminUser

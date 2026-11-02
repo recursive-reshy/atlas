@@ -1,14 +1,14 @@
 // Clients
 import { gradeAnswer as gradeWithClaude } from '../clients/claude.client.js'
 // Shared
-import { MeleteReviewMode } from '@mnemosyne/shared'
+import { MeleteReviewMode } from '@atlas/shared'
 import type {
   GetNextReviewResponse,
   GradeAnswerBody,
   GradeAnswerResponse,
   RecordReviewBody,
   RecordReviewResponse,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Errors
 import {
   ConflictError,

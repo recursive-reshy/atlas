@@ -8,7 +8,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { ArticleSource } from '@mnemosyne/shared'
+import { ArticleSource } from '@atlas/shared'
 // Sources
 import { articleFromText } from './text.js'
 

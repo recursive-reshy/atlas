@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { StatusRow } from '@mnemosyne/shared'
+import type { StatusRow } from '@atlas/shared'
 // App
 import { getStatus } from '../api/status.api'
 import { statusKeys } from './queryKeys'

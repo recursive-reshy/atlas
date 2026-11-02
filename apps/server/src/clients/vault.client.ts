@@ -16,7 +16,7 @@ import {
   sep,
 } from 'node:path'
 // Shared
-import { FolderNode, noteBasename, parseFolderPath } from '@mnemosyne/shared'
+import { FolderNode, noteBasename, parseFolderPath } from '@atlas/shared'
 // Errors
 import { ValidationError } from '../errors.js'
 

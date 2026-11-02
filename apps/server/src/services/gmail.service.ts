@@ -1,5 +1,5 @@
 // Shared
-import type { GmailAccount, GmailLabel } from '@mnemosyne/shared'
+import type { GmailAccount, GmailLabel } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors

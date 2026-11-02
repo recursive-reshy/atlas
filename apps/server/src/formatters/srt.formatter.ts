@@ -1,5 +1,5 @@
 // Shared
-import { Transcript, cleanText } from '@mnemosyne/shared'
+import { Transcript, cleanText } from '@atlas/shared'
 // Formatters
 import { formatSrtTime } from './timestamps.js'
 

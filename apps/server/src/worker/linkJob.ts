@@ -1,6 +1,6 @@
 // Shared
-import type { LinkResponse } from '@mnemosyne/shared'
-import { parseNote } from '@mnemosyne/shared'
+import type { LinkResponse } from '@atlas/shared'
+import { parseNote } from '@atlas/shared'
 // Clients
 import { requestLinks } from '../clients/agent.client.js'
 // Repositories

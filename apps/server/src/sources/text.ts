@@ -1,5 +1,5 @@
 // Shared
-import type { ArticleMeta, ArticleSource } from '@mnemosyne/shared'
+import type { ArticleMeta, ArticleSource } from '@atlas/shared'
 
 const MAX_TITLE_CHARS = 120
 

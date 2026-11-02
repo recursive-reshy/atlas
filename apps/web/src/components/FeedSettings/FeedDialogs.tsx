@@ -1,7 +1,7 @@
 // React
 import type { ReactElement } from 'react'
 // Shared
-import type { Feed, PromptProfile } from '@mnemosyne/shared'
+import type { Feed, PromptProfile } from '@atlas/shared'
 // App
 import type { FeedsState } from '#src/hooks/useFeeds'
 import { AddFeedDialog } from '../AddFeedDialog'

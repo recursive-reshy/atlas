@@ -5,7 +5,7 @@ import Alert from '@mui/material/Alert'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { PreviewGmailSourceResponse } from '@mnemosyne/shared'
+import type { PreviewGmailSourceResponse } from '@atlas/shared'
 // App
 import { formatDate } from '#src/formatDate'
 

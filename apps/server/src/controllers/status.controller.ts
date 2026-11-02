@@ -3,7 +3,7 @@ import { Request, Response } from 'express'
 // Packages
 import { z } from 'zod'
 // Shared
-import { GetHealthErrorsResponse, GetStatusResponse, HealthKind } from '@mnemosyne/shared'
+import { GetHealthErrorsResponse, GetStatusResponse, HealthKind } from '@atlas/shared'
 // Middleware
 import { currentUser } from '../middleware/auth.js'
 // Services

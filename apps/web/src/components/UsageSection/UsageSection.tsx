@@ -8,7 +8,7 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 // Shared
-import type { AdminUser } from '@mnemosyne/shared'
+import type { AdminUser } from '@atlas/shared'
 // App
 import { useAdminUsage } from '#src/hooks/useAdminUsage'
 import { UsageTable } from './UsageTable'

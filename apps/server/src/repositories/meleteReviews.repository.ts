@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { MeleteRating, MeleteReviewMode } from '@mnemosyne/shared'
+import { MeleteRating, MeleteReviewMode } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 

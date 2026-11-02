@@ -1,5 +1,5 @@
 // Shared
-import type { StoredLinkSuggestion } from '@mnemosyne/shared'
+import type { StoredLinkSuggestion } from '@atlas/shared'
 
 export const SUGGESTION_ID = '5a1e0b7c-2d4f-4a6e-8b9c-0d1e2f3a4b01'
 

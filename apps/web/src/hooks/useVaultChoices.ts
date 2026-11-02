@@ -2,7 +2,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
-import type { Me } from '@mnemosyne/shared'
+import type { Me } from '@atlas/shared'
 // App
 import { claimVault, createVault, listVaults } from '../api/me.api'
 import { meKeys } from './queryKeys'

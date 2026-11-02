@@ -10,8 +10,8 @@ import Stack from '@mui/material/Stack'
 import Switch from '@mui/material/Switch'
 import Typography from '@mui/material/Typography'
 // Shared
-import { ModuleId } from '@mnemosyne/shared'
-import type { AdminUser } from '@mnemosyne/shared'
+import { ModuleId } from '@atlas/shared'
+import type { AdminUser } from '@atlas/shared'
 // App
 import { formatDate } from '#src/formatDate'
 import { MODULE_LABELS } from '#src/moduleLabels'

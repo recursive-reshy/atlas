@@ -1,5 +1,5 @@
 // Shared
-import { ErrorResponse } from '@mnemosyne/shared'
+import { ErrorResponse } from '@atlas/shared'
 // App
 import { ApiError } from './apiError'
 

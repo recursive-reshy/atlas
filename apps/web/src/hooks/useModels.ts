@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { ModelOption } from '@mnemosyne/shared'
+import type { ModelOption } from '@atlas/shared'
 // App
 import { listModels } from '../api/models.api'
 import { modelKeys } from './queryKeys'

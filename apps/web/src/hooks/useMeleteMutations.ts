@@ -11,7 +11,7 @@ import type {
   RecordReviewBody,
   RecordReviewResponse,
   UpdateMeleteSubjectBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // App
 import {
   dropQuestion,

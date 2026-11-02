@@ -10,7 +10,7 @@ import {
   PreviewFeedBody,
   PreviewFeedResponse,
   UpdateFeedBody,
-} from '@mnemosyne/shared'
+} from '@atlas/shared'
 // Middleware
 import { currentUser } from '../middleware/auth.js'
 // Services

@@ -1,7 +1,7 @@
 // React
 import type { ReactElement } from 'react'
 // Shared
-import type { GmailSource, PromptProfile } from '@mnemosyne/shared'
+import type { GmailSource, PromptProfile } from '@atlas/shared'
 // App
 import type { GmailSourcesState } from '#src/hooks/useGmailSources'
 import { AddGmailSourceDialog } from '../AddGmailSourceDialog'

@@ -1,5 +1,5 @@
 // Shared
-import type { HealthKind } from '@mnemosyne/shared'
+import type { HealthKind } from '@atlas/shared'
 // Repositories
 import { recordFailure, recordSuccess } from '../repositories/health.repository.js'
 
