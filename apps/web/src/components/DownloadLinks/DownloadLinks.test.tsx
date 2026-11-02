@@ -8,7 +8,7 @@ import { DownloadLinks } from './DownloadLinks'
 const jobId = '3f2b8c1e-5d4a-4e6f-9a7b-1c2d3e4f5a6b'
 
 describe( 'DownloadLinks', () => {
-  it( 'lists the three formats in order', () => {
+  it( 'lists the two formats in order', () => {
     render( <DownloadLinks jobId={ jobId } /> )
 
     const region = screen.getByRole( 'region', { name: 'Download transcript' } )
@@ -16,14 +16,12 @@ describe( 'DownloadLinks', () => {
 
     expect( links.map( ( link ) => link.textContent ) ).toEqual( [
       'Markdown (.md)',
-      'Subtitles (.srt)',
       'Plain text (.txt)',
     ] )
   } )
 
   it.each( [
     [ 'Markdown (.md)', 'md' ],
-    [ 'Subtitles (.srt)', 'srt' ],
     [ 'Plain text (.txt)', 'txt' ],
   ] )( 'links %s to the %s download', ( label, format ) => {
     render( <DownloadLinks jobId={ jobId } /> )
@@ -53,9 +51,9 @@ describe( 'DownloadLinks for an article', () => {
     expect( links[ 0 ] ).toHaveAttribute( 'href', `/api/jobs/${ jobId }/download?format=md` )
   } )
 
-  it( 'still offers all three formats for a video', () => {
+  it( 'still offers both formats for a video', () => {
     render( <DownloadLinks jobId={ jobId } sourceType="video" /> )
 
-    expect( screen.getAllByRole( 'link' ) ).toHaveLength( 3 )
+    expect( screen.getAllByRole( 'link' ) ).toHaveLength( 2 )
   } )
 } )

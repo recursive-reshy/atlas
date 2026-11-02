@@ -22,7 +22,7 @@ const videoMeta = {
 const video = {
   kind: 'video',
   meta: videoMeta,
-  segments: [ { start: 0, end: 2, text: 'Hello' } ],
+  text: 'Hello',
 }
 
 const articleMeta = {
@@ -111,8 +111,18 @@ describe( 'SourceDocument', () => {
     expect( parsed.kind ).toBe( 'article' )
   } )
 
+  it( 'rejects a video with empty text', () => {
+    expect( SourceDocument.safeParse( { ...video, text: '' } ).success ).toBe( false )
+  } )
+
+  it( 'rejects a video with segments and no text', () => {
+    const { kind, meta } = video
+
+    expect( SourceDocument.safeParse( { kind, meta, segments: [] } ).success ).toBe( false )
+  } )
+
   it( 'rejects a document without kind', () => {
-    expect( SourceDocument.safeParse( { meta: videoMeta, segments: [] } ).success ).toBe( false )
+    expect( SourceDocument.safeParse( { meta: videoMeta, text: 'Hello' } ).success ).toBe( false )
   } )
 
   it( 'rejects an unknown kind', () => {

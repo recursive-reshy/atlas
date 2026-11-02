@@ -185,8 +185,12 @@ describe( 'GetJobResponse', () => {
 } )
 
 describe( 'DownloadFormat', () => {
-  it.each( [ 'md', 'srt', 'txt' ] )( 'accepts %s', ( format ) => {
+  it.each( [ 'md', 'txt' ] )( 'accepts %s', ( format ) => {
     expect( DownloadFormat.safeParse( format ).success ).toBe( true )
+  } )
+
+  it( 'rejects srt', () => {
+    expect( DownloadFormat.safeParse( 'srt' ).success ).toBe( false )
   } )
 
   it( 'rejects pdf', () => {
@@ -228,7 +232,7 @@ const transcript = {
     transcribed_at: '2026-10-14T10:04:00.000Z',
     model: 'large-v3',
   },
-  segments: [ { start: 0, end: 1, text: 'Hello' } ],
+  text: 'Hello',
 }
 
 describe( 'ListJobsResponse', () => {
@@ -278,7 +282,7 @@ describe( 'GetSourceResponse', () => {
     expect( GetSourceResponse.safeParse( { source: transcript } ).success ).toBe( false )
   } )
 
-  it( 'rejects a video without segments', () => {
+  it( 'rejects a video without text', () => {
     const { meta } = transcript
 
     expect( GetSourceResponse.safeParse( { source: { kind: 'video', meta } } ).success )

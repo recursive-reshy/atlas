@@ -11,7 +11,7 @@ import {
 } from 'vitest'
 // Shared
 import { Job, SourceDocument } from '@atlas/shared'
-import type { Segment } from '@atlas/shared'
+import type { Segment } from '../clients/whisperServer.client.js'
 // Clients
 import { downloadAudio } from '../clients/ytDlp.client.js'
 import { convertToWav } from '../clients/ffmpeg.client.js'
@@ -101,13 +101,13 @@ afterEach( () => {
 } )
 
 describe( 'videoAdapter.acquire', () => {
-  it( 'returns a video document with the metadata, segments and model', async () => {
+  it( 'returns a video document with the metadata, joined text and model', async () => {
     const document = await videoAdapter.acquire( context() )
 
     expect( SourceDocument.parse( document ) ).toEqual( {
       kind: 'video',
       meta: { ...meta, transcribed_at: NOW, model: 'test-model' },
-      segments,
+      text: 'Hello',
     } )
   } )
 

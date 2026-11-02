@@ -1,12 +1,12 @@
 // Shared
-import { Transcript, groupParagraphs } from '@atlas/shared'
+import { VideoSource, splitParagraphs } from '@atlas/shared'
 
-export const formatTxt = ( { segments }: Transcript ): string => {
-  const paragraphs = groupParagraphs( segments )
+export const formatTxt = ( { text }: Pick< VideoSource, 'meta' | 'text' > ): string => {
+  const paragraphs = splitParagraphs( text )
 
   if( paragraphs.length === 0 ) {
     return ''
   }
 
-  return `${ paragraphs.map( ( { text } ) => text ).join( '\n\n' ) }\n`
+  return `${ paragraphs.join( '\n\n' ) }\n`
 }

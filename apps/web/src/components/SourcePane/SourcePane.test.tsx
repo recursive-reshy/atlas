@@ -1,35 +1,24 @@
 // Testing Library
 import { render, screen } from '@testing-library/react'
 // Vitest
-import {
-  afterEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest'
+import { describe, expect, it } from 'vitest'
 // Shared
-import type { SourceDocument, Transcript } from '@atlas/shared'
+import type { SourceDocument } from '@atlas/shared'
 // App
 import { SourcePane } from './SourcePane'
 
-const transcript: Transcript = {
+const video: SourceDocument = {
+  kind: 'video',
   meta: {
     title: 'A talk',
     source: 'https://www.youtube.com/watch?v=abc',
     channel: 'Channel',
     duration_seconds: 300,
     transcribed_at: '2026-10-15T10:00:00.000Z',
-    model: 'large-v3-turbo',
+    model: 'gpt-transcribe',
   },
-  segments: [
-    { start: 0, end: 4, text: 'Welcome to the talk.' },
-    { start: 4, end: 9, text: 'Today we cover ownership.' },
-    { start: 135, end: 140, text: 'Last, borrowing.' },
-  ],
+  text: 'Welcome to the talk. Today we cover ownership.\n\nLast, borrowing.',
 }
-
-const video: SourceDocument = { kind: 'video', ...transcript }
 
 describe( 'SourcePane', () => {
   it( 'shows a loading status before the transcript arrives', () => {
@@ -55,101 +44,32 @@ describe( 'SourcePane', () => {
     expect( screen.queryByRole( 'status' ) ).not.toBeInTheDocument()
   } )
 
-  it( 'shows paragraphs with a clock stamp each', () => {
+  it( 'shows each paragraph of the text without a stamp', () => {
     render(
       <SourcePane source={ video } sourceType="video" error={ null } focusSecond={ null } />,
     )
 
     const pane = screen.getByRole( 'region', { name: 'Transcript' } )
 
-    expect( pane ).toHaveTextContent( '[00:00] Welcome to the talk. Today we cover ownership.' )
-    expect( pane ).toHaveTextContent( '[02:15] Last, borrowing.' )
+    expect( screen.getByText( 'Welcome to the talk. Today we cover ownership.' ) ).toBeVisible()
+    expect( screen.getByText( 'Last, borrowing.' ) ).toBeVisible()
+    expect( pane ).not.toHaveTextContent( /\[\d\d:\d\d\]/ )
     expect( screen.queryByRole( 'status' ) ).not.toBeInTheDocument()
   } )
 
-  it( 'gives each paragraph an id by its start second', () => {
+  it( 'splits a long unbroken text into several paragraphs', () => {
+    const sentence = 'A sentence of moderate length here.'
+    const text = Array.from( { length: 60 }, () => sentence ).join( ' ' )
     const { container } = render(
-      <SourcePane source={ video } sourceType="video" error={ null } focusSecond={ null } />,
+      <SourcePane
+        source={ { ...video, text } }
+        sourceType="video"
+        error={ null }
+        focusSecond={ null }
+      />,
     )
 
-    expect( container.querySelector( '#transcript-0' ) ).not.toBeNull()
-    expect( container.querySelector( '#transcript-135' ) ).not.toBeNull()
-  } )
-
-  describe( 'following the summary caret', () => {
-    afterEach( () => {
-      vi.restoreAllMocks()
-    } )
-
-    const stubOffsets = (): void => {
-      vi.spyOn( HTMLElement.prototype, 'offsetTop', 'get' ).mockImplementation( function get(
-        this: HTMLElement,
-      ) {
-        const tops: Record< string, number > = { 'transcript-0': 0, 'transcript-135': 500 }
-
-        return tops[ this.id ] ?? 0
-      } )
-    }
-
-    it( 'marks and scrolls to the paragraph at or before the second', () => {
-      stubOffsets()
-      const { rerender } = render(
-        <SourcePane source={ video } sourceType="video" error={ null } focusSecond={ null } />,
-      )
-      const pane = screen.getByRole( 'region', { name: 'Transcript' } )
-
-      rerender(
-        <SourcePane source={ video } sourceType="video" error={ null } focusSecond={ 140 } />,
-      )
-
-      expect( pane.scrollTop ).toBe( 500 )
-      expect( document.getElementById( 'transcript-135' ) )
-        .toHaveAttribute( 'aria-current', 'true' )
-      expect( document.getElementById( 'transcript-0' ) ).not.toHaveAttribute( 'aria-current' )
-    } )
-
-    it( 'picks the earlier paragraph for a second inside it', () => {
-      stubOffsets()
-      render(
-        <SourcePane source={ video } sourceType="video" error={ null } focusSecond={ 100 } />,
-      )
-
-      expect( document.getElementById( 'transcript-0' ) ).toHaveAttribute( 'aria-current', 'true' )
-      expect( screen.getByRole( 'region', { name: 'Transcript' } ).scrollTop ).toBe( 0 )
-    } )
-
-    it( 'marks a paragraph that starts a fraction after the whole second cited', () => {
-      stubOffsets()
-      const fractional: Transcript = {
-        ...transcript,
-        segments: [
-          { start: 0.4, end: 4, text: 'Welcome to the talk.' },
-          { start: 135.4, end: 140, text: 'Last, borrowing.' },
-        ],
-      }
-
-      render(
-        <SourcePane
-          source={ { kind: 'video', ...fractional } }
-          sourceType="video"
-          error={ null }
-          focusSecond={ 135 }
-        />,
-      )
-
-      expect( document.getElementById( 'transcript-135' ) )
-        .toHaveAttribute( 'aria-current', 'true' )
-      expect( document.getElementById( 'transcript-0' ) ).not.toHaveAttribute( 'aria-current' )
-    } )
-
-    it( 'does nothing without a second', () => {
-      stubOffsets()
-      render(
-        <SourcePane source={ video } sourceType="video" error={ null } focusSecond={ null } />,
-      )
-
-      expect( document.querySelector( '[aria-current]' ) ).toBeNull()
-    } )
+    expect( container.querySelectorAll( 'p' ).length ).toBeGreaterThan( 2 )
   } )
 } )
 

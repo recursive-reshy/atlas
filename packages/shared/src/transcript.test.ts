@@ -1,7 +1,7 @@
 // Packages
 import { describe, it, expect } from 'vitest'
 // Transcript
-import { Segment, Transcript, TranscriptMeta } from './transcript.js'
+import { TranscriptMeta } from './transcript.js'
 
 const validMeta = {
   title: 'A talk',
@@ -11,28 +11,6 @@ const validMeta = {
   transcribed_at: '2026-10-14T10:00:00.000Z',
   model: 'large-v3',
 }
-
-describe( 'Segment', () => {
-  it( 'accepts a valid segment', () => {
-    expect( Segment.safeParse( { start: 0, end: 2.5, text: 'Hello' } ).success ).toBe( true )
-  } )
-
-  it( 'accepts a zero-length segment', () => {
-    expect( Segment.safeParse( { start: 1, end: 1, text: '' } ).success ).toBe( true )
-  } )
-
-  it( 'rejects end before start', () => {
-    expect( Segment.safeParse( { start: 5, end: 2, text: 'Hello' } ).success ).toBe( false )
-  } )
-
-  it( 'rejects a negative start', () => {
-    expect( Segment.safeParse( { start: -1, end: 2, text: 'Hello' } ).success ).toBe( false )
-  } )
-
-  it( 'rejects a non-string text', () => {
-    expect( Segment.safeParse( { start: 0, end: 2, text: 5 } ).success ).toBe( false )
-  } )
-} )
 
 describe( 'TranscriptMeta', () => {
   it( 'accepts valid metadata', () => {
@@ -67,25 +45,5 @@ describe( 'TranscriptMeta', () => {
 
   it( 'rejects an empty model', () => {
     expect( TranscriptMeta.safeParse( { ...validMeta, model: '' } ).success ).toBe( false )
-  } )
-} )
-
-describe( 'Transcript', () => {
-  it( 'accepts meta with segments', () => {
-    const transcript = {
-      meta: validMeta,
-      segments: [ { start: 0, end: 1, text: 'Hi' } ],
-    }
-
-    expect( Transcript.safeParse( transcript ).success ).toBe( true )
-  } )
-
-  it( 'rejects an invalid segment inside', () => {
-    const transcript = {
-      meta: validMeta,
-      segments: [ { start: 3, end: 1, text: 'Hi' } ],
-    }
-
-    expect( Transcript.safeParse( transcript ).success ).toBe( false )
   } )
 } )

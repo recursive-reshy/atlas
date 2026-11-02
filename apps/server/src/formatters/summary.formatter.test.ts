@@ -18,7 +18,7 @@ const videoDocument = ( source: string ): SourceDocument => ( {
     transcribed_at: '2026-10-15T10:00:00.000Z',
     model: 'large-v3-turbo',
   },
-  segments: [],
+  text: 'Hello',
 } )
 
 const base: SummaryResult = {

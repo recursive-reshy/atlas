@@ -21,24 +21,22 @@ describe( 'formatMarkdown', () => {
         '',
         '# Video title',
         '',
-        '[00:00](https://youtu.be/abc123?t=0) Welcome to the talk. Today we cover formatters. ' +
-          'They are pure functions.',
+        'Welcome to the talk. Today we cover formatters. They are pure functions.',
         '',
-        '[00:22](https://youtu.be/abc123?t=22) No I/O is involved.',
+        'No I/O is involved.',
         '',
-        '[02:15](https://youtu.be/abc123?t=135) Last, the Markdown output.',
+        'Last, the Markdown output.',
         '',
       ].join( '\n' ),
     )
   } )
 
-  it( 'uses plain labels and the transcript tag for a non-YouTube source', () => {
+  it( 'uses the transcript tag alone for a non-YouTube source', () => {
     const meta = { ...transcriptFixture.meta, source: 'https://vimeo.com/12345' }
 
     const result = formatMarkdown( { ...transcriptFixture, meta } )
 
     expect( result ).toContain( 'tags: [transcript]\n' )
-    expect( result ).toContain( '\n[02:15] Last, the Markdown output.\n' )
     expect( result ).not.toContain( 'youtu.be' )
   } )
 
@@ -52,6 +50,15 @@ describe( 'formatMarkdown', () => {
     expect( result ).toContain( '\n# He said "hi" \\ bye next\n' )
   } )
 
+  it( 'splits a long unbroken transcript into paragraphs', () => {
+    const sentence = 'A sentence of moderate length here.'
+    const text = Array.from( { length: 60 }, () => sentence ).join( ' ' )
+
+    const result = formatMarkdown( { ...transcriptFixture, text } )
+
+    expect( result.split( '\n\n' ).length ).toBeGreaterThan( 4 )
+  } )
+
   it( 'formats a duration over an hour', () => {
     const meta = { ...transcriptFixture.meta, duration_seconds: 3723 }
 
@@ -61,7 +68,7 @@ describe( 'formatMarkdown', () => {
   } )
 
   it( 'renders only the frontmatter and heading for an empty transcript', () => {
-    const result = formatMarkdown( { ...transcriptFixture, segments: [] } )
+    const result = formatMarkdown( { ...transcriptFixture, text: '' } )
 
     expect( result ).toBe(
       [

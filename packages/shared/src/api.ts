@@ -63,7 +63,7 @@ export const SaveJobResponse = z.object( {
 } )
 export type SaveJobResponse = z.infer< typeof SaveJobResponse >
 
-export const DownloadFormat = z.enum( [ 'md', 'srt', 'txt' ] )
+export const DownloadFormat = z.enum( [ 'md', 'txt' ] )
 export type DownloadFormat = z.infer< typeof DownloadFormat >
 
 export const FolderNode = z.object( {

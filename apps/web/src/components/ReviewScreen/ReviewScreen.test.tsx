@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router'
 // Shared
 import { parseNote, serializeNote } from '@atlas/shared'
 // Testing Library
-import { fireEvent, screen, within } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 // Vitest
 import {
@@ -100,7 +100,7 @@ const transcript = {
     transcribed_at: '2026-10-15T10:00:00.000Z',
     model: 'large-v3-turbo',
   },
-  segments: [ { start: 0, end: 4, text: 'Welcome to the talk.' } ],
+  text: 'Welcome to the talk.',
 }
 
 beforeEach( () => {
@@ -232,7 +232,7 @@ describe( 'ReviewScreen summary and transcript', () => {
 
     expect( mockedUseSource ).toHaveBeenCalledWith( reviewJob.id )
     expect( screen.getByRole( 'region', { name: 'Transcript' } ) )
-      .toHaveTextContent( '[00:00] Welcome to the talk.' )
+      .toHaveTextContent( 'Welcome to the talk.' )
   } )
 
   it( 'keeps the transcript, without the editor, when the summary failed', () => {
@@ -242,7 +242,7 @@ describe( 'ReviewScreen summary and transcript', () => {
 
     expect( screen.queryByRole( 'textbox', { name: 'Summary' } ) ).not.toBeInTheDocument()
     expect( screen.getByRole( 'region', { name: 'Transcript' } ) )
-      .toHaveTextContent( '[00:00] Welcome to the talk.' )
+      .toHaveTextContent( 'Welcome to the talk.' )
   } )
 } )
 
@@ -638,58 +638,6 @@ describe( 'ReviewScreen retry', () => {
   } )
 } )
 
-describe( 'ReviewScreen caret sync', () => {
-  const syncedNote = noteWith(
-    [ 'rust' ],
-    '## Summary\n- Point ([02:15](https://youtu.be/abc?t=135))\nPlain line',
-  )
-  const syncedJob = { ...reviewJob, note_markdown: syncedNote }
-  const pointLine = syncedNote.indexOf( '- Poi' ) + '- Poi'.length
-
-  const moveCaret = ( index: number ): void => {
-    const editor = screen.getByRole< HTMLTextAreaElement >( 'textbox', { name: 'Summary' } )
-
-    editor.setSelectionRange( index, index )
-    fireEvent.select( editor )
-  }
-
-  it( 'marks the transcript paragraph for the timestamp on the caret line', () => {
-    mockedUseSource.mockReturnValue( {
-      source: {
-        kind: 'video',
-        ...transcript,
-        segments: [
-          { start: 0, end: 4, text: 'Welcome to the talk.' },
-          { start: 135, end: 140, text: 'Last, borrowing.' },
-        ],
-      },
-      error: null,
-    } )
-    renderWithClient( <ReviewScreen job={ syncedJob } { ...handlers() } /> )
-
-    moveCaret( pointLine )
-
-    expect( document.getElementById( 'transcript-135' ) ).toHaveAttribute( 'aria-current', 'true' )
-  } )
-
-  it( 'keeps the marker when the caret moves to a line without a timestamp', () => {
-    mockedUseSource.mockReturnValue( {
-      source: {
-        kind: 'video',
-        ...transcript,
-        segments: [ { start: 135, end: 140, text: 'Last, borrowing.' } ],
-      },
-      error: null,
-    } )
-    renderWithClient( <ReviewScreen job={ syncedJob } { ...handlers() } /> )
-    moveCaret( pointLine )
-
-    moveCaret( syncedNote.length )
-
-    expect( document.getElementById( 'transcript-135' ) ).toHaveAttribute( 'aria-current', 'true' )
-  } )
-} )
-
 describe( 'ReviewScreen summary info', () => {
   const usage = {
     last_run: {
@@ -872,15 +820,5 @@ describe( 'ReviewScreen for an article', () => {
     expect( screen.queryByText( 'Channel' ) ).not.toBeInTheDocument()
     expect( screen.getByRole( 'region', { name: 'Download article' } ) ).toBeInTheDocument()
     expect( screen.queryByRole( 'link', { name: 'Subtitles (.srt)' } ) ).not.toBeInTheDocument()
-  } )
-
-  it( 'does not scroll or mark anything when the caret is on a line with a time in it', () => {
-    renderWithClient( <ReviewScreen job={ articleJob } { ...handlers() } /> )
-    const editor = screen.getByRole< HTMLTextAreaElement >( 'textbox', { name: 'Summary' } )
-
-    editor.setSelectionRange( articleNote.indexOf( 'time' ), articleNote.indexOf( 'time' ) )
-    fireEvent.select( editor )
-
-    expect( document.querySelector( '[aria-current]' ) ).toBeNull()
   } )
 } )

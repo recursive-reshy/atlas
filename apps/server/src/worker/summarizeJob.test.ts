@@ -7,7 +7,7 @@ import {
   beforeEach,
 } from 'vitest'
 // Shared
-import { Transcript, parseNote } from '@atlas/shared'
+import { VideoSource, parseNote } from '@atlas/shared'
 // Services
 import {
   completeAcquisition,
@@ -48,7 +48,7 @@ vi.mock( '../services/models.service.js' )
 
 const summarizeMock = vi.mocked( summarizeSource )
 
-const transcript: Transcript = {
+const transcript: Pick< VideoSource, 'meta' | 'text' > = {
   meta: {
     title: 'A talk',
     source: 'https://www.youtube.com/watch?v=abc123',
@@ -57,10 +57,7 @@ const transcript: Transcript = {
     transcribed_at: '2026-10-15T10:00:00.000Z',
     model: 'large-v3-turbo',
   },
-  segments: [
-    { start: 0, end: 5, text: 'Rust has an ownership model.' },
-    { start: 5, end: 10, text: 'Memory safety comes free.' },
-  ],
+  text: 'Rust has an ownership model. Memory safety comes free.',
 }
 
 const queueSummarizing = async (): Promise< string > => {

@@ -16,8 +16,8 @@ import {
   ArticleSource,
   SourceDocument,
   SubmitPastedTextBody,
-  Transcript,
   UpdateDraftBody,
+  VideoSource,
   applyLockedProperties,
   detectSourceType,
   lockedPropertiesFor,
@@ -36,7 +36,6 @@ import { ConflictError, NotFoundError, ValidationError } from '../errors.js'
 import { transcriptFilename } from '../formatters/filename.js'
 import { formatMarkdown } from '../formatters/markdown.formatter.js'
 import { formatNote } from '../formatters/note.formatter.js'
-import { formatSrt } from '../formatters/srt.formatter.js'
 import { formatTxt } from '../formatters/txt.formatter.js'
 // Repositories
 import { inTransaction } from '../repositories/database.js'
@@ -88,7 +87,6 @@ export type StepStatus = 'fetching' | 'downloading' | 'converting' | 'transcribi
 
 const transcriptFormats = {
   md: { contentType: 'text/markdown; charset=utf-8', formatter: formatMarkdown },
-  srt: { contentType: 'application/x-subrip; charset=utf-8', formatter: formatSrt },
   txt: { contentType: 'text/plain; charset=utf-8', formatter: formatTxt },
 } as const
 
@@ -191,12 +189,15 @@ const toPublicJob = ( userId: string, job: StoredJob ): Job => {
   }
 }
 
-const toTranscript = ( id: string, document: SourceDocument ): Transcript => {
+const toTranscript = (
+  id: string,
+  document: SourceDocument,
+): Pick< VideoSource, 'meta' | 'text' > => {
   if( document.kind !== 'video' ) {
     throw new Error( `Job ${ id } is an article, not a video` )
   }
 
-  return { meta: document.meta, segments: document.segments }
+  return { meta: document.meta, text: document.text }
 }
 
 const requireJob = ( userId: string, id: string ): StoredJob => {

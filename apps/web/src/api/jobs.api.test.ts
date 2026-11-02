@@ -171,7 +171,7 @@ const transcript = {
     transcribed_at: '2026-10-15T10:00:00.000Z',
     model: 'large-v3-turbo',
   },
-  segments: [ { start: 0, end: 4, text: 'Hello.' } ],
+  text: 'Hello.',
 }
 
 describe( 'listJobs', () => {
@@ -375,7 +375,7 @@ describe( 'discardJob', () => {
 } )
 
 describe( 'downloadUrl', () => {
-  it.each< DownloadFormat >( [ 'md', 'srt', 'txt' ] )( 'builds the %s link', ( format ) => {
+  it.each< DownloadFormat >( [ 'md', 'txt' ] )( 'builds the %s link', ( format ) => {
     expect( downloadUrl( 'a/b', format ) ).toBe( `/api/jobs/a%2Fb/download?format=${ format }` )
   } )
 } )

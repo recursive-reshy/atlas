@@ -146,7 +146,7 @@ describe( 'summarizeSource', () => {
     expect( request.system ).toBe( buildSystemPrompt( 'Focus on pricing.', 'video' ) )
   } )
 
-  it( 'sends one [seconds] line per non-blank segment', async () => {
+  it( 'sends the title and the transcript text', async () => {
     await summarizeSource( input )
 
     const [ request ] = parse.mock.calls[ 0 ] as [
@@ -155,13 +155,7 @@ describe( 'summarizeSource', () => {
 
     expect( request.messages ).toEqual( [ {
       role: 'user',
-      content: [
-        '[0] Welcome to the talk.',
-        '[4] Today we cover formatters.',
-        '[9] They are pure functions.',
-        '[22] No I/O is involved.',
-        '[135] Last, the Markdown output.',
-      ].join( '\n' ),
+      content: `# ${ input.document.meta.title }\n\n${ transcriptFixture.text }`,
     } ] )
   } )
 

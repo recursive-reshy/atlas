@@ -7,9 +7,7 @@ import {
   MeleteGradeOutput,
   MeleteQuestionsOutput,
   SourceDocument,
-  cleanText,
 } from '@atlas/shared'
-import type { VideoSource } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors
@@ -69,17 +67,9 @@ export class SummaryError extends Error {
   }
 }
 
-const toTranscriptLines = ( { segments }: VideoSource ): string => {
-  return segments
-    .map( ( { start, text } ) => ( { start, text: cleanText( text ) } ) )
-    .filter( ( { text } ) => text !== '' )
-    .map( ( { start, text } ) => `[${ Math.floor( start ) }] ${ text }` )
-    .join( '\n' )
-}
-
 const toUserMessage = ( document: SourceDocument ): string => {
   return document.kind === 'video'
-    ? toTranscriptLines( document )
+    ? `# ${ document.meta.title }\n\n${ document.text }`
     : `# ${ document.meta.title }\n\n${ document.markdown }`
 }
 

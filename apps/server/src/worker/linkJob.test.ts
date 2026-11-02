@@ -98,7 +98,7 @@ const queueLinking = async (
       transcribed_at: '2026-10-21T09:00:00.000Z',
       model: 'large-v3-turbo',
     },
-    segments: [ { start: 0, end: 5, text: 'Rust has an ownership model.' } ],
+    text: 'Rust has an ownership model.',
   } )
   completeSummary( owner, id, '## Summary\n\nAbout ownership.', [ 'rust', 'memory' ] )
 

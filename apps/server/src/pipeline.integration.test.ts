@@ -117,12 +117,10 @@ describe( 'pipeline (real yt-dlp, ffmpeg and whisper-server)', () => {
     expect( markdown.status ).toBe( 200 )
     expect( markdown.headers[ 'content-type' ] ).toMatch( /text\/markdown/ )
     expect( markdown.text.startsWith( '---' ) ).toBe( true )
-    expect( markdown.text ).toContain( 'youtu.be/cFoaK1OQRhw?t=' )
     expect( markdown.text ).toContain( 'model: large-v3-turbo' )
 
     const srt = await request( app ).get( `/api/jobs/${ jobId }/download?format=srt` )
-    expect( srt.status ).toBe( 200 )
-    expect( srt.text ).toContain( '-->' )
+    expect( srt.status ).toBe( 400 )
 
     const txt = await request( app ).get( `/api/jobs/${ jobId }/download?format=txt` )
     expect( txt.status ).toBe( 200 )
@@ -132,10 +130,7 @@ describe( 'pipeline (real yt-dlp, ffmpeg and whisper-server)', () => {
     const transcript = document?.kind === 'video' ? document : undefined
     expect( transcript?.meta.title ).toBeTruthy()
     expect( transcript?.meta.duration_seconds ).toBeGreaterThan( 0 )
-    expect( transcript?.segments.length ).toBeGreaterThan( 0 )
-
-    const starts = transcript?.segments.map( ( segment ) => segment.start ) ?? []
-    expect( starts ).toEqual( [ ...starts ].sort( ( a, b ) => a - b ) )
+    expect( transcript?.text.trim() ).not.toBe( '' )
 
     expect( await exists( path.join( config.workDir, jobId ) ) ).toBe( false )
   } )

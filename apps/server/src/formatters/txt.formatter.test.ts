@@ -17,12 +17,10 @@ describe( 'formatTxt', () => {
   } )
 
   it( 'returns an empty string for an empty transcript', () => {
-    expect( formatTxt( { ...transcriptFixture, segments: [] } ) ).toBe( '' )
+    expect( formatTxt( { ...transcriptFixture, text: '' } ) ).toBe( '' )
   } )
 
-  it( 'returns an empty string when every segment is empty', () => {
-    const segments = [ { start: 0, end: 1, text: '  ' } ]
-
-    expect( formatTxt( { ...transcriptFixture, segments } ) ).toBe( '' )
+  it( 'returns an empty string when the text is only whitespace', () => {
+    expect( formatTxt( { ...transcriptFixture, text: '  \n\n ' } ) ).toBe( '' )
   } )
 } )

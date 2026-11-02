@@ -14,7 +14,7 @@ const meta: TranscriptMeta = {
   model: 'large-v3-turbo',
 }
 
-const video: SourceDocument = { kind: 'video', meta, segments: [] }
+const video: SourceDocument = { kind: 'video', meta, text: 'Hello' }
 
 const note = ( overrides: Partial< Parameters< typeof formatNote >[ 0 ] > = {} ): string => {
   return formatNote( {
@@ -79,7 +79,7 @@ describe( 'formatNote', () => {
 
   it( 'renders short durations as minutes and seconds', () => {
     const result = note( {
-      document: { kind: 'video', meta: { ...meta, duration_seconds: 754 }, segments: [] },
+      document: { kind: 'video', meta: { ...meta, duration_seconds: 754 }, text: 'Hello' },
     } )
 
     expect( result ).toContain( 'duration: "12:34"' )

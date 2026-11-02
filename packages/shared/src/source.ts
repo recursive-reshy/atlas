@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Transcript
-import { Segment, TranscriptMeta } from './transcript.js'
+import { TranscriptMeta } from './transcript.js'
 
 export const SourceType = z.enum( [ 'video', 'article' ] )
 export type SourceType = z.infer< typeof SourceType >
@@ -9,7 +9,7 @@ export type SourceType = z.infer< typeof SourceType >
 export const VideoSource = z.object( {
   kind: z.literal( 'video' ),
   meta: TranscriptMeta,
-  segments: z.array( Segment ),
+  text: z.string().min( 1 ),
 } )
 export type VideoSource = z.infer< typeof VideoSource >
 

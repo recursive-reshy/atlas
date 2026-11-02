@@ -46,7 +46,7 @@ export const cleanSummary = ( summary: Summary, document: SourceDocument ): Summ
     return { ...summary, tags }
   }
 
-  const spoken = cleanText( document.segments.map( ( { text } ) => text ).join( ' ' ) )
+  const spoken = cleanText( document.text )
   const isInRange = ( { seconds }: { seconds: number } ): boolean => {
     return seconds >= 0 && seconds <= document.meta.duration_seconds
   }

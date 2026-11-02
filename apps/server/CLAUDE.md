@@ -131,7 +131,7 @@ The order is routes → controllers → services → repositories, and every req
 - Every exported function has explicit parameter and return types. No `any`; use `unknown` and narrow it.
 - Use erasable syntax only: no `enum`, no `namespace`, no parameter properties. For a fixed set of values, use a string-literal union or an `as const` object.
 - Structured values are Zod schemas with `z.infer` types. Request input and external tool output are parsed with Zod, never cast with `as`.
-- Request bodies, response shapes, `Job`, `JobStatus`, `Segment`, `Transcript` and `DownloadFormat` live in `@atlas/shared`, because the web app imports them too. Controllers import them and never define them locally. Only schemas no other package uses, such as a route param or a client's raw output, may be local.
+- Request bodies, response shapes, `Job`, `JobStatus`, `DownloadFormat` live in `@atlas/shared`, because the web app imports them too. Controllers import them and never define them locally. Only schemas no other package uses, such as a route param or a client's raw output, may be local.
 - Annotate the exported app as `Express` and every exported router as `Router`. Without it, declaration emit fails under pnpm (TS2883).
 
 **Naming**

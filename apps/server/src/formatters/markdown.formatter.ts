@@ -1,10 +1,10 @@
 // Shared
-import { Transcript, formatClock, groupParagraphs } from '@atlas/shared'
+import { VideoSource, formatClock, splitParagraphs } from '@atlas/shared'
 // Formatters
 import { quoted, singleLine } from './frontmatter.js'
 import { youTubeVideoId } from './youtube.js'
 
-export const formatMarkdown = ( { meta, segments }: Transcript ): string => {
+export const formatMarkdown = ( { meta, text }: Pick< VideoSource, 'meta' | 'text' > ): string => {
   const videoId = youTubeVideoId( meta.source )
 
   const frontmatter = [
@@ -19,17 +19,7 @@ export const formatMarkdown = ( { meta, segments }: Transcript ): string => {
     '---',
   ].join( '\n' )
 
-  const paragraphs = groupParagraphs( segments ).map( ( { start, text } ) => {
-    const label = formatClock( start )
-    const stamp =
-      videoId === undefined
-        ? `[${ label }]`
-        : `[${ label }](https://youtu.be/${ videoId }?t=${ Math.floor( start ) })`
-
-    return `${ stamp } ${ text }`
-  } )
-
-  const blocks = [ frontmatter, `# ${ singleLine( meta.title ) }`, ...paragraphs ]
+  const blocks = [ frontmatter, `# ${ singleLine( meta.title ) }`, ...splitParagraphs( text ) ]
 
   return `${ blocks.join( '\n\n' ) }\n`
 }

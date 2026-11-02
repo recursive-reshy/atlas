@@ -8,7 +8,7 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import { Segment } from '@atlas/shared'
+import type { Segment } from '../clients/whisperServer.client.js'
 // Errors
 import { ConflictError, NotFoundError } from '../errors.js'
 // Services
@@ -118,7 +118,7 @@ describe( 'runJob', () => {
     expect( findJobById( userId, id )?.source_document ).toEqual( {
       kind: 'video',
       meta: { ...meta, transcribed_at: NOW, model: 'test-model' },
-      segments,
+      text: 'Hello',
     } )
   } )
 
@@ -287,7 +287,7 @@ describe( 'runJob', () => {
       completeAcquisition( userId, id, {
         kind: 'video',
         meta: { ...meta, transcribed_at: NOW, model: 'test-model' },
-        segments,
+        text: 'Hello',
       } )
 
       return id
@@ -361,7 +361,7 @@ describe( 'runJob', () => {
       completeAcquisition( userId, id, {
         kind: 'video',
         meta: { ...meta, transcribed_at: NOW, model: 'test-model' },
-        segments,
+        text: 'Hello',
       } )
       updateJob( userId, id, { status: 'linking', link_state: 'pending' } )
 

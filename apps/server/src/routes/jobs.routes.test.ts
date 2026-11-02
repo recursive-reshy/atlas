@@ -46,7 +46,6 @@ import {
 } from '../services/jobs.service.js'
 // Formatters
 import { formatMarkdown } from '../formatters/markdown.formatter.js'
-import { formatSrt } from '../formatters/srt.formatter.js'
 import { formatTxt } from '../formatters/txt.formatter.js'
 // Services
 import { clearModelCache } from '../services/models.service.js'
@@ -255,7 +254,6 @@ describe( 'GET /api/jobs/:id/download', () => {
 
   it.each( [
     [ 'md', 'text/markdown; charset=utf-8', formatMarkdown ],
-    [ 'srt', 'application/x-subrip; charset=utf-8', formatSrt ],
     [ 'txt', 'text/plain; charset=utf-8', formatTxt ],
   ] as const )( 'downloads %s', async ( format, contentType, formatter ) => {
     const id = await seedReviewJob()
@@ -920,7 +918,7 @@ describe( 'GET /api/jobs/:id/download for articles', () => {
     expect( response.text ).toBe( `# A post\n\n${ articleUrl }\n\nSome text.` )
   } )
 
-  it.each( [ 'srt', 'txt' ] )( 'returns 409 for %s', async ( format ) => {
+  it.each( [ 'txt' ] )( 'returns 409 for %s', async ( format ) => {
     const id = await reviewedArticle()
 
     const response = await request( app ).get( `/api/jobs/${ id }/download?format=${ format }` )

@@ -1,13 +1,13 @@
 // Packages
 import { describe, it, expect } from 'vitest'
 // Shared
-import { SourceDocument, Transcript } from '@atlas/shared'
+import { SourceDocument, VideoSource } from '@atlas/shared'
 // Clients
 import type { ArticleSummaryResult, Summary, SummaryResult } from '../clients/claude.client.js'
 // Formatters
 import { cleanSummary } from './summary.cleanup.js'
 
-const transcript: Transcript = {
+const transcript: Pick< VideoSource, 'meta' | 'text' > = {
   meta: {
     title: 'A talk',
     source: 'https://www.youtube.com/watch?v=abc',
@@ -16,11 +16,7 @@ const transcript: Transcript = {
     transcribed_at: '2026-10-15T10:00:00.000Z',
     model: 'large-v3-turbo',
   },
-  segments: [
-    { start: 0, end: 5, text: 'Rust has  an ownership' },
-    { start: 5, end: 10, text: 'model that is\nunusual.' },
-    { start: 10, end: 20, text: 'Memory safety comes free.' },
-  ],
+  text: 'Rust has  an ownership model that is\nunusual. Memory safety comes free.',
 }
 
 const video: SourceDocument = { kind: 'video', ...transcript }

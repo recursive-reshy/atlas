@@ -210,15 +210,15 @@ describe( 'no shared references', () => {
         transcribed_at: '2026-10-14T10:00:00.000Z',
         model: 'm',
       },
-      segments: [ { start: 0, end: 1, text: 'hi' } ],
+      text: 'hi',
     }
     const job = buildJob( { source_document: { kind: 'video', ...transcript } } )
     insertJob( userId, job )
 
-    transcript.segments[ 0 ].text = 'changed'
+    transcript.meta.title = 'changed'
 
     expect( findJobById( userId, job.id )?.source_document ).toMatchObject( {
-      segments: [ { text: 'hi' } ],
+      meta: { title: 'T' },
     } )
   } )
 } )
@@ -475,7 +475,7 @@ describe( 'storage', () => {
       transcribed_at: '2026-10-14T10:04:00.000Z',
       model: 'large-v3',
     },
-    segments: [ { start: 0, end: 1.5, text: 'Hello' } ],
+    text: 'Hello',
   }
 
   beforeEach( () => {

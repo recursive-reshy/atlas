@@ -11,7 +11,7 @@ import {
 import {
   JobStatus,
   SourceDocument,
-  Transcript,
+  VideoSource,
   parseNote,
 } from '@atlas/shared'
 // Config
@@ -93,7 +93,6 @@ import { existingFolderSync, writeNote } from '../clients/vault.client.js'
 // Formatters
 import { formatNote } from '../formatters/note.formatter.js'
 import { formatMarkdown } from '../formatters/markdown.formatter.js'
-import { formatSrt } from '../formatters/srt.formatter.js'
 import { formatTxt } from '../formatters/txt.formatter.js'
 // Fixtures
 import { transcriptFixture } from '../test-support/transcript.fixture.js'
@@ -128,7 +127,7 @@ const url = 'https://www.youtube.com/watch?v=abc'
 const startTime = new Date( '2026-10-14T10:00:00.000Z' )
 const laterTime = new Date( '2026-10-14T10:05:00.000Z' )
 
-const transcript: Transcript = {
+const transcript: Pick< VideoSource, 'meta' | 'text' > = {
   meta: {
     title: 'A talk',
     source: url,
@@ -137,7 +136,7 @@ const transcript: Transcript = {
     transcribed_at: '2026-10-14T10:04:00.000Z',
     model: 'large-v3',
   },
-  segments: [ { start: 0, end: 1, text: 'Hello' } ],
+  text: 'Hello',
 }
 
 const queueJobAt = async ( status: JobStatus ): Promise< string > => {
@@ -349,7 +348,6 @@ describe( 'renderTranscript', () => {
 
   it.each( [
     [ 'md', 'Video title.md', 'text/markdown; charset=utf-8', formatMarkdown ],
-    [ 'srt', 'Video title.srt', 'application/x-subrip; charset=utf-8', formatSrt ],
     [ 'txt', 'Video title.txt', 'text/plain; charset=utf-8', formatTxt ],
   ] as const )(
     'renders a review job as %s',
@@ -1898,7 +1896,7 @@ describe( 'renderTranscript for articles', () => {
     } )
   } )
 
-  it.each( [ 'srt', 'txt' ] as const )( 'refuses %s', async ( format ) => {
+  it.each( [ 'txt' ] as const )( 'refuses %s', async ( format ) => {
     const id = await reviewedArticle()
 
     expect( () => renderTranscript( userId, id, format ) )

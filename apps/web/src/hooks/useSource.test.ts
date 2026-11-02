@@ -32,7 +32,7 @@ const source: SourceDocument = {
     transcribed_at: '2026-10-15T10:00:00.000Z',
     model: 'large-v3-turbo',
   },
-  segments: [ { start: 0, end: 4, text: 'Hello.' } ],
+  text: 'Hello.',
 }
 
 const advance = async ( milliseconds: number ): Promise< void > => {

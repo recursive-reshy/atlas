@@ -233,7 +233,7 @@ describe( 'lockedPropertiesFor', () => {
       transcribed_at: '2026-10-14T10:00:00.000Z',
       model: 'large-v3',
     },
-    segments: [],
+    text: 'Hello',
   }
 
   const article: SourceDocument = {

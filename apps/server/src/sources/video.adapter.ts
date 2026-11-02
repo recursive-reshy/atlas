@@ -54,7 +54,7 @@ export const videoAdapter: SourceAdapter = {
           transcribed_at: new Date().toISOString(),
           model: config.whisperModel,
         },
-        segments,
+        text: segments.map( ( { text } ) => text.trim() ).join( ' ' ),
       } )
     } finally {
       try {

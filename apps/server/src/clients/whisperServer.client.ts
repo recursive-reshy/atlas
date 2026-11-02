@@ -2,8 +2,19 @@
 import { readFile } from 'node:fs/promises'
 import path from 'node:path'
 import { z } from 'zod'
-// Shared
-import { Segment } from '@atlas/shared'
+
+// Removed with this client in 3.4: the shared Segment went in 3.1
+const Segment = z
+  .object( {
+    start: z.number().min( 0 ),
+    end: z.number().min( 0 ),
+    text: z.string(),
+  } )
+  .refine( ( { start, end } ) => end >= start, {
+    message: 'end must be greater than or equal to start',
+    path: [ 'end' ],
+  } )
+export type Segment = z.infer< typeof Segment >
 
 const REQUEST_TIMEOUT_MS = 3_600_000
 const HEALTH_TIMEOUT_MS = 3_000

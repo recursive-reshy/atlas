@@ -10,7 +10,6 @@ import { downloadUrl } from '#src/api/jobs.api'
 
 const FORMATS = [
   { format: 'md', label: 'Markdown (.md)', variant: 'contained' },
-  { format: 'srt', label: 'Subtitles (.srt)', variant: 'outlined' },
   { format: 'txt', label: 'Plain text (.txt)', variant: 'outlined' },
 ] as const
 

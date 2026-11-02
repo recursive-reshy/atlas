@@ -16,7 +16,7 @@ describe( 'transcriptFilename', () => {
     )
   } )
 
-  it.each( [ 'md', 'srt', 'txt' ] as const )( 'appends the %s extension', ( format ) => {
+  it.each( [ 'md', 'txt' ] as const )( 'appends the %s extension', ( format ) => {
     expect( transcriptFilename( 'Title', format ) ).toBe( `Title.${ format }` )
   } )
 
@@ -26,7 +26,7 @@ describe( 'transcriptFilename', () => {
 
   it( 'falls back to transcript when nothing is left', () => {
     expect( transcriptFilename( '???', 'md' ) ).toBe( 'transcript.md' )
-    expect( transcriptFilename( '...', 'srt' ) ).toBe( 'transcript.srt' )
+    expect( transcriptFilename( '...', 'txt' ) ).toBe( 'transcript.txt' )
   } )
 
   it( 'trims trailing dots', () => {

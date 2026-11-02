@@ -1,55 +1,63 @@
-// Transcript
-import { Segment } from './transcript.js'
-
-export type Paragraph = { start: number, text: string }
-
-const GAP_SECONDS = 2
-const SOFT_SPAN_SECONDS = 45
-const HARD_SPAN_SECONDS = 90
-
 export const cleanText = ( text: string ): string => {
   return text.replace( /\s+/g, ' ' ).trim()
 }
 
-export const groupParagraphs = ( segments: Segment[] ): Paragraph[] => {
-  const paragraphs: Paragraph[] = []
-  let texts: string[] = []
-  let start = 0
-  let previous: { end: number, text: string } | undefined
+const LONG_BLOCK_CHARS = 1200
+const MIN_PARAGRAPH_CHARS = 400
+const MAX_PARAGRAPH_CHARS = 800
 
-  for( const segment of segments ) {
-    const text = cleanText( segment.text )
+const toSentences = ( block: string ): string[] => {
+  const sentences = block.match( /[^.!?]+(?:[.!?]+["')\]]*|$)\s*/g ) ?? [ block ]
 
-    if( text === '' ) {
-      continue
-    }
+  return sentences.map( ( sentence ) => sentence.trim() ).filter( ( sentence ) => sentence !== '' )
+}
 
-    if( previous !== undefined && texts.length > 0 ) {
-      const gap = segment.start - previous.end
-      const span = previous.end - start
-      const sentenceEnded = /[.!?]$/.test( previous.text )
-      const startNew =
-        gap >= GAP_SECONDS ||
-        ( span >= SOFT_SPAN_SECONDS && sentenceEnded ) ||
-        segment.end - start > HARD_SPAN_SECONDS
-
-      if( startNew ) {
-        paragraphs.push( { start, text: texts.join( ' ' ) } )
-        texts = []
-      }
-    }
-
-    if( texts.length === 0 ) {
-      start = segment.start
-    }
-
-    texts.push( text )
-    previous = { end: segment.end, text }
+// A sentence longer than a paragraph (no punctuation) is cut at word boundaries
+const toPieces = ( sentence: string ): string[] => {
+  if( sentence.length <= MAX_PARAGRAPH_CHARS ) {
+    return [ sentence ]
   }
 
-  if( texts.length > 0 ) {
-    paragraphs.push( { start, text: texts.join( ' ' ) } )
+  const pieces: string[] = []
+  let current = ''
+
+  for( const word of sentence.split( /\s+/ ) ) {
+    if( current !== '' && current.length + 1 + word.length > MAX_PARAGRAPH_CHARS ) {
+      pieces.push( current )
+      current = word
+    } else {
+      current = current === '' ? word : `${ current } ${ word }`
+    }
   }
 
-  return paragraphs
+  return current === '' ? pieces : [ ...pieces, current ]
+}
+
+const splitLongBlock = ( block: string ): string[] => {
+  const paragraphs: string[] = []
+  let current = ''
+
+  for( const piece of toSentences( block ).flatMap( toPieces ) ) {
+    if( current !== '' && current.length + 1 + piece.length > MAX_PARAGRAPH_CHARS ) {
+      paragraphs.push( current )
+      current = ''
+    }
+
+    current = current === '' ? piece : `${ current } ${ piece }`
+
+    if( current.length >= MIN_PARAGRAPH_CHARS ) {
+      paragraphs.push( current )
+      current = ''
+    }
+  }
+
+  return current === '' ? paragraphs : [ ...paragraphs, current ]
+}
+
+export const splitParagraphs = ( text: string ): string[] => {
+  return text
+    .split( /\n\s*\n/ )
+    .map( ( block ) => block.trim() )
+    .filter( ( block ) => block !== '' )
+    .flatMap( ( block ) => block.length > LONG_BLOCK_CHARS ? splitLongBlock( block ) : [ block ] )
 }
