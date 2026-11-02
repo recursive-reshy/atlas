@@ -205,3 +205,16 @@ export const transcriptionSeconds = ( range: UsageRange ): Map< string, number >
     return [ user_id, seconds ]
   } ) )
 }
+
+// Rows of checks that are no longer run or no longer configured (whisper-server, backups, a VM's
+// replication on the Mac), for every user, so a stale row is never shown or counted (ADR 0050).
+export const deleteHealthExcept = ( kinds: readonly string[] ): void => {
+  inTransaction( () => {
+    const keep = marks( [ ...kinds ] )
+
+    for( const table of [ 'health_status', 'health_errors' ] ) {
+      getDatabase().prepare( `DELETE FROM ${ table } WHERE kind NOT IN ( ${ keep } )` )
+        .run( ...kinds )
+    }
+  } )
+}

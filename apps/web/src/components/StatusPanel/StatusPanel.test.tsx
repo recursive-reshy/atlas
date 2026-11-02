@@ -104,27 +104,26 @@ describe( 'StatusPanel', () => {
       statusRowFixture( { kind: 'gmail_source', id: 's1', name: 'Alerts' } ),
       statusRowFixture( { kind: 'gmail_connection', name: 'Gmail connection' } ),
       statusRowFixture( { kind: 'agent', name: 'Agent service' } ),
-      statusRowFixture( { kind: 'whisper', name: 'whisper-server' } ),
-      statusRowFixture( { kind: 'backup', name: 'Backups' } ),
+      statusRowFixture( { kind: 'transcription', name: 'Transcription (OpenAI)' } ),
     ] )
     renderWithClient( <StatusPanel /> )
 
-    const kinds = [ 'Feed', 'Gmail source', 'Gmail', 'Service', 'Service', 'Backup' ]
+    const kinds = [ 'Feed', 'Gmail source', 'Gmail', 'Service', 'Service' ]
 
     expect( screen.getAllByRole( 'row' ).slice( 1 ).map( ( row, index ) => {
       return within( row ).queryByText( kinds[ index ] ?? '' ) !== null
     } ) ).toEqual( kinds.map( () => true ) )
   } )
 
-  it( 'shows a backup\'s file and size', () => {
+  it( 'shows a row\'s detail', () => {
     show( [ statusRowFixture( {
-      kind: 'backup',
-      name: 'Backups',
-      detail: 'atlas-20261022-180500.db, 1.5 MB',
+      kind: 'replication',
+      name: 'Replication',
+      detail: 'Last synced 10:00',
     } ) ] )
     renderWithClient( <StatusPanel /> )
 
-    expect( screen.getByText( 'atlas-20261022-180500.db, 1.5 MB' ) ).toBeInTheDocument()
+    expect( screen.getByText( 'Last synced 10:00' ) ).toBeInTheDocument()
   } )
 
   it.each( [
@@ -283,7 +282,7 @@ describe( 'StatusPanel Gmail connection', () => {
   } )
 
   it( 'does not offer Reconnect on another failing row', () => {
-    show( [ failingRowFixture( { kind: 'whisper', name: 'whisper-server' } ) ] )
+    show( [ failingRowFixture( { kind: 'agent', name: 'Agent service' } ) ] )
     renderWithClient( <StatusPanel /> )
 
     expect( screen.queryByRole( 'link', { name: 'Reconnect' } ) ).not.toBeInTheDocument()

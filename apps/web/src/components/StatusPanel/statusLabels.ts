@@ -11,10 +11,8 @@ export const KIND_LABELS = {
   gmail_connection: 'Gmail',
   vault_sync: 'Vault sync',
   agent: 'Service',
-  whisper: 'Service',
   transcription: 'Service',
   replication: 'Service',
-  backup: 'Backup',
 } as const satisfies Record< HealthKind, string >
 
 export const STATE_LABELS = {

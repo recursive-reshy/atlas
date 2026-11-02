@@ -31,8 +31,6 @@ describe( 'HealthKind', () => {
     'gmail_connection',
     'vault_sync',
     'agent',
-    'whisper',
-    'backup',
     'transcription',
     'replication',
   ] )(
@@ -42,20 +40,14 @@ describe( 'HealthKind', () => {
     },
   )
 
-  it( 'rejects an unknown kind', () => {
-    expect( HealthKind.safeParse( 'vault' ).success ).toBe( false )
+  it.each( [ 'vault', 'whisper', 'backup' ] )( 'rejects %s', ( kind ) => {
+    expect( HealthKind.safeParse( kind ).success ).toBe( false )
   } )
 } )
 
 describe( 'AppHealthKind and UserHealthKind', () => {
   it( 'split the kinds into app services and a user\'s own sources', () => {
-    expect( AppHealthKind.options ).toEqual( [
-      'agent',
-      'whisper',
-      'backup',
-      'transcription',
-      'replication',
-    ] )
+    expect( AppHealthKind.options ).toEqual( [ 'agent', 'transcription', 'replication' ] )
     expect( UserHealthKind.options ).toEqual( [
       'feed',
       'gmail_source',
@@ -84,9 +76,15 @@ describe( 'StatusRow', () => {
   } )
 
   it( 'parses a singleton row with the id default and a detail', () => {
-    const backup = { ...row, kind: 'backup', id: 'default', state: 'ok', detail: 'a.db, 1 MB' }
+    const replication = {
+      ...row,
+      kind: 'replication',
+      id: 'default',
+      state: 'ok',
+      detail: 'Last synced 10:00',
+    }
 
-    expect( StatusRow.parse( backup ) ).toEqual( backup )
+    expect( StatusRow.parse( replication ) ).toEqual( replication )
   } )
 
   it( 'rejects an unknown state', () => {

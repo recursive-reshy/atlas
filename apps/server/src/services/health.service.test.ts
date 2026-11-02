@@ -13,10 +13,11 @@ import { checkTranscriptionModel } from '../clients/openaiTranscription.client.j
 // Logging
 import { logger } from '../logger.js'
 // Repositories
-import { getHealth, listErrors } from '../repositories/health.repository.js'
+import { getHealth, listErrors, recordFailure } from '../repositories/health.repository.js'
+import { getDatabase } from '../repositories/database.js'
 import { setSetting } from '../repositories/settings.repository.js'
 // Services
-import { recordCheck, runServiceChecks } from './health.service.js'
+import { pruneHealth, recordCheck, runServiceChecks } from './health.service.js'
 // Test support
 import { defaultTestAdmin } from '../test-support/auth.js'
 
@@ -76,11 +77,12 @@ describe( 'recordCheck', () => {
   it( 'passes the detail of a success on', () => {
     recordCheck(
       null,
-      { kind: 'backup', id: 'default' },
-      { ok: true, detail: '{"file":"a.db","bytes":10}' },
+      { kind: 'replication', id: 'default' },
+      { ok: true, detail: '{"last_sync_at":"2026-10-22T10:00:00.000Z"}' },
     )
 
-    expect( getHealth( null, 'backup', 'default' )?.detail ).toBe( '{"file":"a.db","bytes":10}' )
+    expect( getHealth( null, 'replication', 'default' )?.detail )
+      .toBe( '{"last_sync_at":"2026-10-22T10:00:00.000Z"}' )
   } )
 
   it( 'records a failure with its message and history', () => {
@@ -170,5 +172,24 @@ describe( 'runServiceChecks', () => {
 
     expect( getHealth( null, 'agent', 'default' )?.last_error ).toBe( 'boom' )
     expect( getHealth( null, 'transcription', 'default' ) ).toBeDefined()
+  } )
+} )
+
+describe( 'pruneHealth', () => {
+  const insertOld = ( kind: string ): void => {
+    getDatabase().prepare( `INSERT INTO health_status ( user_id, kind, subject_id )
+      VALUES ( NULL, ?, 'default' )` ).run( kind )
+  }
+
+  it( 'deletes rows of checks that no longer exist, and keeps the configured ones', () => {
+    insertOld( 'whisper' )
+    insertOld( 'backup' )
+    recordFailure( null, 'transcription', 'default', '2026-10-22T10:00:00.000Z', 'down' )
+
+    pruneHealth()
+
+    expect( getDatabase().prepare( 'SELECT kind FROM health_status' ).pluck().all() )
+      .toEqual( [ 'transcription' ] )
+    expect( listErrors( null, 'transcription', 'default' ) ).toHaveLength( 1 )
   } )
 } )

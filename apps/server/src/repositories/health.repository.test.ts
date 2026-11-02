@@ -44,9 +44,9 @@ describe( 'recordSuccess', () => {
   } )
 
   it( 'stores the detail', () => {
-    recordSuccess( null, 'backup', 'default', at( 1 ), '{"file":"a.db"}' )
+    recordSuccess( null, 'replication', 'default', at( 1 ), '{"file":"a.db"}' )
 
-    expect( getHealth( null, 'backup', 'default' )?.detail ).toBe( '{"file":"a.db"}' )
+    expect( getHealth( null, 'replication', 'default' )?.detail ).toBe( '{"file":"a.db"}' )
   } )
 
   it( 'clears last_error and failing_since after a failure', () => {
@@ -85,10 +85,10 @@ describe( 'recordFailure', () => {
   } )
 
   it( 'keeps the last success time and the detail', () => {
-    recordSuccess( null, 'backup', 'default', at( 1 ), 'a.db' )
-    recordFailure( null, 'backup', 'default', at( 2 ), 'disk full' )
+    recordSuccess( null, 'replication', 'default', at( 1 ), 'a.db' )
+    recordFailure( null, 'replication', 'default', at( 2 ), 'disk full' )
 
-    expect( getHealth( null, 'backup', 'default' ) ).toMatchObject( {
+    expect( getHealth( null, 'replication', 'default' ) ).toMatchObject( {
       last_checked_at: at( 2 ),
       last_success_at: at( 1 ),
       last_error: 'disk full',
@@ -146,10 +146,10 @@ describe( 'getHealth, listHealth and listErrors', () => {
 
   it( 'lists every row', () => {
     recordSuccess( userId, 'feed', 'f1', at( 1 ) )
-    recordFailure( null, 'whisper', 'default', at( 2 ), 'down' )
+    recordFailure( null, 'agent', 'default', at( 2 ), 'down' )
 
     expect( listHealth( userId, true ).map( ( { kind } ) => kind ).sort() )
-      .toEqual( [ 'feed', 'whisper' ] )
+      .toEqual( [ 'agent', 'feed' ] )
   } )
 } )
 
@@ -199,12 +199,12 @@ describe( 'ownership', () => {
   } )
 
   it( 'shows the app rows only when asked for them', () => {
-    recordSuccess( null, 'whisper', 'default', at( 1 ) )
+    recordSuccess( null, 'agent', 'default', at( 1 ) )
     recordSuccess( userId, 'feed', 'f1', at( 1 ) )
 
     expect( listHealth( userId, false ).map( ( { kind } ) => kind ) ).toEqual( [ 'feed' ] )
     expect( listHealth( userId, true ).map( ( { kind } ) => kind ).sort() )
-      .toEqual( [ 'feed', 'whisper' ] )
+      .toEqual( [ 'agent', 'feed' ] )
   } )
 
   it( 'keeps the app rows without an owner, whoever asks', () => {
@@ -221,8 +221,9 @@ describe( 'ownership', () => {
 
 describe( 'the kind check', () => {
   it( 'refuses an app kind with an owner and a user kind without one', () => {
-    expect( () => recordSuccess( userId, 'whisper', 'default', at( 1 ) ) ).toThrow( /CHECK/ )
-    expect( () => recordFailure( userId, 'backup', 'default', at( 1 ), 'x' ) ).toThrow( /CHECK/ )
+    expect( () => recordSuccess( userId, 'agent', 'default', at( 1 ) ) ).toThrow( /CHECK/ )
+    expect( () => recordFailure( userId, 'transcription', 'default', at( 1 ), 'x' ) )
+      .toThrow( /CHECK/ )
     expect( () => recordSuccess( null, 'feed', 'f1', at( 1 ) ) ).toThrow( /CHECK/ )
     expect( () => recordFailure( null, 'gmail_source', 's1', at( 1 ), 'x' ) ).toThrow( /CHECK/ )
   } )

@@ -1,5 +1,5 @@
 // Shared
-import type { HealthKind } from '@atlas/shared'
+import { HealthKind } from '@atlas/shared'
 // Clients
 import { checkHealth } from '../clients/agent.client.js'
 import { checkTranscriptionModel } from '../clients/openaiTranscription.client.js'
@@ -9,6 +9,7 @@ import { config } from '../config.js'
 import { logger } from '../logger.js'
 // Repositories
 import { recordFailure, recordSuccess } from '../repositories/health.repository.js'
+import { deleteHealthExcept } from '../repositories/system.repository.js'
 // Services
 
 export type HealthSubject = { kind: HealthKind, id: string }
@@ -75,4 +76,11 @@ export const runServiceChecks = async (): Promise< void > => {
   }
 
   await Promise.all( checks )
+}
+
+// Checks that run only where configured; their rows are dropped at start where they are not.
+const OPTIONAL_KINDS: HealthKind[] = [ 'replication', 'vault_sync' ]
+
+export const pruneHealth = (): void => {
+  deleteHealthExcept( HealthKind.options.filter( ( kind ) => !OPTIONAL_KINDS.includes( kind ) ) )
 }

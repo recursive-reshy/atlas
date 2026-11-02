@@ -1,5 +1,3 @@
-// Packages
-import { z } from 'zod'
 // Shared
 import { AppHealthKind } from '@atlas/shared'
 import type {
@@ -23,43 +21,9 @@ import type { HealthRecord } from '../repositories/health.repository.js'
 import { runServiceChecks } from './health.service.js'
 
 const SINGLETON_ID = 'default'
-const KILOBYTE = 1024
-
-const BackupDetail = z.object( { file: z.string(), bytes: z.number() } )
 
 const byName = ( first: StatusRow, second: StatusRow ): number => {
   return first.name.localeCompare( second.name, undefined, { sensitivity: 'base' } )
-}
-
-const formatBytes = ( bytes: number ): string => {
-  if( bytes < KILOBYTE ) {
-    return `${ bytes } B`
-  }
-
-  if( bytes < KILOBYTE ** 2 ) {
-    return `${ ( bytes / KILOBYTE ).toFixed( 1 ) } KB`
-  }
-
-  if( bytes < KILOBYTE ** 3 ) {
-    return `${ ( bytes / KILOBYTE ** 2 ).toFixed( 1 ) } MB`
-  }
-
-  return `${ ( bytes / KILOBYTE ** 3 ).toFixed( 1 ) } GB`
-}
-
-// The backup service stores { file, bytes } as JSON; the panel shows it as one line.
-const describeBackup = ( detail: string | null ): string | null => {
-  if( detail === null ) {
-    return null
-  }
-
-  try {
-    const { file, bytes } = BackupDetail.parse( JSON.parse( detail ) )
-
-    return `${ file }, ${ formatBytes( bytes ) }`
-  } catch{
-    return detail
-  }
 }
 
 type Subject = { kind: HealthKind, id: string, name: string }
@@ -114,7 +78,7 @@ const gmailConnectionRow = (
   return toRow( subject, health, false )
 }
 
-// The app's own services (agent, transcription, backups) show only to the admin (ADR 0065)
+// The app's own services (agent, transcription) show only to the admin (ADR 0065)
 export const getStatus = ( userId: string, isAdmin: boolean ): GetStatusResponse => {
   const health = new Map< string, HealthRecord >(
     listHealth( userId, isAdmin )
@@ -134,12 +98,6 @@ export const getStatus = ( userId: string, isAdmin: boolean ): GetStatusResponse
       { kind: 'transcription', id: SINGLETON_ID, name: 'Transcription (OpenAI)' },
       find( 'transcription', SINGLETON_ID ),
       false,
-    ),
-    toRow(
-      { kind: 'backup', id: SINGLETON_ID, name: 'Backups' },
-      find( 'backup', SINGLETON_ID ),
-      false,
-      describeBackup( find( 'backup', SINGLETON_ID )?.detail ?? null ),
     ),
   ]
   const rows: StatusRow[] = [

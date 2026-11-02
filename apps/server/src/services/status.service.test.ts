@@ -111,7 +111,7 @@ describe( 'getStatus', () => {
     const { rows, failing_count } = getStatus( userId, true )
 
     expect( rows.map( ( { kind } ) => kind ) )
-      .toEqual( [ 'agent', 'transcription', 'backup', 'gmail_connection' ] )
+      .toEqual( [ 'agent', 'transcription', 'gmail_connection' ] )
     expect( failing_count ).toBe( 0 )
     expect( GetStatusResponse.parse( getStatus( userId, true ) ) )
       .toEqual( getStatus( userId, true ) )
@@ -119,7 +119,7 @@ describe( 'getStatus', () => {
 
   it( 'names the singletons', () => {
     expect( getStatus( userId, true ).rows.map( ( { name } ) => name ) )
-      .toEqual( [ 'Agent service', 'Transcription (OpenAI)', 'Backups', 'Gmail connection' ] )
+      .toEqual( [ 'Agent service', 'Transcription (OpenAI)', 'Gmail connection' ] )
   } )
 
   it( 'shows a never-checked service as ok with no times', () => {
@@ -216,72 +216,6 @@ describe( 'getStatus', () => {
     } )
   } )
 
-  describe( 'backup', () => {
-    it( 'is ok with no detail before the first backup', () => {
-      expect( rowOf( 'backup' ) )
-        .toMatchObject( { state: 'ok', detail: null, last_success_at: null } )
-    } )
-
-    it( 'shows the file and size of the last backup', () => {
-      recordSuccess(
-        null,
-        'backup',
-        'default',
-        at( 5 ),
-        JSON.stringify( { file: 'atlas-20261022-180500.db', bytes: 1_572_864 } ),
-      )
-
-      expect( rowOf( 'backup' ) ).toMatchObject( {
-        state: 'ok',
-        last_success_at: at( 5 ),
-        detail: 'atlas-20261022-180500.db, 1.5 MB',
-      } )
-    } )
-
-    it( 'formats small sizes in bytes and KB', () => {
-      recordSuccess(
-        null,
-        'backup',
-        'default',
-        at( 1 ),
-        JSON.stringify( { file: 'a.db', bytes: 900 } ),
-      )
-      expect( rowOf( 'backup' ).detail ).toBe( 'a.db, 900 B' )
-
-      recordSuccess(
-        null,
-        'backup',
-        'default',
-        at( 2 ),
-        JSON.stringify( { file: 'a.db', bytes: 2048 } ),
-      )
-      expect( rowOf( 'backup' ).detail ).toBe( 'a.db, 2.0 KB' )
-    } )
-
-    it( 'is failing after a failed backup but still shows the last good one', () => {
-      recordSuccess(
-        null,
-        'backup',
-        'default',
-        at( 1 ),
-        JSON.stringify( { file: 'a.db', bytes: 900 } ),
-      )
-      recordFailure( null, 'backup', 'default', at( 2 ), 'disk full' )
-
-      expect( rowOf( 'backup' ) ).toMatchObject( {
-        state: 'failing',
-        last_error: 'disk full',
-        detail: 'a.db, 900 B',
-      } )
-    } )
-
-    it( 'shows a detail that is not JSON as it is', () => {
-      recordSuccess( null, 'backup', 'default', at( 1 ), 'whatever' )
-
-      expect( rowOf( 'backup' ).detail ).toBe( 'whatever' )
-    } )
-  } )
-
   describe( 'feeds and Gmail sources', () => {
     it( 'lists feeds with their name, state and times', () => {
       const feed = buildFeed( { name: 'My blog' } )
@@ -348,7 +282,7 @@ describe( 'getStatus', () => {
         .toEqual( [] )
     } )
 
-    it( 'orders services, backup, connection, Gmail sources, then feeds, each by name', () => {
+    it( 'orders services, connection, Gmail sources, then feeds, each by name', () => {
       insertFeed( userId, buildFeed( { name: 'zeta' } ) )
       insertFeed( userId, buildFeed( { name: 'Alpha' } ) )
       addStoredSource( userId, { name: 'Beta alerts' } )
@@ -358,7 +292,6 @@ describe( 'getStatus', () => {
         .toEqual( [
           'agent:Agent service',
           'transcription:Transcription (OpenAI)',
-          'backup:Backups',
           'gmail_connection:Gmail connection',
           'gmail_source:alpha alerts',
           'gmail_source:Beta alerts',
@@ -430,7 +363,7 @@ describe( 'getHealthErrors', () => {
 
   it( 'refuses a singleton with any id but default', () => {
     expect( () => getHealthErrors( userId, true, 'agent', 'other' ) ).toThrow( NotFoundError )
-    expect( () => getHealthErrors( userId, true, 'backup', 'x' ) ).toThrow( NotFoundError )
+    expect( () => getHealthErrors( userId, true, 'transcription', 'x' ) ).toThrow( NotFoundError )
   } )
 } )
 
@@ -450,7 +383,6 @@ describe( 'getStatus for two users', () => {
       .toEqual( [
         'Agent service',
         'Transcription (OpenAI)',
-        'Backups',
         'Gmail connection',
         'Mine',
       ] )
@@ -477,7 +409,7 @@ describe( 'getStatus for two users', () => {
 } )
 
 describe( 'the app rows belong to the admin', () => {
-  it( 'hides the agent, transcription and backups from a member, and their failures', () => {
+  it( 'hides the agent and transcription from a member, and their failures', () => {
     const member = createTestUser().id
 
     recordFailure( null, 'transcription', 'default', at( 1 ), 'down' )
@@ -517,7 +449,8 @@ describe( 'the app rows belong to the admin', () => {
     recordFailure( null, 'agent', 'default', at( 1 ), 'down' )
 
     expect( () => getHealthErrors( member, false, 'agent', 'default' ) ).toThrow( NotFoundError )
-    expect( () => getHealthErrors( member, false, 'backup', 'default' ) ).toThrow( NotFoundError )
+    expect( () => getHealthErrors( member, false, 'transcription', 'default' ) )
+      .toThrow( NotFoundError )
     expect( getHealthErrors( userId, true, 'agent', 'default' ) )
       .toEqual( [ { at: at( 1 ), message: 'down' } ] )
   } )

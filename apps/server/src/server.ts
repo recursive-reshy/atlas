@@ -12,6 +12,7 @@ import { logger } from './logger.js'
 // Repositories
 import { closeDatabase, openDatabase } from './repositories/database.js'
 // Services
+import { pruneHealth } from './services/health.service.js'
 import { recoverInterruptedJobs } from './services/jobs.service.js'
 // Shutdown
 import { SHUTDOWN_TIMEOUT_MS, createShutdown } from './shutdown.js'
@@ -53,6 +54,8 @@ try {
   logger.error( { err: error }, 'The database cannot be opened' )
   process.exit( 1 )
 }
+
+pruneHealth()
 
 const interrupted = recoverInterruptedJobs()
 

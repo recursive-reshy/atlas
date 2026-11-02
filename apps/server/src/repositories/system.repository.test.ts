@@ -21,6 +21,7 @@ import { getDatabase } from './database.js'
 import {
   claimNextGeneration,
   claimNextJob,
+  deleteHealthExcept,
   listDueFeeds,
   listDueGmailSources,
   listExpiredJobs,
@@ -787,5 +788,33 @@ describe( 'requeueGenerating', () => {
     expect( findNote( second, alsoStuck )?.generation ).toBe( 'queued' )
     expect( findNote( first, failed )?.generation ).toBe( 'failed' )
     expect( requeueGenerating() ).toBe( 0 )
+  } )
+} )
+
+describe( 'deleteHealthExcept', () => {
+  const insert = ( userId: string | null, kind: string, id: string ): void => {
+    getDatabase().prepare( `INSERT INTO health_status ( user_id, kind, subject_id )
+      VALUES ( ?, ?, ? )` ).run( userId, kind, id )
+    getDatabase().prepare( `INSERT INTO health_errors ( user_id, kind, subject_id, at, message )
+      VALUES ( ?, ?, ?, 'now', 'x' )` ).run( userId, kind, id )
+  }
+  const kinds = ( table: string ): string[] => {
+    return getDatabase().prepare( `SELECT kind FROM ${ table } ORDER BY kind` )
+      .pluck().all() as string[]
+  }
+
+  it( 'deletes the rows and error history of every other kind, for every user', () => {
+    const user = createTestUser().id
+
+    insert( null, 'whisper', 'default' )
+    insert( null, 'backup', 'default' )
+    insert( null, 'agent', 'default' )
+    insert( user, 'vault_sync', 'alex' )
+    insert( user, 'feed', 'f1' )
+
+    deleteHealthExcept( [ 'agent', 'feed' ] )
+
+    expect( kinds( 'health_status' ) ).toEqual( [ 'agent', 'feed' ] )
+    expect( kinds( 'health_errors' ) ).toEqual( [ 'agent', 'feed' ] )
   } )
 } )
