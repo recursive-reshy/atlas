@@ -30,8 +30,10 @@ fail() {
   exit 1
 }
 
-mkdir -p -m 700 "$(dirname "$OUT")"
-tmp=$(mktemp "$(dirname "$OUT")/.secrets.XXXXXX")
+dir=$(dirname "$OUT")
+mkdir -p "$dir"
+chmod 700 "$dir"
+tmp=$(mktemp "$dir/.secrets.XXXXXX")
 trap 'rm -f "$tmp"' EXIT
 
 metadata() {
