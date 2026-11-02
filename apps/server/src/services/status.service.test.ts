@@ -36,11 +36,13 @@ const configMock = vi.hoisted( () => {
     sessionDays: number
     gmail: Record< string, unknown > | null
     agent: { url: string } | null
+    litestreamMetricsUrl: string | null
   } = {
     logLevel: 'silent',
     sessionDays: 30,
     gmail: { clientId: 'id' },
     agent: { url: 'http://agent.test' },
+    litestreamMetricsUrl: null,
   }
 
   return mock
@@ -103,6 +105,7 @@ const rowOf = (
 beforeEach( () => {
   configMock.gmail = { clientId: 'id' }
   configMock.agent = { url: 'http://agent.test' }
+  configMock.litestreamMetricsUrl = null
   vi.mocked( runServiceChecks ).mockReset().mockResolvedValue( undefined )
 } )
 
@@ -213,6 +216,83 @@ describe( 'getStatus', () => {
       recordFailure( userId, 'gmail_connection', userId, at( 3 ), 'from the check' )
 
       expect( rowOf( 'gmail_connection' ).last_error ).toBe( 'from the check' )
+    } )
+  } )
+
+  describe( 'replication', () => {
+    const METRICS_URL = 'http://litestream:9090/metrics'
+
+    it( 'has no row where Litestream is not configured', () => {
+      expect( getStatus( userId, true ).rows.map( ( { kind } ) => kind ) )
+        .not.toContain( 'replication' )
+    } )
+
+    it( 'is ok with no detail before the first sync is seen', () => {
+      configMock.litestreamMetricsUrl = METRICS_URL
+
+      expect( rowOf( 'replication' ) ).toMatchObject( {
+        name: 'Replication (Litestream)',
+        state: 'ok',
+        detail: null,
+      } )
+    } )
+
+    it( 'shows the last sync time from the check\'s detail', () => {
+      configMock.litestreamMetricsUrl = METRICS_URL
+      recordSuccess(
+        null,
+        'replication',
+        'default',
+        at( 5 ),
+        JSON.stringify( { last_sync_at: '2026-10-22T10:02:00.000Z' } ),
+      )
+
+      expect( rowOf( 'replication' ) ).toMatchObject( {
+        state: 'ok',
+        detail: 'Last synced 2026-10-22 10:02 UTC',
+      } )
+    } )
+
+    it( 'is failing with the message, still showing the last sync', () => {
+      configMock.litestreamMetricsUrl = METRICS_URL
+      recordSuccess(
+        null,
+        'replication',
+        'default',
+        at( 1 ),
+        JSON.stringify( { last_sync_at: '2026-10-22T10:00:00.000Z' } ),
+      )
+      recordFailure( null, 'replication', 'default', at( 2 ), 'Litestream reported 1 sync error' )
+
+      expect( rowOf( 'replication' ) ).toMatchObject( {
+        state: 'failing',
+        last_error: 'Litestream reported 1 sync error',
+        detail: 'Last synced 2026-10-22 10:00 UTC',
+      } )
+    } )
+
+    it( 'shows a detail that is not JSON as it is', () => {
+      configMock.litestreamMetricsUrl = METRICS_URL
+      recordSuccess( null, 'replication', 'default', at( 1 ), 'whatever' )
+
+      expect( rowOf( 'replication' ).detail ).toBe( 'whatever' )
+    } )
+
+    it( 'is hidden from a member, and its history is a 404', () => {
+      configMock.litestreamMetricsUrl = METRICS_URL
+      const member = createTestUser().id
+
+      expect( getStatus( member, false ).rows.map( ( { kind } ) => kind ) )
+        .not.toContain( 'replication' )
+      expect( () => getHealthErrors( member, false, 'replication', 'default' ) )
+        .toThrow( NotFoundError )
+    } )
+
+    it( 'sits after the transcription row, before the connection', () => {
+      configMock.litestreamMetricsUrl = METRICS_URL
+
+      expect( getStatus( userId, true ).rows.map( ( { kind } ) => kind ) )
+        .toEqual( [ 'agent', 'transcription', 'replication', 'gmail_connection' ] )
     } )
   } )
 

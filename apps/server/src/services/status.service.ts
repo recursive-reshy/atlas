@@ -1,3 +1,5 @@
+// Packages
+import { z } from 'zod'
 // Shared
 import { AppHealthKind } from '@atlas/shared'
 import type {
@@ -24,6 +26,23 @@ const SINGLETON_ID = 'default'
 
 const byName = ( first: StatusRow, second: StatusRow ): number => {
   return first.name.localeCompare( second.name, undefined, { sensitivity: 'base' } )
+}
+
+const ReplicationDetail = z.object( { last_sync_at: z.iso.datetime() } )
+
+// The check stores { last_sync_at } as JSON; the panel shows it as one line.
+const describeReplication = ( detail: string | null ): string | null => {
+  if( detail === null ) {
+    return null
+  }
+
+  try {
+    const { last_sync_at: lastSyncAt } = ReplicationDetail.parse( JSON.parse( detail ) )
+
+    return `Last synced ${ lastSyncAt.slice( 0, 16 ).replace( 'T', ' ' ) } UTC`
+  } catch{
+    return detail
+  }
 }
 
 type Subject = { kind: HealthKind, id: string, name: string }
@@ -100,8 +119,18 @@ export const getStatus = ( userId: string, isAdmin: boolean ): GetStatusResponse
       false,
     ),
   ]
+  const replicationRows: StatusRow[] = config.litestreamMetricsUrl === null
+    ? []
+    : [
+      toRow(
+        { kind: 'replication', id: SINGLETON_ID, name: 'Replication (Litestream)' },
+        find( 'replication', SINGLETON_ID ),
+        false,
+        describeReplication( find( 'replication', SINGLETON_ID )?.detail ?? null ),
+      ),
+    ]
   const rows: StatusRow[] = [
-    ...isAdmin ? appRows : [],
+    ...isAdmin ? [ ...appRows, ...replicationRows ] : [],
     gmailConnectionRow( userId, find( 'gmail_connection', userId ) ),
     ...listSources( userId )
       .map( ( { id, name, enabled } ) => {

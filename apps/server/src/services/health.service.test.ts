@@ -9,6 +9,7 @@ import {
 } from 'vitest'
 // Clients
 import { checkHealth } from '../clients/agent.client.js'
+import { fetchReplicationMetrics } from '../clients/litestreamMetrics.client.js'
 import { checkTranscriptionModel } from '../clients/openaiTranscription.client.js'
 // Logging
 import { logger } from '../logger.js'
@@ -17,7 +18,12 @@ import { getHealth, listErrors, recordFailure } from '../repositories/health.rep
 import { getDatabase } from '../repositories/database.js'
 import { setSetting } from '../repositories/settings.repository.js'
 // Services
-import { pruneHealth, recordCheck, runServiceChecks } from './health.service.js'
+import {
+  pruneHealth,
+  recordCheck,
+  resetReplicationCheck,
+  runServiceChecks,
+} from './health.service.js'
 // Test support
 import { defaultTestAdmin } from '../test-support/auth.js'
 
@@ -34,16 +40,21 @@ const configMock = vi.hoisted( () => ( {
   openaiBaseUrl: 'http://openai.test',
   transcriptionModel: 'gpt-transcribe',
   agent: null as { url: string } | null,
+  litestreamMetricsUrl: null as string | null,
 } ) )
 
 vi.mock( '../config.js', () => ( { config: configMock } ) )
 vi.mock( '../clients/agent.client.js', () => ( { checkHealth: vi.fn() } ) )
+vi.mock( '../clients/litestreamMetrics.client.js', () => ( { fetchReplicationMetrics: vi.fn() } ) )
 vi.mock( '../clients/openaiTranscription.client.js', () => ( {
   checkTranscriptionModel: vi.fn(),
 } ) )
 
 beforeEach( () => {
   configMock.agent = { url: 'http://agent.test:8100' }
+  configMock.litestreamMetricsUrl = null
+  resetReplicationCheck()
+  vi.mocked( fetchReplicationMetrics ).mockReset()
   vi.mocked( checkHealth ).mockReset().mockResolvedValue( 'ok' )
   vi.mocked( checkTranscriptionModel ).mockReset().mockResolvedValue( undefined )
 } )
@@ -175,6 +186,134 @@ describe( 'runServiceChecks', () => {
   } )
 } )
 
+describe( 'the replication check', () => {
+  const METRICS_URL = 'http://litestream:9090/metrics'
+  const sample = ( syncCount: number, syncErrors: number ): void => {
+    vi.mocked( fetchReplicationMetrics ).mockResolvedValueOnce( { syncCount, syncErrors } )
+  }
+
+  beforeEach( () => {
+    configMock.litestreamMetricsUrl = METRICS_URL
+    vi.useFakeTimers()
+    vi.setSystemTime( new Date( '2026-10-22T10:00:00.000Z' ) )
+  } )
+
+  afterEach( () => {
+    vi.useRealTimers()
+  } )
+
+  it( 'is not run, and records nothing, without LITESTREAM_METRICS_URL', async () => {
+    configMock.litestreamMetricsUrl = null
+
+    await runServiceChecks()
+
+    expect( fetchReplicationMetrics ).not.toHaveBeenCalled()
+    expect( getHealth( null, 'replication', 'default' ) ).toBeUndefined()
+  } )
+
+  it( 'asks the configured URL and passes on the first sample, with no last sync yet', async () => {
+    sample( 50, 0 )
+
+    await runServiceChecks()
+
+    expect( fetchReplicationMetrics ).toHaveBeenCalledWith( METRICS_URL )
+    expect( getHealth( null, 'replication', 'default' ) )
+      .toMatchObject( { last_error: null, detail: null } )
+    expect( getHealth( null, 'replication', 'default' )?.last_success_at ).not.toBeNull()
+  } )
+
+  it( 'passes first even when the counter already holds old errors', async () => {
+    sample( 50, 9 )
+
+    await runServiceChecks()
+
+    expect( getHealth( null, 'replication', 'default' )?.last_error ).toBeNull()
+  } )
+
+  it( 'records when the sync count rose as the last sync', async () => {
+    sample( 50, 0 )
+    await runServiceChecks()
+
+    vi.setSystemTime( new Date( '2026-10-22T10:02:00.000Z' ) )
+    sample( 52, 0 )
+    await runServiceChecks()
+
+    expect( getHealth( null, 'replication', 'default' )?.detail )
+      .toBe( '{"last_sync_at":"2026-10-22T10:02:00.000Z"}' )
+  } )
+
+  it( 'keeps the last sync time, and stays ok, while nothing new is synced', async () => {
+    sample( 50, 0 )
+    await runServiceChecks()
+    vi.setSystemTime( new Date( '2026-10-22T10:02:00.000Z' ) )
+    sample( 52, 0 )
+    await runServiceChecks()
+
+    vi.setSystemTime( new Date( '2026-10-22T14:00:00.000Z' ) )
+    sample( 52, 0 )
+    await runServiceChecks()
+
+    expect( getHealth( null, 'replication', 'default' ) ).toMatchObject( {
+      last_error: null,
+      detail: '{"last_sync_at":"2026-10-22T10:02:00.000Z"}',
+    } )
+  } )
+
+  it( 'fails when the error counter rose since the previous check', async () => {
+    sample( 50, 1 )
+    await runServiceChecks()
+    sample( 55, 4 )
+    await runServiceChecks()
+
+    expect( getHealth( null, 'replication', 'default' )?.last_error )
+      .toBe( 'Litestream reported 3 sync errors since the last check' )
+  } )
+
+  it( 'says "error" for one, and recovers when no further errors come', async () => {
+    sample( 50, 1 )
+    await runServiceChecks()
+    sample( 51, 2 )
+    await runServiceChecks()
+
+    expect( getHealth( null, 'replication', 'default' )?.last_error )
+      .toBe( 'Litestream reported 1 sync error since the last check' )
+
+    sample( 52, 2 )
+    await runServiceChecks()
+
+    expect( getHealth( null, 'replication', 'default' )?.last_error ).toBeNull()
+  } )
+
+  it( 'treats a restart of Litestream (counters back to zero) as no error', async () => {
+    sample( 500, 7 )
+    await runServiceChecks()
+    sample( 3, 0 )
+    await runServiceChecks()
+
+    expect( getHealth( null, 'replication', 'default' )?.last_error ).toBeNull()
+  } )
+
+  it( 'fails with the reason when the metrics cannot be read', async () => {
+    vi.mocked( fetchReplicationMetrics ).mockRejectedValueOnce(
+      new Error( 'Could not reach Litestream\'s metrics: ECONNREFUSED' ),
+    )
+
+    await runServiceChecks()
+
+    expect( getHealth( null, 'replication', 'default' )?.last_error )
+      .toBe( 'Could not reach Litestream\'s metrics: ECONNREFUSED' )
+  } )
+
+  it( 'does not stop the other checks when it fails', async () => {
+    vi.mocked( fetchReplicationMetrics ).mockRejectedValueOnce( new Error( 'down' ) )
+
+    await runServiceChecks()
+
+    expect( getHealth( null, 'transcription', 'default' )?.last_error ).toBeNull()
+    expect( getHealth( null, 'agent', 'default' )?.last_error ).toBeNull()
+  } )
+} )
+
 describe( 'pruneHealth', () => {
   const insertOld = ( kind: string ): void => {
     getDatabase().prepare( `INSERT INTO health_status ( user_id, kind, subject_id )
@@ -191,5 +330,16 @@ describe( 'pruneHealth', () => {
     expect( getDatabase().prepare( 'SELECT kind FROM health_status' ).pluck().all() )
       .toEqual( [ 'transcription' ] )
     expect( listErrors( null, 'transcription', 'default' ) ).toHaveLength( 1 )
+  } )
+
+  it( 'deletes the replication row where it is not configured and keeps it where it is', () => {
+    insertOld( 'replication' )
+    pruneHealth()
+    expect( getHealth( null, 'replication', 'default' ) ).toBeUndefined()
+
+    configMock.litestreamMetricsUrl = 'http://litestream:9090/metrics'
+    insertOld( 'replication' )
+    pruneHealth()
+    expect( getHealth( null, 'replication', 'default' ) ).toBeDefined()
   } )
 } )

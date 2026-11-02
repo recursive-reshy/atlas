@@ -47,6 +47,7 @@ describe( 'loadConfig', () => {
       sessionDays: 30,
       e2eTestSignin: false,
       vaultsPath: '/vaults',
+      litestreamMetricsUrl: null,
       agent: null,
       timeZone: 'Asia/Singapore',
       melete: {
@@ -62,6 +63,7 @@ describe( 'loadConfig', () => {
     const config = loadConfig( {
       ...base,
       VAULTS_PATH: '/Users/x/Vaults',
+      LITESTREAM_METRICS_URL: 'http://litestream:9090/metrics',
       DEFAULT_NOTE_FOLDER: 'Learning/AI',
       PORT: '4000',
       OPENAI_BASE_URL: 'http://fakes:4000',
@@ -105,6 +107,7 @@ describe( 'loadConfig', () => {
       e2eTestSignin: false,
       sessionDays: 30,
       vaultsPath: '/Users/x/Vaults',
+      litestreamMetricsUrl: 'http://litestream:9090/metrics',
       agent: null,
       timeZone: 'Europe/London',
       melete: {
@@ -156,6 +159,12 @@ describe( 'loadConfig', () => {
     expect( loadConfig( { ...base, DATA_DIR: '' } ).dataDir ).toBe(
       join( tmpdir(), 'atlas-data' ),
     )
+  } )
+
+  it( 'treats an empty LITESTREAM_METRICS_URL as unset and rejects a non-URL', () => {
+    expect( loadConfig( { ...base, LITESTREAM_METRICS_URL: '' } ).litestreamMetricsUrl )
+      .toBeNull()
+    expect( () => loadConfig( { ...base, LITESTREAM_METRICS_URL: 'litestream' } ) ).toThrow()
   } )
 
   it( 'falls back to the default model for an empty TRANSCRIPTION_MODEL', () => {

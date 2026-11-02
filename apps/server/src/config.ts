@@ -124,6 +124,7 @@ const EnvSchema = z
     WEB_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
     ANTHROPIC_API_KEY: z.string().min( 1 ),
     OPENAI_API_KEY: z.string().min( 1 ),
+    LITESTREAM_METRICS_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
     OPENAI_BASE_URL: z.preprocess( emptyAsUnset, z.url().default( 'https://api.openai.com' ) ),
     TRANSCRIPTION_MODEL: z.preprocess(
       emptyAsUnset,
@@ -162,6 +163,7 @@ const EnvSchema = z
     openaiBaseUrl: env.OPENAI_BASE_URL,
     transcriptionModel: env.TRANSCRIPTION_MODEL,
     vaultsPath: env.VAULTS_PATH,
+    litestreamMetricsUrl: env.LITESTREAM_METRICS_URL ?? null,
     adminEmail: env.ADMIN_EMAIL,
     appOrigins: env.APP_ORIGINS,
     sessionDays: env.SESSION_DAYS,
