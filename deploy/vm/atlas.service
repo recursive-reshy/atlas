@@ -1,0 +1,21 @@
+# Installed by deploy/vm/bootstrap.sh as /etc/systemd/system/atlas.service (ADR 0077, 0078).
+# Fetches the secrets into memory, then starts the stack. Restart it to pick up a new secret
+# version or a new ATLAS_VERSION: sudo systemctl restart atlas
+[Unit]
+Description=Atlas
+Wants=network-online.target
+Requires=docker.service
+After=docker.service network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=/opt/atlas
+ExecStartPre=/opt/atlas/fetch-secrets.sh
+ExecStart=/usr/bin/docker compose --env-file /etc/atlas/atlas.env --env-file /run/atlas/secrets.env -f docker-compose.yml -f compose.prod.yml up -d --wait
+ExecStop=/usr/bin/docker compose --env-file /etc/atlas/atlas.env --env-file /run/atlas/secrets.env -f docker-compose.yml -f compose.prod.yml down
+TimeoutStartSec=600
+TimeoutStopSec=120
+
+[Install]
+WantedBy=multi-user.target
