@@ -27,15 +27,18 @@ import { createTestUser, signedInRequest } from '../test-support/auth.js'
 
 let base: string
 let originalVaultsPath: string
+let originalCreateEnabled: boolean
 
 beforeEach( async () => {
   base = await mkdtemp( join( tmpdir(), 'atlas-me-vault-' ) )
   originalVaultsPath = config.vaultsPath
+  originalCreateEnabled = config.vaultCreateEnabled
   config.vaultsPath = base
 } )
 
 afterEach( async () => {
   config.vaultsPath = originalVaultsPath
+  config.vaultCreateEnabled = originalCreateEnabled
   await rm( base, { recursive: true, force: true } )
 } )
 
@@ -54,7 +57,16 @@ describe( 'GET /api/me/vaults', () => {
     const response = await signedInRequest( app, member ).get( '/api/me/vaults' )
 
     expect( response.status ).toBe( 200 )
-    expect( VaultChoice.parse( response.body ) ).toEqual( { folders: [ 'free' ] } )
+    expect( VaultChoice.parse( response.body ) )
+      .toEqual( { folders: [ 'free' ], can_create: true } )
+  } )
+
+  it( 'says a vault cannot be created where the admin has switched it off', async () => {
+    config.vaultCreateEnabled = false
+
+    const response = await signedInRequest( app, createTestUser() ).get( '/api/me/vaults' )
+
+    expect( VaultChoice.parse( response.body ) ).toEqual( { folders: [], can_create: false } )
   } )
 
   it( 'is 409 for a user who already has a vault', async () => {
@@ -148,6 +160,19 @@ describe( 'POST /api/me/vault/new', () => {
       .toMatchObject( { vault_dir: null } )
   } )
 
+  it( 'is 403 where creating is switched off, and makes no folder', async () => {
+    config.vaultCreateEnabled = false
+    const member = createTestUser()
+
+    const response = await signedInRequest( app, member ).post( '/api/me/vault/new' )
+      .send( { vault_dir: 'fresh' } )
+
+    expect( response.status ).toBe( 403 )
+    expect( response.body ).toEqual( { error: 'New vaults are set up by the admin' } )
+    expect( ( await signedInRequest( app, member ).get( '/api/me' ) ).body )
+      .toMatchObject( { vault_dir: null } )
+  } )
+
   it( 'is 400 for a bad name', async () => {
     const response = await signedInRequest( app, createTestUser() ).post( '/api/me/vault/new' )
       .send( { vault_dir: '../up' } )
@@ -164,7 +189,7 @@ describe( 'choosing again when the vault folder is missing (ADR 0070)', () => {
 
     const listed = await agent.get( '/api/me/vaults' )
 
-    expect( VaultChoice.parse( listed.body ) ).toEqual( { folders: [ 'free' ] } )
+    expect( VaultChoice.parse( listed.body ) ).toEqual( { folders: [ 'free' ], can_create: true } )
 
     const claimed = await agent.post( '/api/me/vault' ).send( { vault_dir: 'free' } )
 

@@ -18,6 +18,7 @@ import { z } from 'zod'
 import {
   BadGatewayError,
   ConflictError,
+  ForbiddenError,
   VaultMissingError,
   VaultNotChosenError,
   NotFoundError,
@@ -52,6 +53,9 @@ const buildApp = (): Express => {
   } )
   testApp.get( '/bad-gateway', () => {
     throw new BadGatewayError( "Couldn't reach the site" )
+  } )
+  testApp.get( '/forbidden', () => {
+    throw new ForbiddenError( 'Not yours to do' )
   } )
   testApp.get( '/unprocessable', () => {
     throw new UnprocessableError( 'Could not summarize "A post"' )
@@ -128,6 +132,13 @@ describe( 'errorMiddleware', () => {
 
     expect( response.status ).toBe( 409 )
     expect( response.body ).toEqual( { error: 'Choose your vault first' } )
+  } )
+
+  it( 'maps ForbiddenError to 403 with its message', async () => {
+    const response = await request( buildApp() ).get( '/forbidden' )
+
+    expect( response.status ).toBe( 403 )
+    expect( response.body ).toEqual( { error: 'Not yours to do' } )
   } )
 
   it( 'maps UnprocessableError to 422 with its message', async () => {

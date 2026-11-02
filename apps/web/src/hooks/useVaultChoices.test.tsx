@@ -22,10 +22,25 @@ beforeEach( () => {
   vi.mocked( listVaults ).mockReset()
   vi.mocked( claimVault ).mockReset()
   vi.mocked( createVault ).mockReset()
-  vi.mocked( listVaults ).mockResolvedValue( { folders: [ 'a', 'b' ] } )
+  vi.mocked( listVaults ).mockResolvedValue( { folders: [ 'a', 'b' ], can_create: true } )
 } )
 
 describe( 'useVaultChoices', () => {
+  it( 'passes on whether the server lets a vault be created', async () => {
+    const { result } = renderHookWithClient( () => useVaultChoices() )
+
+    await vi.waitFor( () => expect( result.current.isLoading ).toBe( false ) )
+    expect( result.current.canCreate ).toBe( true )
+  } )
+
+  it( 'reports canCreate false when the server says so', async () => {
+    vi.mocked( listVaults ).mockResolvedValue( { folders: [ 'a' ], can_create: false } )
+    const { result } = renderHookWithClient( () => useVaultChoices() )
+
+    await vi.waitFor( () => expect( result.current.isLoading ).toBe( false ) )
+    expect( result.current.canCreate ).toBe( false )
+  } )
+
   it( 'lists the unclaimed folders', async () => {
     const { result } = renderHookWithClient( () => useVaultChoices() )
 
@@ -62,7 +77,7 @@ describe( 'useVaultChoices', () => {
     vi.mocked( claimVault ).mockRejectedValue( new ApiError( 'That vault is already taken', 409 ) )
     const { result } = renderHookWithClient( () => useVaultChoices() )
     await vi.waitFor( () => expect( result.current.isLoading ).toBe( false ) )
-    vi.mocked( listVaults ).mockResolvedValue( { folders: [ 'b' ] } )
+    vi.mocked( listVaults ).mockResolvedValue( { folders: [ 'b' ], can_create: true } )
 
     await act( () => result.current.claim.mutateAsync( 'a' ).catch( () => null ) )
 

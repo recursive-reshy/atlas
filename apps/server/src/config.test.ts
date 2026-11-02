@@ -49,6 +49,7 @@ describe( 'loadConfig', () => {
       vaultsPath: '/vaults',
       litestreamMetricsUrl: null,
       vaultSyncStatusDir: null,
+      vaultCreateEnabled: true,
       agent: null,
       timeZone: 'Asia/Singapore',
       melete: {
@@ -66,6 +67,7 @@ describe( 'loadConfig', () => {
       VAULTS_PATH: '/Users/x/Vaults',
       LITESTREAM_METRICS_URL: 'http://litestream:9090/metrics',
       VAULT_SYNC_STATUS_DIR: '/sync-status',
+      VAULT_CREATE_ENABLED: 'false',
       DEFAULT_NOTE_FOLDER: 'Learning/AI',
       PORT: '4000',
       OPENAI_BASE_URL: 'http://fakes:4000',
@@ -111,6 +113,7 @@ describe( 'loadConfig', () => {
       vaultsPath: '/Users/x/Vaults',
       litestreamMetricsUrl: 'http://litestream:9090/metrics',
       vaultSyncStatusDir: '/sync-status',
+      vaultCreateEnabled: false,
       agent: null,
       timeZone: 'Europe/London',
       melete: {
@@ -168,6 +171,21 @@ describe( 'loadConfig', () => {
     expect( loadConfig( { ...base, LITESTREAM_METRICS_URL: '' } ).litestreamMetricsUrl )
       .toBeNull()
     expect( () => loadConfig( { ...base, LITESTREAM_METRICS_URL: 'litestream' } ) ).toThrow()
+  } )
+
+  it.each( [
+    [ 'true', true ],
+    [ '1', true ],
+    [ 'false', false ],
+    [ '0', false ],
+    [ '', true ],
+  ] )( 'reads VAULT_CREATE_ENABLED=%j as %s', ( value, expected ) => {
+    expect( loadConfig( { ...base, VAULT_CREATE_ENABLED: value } ).vaultCreateEnabled )
+      .toBe( expected )
+  } )
+
+  it( 'rejects a VAULT_CREATE_ENABLED that is not a boolean', () => {
+    expect( () => loadConfig( { ...base, VAULT_CREATE_ENABLED: 'maybe' } ) ).toThrow()
   } )
 
   it( 'treats an empty VAULT_SYNC_STATUS_DIR as unset', () => {

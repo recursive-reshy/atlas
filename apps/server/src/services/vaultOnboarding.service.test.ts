@@ -21,7 +21,7 @@ import {
 // Config
 import { config } from '../config.js'
 // Errors
-import { ConflictError, ValidationError } from '../errors.js'
+import { ConflictError, ForbiddenError, ValidationError } from '../errors.js'
 // Repositories
 import { findUserById } from '../repositories/users.repository.js'
 // Test support
@@ -32,6 +32,7 @@ import { claimVault, createVault, listUnclaimedVaults } from './vaultOnboarding.
 let base: string
 let outside: string
 let originalVaultsPath: string
+let originalCreateEnabled: boolean
 
 const exists = async ( path: string ): Promise< boolean > => {
   return lstat( path ).then( () => true, () => false )
@@ -43,11 +44,13 @@ beforeEach( async () => {
   await mkdir( outside )
   await mkdir( join( base, 'vaults' ) )
   originalVaultsPath = config.vaultsPath
+  originalCreateEnabled = config.vaultCreateEnabled
   config.vaultsPath = join( base, 'vaults' )
 } )
 
 afterEach( async () => {
   config.vaultsPath = originalVaultsPath
+  config.vaultCreateEnabled = originalCreateEnabled
   await rm( base, { recursive: true, force: true } )
 } )
 
@@ -56,6 +59,14 @@ const folder = async ( name: string ): Promise< void > => {
 }
 
 describe( 'listUnclaimedVaults', () => {
+  it.each( [ true, false ] )( 'says whether a vault can be created (%s)', async ( enabled ) => {
+    config.vaultCreateEnabled = enabled
+    await folder( 'brother' )
+
+    await expect( listUnclaimedVaults( createTestUser().id ) )
+      .resolves.toEqual( { folders: [ 'brother' ], can_create: enabled } )
+  } )
+
   it( 'lists plain folders with valid names, sorted', async () => {
     await folder( 'zeta' )
     await folder( 'alpha' )
@@ -68,7 +79,7 @@ describe( 'listUnclaimedVaults', () => {
     const user = createTestUser()
 
     await expect( listUnclaimedVaults( user.id ) )
-      .resolves.toEqual( { folders: [ 'alpha', 'zeta' ] } )
+      .resolves.toEqual( { folders: [ 'alpha', 'zeta' ], can_create: true } )
   } )
 
   it( 'leaves out folders that someone has claimed', async () => {
@@ -78,7 +89,8 @@ describe( 'listUnclaimedVaults', () => {
 
     const user = createTestUser()
 
-    await expect( listUnclaimedVaults( user.id ) ).resolves.toEqual( { folders: [ 'brother' ] } )
+    await expect( listUnclaimedVaults( user.id ) )
+      .resolves.toEqual( { folders: [ 'brother' ], can_create: true } )
   } )
 
   it( 'is a conflict for a user who already has a vault', async () => {
@@ -175,6 +187,27 @@ describe( 'claimVault', () => {
 } )
 
 describe( 'createVault', () => {
+  it( 'is refused when creating is switched off, with no folder and no vault', async () => {
+    config.vaultCreateEnabled = false
+    const user = createTestUser()
+
+    await expect( createVault( user.id, 'fresh' ) ).rejects.toThrow( ForbiddenError )
+    await expect( createVault( user.id, 'fresh' ) )
+      .rejects.toThrow( 'New vaults are set up by the admin' )
+    expect( await exists( join( config.vaultsPath, 'fresh' ) ) ).toBe( false )
+    expect( findUserById( user.id )?.vault_dir ).toBeNull()
+  } )
+
+  it( 'still lets a user claim an existing folder when creating is switched off', async () => {
+    config.vaultCreateEnabled = false
+    await folder( 'brother' )
+    const user = createTestUser()
+
+    await claimVault( user.id, 'brother' )
+
+    expect( findUserById( user.id )?.vault_dir ).toBe( 'brother' )
+  } )
+
   it( 'makes the folder and gives it to the user', async () => {
     const user = createTestUser()
 
@@ -217,7 +250,8 @@ describe( 'a user whose vault folder is missing (ADR 0070)', () => {
     await folder( 'brother' )
     const user = createTestUser( { vault_dir: 'gone' } )
 
-    await expect( listUnclaimedVaults( user.id ) ).resolves.toEqual( { folders: [ 'brother' ] } )
+    await expect( listUnclaimedVaults( user.id ) )
+      .resolves.toEqual( { folders: [ 'brother' ], can_create: true } )
   } )
 
   it( 'can claim another folder, which replaces the missing one', async () => {

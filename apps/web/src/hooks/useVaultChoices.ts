@@ -9,6 +9,8 @@ import { meKeys } from './queryKeys'
 
 export interface VaultChoicesState {
   folders: string[]
+  // False where the admin sets vaults up (VAULT_CREATE_ENABLED); true until the server says
+  canCreate: boolean
   isLoading: boolean
   error: string | null
   claim: UseMutationResult< Me, Error, string >
@@ -39,6 +41,7 @@ export function useVaultChoices(): VaultChoicesState {
 
   return {
     folders: data?.folders ?? [],
+    canCreate: data?.can_create ?? true,
     isLoading: isPending,
     error: error === null ? null : error.message,
     claim,

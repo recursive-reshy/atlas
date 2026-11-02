@@ -31,7 +31,14 @@ interface ChooseVaultProps {
 }
 
 export function ChooseVault( { missingVault = null }: ChooseVaultProps ): ReactElement {
-  const { folders, isLoading, error, claim, create } = useVaultChoices()
+  const {
+    folders,
+    canCreate,
+    isLoading,
+    error,
+    claim,
+    create,
+  } = useVaultChoices()
   const signOut = useSignOut()
   const [ selected, setSelected ] = useState( '' )
   const [ name, setName ] = useState( '' )
@@ -52,12 +59,15 @@ export function ChooseVault( { missingVault = null }: ChooseVaultProps ): ReactE
   return (
     <GatePage title="Choose your vault">
       <Typography color="text.secondary">
-        Your vault is the folder that holds your notes. Pick one nobody has claimed, or make a
-        new one.
+        Your vault is the folder that holds your notes.
+        { canCreate
+          ? ' Pick one nobody has claimed, or make a new one.'
+          : ' Pick the one the admin set up for you.' }
       </Typography>
       { missingVault !== null && (
         <Alert severity="warning" sx={ { wordBreak: 'break-all' } }>
-          Your vault folder { missingVault } is missing. Pick another folder, or create a new one.
+          Your vault folder { missingVault } is missing.
+          { canCreate ? ' Pick another folder, or create a new one.' : ' Pick another folder.' }
         </Alert>
       ) }
       { failure !== null && <Alert severity="error">{ failure.message }</Alert> }
@@ -91,20 +101,28 @@ export function ChooseVault( { missingVault = null }: ChooseVaultProps ): ReactE
           </Button>
         </FormControl>
       ) }
-      { folders.length > 0 && <Divider /> }
-      <Stack component="form" spacing={ 1 } onSubmit={ handleCreate } noValidate>
-        <TextField
-          label="New vault name"
-          value={ name }
-          onChange={ ( event ) => setName( event.target.value ) }
-          error={ isNameInvalid }
-          helperText={ NAME_RULE }
-          slotProps={ { htmlInput: { autoCapitalize: 'none', spellCheck: false } } }
-        />
-        <Button type="submit" variant="outlined" disabled={ create.isPending } sx={ TAP_SX }>
-          Create vault
-        </Button>
-      </Stack>
+      { canCreate ? (
+        <>
+          { folders.length > 0 && <Divider /> }
+          <Stack component="form" spacing={ 1 } onSubmit={ handleCreate } noValidate>
+            <TextField
+              label="New vault name"
+              value={ name }
+              onChange={ ( event ) => setName( event.target.value ) }
+              error={ isNameInvalid }
+              helperText={ NAME_RULE }
+              slotProps={ { htmlInput: { autoCapitalize: 'none', spellCheck: false } } }
+            />
+            <Button type="submit" variant="outlined" disabled={ create.isPending } sx={ TAP_SX }>
+              Create vault
+            </Button>
+          </Stack>
+        </>
+      ) : (
+        <Typography color="text.secondary">
+          If your vault isn&apos;t listed, ask the admin to set up its sync.
+        </Typography>
+      ) }
       <Button onClick={ () => signOut.mutate() } sx={ { ...TAP_SX, alignSelf: 'flex-start' } }>
         Sign out
       </Button>

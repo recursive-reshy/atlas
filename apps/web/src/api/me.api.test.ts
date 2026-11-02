@@ -54,9 +54,9 @@ describe( 'getMe', () => {
 
 describe( 'listVaults', () => {
   it( 'gets the unclaimed folders', async () => {
-    fetchMock.mockResolvedValue( json( { folders: [ 'a', 'b' ] } ) )
+    fetchMock.mockResolvedValue( json( { folders: [ 'a', 'b' ], can_create: true } ) )
 
-    await expect( listVaults() ).resolves.toEqual( { folders: [ 'a', 'b' ] } )
+    await expect( listVaults() ).resolves.toEqual( { folders: [ 'a', 'b' ], can_create: true } )
     expect( fetchMock ).toHaveBeenCalledWith( '/api/me/vaults', undefined )
   } )
 } )

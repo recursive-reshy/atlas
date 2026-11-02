@@ -57,6 +57,7 @@ beforeEach( () => {
   vi.mocked( useSignOut ).mockReturnValue( mutationStub() )
   vi.mocked( useVaultChoices ).mockReturnValue( {
     folders: [ 'naresh', LONG_FOLDER ],
+    canCreate: true,
     isLoading: false,
     error: null,
     claim: mutationStub(),
@@ -97,6 +98,30 @@ describe.each( SIZES )( 'ChooseVault with a missing vault at $name size', ( { wi
 
     expect( alert ).toHaveTextContent( `Your vault folder ${ LONG_FOLDER } is missing` )
     expect( alert.getBoundingClientRect().right ).toBeLessThanOrEqual( window.innerWidth )
+
+    const { scrollWidth, clientWidth } = document.documentElement
+
+    expect( scrollWidth ).toBeLessThanOrEqual( clientWidth )
+  } )
+} )
+
+describe.each( SIZES )( 'ChooseVault without creating at $name size', ( { width, height } ) => {
+  it.each( MODES )( 'shows the ask-the-admin line without sideways scroll, %s', async ( mode ) => {
+    vi.mocked( useVaultChoices ).mockReturnValue( {
+      folders: [ 'naresh', LONG_FOLDER ],
+      canCreate: false,
+      isLoading: false,
+      error: null,
+      claim: mutationStub(),
+      create: mutationStub(),
+    } )
+    await page.viewport( width, height )
+    renderPage( mode )
+
+    const line = screen.getByText( /ask the admin to set up its sync/ )
+
+    expect( line.getBoundingClientRect().right ).toBeLessThanOrEqual( window.innerWidth )
+    expect( screen.queryByRole( 'button', { name: 'Create vault' } ) ).not.toBeInTheDocument()
 
     const { scrollWidth, clientWidth } = document.documentElement
 

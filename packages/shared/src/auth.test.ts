@@ -103,13 +103,21 @@ describe( 'Me', () => {
 
 describe( 'VaultChoice', () => {
   it( 'lists valid folder names', () => {
-    expect( VaultChoice.parse( { folders: [ 'brother', 'shared-notes' ] } ) )
-      .toEqual( { folders: [ 'brother', 'shared-notes' ] } )
-    expect( VaultChoice.parse( { folders: [] } ) ).toEqual( { folders: [] } )
+    const choice = { folders: [ 'brother', 'shared-notes' ], can_create: true }
+
+    expect( VaultChoice.parse( choice ) ).toEqual( choice )
+    expect( VaultChoice.parse( { folders: [], can_create: false } ) )
+      .toEqual( { folders: [], can_create: false } )
   } )
 
   it( 'rejects an invalid folder name', () => {
-    expect( VaultChoice.safeParse( { folders: [ 'Bad Name' ] } ).success ).toBe( false )
+    expect( VaultChoice.safeParse( { folders: [ 'Bad Name' ], can_create: true } ).success )
+      .toBe( false )
+  } )
+
+  it( 'needs can_create to be a boolean', () => {
+    expect( VaultChoice.safeParse( { folders: [] } ).success ).toBe( false )
+    expect( VaultChoice.safeParse( { folders: [], can_create: 'yes' } ).success ).toBe( false )
   } )
 } )
 

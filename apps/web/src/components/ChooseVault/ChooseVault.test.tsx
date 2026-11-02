@@ -28,6 +28,7 @@ const signOut = vi.fn()
 const state = ( overrides: Partial< State > = {} ): void => {
   vi.mocked( useVaultChoices ).mockReturnValue( {
     folders: [ 'naresh', 'shared-notes' ],
+    canCreate: true,
     isLoading: false,
     error: null,
     claim: mutationStub( { mutate: claim } ),
@@ -76,6 +77,42 @@ describe( 'ChooseVault', () => {
     await userEvent.click( button )
 
     expect( claim ).toHaveBeenCalledWith( 'shared-notes' )
+  } )
+
+  describe( 'where the admin sets vaults up (canCreate false)', () => {
+    const ASK_ADMIN = 'If your vault isn\'t listed, ask the admin to set up its sync.'
+
+    it( 'hides the create field and button and says to ask the admin', () => {
+      state( { canCreate: false } )
+      renderWithClient( <ChooseVault /> )
+
+      expect( screen.queryByRole( 'textbox', { name: 'New vault name' } ) ).not.toBeInTheDocument()
+      expect( screen.queryByRole( 'button', { name: 'Create vault' } ) ).not.toBeInTheDocument()
+      expect( screen.getByText( ASK_ADMIN ) ).toBeInTheDocument()
+      expect( screen.getByRole( 'button', { name: 'Use this vault' } ) ).toBeInTheDocument()
+    } )
+
+    it( 'still says to ask the admin when no folder is free', () => {
+      state( { canCreate: false, folders: [] } )
+      renderWithClient( <ChooseVault /> )
+
+      expect( screen.queryByRole( 'radio' ) ).not.toBeInTheDocument()
+      expect( screen.getByText( ASK_ADMIN ) ).toBeInTheDocument()
+    } )
+
+    it( 'does not offer to create a new vault when the old one is missing', () => {
+      state( { canCreate: false } )
+      renderWithClient( <ChooseVault missingVault="old-vault" /> )
+
+      expect( screen.getByRole( 'alert' ) ).toHaveTextContent( 'Pick another folder' )
+      expect( screen.getByRole( 'alert' ) ).not.toHaveTextContent( /create/i )
+    } )
+  } )
+
+  it( 'does not tell the user to ask the admin where creating is allowed', () => {
+    renderWithClient( <ChooseVault /> )
+
+    expect( screen.queryByText( /ask the admin/ ) ).not.toBeInTheDocument()
   } )
 
   it( 'shows only the create field when no folder is free', () => {

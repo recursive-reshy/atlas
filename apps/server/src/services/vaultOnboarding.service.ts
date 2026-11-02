@@ -13,7 +13,12 @@ import type { VaultChoice } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Errors
-import { ConflictError, NotFoundError, ValidationError } from '../errors.js'
+import {
+  ConflictError,
+  ForbiddenError,
+  NotFoundError,
+  ValidationError,
+} from '../errors.js'
 // Repositories
 import {
   findUserById,
@@ -66,7 +71,7 @@ export const listUnclaimedVaults = async ( userId: string ): Promise< VaultChoic
     .map( ( { name } ) => name )
     .filter( ( name ) => VaultDir.safeParse( name ).success )
 
-  return { folders: folders.sort() }
+  return { folders: folders.sort(), can_create: config.vaultCreateEnabled }
 }
 
 // A real folder directly in the vaults folder: not a file and not a symlink
@@ -95,6 +100,11 @@ export const claimVault = async ( userId: string, vaultDir: string ): Promise< v
 }
 
 export const createVault = async ( userId: string, vaultDir: string ): Promise< void > => {
+  // A folder with no sync container behind it would never reach Obsidian (ADR 0075)
+  if( !config.vaultCreateEnabled ) {
+    throw new ForbiddenError( 'New vaults are set up by the admin' )
+  }
+
   // Taken before the folder is made: recreating a missing vault's own name must still bind
   const expected = requireCanChoose( userId )
 

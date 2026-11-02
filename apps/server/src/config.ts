@@ -125,6 +125,10 @@ const EnvSchema = z
     ANTHROPIC_API_KEY: z.string().min( 1 ),
     OPENAI_API_KEY: z.string().min( 1 ),
     LITESTREAM_METRICS_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
+    VAULT_CREATE_ENABLED: z.preprocess(
+      emptyAsUnset,
+      z.enum( [ 'true', 'false', '1', '0' ] ).default( 'true' ),
+    ),
     VAULT_SYNC_STATUS_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
     OPENAI_BASE_URL: z.preprocess( emptyAsUnset, z.url().default( 'https://api.openai.com' ) ),
     TRANSCRIPTION_MODEL: z.preprocess(
@@ -166,6 +170,7 @@ const EnvSchema = z
     vaultsPath: env.VAULTS_PATH,
     litestreamMetricsUrl: env.LITESTREAM_METRICS_URL ?? null,
     vaultSyncStatusDir: env.VAULT_SYNC_STATUS_DIR ?? null,
+    vaultCreateEnabled: env.VAULT_CREATE_ENABLED === 'true' || env.VAULT_CREATE_ENABLED === '1',
     adminEmail: env.ADMIN_EMAIL,
     appOrigins: env.APP_ORIGINS,
     sessionDays: env.SESSION_DAYS,

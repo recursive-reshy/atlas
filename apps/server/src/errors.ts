@@ -21,6 +21,13 @@ export class NotFoundError extends Error {
   }
 }
 
+export class ForbiddenError extends Error {
+  constructor( message: string ) {
+    super( message )
+    this.name = 'ForbiddenError'
+  }
+}
+
 export class ConflictError extends Error {
   constructor( message: string ) {
     super( message )
@@ -134,6 +141,8 @@ export const errorMiddleware = (
     sendError( res, 401, { error: error.message } )
   } else if( error instanceof UnsupportedMediaTypeError ) {
     sendError( res, 415, { error: error.message } )
+  } else if( error instanceof ForbiddenError ) {
+    sendError( res, 403, { error: error.message } )
   } else if( error instanceof NotFoundError ) {
     sendError( res, 404, { error: error.message } )
   } else if( error instanceof ConflictError ) {

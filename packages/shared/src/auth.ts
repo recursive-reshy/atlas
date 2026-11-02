@@ -31,8 +31,10 @@ export const Me = z.object( {
 } )
 export type Me = z.infer< typeof Me >
 
+// can_create is false where the admin sets vaults up (VAULT_CREATE_ENABLED, ADR 0075)
 export const VaultChoice = z.object( {
   folders: z.array( VaultDir ),
+  can_create: z.boolean(),
 } )
 export type VaultChoice = z.infer< typeof VaultChoice >
 
