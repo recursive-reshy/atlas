@@ -45,6 +45,14 @@ const claudeCost = ( usage: UserUsage, period: 'month' | 'all_time' ): number | 
   return sumCost( CATEGORIES.map( ( { key } ) => usage[ period ][ key ].cost_usd ) )
 }
 
+const transcriptionOf = ( usage: UserUsage, period: 'month' | 'all_time' ): string => {
+  const seconds = period === 'month'
+    ? usage.transcription.month_seconds
+    : usage.transcription.all_time_seconds
+
+  return `${ formatMinutes( seconds ) } · ${ formatCost( usage[ period ].transcription.cost_usd ) }`
+}
+
 type UsageTableProps = {
   usage: UsageResponse
   users: AdminUser[]
@@ -78,8 +86,8 @@ export function UsageTable( { usage, users }: UsageTableProps ): ReactElement {
               ) ) }
               <TableCell>
                 <Pair
-                  month={ formatMinutes( row.transcription.month_seconds ) }
-                  allTime={ formatMinutes( row.transcription.all_time_seconds ) }
+                  month={ transcriptionOf( row, 'month' ) }
+                  allTime={ transcriptionOf( row, 'all_time' ) }
                 />
               </TableCell>
               <TableCell>

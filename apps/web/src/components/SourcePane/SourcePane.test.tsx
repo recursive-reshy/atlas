@@ -23,7 +23,7 @@ const video: SourceDocument = {
 describe( 'SourcePane', () => {
   it( 'shows a loading status before the transcript arrives', () => {
     render(
-      <SourcePane source={ null } sourceType="video" error={ null } focusSecond={ null } />,
+      <SourcePane source={ null } sourceType="video" error={ null } />,
     )
 
     expect( screen.getByRole( 'region', { name: 'Transcript' } ) ).toBeInTheDocument()
@@ -36,7 +36,6 @@ describe( 'SourcePane', () => {
         source={ null }
         sourceType="video"
         error="Transcript not ready"
-        focusSecond={ null }
       />,
     )
 
@@ -46,7 +45,7 @@ describe( 'SourcePane', () => {
 
   it( 'shows each paragraph of the text without a stamp', () => {
     render(
-      <SourcePane source={ video } sourceType="video" error={ null } focusSecond={ null } />,
+      <SourcePane source={ video } sourceType="video" error={ null } />,
     )
 
     const pane = screen.getByRole( 'region', { name: 'Transcript' } )
@@ -65,7 +64,6 @@ describe( 'SourcePane', () => {
         source={ { ...video, text } }
         sourceType="video"
         error={ null }
-        focusSecond={ null }
       />,
     )
 
@@ -90,7 +88,7 @@ describe( 'SourcePane for an article', () => {
 
   it( 'is a region named Article', () => {
     render(
-      <SourcePane source={ article } sourceType="article" error={ null } focusSecond={ null } />,
+      <SourcePane source={ article } sourceType="article" error={ null } />,
     )
 
     expect( screen.getByRole( 'region', { name: 'Article' } ) ).toBeInTheDocument()
@@ -99,7 +97,7 @@ describe( 'SourcePane for an article', () => {
 
   it( 'shows the title and a link to the source that opens in a new tab', () => {
     render(
-      <SourcePane source={ article } sourceType="article" error={ null } focusSecond={ null } />,
+      <SourcePane source={ article } sourceType="article" error={ null } />,
     )
 
     const link = screen.getByRole( 'link', { name: 'https://example.com/habits' } )
@@ -112,7 +110,7 @@ describe( 'SourcePane for an article', () => {
 
   it( 'shows the Markdown as plain pre-wrapped text, not as HTML', () => {
     const { container } = render(
-      <SourcePane source={ article } sourceType="article" error={ null } focusSecond={ null } />,
+      <SourcePane source={ article } sourceType="article" error={ null } />,
     )
 
     const text = container.querySelector( 'pre' )
@@ -123,17 +121,9 @@ describe( 'SourcePane for an article', () => {
     expect( container.querySelector( 'em, h2, ul' ) ).toBeNull()
   } )
 
-  it( 'ignores the focus second', () => {
-    render(
-      <SourcePane source={ article } sourceType="article" error={ null } focusSecond={ 100 } />,
-    )
-
-    expect( document.querySelector( '[aria-current]' ) ).toBeNull()
-  } )
-
   it( 'shows a loading status named for an article before the source arrives', () => {
     render(
-      <SourcePane source={ null } sourceType="article" error={ null } focusSecond={ null } />,
+      <SourcePane source={ null } sourceType="article" error={ null } />,
     )
 
     expect( screen.getByRole( 'region', { name: 'Article' } ) ).toBeInTheDocument()
@@ -146,7 +136,6 @@ describe( 'SourcePane for an article', () => {
         source={ null }
         sourceType="article"
         error="Transcript not ready"
-        focusSecond={ null }
       />,
     )
 

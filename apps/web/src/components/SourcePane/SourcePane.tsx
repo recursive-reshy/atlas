@@ -34,10 +34,8 @@ interface SourcePaneProps {
   source: SourceDocument | null
   sourceType: SourceType
   error: string | null
-  focusSecond: number | null
 }
 
-// focusSecond is still passed by the review screen; caret sync goes in 3.6 (ADR 0074)
 export function SourcePane(
   { source, sourceType, error }: SourcePaneProps,
 ): ReactElement {

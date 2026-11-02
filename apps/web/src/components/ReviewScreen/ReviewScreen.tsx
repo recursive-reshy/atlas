@@ -9,7 +9,6 @@ import Typography from '@mui/material/Typography'
 // Shared
 import type { Job, RegenerateSummaryBody } from '@atlas/shared'
 // App
-import { parseTimestampSeconds } from '#src/timestamp'
 import { useDiscardJob } from '#src/hooks/useDiscardJob'
 import { useAutosaveDraft } from '#src/hooks/useAutosaveDraft'
 import { useRegenerateSummary } from '#src/hooks/useRegenerateSummary'
@@ -45,20 +44,11 @@ export function ReviewScreen( { job, onSaved, onDiscarded }: ReviewScreenProps )
   const title = noteTitle( autosave.note )
   const [ mode, setMode ] = useState< NoteEditorMode >( 'rich-text' )
   const { source, error: transcriptError } = useSource( job.id )
-  const [ focusSecond, setFocusSecond ] = useState< number | null >( null )
   const save = useSaveJob( job.id, autosave.flush )
   const discard = useDiscardJob( job.id )
   const retry = useRetrySummary( job.id )
   const regenerate = useRegenerateSummary( job.id )
   const [ isRegenerating, setIsRegenerating ] = useState( false )
-
-  const handleCaretLine = ( line: string ): void => {
-    const seconds = parseTimestampSeconds( line )
-
-    if( seconds !== null ) {
-      setFocusSecond( seconds )
-    }
-  }
 
   const handleDiscard = (): void => {
     discard.mutate( undefined, { onSuccess: () => onDiscarded() } )
@@ -111,7 +101,6 @@ export function ReviewScreen( { job, onSaved, onDiscarded }: ReviewScreenProps )
             onChange={ autosave.setNote }
             onModeChange={ handleModeChange }
             onBlur={ handleBlur }
-            onCaretText={ handleCaretLine }
           />
         ) }
         <LinkReview
@@ -119,7 +108,6 @@ export function ReviewScreen( { job, onSaved, onDiscarded }: ReviewScreenProps )
           autosave={ autosave }
           source={ source }
           sourceError={ transcriptError }
-          focusSecond={ focusSecond }
         />
       </Box>
       { !hasFailed && autosave.status === 'error' && (

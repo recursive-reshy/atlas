@@ -8,7 +8,6 @@ import Paper from '@mui/material/Paper'
 import { useColorScheme } from '@mui/material/styles'
 import '@mdxeditor/editor/style.css'
 // App
-import { richBlockText, sourceLineText } from './caretText'
 import { noteEditorPlugins, noteMarkdownOptions } from './editorConfig'
 import { FormattingToolbar } from './FormattingToolbar'
 import { ModeToggle } from './ModeToggle'
@@ -19,7 +18,6 @@ interface NoteEditorProps {
   onChange: ( markdown: string ) => void
   onModeChange?: ( mode: NoteEditorMode ) => void
   onBlur?: () => void
-  onCaretText?: ( text: string ) => void
 }
 
 const WRAPPER_SX = {
@@ -33,7 +31,7 @@ const WRAPPER_SX = {
 const withOneNewline = ( markdown: string ): string => `${ markdown.replace( /\n+$/, '' ) }\n`
 
 export function NoteEditor(
-  { value, onChange, onModeChange, onBlur, onCaretText }: NoteEditorProps,
+  { value, onChange, onModeChange, onBlur }: NoteEditorProps,
 ): ReactElement {
   const isDark = useColorScheme().colorScheme === 'dark'
   const editor = useRef< MDXEditorMethods >( null )
@@ -94,32 +92,6 @@ export function NoteEditor(
       editor.current?.setMarkdown( value )
     }
   }, [ value ] )
-
-  useEffect( () => {
-    const root = container.current
-
-    if( root === null || onCaretText === undefined ) {
-      return undefined
-    }
-
-    const report = (): void => {
-      const text = richBlockText( root, document.getSelection() ) ?? sourceLineText( root )
-
-      if( text !== null ) {
-        onCaretText( text )
-      }
-    }
-
-    document.addEventListener( 'selectionchange', report )
-    root.addEventListener( 'keyup', report )
-    root.addEventListener( 'mouseup', report )
-
-    return () => {
-      document.removeEventListener( 'selectionchange', report )
-      root.removeEventListener( 'keyup', report )
-      root.removeEventListener( 'mouseup', report )
-    }
-  }, [ onCaretText ] )
 
   const handleChange = ( markdown: string, isInitialNormalize: boolean ): void => {
     if( isInitialNormalize ) {

@@ -76,8 +76,16 @@ describe( 'UsageSection', () => {
   it( 'shows each user\'s cost by category for the month, with all time beneath', () => {
     state( response( [
       userUsage( BROTHER.id, {
-        month: { ...empty(), summary: totals( { cost_usd: 1.234, runs: 3 } ) },
-        all_time: { ...empty(), summary: totals( { cost_usd: 10, runs: 20 } ) },
+        month: {
+          ...empty(),
+          summary: totals( { cost_usd: 1.234, runs: 3 } ),
+          transcription: totals( { cost_usd: 0.05, runs: 1 } ),
+        },
+        all_time: {
+          ...empty(),
+          summary: totals( { cost_usd: 10, runs: 20 } ),
+          transcription: totals( { cost_usd: 0.54, runs: 12 } ),
+        },
         transcription: { month_seconds: 600, all_time_seconds: 7200 },
       } ),
     ] ) )
@@ -87,11 +95,28 @@ describe( 'UsageSection', () => {
 
     expect( summary ).toHaveTextContent( '$1.23' )
     expect( summary ).toHaveTextContent( 'All time $10.00' )
-    expect( transcription ).toHaveTextContent( '10 min' )
-    expect( transcription ).toHaveTextContent( 'All time 120 min' )
+    expect( transcription ).toHaveTextContent( '10 min · $0.05' )
+    expect( transcription ).toHaveTextContent( 'All time 120 min · $0.54' )
     expect( screen.getAllByRole( 'columnheader' ).map( ( cell ) => cell.textContent ) ).toEqual(
       [ 'User', 'Summaries', 'Linking', 'Melete', 'Extraction', 'Transcription', 'Total Claude' ],
     )
+  } )
+
+  it( 'keeps the transcription cost out of the Claude total', () => {
+    state( response( [
+      userUsage( BROTHER.id, {
+        month: {
+          ...empty(),
+          summary: totals( { cost_usd: 1 } ),
+          transcription: totals( { cost_usd: 5 } ),
+        },
+      } ),
+    ] ) )
+    renderWithClient( <UsageSection users={ USERS } /> )
+
+    const cells = within( rowFor( 'Brother' ) ).getAllByRole( 'cell' )
+
+    expect( cells[ 5 ] ).toHaveTextContent( '$1.00' )
   } )
 
   it( 'totals the Claude cost and shows a dash when no run has a cost', () => {

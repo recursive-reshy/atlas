@@ -29,11 +29,10 @@ interface LinkReviewProps {
   autosave: AutosaveState
   source: SourceDocument | null
   sourceError: string | null
-  focusSecond: number | null
 }
 
 export function LinkReview(
-  { job, autosave, source, sourceError, focusSecond }: LinkReviewProps,
+  { job, autosave, source, sourceError }: LinkReviewProps,
 ): ReactElement {
   const hasLinks = job.link_state === 'linked'
   const { suggestions, isLoading } = useLinkSuggestions( job.id, { enabled: hasLinks } )
@@ -56,7 +55,6 @@ export function LinkReview(
       source={ source }
       sourceType={ job.source_type }
       error={ sourceError }
-      focusSecond={ focusSecond }
     />
   )
 

@@ -39,16 +39,13 @@ vi.mock( '#src/hooks/useFolders' )
 vi.mock( '#src/hooks/useModels' )
 vi.mock( '#src/hooks/useSettings' )
 vi.mock( '#src/hooks/usePromptProfiles' )
-vi.mock( '../NoteEditor', async () => {
-  const { lineAt } = await import( '#src/timestamp' )
-
+vi.mock( '../NoteEditor', () => {
   return {
     NoteEditor: ( props: {
       value: string
       onChange: ( value: string ) => void
       onModeChange?: ( mode: 'rich-text' | 'source' ) => void
       onBlur?: () => void
-      onCaretText?: ( text: string ) => void
     } ) => (
       <div>
         <textarea
@@ -56,11 +53,6 @@ vi.mock( '../NoteEditor', async () => {
           value={ props.value }
           onChange={ ( event ) => props.onChange( event.target.value ) }
           onBlur={ props.onBlur }
-          onSelect={ ( event ) => {
-            const { value, selectionStart } = event.currentTarget
-
-            props.onCaretText?.( lineAt( value, selectionStart ) )
-          } }
         />
         <button type="button" onClick={ () => props.onModeChange?.( 'source' ) }>
           Fake source
