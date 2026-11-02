@@ -10,12 +10,11 @@ import { fileURLToPath } from 'node:url'
 const root = join( dirname( fileURLToPath( import.meta.url ) ), '..' )
 
 // Whole files that may name Mnemosyne: history (past versions, ADRs 0001-0073), this release's
-// planning docs, and three user docs that checkpoint D (task 6.2) rewrites for Atlas.
+// planning docs.
 const HISTORY = [
   /^docs\/v0\.(?!10\.0\/)\d+(\.\d+)?\//,
   /^docs\/v0\.10\.0\//,
   /^docs\/decisions\/(00[0-6]\d|007[0-3])-/,
-  /^docs\/(backups|phone-access|google-cloud-setup)\.md$/,
 ]
 
 // Files that name the module (label), the `mnemosyne` tag or the `Mnemosyne` default folder, or

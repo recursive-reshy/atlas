@@ -9,4 +9,3 @@ coverage
 *.tsbuildinfo
 .DS_Store
 docs
-ops/*.plist
