@@ -1,6 +1,6 @@
 # apps/web
 
-React UI for Mnemosyne: submit a video or article URL (or paste an article's text), follow the job, review the note, subscribe to feeds. Screens only: all data and rules live in the server. The root `CLAUDE.md` covers the workflow, precedence, cross-app rules, git and secrets; this file does not repeat them. The server's style rules in `apps/server/CLAUDE.md` apply here too unless this file says otherwise.
+React UI for Atlas: submit a video or article URL (or paste an article's text), follow the job, review the note, subscribe to feeds. Screens only: all data and rules live in the server. The root `CLAUDE.md` covers the workflow, precedence, cross-app rules, git and secrets; this file does not repeat them. The server's style rules in `apps/server/CLAUDE.md` apply here too unless this file says otherwise.
 
 The relevant ADRs are 0004, 0006, 0008, 0009, 0011, 0013, 0015, 0019, 0020, 0021, 0022, 0023, 0024, 0025, 0027, 0028, 0029, 0032, 0033, 0034, 0044, 0045, 0046, 0061, 0063, 0065, 0067 and 0068. Read the ones a task lists.
 

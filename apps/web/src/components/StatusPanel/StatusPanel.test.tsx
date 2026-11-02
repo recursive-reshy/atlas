@@ -123,11 +123,11 @@ describe( 'StatusPanel', () => {
     show( [ statusRowFixture( {
       kind: 'backup',
       name: 'Backups',
-      detail: 'mnemosyne-20261022-180500.db, 1.5 MB',
+      detail: 'atlas-20261022-180500.db, 1.5 MB',
     } ) ] )
     renderWithClient( <StatusPanel /> )
 
-    expect( screen.getByText( 'mnemosyne-20261022-180500.db, 1.5 MB' ) ).toBeInTheDocument()
+    expect( screen.getByText( 'atlas-20261022-180500.db, 1.5 MB' ) ).toBeInTheDocument()
   } )
 
   it.each( [ 'ok', 'failing', 'off' ] as const )(
@@ -293,7 +293,7 @@ describe( 'StatusPanel Gmail connection', () => {
     show( [ failingRowFixture( {
       kind: 'gmail_connection',
       name: 'Gmail connection',
-      last_error: 'Google no longer accepts Mnemosyne\'s access (revoked, expired)',
+      last_error: 'Google no longer accepts Atlas\'s access (revoked, expired)',
     } ) ] )
     renderWithClient( <StatusPanel /> )
 

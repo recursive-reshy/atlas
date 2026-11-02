@@ -19,7 +19,7 @@ vi.mock( '#src/hooks/useRunBackup' )
 
 const backup = vi.fn()
 const result = {
-  file: 'mnemosyne-20261023-043000.db',
+  file: 'atlas-20261023-043000.db',
   bytes: 1_572_864,
   at: '2026-10-22T20:30:00.000Z',
 }
@@ -57,7 +57,7 @@ describe( 'BackupControls', () => {
     renderWithClient( <BackupControls /> )
 
     expect( screen.getByRole( 'status' ) )
-      .toHaveTextContent( 'Backed up to mnemosyne-20261023-043000.db (1.5 MB)' )
+      .toHaveTextContent( 'Backed up to atlas-20261023-043000.db (1.5 MB)' )
     expect( screen.queryByRole( 'alert' ) ).not.toBeInTheDocument()
   } )
 

@@ -114,7 +114,7 @@ describe( 'HealthError and GetHealthErrorsResponse', () => {
 
 describe( 'BackupResult', () => {
   const result = {
-    file: 'mnemosyne-20261022-180000.db',
+    file: 'atlas-20261022-180000.db',
     bytes: 4096,
     at: '2026-10-22T10:00:00.000Z',
   }

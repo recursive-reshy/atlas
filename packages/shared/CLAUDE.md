@@ -1,6 +1,6 @@
 # packages/shared
 
-Cross-app contracts for Mnemosyne: Zod schemas and their inferred types, imported by the server and the web app as `@atlas/shared`. The root `CLAUDE.md` covers the workflow, precedence, git and secrets.
+Cross-app contracts for Atlas: Zod schemas and their inferred types, imported by the server and the web app as `@atlas/shared`. The root `CLAUDE.md` covers the workflow, precedence, git and secrets.
 
 - Follow the TypeScript style in `apps/server/CLAUDE.md`.
 - Schemas and their inferred types live here.
