@@ -73,6 +73,7 @@ const MODULE_TAG_FOLDER = new Set( [
   'packages/shared/src/job.test.ts',
   'packages/shared/src/note.test.ts',
   'packages/shared/src/note.ts',
+  'scripts/hostingDocs.test.mjs',
 ] )
 
 // The app's old name must not survive in these shapes anywhere outside history, even in the
