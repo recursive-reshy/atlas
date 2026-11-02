@@ -39,7 +39,7 @@ describe( 'openDatabase on a file', () => {
   beforeEach( () => {
     directory = mkdtempSync( join( tmpdir(), 'atlas-open-' ) )
     databasePath = join( directory, 'atlas.db' )
-    backupDir = join( directory, 'backups' )
+    backupDir = join( directory, 'pre-migration' )
     vi.useFakeTimers( { now: new Date( '2026-10-22T20:30:05Z' ), toFake: [ 'Date' ] } )
   } )
 
@@ -82,8 +82,8 @@ describe( 'openDatabase on a file', () => {
       writeOld( version )
     } )
 
-    it( 'is copied to the backups folder as pre-0.9-<timestamp>.db', () => {
-      const result = openDatabase( databasePath, { backupDir } )
+    it( 'is copied to pre-migration/ next to the database as pre-0.9-<timestamp>.db', () => {
+      const result = openDatabase( databasePath )
       const copy = join( backupDir, 'pre-0.9-20261023-043005.db' )
 
       expect( result ).toEqual( { setAside: copy, preMigrationBackup: null } )
@@ -95,7 +95,7 @@ describe( 'openDatabase on a file', () => {
     } )
 
     it( 'is replaced by an empty database at the current version', () => {
-      openDatabase( databasePath, { backupDir } )
+      openDatabase( databasePath )
 
       expect( getDatabase().pragma( 'user_version', { simple: true } ) ).toBe( CURRENT )
       expect( getDatabase().prepare( 'SELECT COUNT(*) AS count FROM users' ).get() )
@@ -112,7 +112,7 @@ describe( 'openDatabase on a file', () => {
       writeFileSync( `${ databasePath }-wal`, '' )
       writeFileSync( `${ databasePath }-shm`, '' )
 
-      openDatabase( databasePath, { backupDir } )
+      openDatabase( databasePath )
       closeDatabase()
 
       expect( existsSync( `${ databasePath }-wal` ) ).toBe( false )
@@ -127,19 +127,17 @@ describe( 'openDatabase on a file', () => {
 
     const before = readFileSync( databasePath )
 
-    expect( () => openDatabase( databasePath, { backupDir } ) ).toThrow()
+    expect( () => openDatabase( databasePath ) ).toThrow()
     expect( () => getDatabase() ).toThrow( 'Database is not open' )
     expect( readFileSync( databasePath ).equals( before ) ).toBe( true )
     expect( read( databasePath, ( db ) => db.prepare( 'SELECT note FROM marker' ).all() ) )
       .toEqual( [ { note: 'from 0.8' } ] )
   } )
 
-  it( 'refuses a set-aside when no backups folder is given', () => {
-    writeOld( 9 )
+  it( 'waits up to 5 seconds for a write lock (Litestream, ADR 0076)', () => {
+    openDatabase( databasePath )
 
-    expect( () => openDatabase( databasePath ) ).toThrow( /backups folder/ )
-    expect( read( databasePath, ( db ) => db.prepare( 'SELECT note FROM marker' ).all() ) )
-      .toEqual( [ { note: 'from 0.8' } ] )
+    expect( getDatabase().pragma( 'busy_timeout', { simple: true } ) ).toBe( 5000 )
   } )
 
   it( 'refuses a database from a newer version and leaves the file as it was', () => {
@@ -147,7 +145,7 @@ describe( 'openDatabase on a file', () => {
 
     const before = readFileSync( databasePath )
 
-    expect( () => openDatabase( databasePath, { backupDir } ) ).toThrow( /newer version/ )
+    expect( () => openDatabase( databasePath ) ).toThrow( /newer version/ )
     expect( readFileSync( databasePath ).equals( before ) ).toBe( true )
     expect( existsSync( backupDir ) ).toBe( false )
   } )
@@ -157,7 +155,7 @@ describe( 'openDatabase on a file', () => {
     const withSecond = [ ...migrations, second ]
 
     beforeEach( () => {
-      openDatabase( databasePath, { backupDir } )
+      openDatabase( databasePath )
       getDatabase().prepare( `INSERT INTO users ( id, email, name, role, status, created_at )
         VALUES ( 'u', 'u@x.test', 'U', 'member', 'active', 'now' )` ).run()
       getDatabase().prepare( `INSERT INTO settings ( user_id, key, value )
@@ -166,7 +164,7 @@ describe( 'openDatabase on a file', () => {
     } )
 
     it( 'gets a pre-migration backup of the version it starts from', () => {
-      const result = openDatabase( databasePath, { backupDir, migrations: withSecond } )
+      const result = openDatabase( databasePath, { migrations: withSecond } )
       const name = `pre-migration-v${ CURRENT }-to-v${ CURRENT + 1 }-20261023-043005.db`
 
       expect( result ).toEqual( { setAside: null, preMigrationBackup: join( backupDir, name ) } )
@@ -184,14 +182,14 @@ describe( 'openDatabase on a file', () => {
     it( 'refuses to start, and does not migrate, when the backup fails', () => {
       writeFileSync( backupDir, 'in the way' )
 
-      expect( () => openDatabase( databasePath, { backupDir, migrations: withSecond } ) ).toThrow()
+      expect( () => openDatabase( databasePath, { migrations: withSecond } ) ).toThrow()
       expect( () => getDatabase() ).toThrow( 'Database is not open' )
       expect( read( databasePath, ( db ) => db.pragma( 'user_version', { simple: true } ) ) )
         .toBe( CURRENT )
     } )
 
     it( 'writes no backup when the database is already current', () => {
-      const result = openDatabase( databasePath, { backupDir } )
+      const result = openDatabase( databasePath )
 
       expect( result ).toEqual( { setAside: null, preMigrationBackup: null } )
       expect( existsSync( backupDir ) ).toBe( false )
@@ -199,7 +197,7 @@ describe( 'openDatabase on a file', () => {
   } )
 
   it( 'writes no backup for a new file or an in-memory database', () => {
-    expect( openDatabase( databasePath, { backupDir } ) )
+    expect( openDatabase( databasePath ) )
       .toEqual( { setAside: null, preMigrationBackup: null } )
     closeDatabase()
 
@@ -208,7 +206,7 @@ describe( 'openDatabase on a file', () => {
   } )
 
   it( 'refuses to start when foreign_key_check reports a row', () => {
-    openDatabase( databasePath, { backupDir } )
+    openDatabase( databasePath )
     closeDatabase()
 
     const writer = new Database( databasePath )
@@ -219,7 +217,7 @@ describe( 'openDatabase on a file', () => {
       VALUES ( 'nobody', 'nobody', 1, 'g', 'seed', 'now' )` ).run()
     writer.close()
 
-    expect( () => openDatabase( databasePath, { backupDir } ) )
+    expect( () => openDatabase( databasePath ) )
       .toThrow( /break a foreign key/ )
     expect( () => getDatabase() ).toThrow( 'Database is not open' )
   } )

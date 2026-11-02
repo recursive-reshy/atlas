@@ -3,7 +3,6 @@ import { describe, it, expect } from 'vitest'
 // Status
 import {
   AppHealthKind,
-  BackupResult,
   GetHealthErrorsResponse,
   GetStatusResponse,
   HealthError,
@@ -130,22 +129,5 @@ describe( 'HealthError and GetHealthErrorsResponse', () => {
   it( 'parses a list of errors, including none', () => {
     expect( GetHealthErrorsResponse.parse( { errors: [ error ] } ).errors ).toHaveLength( 1 )
     expect( GetHealthErrorsResponse.parse( { errors: [] } ).errors ).toEqual( [] )
-  } )
-} )
-
-describe( 'BackupResult', () => {
-  const result = {
-    file: 'atlas-20261022-180000.db',
-    bytes: 4096,
-    at: '2026-10-22T10:00:00.000Z',
-  }
-
-  it( 'parses a result', () => {
-    expect( BackupResult.parse( result ) ).toEqual( result )
-  } )
-
-  it( 'rejects negative bytes and a missing file', () => {
-    expect( BackupResult.safeParse( { ...result, bytes: -1 } ).success ).toBe( false )
-    expect( BackupResult.safeParse( { bytes: 1, at: result.at } ).success ).toBe( false )
   } )
 } )

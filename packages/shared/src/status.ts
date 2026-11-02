@@ -54,10 +54,3 @@ export const GetHealthErrorsResponse = z.object( {
   errors: z.array( HealthError ),
 } )
 export type GetHealthErrorsResponse = z.infer< typeof GetHealthErrorsResponse >
-
-export const BackupResult = z.object( {
-  file: z.string().min( 1 ),
-  bytes: z.number().int().nonnegative(),
-  at: z.iso.datetime(),
-} )
-export type BackupResult = z.infer< typeof BackupResult >

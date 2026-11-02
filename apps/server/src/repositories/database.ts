@@ -3,7 +3,7 @@ import {
   mkdirSync,
   rmSync,
 } from 'node:fs'
-import { join } from 'node:path'
+import { dirname, join } from 'node:path'
 // Packages
 import Database from 'better-sqlite3'
 import { z } from 'zod'
@@ -498,7 +498,6 @@ export const runMigrations = ( db: Database.Database, migrations: Migration[] ):
 }
 
 export type OpenOptions = {
-  backupDir?: string
   migrations?: Migration[]
 }
 
@@ -508,18 +507,13 @@ export type OpenResult = {
 }
 
 // VACUUM INTO writes a consistent single-file copy and refuses to overwrite an existing file.
-const copyTo = (
-  source: Database.Database,
-  backupDir: string | undefined,
-  name: string,
-): string => {
-  if( backupDir === undefined ) {
-    throw new Error( `A backup is needed (${ name }) but no backups folder was given` )
-  }
+// Copies sit in pre-migration/ next to the database, so they follow it to wherever it lives.
+const copyTo = ( source: Database.Database, databasePath: string, name: string ): string => {
+  const directory = join( dirname( databasePath ), 'pre-migration' )
 
-  mkdirSync( backupDir, { recursive: true } )
+  mkdirSync( directory, { recursive: true } )
 
-  const target = join( backupDir, name )
+  const target = join( directory, name )
 
   source.prepare( 'VACUUM INTO ?' ).run( target )
 
@@ -528,7 +522,7 @@ const copyTo = (
 
 export const openDatabase = (
   path: string,
-  { backupDir, migrations: toApply = migrations }: OpenOptions = {},
+  { migrations: toApply = migrations }: OpenOptions = {},
 ): OpenResult => {
   closeDatabase()
 
@@ -550,7 +544,7 @@ export const openDatabase = (
 
     if( file && stored >= 1 && stored <= SCHEMA_BASE ) {
       // Schema 1–9 is a pre-0.9 database: keep a copy, then start empty (ADR 0066).
-      result.setAside = copyTo( opened, backupDir, `pre-0.9-${ backupStamp( new Date() ) }.db` )
+      result.setAside = copyTo( opened, path, `pre-0.9-${ backupStamp( new Date() ) }.db` )
       opened.close()
 
       for( const suffix of [ '', '-wal', '-shm' ] ) {
@@ -561,9 +555,11 @@ export const openDatabase = (
     } else if( file && stored > SCHEMA_BASE && stored < target ) {
       const name = `pre-migration-v${ stored }-to-v${ target }-${ backupStamp( new Date() ) }.db`
 
-      result.preMigrationBackup = copyTo( opened, backupDir, name )
+      result.preMigrationBackup = copyTo( opened, path, name )
     }
 
+    // Writes wait out Litestream's brief locks (ADR 0076)
+    opened.pragma( 'busy_timeout = 5000' )
     opened.pragma( 'journal_mode = WAL' )
     // Outside the migration transaction, where it would have no effect.
     opened.pragma( 'foreign_keys = ON' )

@@ -12,7 +12,6 @@ import { logger } from './logger.js'
 // Repositories
 import { closeDatabase, openDatabase } from './repositories/database.js'
 // Services
-import { recordOpenBackups } from './services/backup.service.js'
 import { recoverInterruptedJobs } from './services/jobs.service.js'
 // Shutdown
 import { SHUTDOWN_TIMEOUT_MS, createShutdown } from './shutdown.js'
@@ -40,10 +39,7 @@ try {
 await mkdir( config.dataDir, { recursive: true } )
 
 try {
-  const { setAside, preMigrationBackup } = openDatabase(
-    join( config.dataDir, 'atlas.db' ),
-    { backupDir: config.backupDir },
-  )
+  const { setAside, preMigrationBackup } = openDatabase( join( config.dataDir, 'atlas.db' ) )
 
   if( setAside !== null ) {
     logger.warn( { copy: setAside }, 'Set aside a database from before 0.9 and started empty' )
@@ -53,7 +49,6 @@ try {
     logger.info( { copy: preMigrationBackup }, 'Backed up the database before migrating' )
   }
 
-  recordOpenBackups( { setAside, preMigrationBackup } )
 } catch( error ) {
   logger.error( { err: error }, 'The database cannot be opened' )
   process.exit( 1 )

@@ -10,7 +10,6 @@ const emptyAsUnset = ( value: unknown ): unknown => ( value === '' ? undefined :
 
 const defaultWorkDir = join( tmpdir(), 'atlas' )
 const defaultDataDir = join( tmpdir(), 'atlas-data' )
-const defaultBackupDir = join( tmpdir(), 'atlas-backups' )
 const portSchema = z.coerce.number().int().min( 1 ).max( 65535 ).default( 3100 )
 const summaryTimeoutSchema = z.coerce.number().int().positive().default( 300_000 )
 const reviewTtlSchema = z.coerce.number().positive().default( 24 )
@@ -109,6 +108,8 @@ const IGNORED_VARIABLES = [
   'OBSIDIAN_VAULT_NAME',
   'WHISPER_URL',
   'WHISPER_MODEL',
+  'BACKUP_DIR',
+  'BACKUP_HOST_PATH',
 ]
 
 export const ignoredEnv = ( env: NodeJS.ProcessEnv ): string[] => {
@@ -120,7 +121,6 @@ const EnvSchema = z
     PORT: z.preprocess( emptyAsUnset, portSchema ),
     WORK_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( defaultWorkDir ) ),
     DATA_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( defaultDataDir ) ),
-    BACKUP_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( defaultBackupDir ) ),
     WEB_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
     ANTHROPIC_API_KEY: z.string().min( 1 ),
     OPENAI_API_KEY: z.string().min( 1 ),
@@ -156,7 +156,6 @@ const EnvSchema = z
     port: env.PORT,
     workDir: env.WORK_DIR,
     dataDir: env.DATA_DIR,
-    backupDir: env.BACKUP_DIR,
     webDir: env.WEB_DIR,
     anthropicApiKey: env.ANTHROPIC_API_KEY,
     openaiApiKey: env.OPENAI_API_KEY,

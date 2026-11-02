@@ -26,7 +26,6 @@ describe( 'loadConfig', () => {
       port: 3100,
       workDir: join( tmpdir(), 'atlas' ),
       dataDir: join( tmpdir(), 'atlas-data' ),
-      backupDir: join( tmpdir(), 'atlas-backups' ),
       webDir: undefined,
       anthropicApiKey: 'sk-test',
       openaiApiKey: 'sk-openai',
@@ -69,7 +68,6 @@ describe( 'loadConfig', () => {
       TRANSCRIPTION_MODEL: 'gpt-transcribe-2',
       WORK_DIR: '/tmp/custom',
       DATA_DIR: '/data',
-      BACKUP_DIR: '/backups',
       WEB_DIR: '/srv/web',
       SUMMARY_TIMEOUT_MS: '60000',
       REVIEW_TTL_HOURS: '48',
@@ -86,7 +84,6 @@ describe( 'loadConfig', () => {
       port: 4000,
       workDir: '/tmp/custom',
       dataDir: '/data',
-      backupDir: '/backups',
       webDir: '/srv/web',
       anthropicApiKey: 'sk-test',
       openaiApiKey: 'sk-openai',
@@ -158,12 +155,6 @@ describe( 'loadConfig', () => {
   it( 'treats an empty DATA_DIR as unset', () => {
     expect( loadConfig( { ...base, DATA_DIR: '' } ).dataDir ).toBe(
       join( tmpdir(), 'atlas-data' ),
-    )
-  } )
-
-  it( 'treats an empty BACKUP_DIR as unset', () => {
-    expect( loadConfig( { ...base, BACKUP_DIR: '' } ).backupDir ).toBe(
-      join( tmpdir(), 'atlas-backups' ),
     )
   } )
 
@@ -476,7 +467,12 @@ describe( 'loadConfig', () => {
       expect( loadConfig( env ) ).not.toHaveProperty( 'obsidianVaultName' )
     } )
 
-    it.each( [ 'WHISPER_URL', 'WHISPER_MODEL' ] )( 'names %s when it is set', ( name ) => {
+    it.each( [
+      'WHISPER_URL',
+      'WHISPER_MODEL',
+      'BACKUP_DIR',
+      'BACKUP_HOST_PATH',
+    ] )( 'names %s when it is set', ( name ) => {
       expect( ignoredEnv( { ...base, [ name ]: 'x' } ) ).toEqual( [ name ] )
     } )
 

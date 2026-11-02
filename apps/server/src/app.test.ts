@@ -53,13 +53,13 @@ describe( 'the middleware order', () => {
   } )
 
   it( 'answers 401 for a signed-out JSON POST to a data route', async () => {
-    const response = await request( app ).post( '/api/backups' ).send( {} )
+    const response = await request( app ).post( '/api/jobs' ).send( {} )
 
     expect( response.status ).toBe( 401 )
   } )
 
   it( 'refuses a POST that is not JSON with 415 before it looks at the session', async () => {
-    const response = await request( app ).post( '/api/backups' ).type( 'form' ).send( 'a=1' )
+    const response = await request( app ).post( '/api/jobs' ).type( 'form' ).send( 'a=1' )
 
     expect( response.status ).toBe( 415 )
   } )

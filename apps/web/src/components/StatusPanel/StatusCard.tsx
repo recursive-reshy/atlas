@@ -9,7 +9,6 @@ import Typography from '@mui/material/Typography'
 import type { StatusRow } from '@atlas/shared'
 // App
 import { formatAgo } from '#src/checkedAt'
-import { BackupControls } from './BackupControls'
 import { ErrorHistory } from './ErrorHistory'
 import { RowControls } from './RowControls'
 import { StateCell } from './StateCell'
@@ -49,7 +48,6 @@ export function StatusCard( { row, now }: StatusCardProps ): ReactElement {
           { `Last success: ${ ago( row.last_success_at, now ) }` }
         </Typography>
         <RowControls row={ row } isOpen={ isOpen } onToggle={ () => setIsOpen( !isOpen ) } />
-        { row.kind === 'backup' && <BackupControls /> }
         { isOpen && row.state === 'failing' && (
           <ErrorHistory kind={ row.kind } id={ row.id } name={ row.name } />
         ) }

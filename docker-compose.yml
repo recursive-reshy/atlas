@@ -12,11 +12,9 @@ services:
       AGENT_URL: http://agent:8100
       LOG_LEVEL: ${LOG_LEVEL:-info}
       STATUS_CHECK_INTERVAL_MINUTES: ${STATUS_CHECK_INTERVAL_MINUTES:-2}
-      BACKUP_DIR: /backups
     volumes:
       - data:/data
       - ${VAULTS_HOST_PATH:?Set VAULTS_HOST_PATH in .env to the folder that holds the vaults}:/vaults
-      - ${BACKUP_HOST_PATH:?Set BACKUP_HOST_PATH in .env to your backups folder}:/backups
     extra_hosts:
       - "host.docker.internal:host-gateway"
     restart: unless-stopped
