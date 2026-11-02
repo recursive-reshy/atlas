@@ -1,0 +1,68 @@
+# Checkpoint B plan — Atlas v0.10.0, phase 3 (tasks 3.1–3.7)
+
+## Context
+ADR 0074 replaces whisper-server with OpenAI `gpt-transcribe` and drops video timestamps (segments, caret sync, `.srt`, seconds on key points and quotes). Checkpoint A (rename) is done. The order below keeps every package green after each commit: 3.1 changes the shared shape with minimal caller adaptation, 3.2–3.4 add the new pieces beside the old ones, 3.5 switches the pipeline and deletes the old code, 3.6 does the web, 3.7 the e2e.
+
+Per task: failing tests first (watch them fail for the right reason) → least code → refactor → tick Status and log line in `tasks.md` → commit `feat(0.10-<id>): …` → push. Stage by name. Run tests, lint and typecheck for each touched folder (web also `test:browser`; from F on `pnpm e2e`, but run it at 3.7 anyway).
+
+## Before task 3.1: save this plan
+Copy it to `docs/v0.10.0/plans/checkpoint-b.md`, tick the Plan cell in `tasks.md`, commit `docs(0.10-plan): checkpoint B`, push.
+
+## 3.1 Shared shapes (ADR 0074)
+Interim rule: the whisper client still returns segments until 3.4–3.5, so the video adapter joins them (`segments.map(s => s.text.trim()).join(' ')`) into `text`.
+- **Tests first** (`packages/shared`): `paragraphs.test.ts` rewritten for `splitParagraphs` (keeps blank-line breaks; block over 1,200 chars splits at sentence ends into ~400–800 char paragraphs; trims; drops empties); `source.test.ts` video fixture uses `text` (min 1, empty rejected); `api.test.ts` `DownloadFormat` rejects `srt`; `transcript.test.ts` drops `Segment`/`Transcript` cases.
+- **Code:**
+  - `transcript.ts`: remove `Segment`, `Transcript`; keep `TranscriptMeta`.
+  - `source.ts`: `VideoSource.text`.
+  - `api.ts`: `DownloadFormat = ['md','txt']`.
+  - `paragraphs.ts`: `splitParagraphs(text): string[]` replaces `groupParagraphs`; keep `cleanText`, drop `Paragraph`.
+  - Update `index.ts` exports and `packages/shared/CLAUDE.md` (mentions `groupParagraphs`).
+- **Server adaptation:**
+  - Formatters take `Pick<VideoSource,'meta'|'text'>` instead of `Transcript`. `markdown.formatter.ts` and `txt.formatter.ts` render `splitParagraphs(text)`; the interim Markdown has no stamps (nothing to stamp from), and front-matter is unchanged.
+  - `jobs.service.ts`: `toTranscript` returns `{ meta, text }`; `transcriptFormats` loses `srt`.
+  - Delete `srt.formatter.ts`/test now (the format is gone). Leave `timestamps.ts` to 3.5.
+  - `video.adapter.ts`: join segments into `text`.
+  - `summary.cleanup.ts`: `spoken` from `document.text`.
+  - `claude.client.ts` `toTranscriptLines` becomes `# title\n\ntext` for videos (it can no longer number lines); the seconds schema stays until 3.5.
+  - `transcript.fixture.ts` becomes `{ meta, text }`; `whisperResponse.fixture.ts` stays for the whisper client test.
+- **Web adaptation:** `SourcePane` renders `splitParagraphs(source.text)` with no stamp (full cleanup in 3.6); `DownloadLinks` drops `.srt`; fixtures in `useSource.test.ts`, `jobs.api.test.ts`, `SourcePane.test.tsx`, ReviewScreen tests updated. The caret code is left for 3.6.
+- **Red → green:** shared tests fail on missing `splitParagraphs`/`text`; then typecheck errors across server and web drive the adaptation; all packages green.
+- **Files that change test expectations (list in log):** the `srt`/`timestamps` stamps in `markdown.formatter.test.ts`, `txt.formatter.test.ts`, `note.formatter.test.ts`, `summary.cleanup.test.ts`, `video.adapter.test.ts`, `jobs.service.test.ts`, `runJob`/`summarizeJob`/`linkJob` tests, `pipeline.integration.test.ts`, `app.web.test.ts`.
+- ADR: 0074.
+
+## 3.2 Migration 10 and transcription runs (ADRs 0062, 0066, 0074)
+- **Tests first:** `database.schema.test.ts`/migration tests (from empty and from a 0.9 schema): `transcription_runs` exists; `usage_events` has the `transcription` branch; `health_status`/`health_errors` rebuilt with the new check, `whisper`/`backup` rows dropped, other rows kept; `SCHEMA_BASE` stays 9. New `transcriptionRuns.repository.test.ts` (insert, list by user, isolation per ADR 0062; the repository guard test must cover it). `pricing.test.ts`: `estimateTranscriptionCostUsd('gpt-transcribe', 3600)` = 0.27, unknown model → `null`.
+- **Code:** migration 10 in `repositories/database.ts` (TRD §3.6, §4.1); `transcriptionRuns.repository.ts` (`userId` first); `TRANSCRIPTION_PRICES_PER_MINUTE` and `estimateTranscriptionCostUsd` in `summarizer/pricing.ts`; shared `status.ts` kinds (`AppHealthKind` = agent/transcription/replication, `UserHealthKind` + `vault_sync`) and usage category `transcription` in `admin.ts`. `health.service`/`status.service` stop referencing `whisper`/`backup` kinds only as far as types require; full removal is checkpoint C (4.1–4.2), so keep the old checks compiling by a minimal compat step: **open question below**.
+- ADRs: 0062, 0066, 0074.
+
+## 3.3 `prepareAudio` (TRD §3.2)
+- **Tests first** (`ffmpeg.client.test.ts`, small fixture audio generated by ffmpeg in a temp dir): one piece when under the limit (WebM/Opus, mono 16 kHz); split path forced via lowered `MAX_UPLOAD_BYTES` (injectable option) gives N ordered parts each under the limit; cuts land in silence when present and at the point when not; oversized part → "Audio could not be split under the upload limit"; empty output → "ffmpeg did not produce an audio file".
+- **Code:** `prepareAudio(inputPath, options?)` in `ffmpeg.client.ts` via `runCommand`; `silencedetect` parsing as a pure function with its own test. `convertToWav` stays until 3.5.
+- **Verify:** OpenAI's API reference for a per-request duration limit on `gpt-transcribe`; if there is one, also split by duration and record it in the log line.
+- ADR: 0074.
+
+## 3.4 OpenAI client and config
+- **Tests first** (`openaiTranscription.client.test.ts`, fake `fetch`, TRD §9): one piece; two pieces with `prompt` = last 200 chars of text so far; 401 message; 429 and 5xx retry once after 5 s (fake timers) then fail; timeout message; empty text error; key never appears in any error; pieces trimmed and joined with a blank line. `checkTranscriptionModel`: 200 passes, other status throws with status and message. `config.test.ts`: `OPENAI_API_KEY` required, `OPENAI_BASE_URL` default, `TRANSCRIPTION_MODEL` default `gpt-transcribe`, `WHISPER_URL`/`WHISPER_MODEL` in `IGNORED_VARIABLES` with warning.
+- **Code:** `openaiTranscription.client.ts`; `config.ts` (remove `whisperUrl`, `whisperModel`, add the three new); delete `whisperServer.client.ts` and its test and `whisperResponse.fixture.ts`. The adapter and health check that still call the whisper client are repointed here minimally: **see open question**.
+- ADR: 0074.
+
+## 3.5 Pipeline switch, summaries, downloads, usage
+- **Tests first:** `video.adapter.test.ts` (download → `prepareAudio` → `transcribePieces`; `VideoSource.text`, model from config; run recorded `ok` with cost; `error` run when the API was called and failed; nothing recorded on download/ffmpeg failure; work folder cleaned); `claude.client.test.ts`/`prompts.test.ts` (video and article share `SummaryResult`; `toUserMessage` video = `# title\n\ntext`; locked video instructions have no seconds wording); `summary.formatter.test.ts` (video key points and quotes plain, no stamp or YouTube link); `summary.cleanup.test.ts` (no seconds filtering; quote must appear in text); `markdown`/`txt` download tests via `splitParagraphs`; admin usage service/route tests show the `transcription` row.
+- **Code:** adapter; `SummaryResult` unified in `claude.client.ts` and `packages/shared/src/summarizer.ts` (Summary = `{kind}` & `SummaryResult`), update `prompts.ts` (`LOCKED_INSTRUCTIONS_VIDEO`), `summary.formatter.ts`, `summary.cleanup.ts`; delete `timestamps.ts`+test, `youtube.ts` if unused (note: `formatClock` stays for front-matter duration); `convertToWav` deleted; `admin` usage service reads `transcription_runs` via the view and shared types gain the category.
+- ADRs: 0029, 0074.
+
+## 3.6 Web
+- **Tests first:** `SourcePane.test.tsx` (video shows paragraphs, no stamps or links); `ReviewScreen` tests/browser test without caret sync; `DownloadLinks` has no `.srt`; admin usage table shows a Transcription row with tokens "—".
+- **Code:** `SourcePane`, `ReviewScreen` (`handleCaretLine`/`onCaretText`), `NoteEditor` caret callback; delete `caretText.ts`+test and the caret part of `ReviewScreen.browser.test.tsx`; usage table row. `test:browser` at phone and desktop widths, light and dark (screenshots for the report).
+- ADRs: 0034 (superseded), 0074.
+
+## 3.7 e2e and docs
+- **Tests first:** `e2e/fakes/server.test.mjs` for `GET /v1/models/gpt-transcribe` and `POST /v1/audio/transcriptions`; `e2e/tests/status.spec.ts` expects a healthy Transcription row.
+- **Code:** fakes server routes; e2e Compose sets `OPENAI_BASE_URL` to the fake and a dummy `OPENAI_API_KEY`, drops `WHISPER_URL`; `.env.example` and `apps/server/.env.example` (OpenAI variables in, Whisper out); `apps/server/CLAUDE.md`, root `CLAUDE.md`/README mentions; `ops/` whisper plist and README left for checkpoint D/6.2 unless they would mislead (flag in report). Run `pnpm e2e`.
+- ADRs: 0053, 0074.
+
+## Open question (needs Naresh's answer)
+Tasks 3.2–3.4 remove the `whisper` health kind and `whisperServer.client` before checkpoint C reworks the Status panel (4.1–4.2 remove the whisper and backup checks properly). Proposed minimal bridge: in 3.2 keep `whisper` and `backup` accepted by the app-level types only inside `health.service`/`status.service` until 3.4 deletes the whisper client, where `checkWhisper` is replaced by the `checkTranscriptionModel` check right away (so the Status row reads "Transcription (OpenAI)" from 3.4). The `backup` kind and service remain until 4.1; migration 10 therefore drops only `whisper` rows and keeps `backup` rows until 4.1 changes the check. TRD §4.1 says both are dropped in migration 10; this bridge deviates for `backup` only. If you prefer, 3.2 can drop `backup` too and 4.1 removes the then-orphaned code.
+
+## Verification (checkpoint end)
+`pnpm test`, `pnpm lint`, `pnpm typecheck`, `pnpm build` at root; web `test:browser`; agent untouched (no run needed beyond a sanity pass); `pnpm e2e`; `docker compose build`. Checkpoint done when a local video job with a real OpenAI key in `.env` goes downloading → transcribing → summary with a plain-text transcript and the usage view shows its cost (Naresh's manual check). Report per CLAUDE.md "Before you stop"; mention that ADR 0074 changes nothing in the TRD.
