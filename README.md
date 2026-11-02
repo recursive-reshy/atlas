@@ -287,7 +287,7 @@ On a stop signal the server stops taking work and lets a running job finish, for
 
 ## Status and roadmap
 
-Version 0.9.1. A small multi-user tool: Google sign-in, an admin and members, one vault and one set of data per person, one job at a time across everyone (taking turns), all in one SQLite database.
+Version 0.10.0. A small multi-user tool: Google sign-in, an admin and members, one vault and one set of data per person, one job at a time across everyone (taking turns), all in one SQLite database.
 
 Possible next steps:
 

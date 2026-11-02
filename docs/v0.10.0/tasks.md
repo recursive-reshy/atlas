@@ -26,7 +26,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
 | **Phase 1** | **Kick-off** | | |
-| 1.1 | Version 0.10.0 in every `package.json`, `apps/agent/pyproject.toml`, the agent's `uv.lock` entry and the README status line; confirm `docs/README.md` lists v0.10.0 and ADRs 0073–0078 (added with the plan) | | ⬜ |
+| 1.1 | Version 0.10.0 in every `package.json`, `apps/agent/pyproject.toml`, the agent's `uv.lock` entry and the README status line; confirm `docs/README.md` lists v0.10.0 and ADRs 0073–0078 (added with the plan) | | ✅ |
 | **Phase 2** | **Rename to Atlas (TRD §2)** | | |
 | 2.1 | Workspace packages `@mnemosyne/*` → `@atlas/*` (package names, every import, tsconfig paths, Vite/Vitest config, scripts), lockfile regenerated; one commit; all packages green | 0073 | ⬜ |
 | 2.2 | Python package `mnemosyne_agent` → `atlas_agent` (`git mv`, imports, `pyproject.toml` name `atlas-agent`, `uv.lock`, Dockerfile start command, Ruff/Pyright/pytest config); agent tests, Ruff, Pyright green | 0073 | ⬜ |
@@ -107,3 +107,4 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 ---
 
 ## Log
+- 1.1 ✅ Version 0.10.0 in six package.json files, pyproject.toml, uv.lock (`uv lock --check` passes) and the README status line; `appVersion` reads package.json so no test changed; docs/README.md already lists v0.10.0 and ADRs 0073–0078.
