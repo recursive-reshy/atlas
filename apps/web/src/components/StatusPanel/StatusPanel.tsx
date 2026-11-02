@@ -32,7 +32,7 @@ export function StatusPanel(): ReactElement {
   const { mutate: refresh } = useRefreshStatus()
   const isNarrow = useMediaQuery( useTheme().breakpoints.down( 'sm' ) )
 
-  // One check of the agent and the transcription model when the panel opens, as well as the background one.
+  // One check of the app's services when the panel opens, as well as the background one.
   useEffect( () => {
     refresh()
   }, [ refresh ] )

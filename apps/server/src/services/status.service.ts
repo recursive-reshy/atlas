@@ -18,6 +18,8 @@ import { findFeedById, listFeeds } from '../repositories/feeds.repository.js'
 import { findAccount } from '../repositories/gmailAccount.repository.js'
 import { findSourceById, listSources } from '../repositories/gmailSources.repository.js'
 import { listErrors, listHealth } from '../repositories/health.repository.js'
+import { listVaultSyncHealth } from '../repositories/system.repository.js'
+import { findUserById, findUserByVaultDir, listUsers } from '../repositories/users.repository.js'
 import type { HealthRecord } from '../repositories/health.repository.js'
 // Services
 import { runServiceChecks } from './health.service.js'
@@ -97,6 +99,48 @@ const gmailConnectionRow = (
   return toRow( subject, health, false )
 }
 
+const VAULT_SYNC_NAME = 'Vault sync'
+
+// A member sees their own vault's sync; the admin sees every active user's, named (ADR 0075).
+// The subject ID is the vault folder, which is unique to one user.
+const vaultSyncRows = (
+  userId: string,
+  isAdmin: boolean,
+  find: ( kind: HealthKind, id: string ) => HealthRecord | undefined,
+): StatusRow[] => {
+  if( config.vaultSyncStatusDir === null ) {
+    return []
+  }
+
+  if( !isAdmin ) {
+    const vaultDir = findUserById( userId )?.vault_dir ?? null
+
+    if( vaultDir === null ) {
+      return []
+    }
+
+    const subject: Subject = { kind: 'vault_sync', id: vaultDir, name: VAULT_SYNC_NAME }
+
+    return [ toRow( subject, find( 'vault_sync', vaultDir ), false ) ]
+  }
+
+  const records = new Map(
+    listVaultSyncHealth().map( ( { record } ) => [ record.subject_id, record ] ),
+  )
+
+  return listUsers()
+    .flatMap( ( { status, name, vault_dir: vaultDir } ) => {
+      return status === 'active' && vaultDir !== null
+        ? [ toRow(
+          { kind: 'vault_sync', id: vaultDir, name: `${ VAULT_SYNC_NAME }: ${ name }` },
+          records.get( vaultDir ),
+          false,
+        ) ]
+        : []
+    } )
+    .sort( byName )
+}
+
 // The app's own services (agent, transcription) show only to the admin (ADR 0065)
 export const getStatus = ( userId: string, isAdmin: boolean ): GetStatusResponse => {
   const health = new Map< string, HealthRecord >(
@@ -131,6 +175,7 @@ export const getStatus = ( userId: string, isAdmin: boolean ): GetStatusResponse
     ]
   const rows: StatusRow[] = [
     ...isAdmin ? [ ...appRows, ...replicationRows ] : [],
+    ...vaultSyncRows( userId, isAdmin, find ),
     gmailConnectionRow( userId, find( 'gmail_connection', userId ) ),
     ...listSources( userId )
       .map( ( { id, name, enabled } ) => {
@@ -178,12 +223,34 @@ const subjectExists = ( userId: string, kind: HealthKind, id: string ): boolean 
   return id === SINGLETON_ID
 }
 
+// A vault sync subject is its vault folder: a member may read their own, the admin any active
+// user's. Returns the user it belongs to.
+const vaultSyncOwner = ( userId: string, isAdmin: boolean, vaultDir: string ): string | null => {
+  if( config.vaultSyncStatusDir === null ) {
+    return null
+  }
+
+  const owner = isAdmin ? findUserByVaultDir( vaultDir ) : findUserById( userId )
+
+  return owner?.vault_dir === vaultDir && owner.status === 'active' ? owner.id : null
+}
+
 export const getHealthErrors = (
   userId: string,
   isAdmin: boolean,
   kind: HealthKind,
   id: string,
 ): HealthError[] => {
+  if( kind === 'vault_sync' ) {
+    const owner = vaultSyncOwner( userId, isAdmin, id )
+
+    if( owner === null ) {
+      throw new NotFoundError( 'Status subject not found' )
+    }
+
+    return listErrors( owner, kind, id )
+  }
+
   const isApp = AppHealthKind.safeParse( kind ).success
 
   if( ( isApp && !isAdmin ) || !subjectExists( userId, kind, id ) ) {

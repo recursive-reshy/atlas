@@ -48,6 +48,7 @@ describe( 'loadConfig', () => {
       e2eTestSignin: false,
       vaultsPath: '/vaults',
       litestreamMetricsUrl: null,
+      vaultSyncStatusDir: null,
       agent: null,
       timeZone: 'Asia/Singapore',
       melete: {
@@ -64,6 +65,7 @@ describe( 'loadConfig', () => {
       ...base,
       VAULTS_PATH: '/Users/x/Vaults',
       LITESTREAM_METRICS_URL: 'http://litestream:9090/metrics',
+      VAULT_SYNC_STATUS_DIR: '/sync-status',
       DEFAULT_NOTE_FOLDER: 'Learning/AI',
       PORT: '4000',
       OPENAI_BASE_URL: 'http://fakes:4000',
@@ -108,6 +110,7 @@ describe( 'loadConfig', () => {
       sessionDays: 30,
       vaultsPath: '/Users/x/Vaults',
       litestreamMetricsUrl: 'http://litestream:9090/metrics',
+      vaultSyncStatusDir: '/sync-status',
       agent: null,
       timeZone: 'Europe/London',
       melete: {
@@ -165,6 +168,10 @@ describe( 'loadConfig', () => {
     expect( loadConfig( { ...base, LITESTREAM_METRICS_URL: '' } ).litestreamMetricsUrl )
       .toBeNull()
     expect( () => loadConfig( { ...base, LITESTREAM_METRICS_URL: 'litestream' } ) ).toThrow()
+  } )
+
+  it( 'treats an empty VAULT_SYNC_STATUS_DIR as unset', () => {
+    expect( loadConfig( { ...base, VAULT_SYNC_STATUS_DIR: '' } ).vaultSyncStatusDir ).toBeNull()
   } )
 
   it( 'falls back to the default model for an empty TRANSCRIPTION_MODEL', () => {

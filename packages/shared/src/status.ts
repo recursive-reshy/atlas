@@ -51,3 +51,14 @@ export const GetHealthErrorsResponse = z.object( {
   errors: z.array( HealthError ),
 } )
 export type GetHealthErrorsResponse = z.infer< typeof GetHealthErrorsResponse >
+
+// Written by the vault sync container (deploy/sync/sync.sh) as <vault_dir>.json; read only by
+// the server (ADR 0075).
+export const VaultSyncStatusFile = z.object( {
+  state: z.enum( [ 'starting', 'running', 'failed' ] ),
+  since: z.iso.datetime(),
+  heartbeat_at: z.iso.datetime(),
+  last_error: z.string().nullable(),
+  cli_version: z.string(),
+} )
+export type VaultSyncStatusFile = z.infer< typeof VaultSyncStatusFile >

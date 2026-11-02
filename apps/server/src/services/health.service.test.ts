@@ -1,3 +1,7 @@
+// Node
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 // Packages
 import {
   describe,
@@ -16,6 +20,7 @@ import { logger } from '../logger.js'
 // Repositories
 import { getHealth, listErrors, recordFailure } from '../repositories/health.repository.js'
 import { getDatabase } from '../repositories/database.js'
+import { updateUser } from '../repositories/users.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'
 // Services
 import {
@@ -25,7 +30,7 @@ import {
   runServiceChecks,
 } from './health.service.js'
 // Test support
-import { defaultTestAdmin } from '../test-support/auth.js'
+import { createTestUser, defaultTestAdmin } from '../test-support/auth.js'
 
 let userId = ''
 
@@ -41,6 +46,7 @@ const configMock = vi.hoisted( () => ( {
   transcriptionModel: 'gpt-transcribe',
   agent: null as { url: string } | null,
   litestreamMetricsUrl: null as string | null,
+  vaultSyncStatusDir: null as string | null,
 } ) )
 
 vi.mock( '../config.js', () => ( { config: configMock } ) )
@@ -53,6 +59,7 @@ vi.mock( '../clients/openaiTranscription.client.js', () => ( {
 beforeEach( () => {
   configMock.agent = { url: 'http://agent.test:8100' }
   configMock.litestreamMetricsUrl = null
+  configMock.vaultSyncStatusDir = null
   resetReplicationCheck()
   vi.mocked( fetchReplicationMetrics ).mockReset()
   vi.mocked( checkHealth ).mockReset().mockResolvedValue( 'ok' )
@@ -314,6 +321,144 @@ describe( 'the replication check', () => {
   } )
 } )
 
+describe( 'the vault sync check', () => {
+  const NOW = new Date( '2026-10-22T10:00:00.000Z' )
+  let directory = ''
+
+  const writeStatus = ( vaultDir: string, overrides: Record< string, unknown > = {} ): void => {
+    writeFileSync( join( directory, `${ vaultDir }.json` ), JSON.stringify( {
+      state: 'running',
+      since: '2026-10-22T08:00:00.000Z',
+      heartbeat_at: '2026-10-22T09:59:30.000Z',
+      last_error: null,
+      cli_version: '1.2.3',
+      ...overrides,
+    } ) )
+  }
+  const userWithVault = ( vaultDir: string | null ): string => {
+    return createTestUser( { vault_dir: vaultDir } ).id
+  }
+
+  beforeEach( () => {
+    directory = mkdtempSync( join( tmpdir(), 'atlas-sync-status-' ) )
+    configMock.vaultSyncStatusDir = directory
+    vi.useFakeTimers( { toFake: [ 'Date' ], now: NOW } )
+  } )
+
+  afterEach( () => {
+    vi.useRealTimers()
+    rmSync( directory, { recursive: true, force: true } )
+  } )
+
+  it( 'is not run, and records nothing, without VAULT_SYNC_STATUS_DIR', async () => {
+    const user = userWithVault( 'alex' )
+
+    configMock.vaultSyncStatusDir = null
+    await runServiceChecks()
+
+    expect( getHealth( user, 'vault_sync', 'alex' ) ).toBeUndefined()
+  } )
+
+  it( 'passes a fresh running file, for the user whose vault it is', async () => {
+    const user = userWithVault( 'alex' )
+
+    writeStatus( 'alex' )
+    await runServiceChecks()
+
+    expect( getHealth( user, 'vault_sync', 'alex' ) )
+      .toMatchObject( { last_error: null, last_checked_at: NOW.toISOString() } )
+    expect( getHealth( user, 'vault_sync', 'alex' )?.last_success_at ).not.toBeNull()
+  } )
+
+  it( 'passes a starting file', async () => {
+    const user = userWithVault( 'alex' )
+
+    writeStatus( 'alex', { state: 'starting' } )
+    await runServiceChecks()
+
+    expect( getHealth( user, 'vault_sync', 'alex' )?.last_error ).toBeNull()
+  } )
+
+  it( 'checks each user with a vault and none without one', async () => {
+    const first = userWithVault( 'alex' )
+    const second = userWithVault( 'sam' )
+    const none = userWithVault( null )
+
+    writeStatus( 'alex' )
+    writeStatus( 'sam', { state: 'failed', last_error: 'Login expired' } )
+    await runServiceChecks()
+
+    expect( getHealth( first, 'vault_sync', 'alex' )?.last_error ).toBeNull()
+    expect( getHealth( second, 'vault_sync', 'sam' )?.last_error ).toBe( 'Login expired' )
+    expect( getDatabase().prepare( 'SELECT user_id FROM health_status WHERE kind = ?' )
+      .pluck().all( 'vault_sync' ) ).not.toContain( none )
+  } )
+
+  it( 'skips a removed user', async () => {
+    const user = userWithVault( 'alex' )
+
+    updateUser( user, { status: 'removed' } )
+    writeStatus( 'alex' )
+    await runServiceChecks()
+
+    expect( getHealth( user, 'vault_sync', 'alex' ) ).toBeUndefined()
+  } )
+
+  it( 'fails when the file is missing', async () => {
+    const user = userWithVault( 'alex' )
+
+    await runServiceChecks()
+
+    expect( getHealth( user, 'vault_sync', 'alex' )?.last_error )
+      .toBe( 'No sync status found for this vault' )
+  } )
+
+  it( 'fails when the file is not JSON or not the right shape', async () => {
+    const first = userWithVault( 'alex' )
+    const second = userWithVault( 'sam' )
+
+    writeFileSync( join( directory, 'alex.json' ), '{ not json' )
+    writeFileSync( join( directory, 'sam.json' ), JSON.stringify( { state: 'paused' } ) )
+    await runServiceChecks()
+
+    expect( getHealth( first, 'vault_sync', 'alex' )?.last_error )
+      .toBe( 'The sync status file could not be read' )
+    expect( getHealth( second, 'vault_sync', 'sam' )?.last_error )
+      .toBe( 'The sync status file could not be read' )
+  } )
+
+  it( 'fails with the last error of a failed sync, or a default without one', async () => {
+    const first = userWithVault( 'alex' )
+    const second = userWithVault( 'sam' )
+
+    writeStatus( 'alex', { state: 'failed', last_error: 'Sync server unreachable' } )
+    writeStatus( 'sam', { state: 'failed', last_error: null } )
+    await runServiceChecks()
+
+    expect( getHealth( first, 'vault_sync', 'alex' )?.last_error ).toBe( 'Sync server unreachable' )
+    expect( getHealth( second, 'vault_sync', 'sam' )?.last_error ).toBe( 'Sync has failed' )
+  } )
+
+  it( 'fails on a heartbeat older than five minutes, whatever the state says', async () => {
+    const user = userWithVault( 'alex' )
+
+    writeStatus( 'alex', { heartbeat_at: '2026-10-22T09:54:59.000Z' } )
+    await runServiceChecks()
+
+    expect( getHealth( user, 'vault_sync', 'alex' )?.last_error )
+      .toBe( 'The sync container has stopped' )
+  } )
+
+  it( 'passes at exactly five minutes', async () => {
+    const user = userWithVault( 'alex' )
+
+    writeStatus( 'alex', { heartbeat_at: '2026-10-22T09:55:00.000Z' } )
+    await runServiceChecks()
+
+    expect( getHealth( user, 'vault_sync', 'alex' )?.last_error ).toBeNull()
+  } )
+} )
+
 describe( 'pruneHealth', () => {
   const insertOld = ( kind: string ): void => {
     getDatabase().prepare( `INSERT INTO health_status ( user_id, kind, subject_id )
@@ -341,5 +486,18 @@ describe( 'pruneHealth', () => {
     insertOld( 'replication' )
     pruneHealth()
     expect( getHealth( null, 'replication', 'default' ) ).toBeDefined()
+  } )
+
+  it( 'keeps vault sync rows only where VAULT_SYNC_STATUS_DIR is set', () => {
+    const user = createTestUser( { vault_dir: 'alex' } ).id
+
+    recordFailure( user, 'vault_sync', 'alex', '2026-10-22T10:00:00.000Z', 'x' )
+    pruneHealth()
+    expect( getHealth( user, 'vault_sync', 'alex' ) ).toBeUndefined()
+
+    configMock.vaultSyncStatusDir = '/sync-status'
+    recordFailure( user, 'vault_sync', 'alex', '2026-10-22T10:00:00.000Z', 'x' )
+    pruneHealth()
+    expect( getHealth( user, 'vault_sync', 'alex' ) ).toBeDefined()
   } )
 } )

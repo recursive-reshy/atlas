@@ -1,5 +1,8 @@
+// Node
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
 // Shared
-import { HealthKind } from '@atlas/shared'
+import { HealthKind, VaultSyncStatusFile } from '@atlas/shared'
 // Clients
 import { checkHealth } from '../clients/agent.client.js'
 import { fetchReplicationMetrics } from '../clients/litestreamMetrics.client.js'
@@ -12,6 +15,7 @@ import { logger } from '../logger.js'
 // Repositories
 import { recordFailure, recordSuccess } from '../repositories/health.repository.js'
 import { deleteHealthExcept } from '../repositories/system.repository.js'
+import { listUsers } from '../repositories/users.repository.js'
 // Services
 
 export type HealthSubject = { kind: HealthKind, id: string }
@@ -115,6 +119,59 @@ const checkReplication = async ( url: string ): Promise< void > => {
   }
 }
 
+const parseJson = ( text: string ): unknown => {
+  try {
+    return JSON.parse( text ) as unknown
+  } catch{
+    return null
+  }
+}
+
+const HEARTBEAT_STALE_MS = 5 * 60 * 1000
+
+// Reads what the user's sync container wrote (ADR 0075). The file name is the user's vault folder,
+// which the VaultDir rule limits to lower-case letters, digits and hyphens.
+const vaultSyncResult = async ( directory: string, vaultDir: string ): Promise< CheckResult > => {
+  const text = await readFile( join( directory, `${ vaultDir }.json` ), 'utf8' )
+    .catch( () => null )
+
+  if( text === null ) {
+    return { ok: false, message: 'No sync status found for this vault' }
+  }
+
+  const parsed = VaultSyncStatusFile.safeParse( parseJson( text ) )
+
+  if( !parsed.success ) {
+    return { ok: false, message: 'The sync status file could not be read' }
+  }
+
+  const { state, heartbeat_at: heartbeatAt, last_error: lastError } = parsed.data
+
+  if( state === 'failed' ) {
+    return { ok: false, message: lastError ?? 'Sync has failed' }
+  }
+
+  if( Date.now() - Date.parse( heartbeatAt ) > HEARTBEAT_STALE_MS ) {
+    return { ok: false, message: 'The sync container has stopped' }
+  }
+
+  return { ok: true }
+}
+
+const checkVaultSync = async ( directory: string ): Promise< void > => {
+  const users = listUsers().filter( ( { status, vault_dir: vaultDir } ) => {
+    return status === 'active' && vaultDir !== null
+  } )
+
+  await Promise.all( users.map( async ( { id, vault_dir: vaultDir } ) => {
+    if( vaultDir !== null ) {
+      const result = await vaultSyncResult( directory, vaultDir )
+
+      recordCheck( id, { kind: 'vault_sync', id: vaultDir }, result )
+    }
+  } ) )
+}
+
 // The agent is checked whenever it is configured; its row reads as off while it is not.
 export const runServiceChecks = async (): Promise< void > => {
   const checks = [ checkTranscription() ]
@@ -127,13 +184,21 @@ export const runServiceChecks = async (): Promise< void > => {
     checks.push( checkReplication( config.litestreamMetricsUrl ) )
   }
 
+  if( config.vaultSyncStatusDir !== null ) {
+    checks.push( checkVaultSync( config.vaultSyncStatusDir ) )
+  }
+
   await Promise.all( checks )
 }
 
 // Checks that run only where configured; their rows are dropped at start where they are not.
 export const pruneHealth = (): void => {
   const kept = HealthKind.options.filter( ( kind ) => {
-    return kind === 'replication' ? config.litestreamMetricsUrl !== null : kind !== 'vault_sync'
+    if( kind === 'replication' ) {
+      return config.litestreamMetricsUrl !== null
+    }
+
+    return kind === 'vault_sync' ? config.vaultSyncStatusDir !== null : true
   } )
 
   deleteHealthExcept( kept )

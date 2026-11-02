@@ -10,6 +10,7 @@ import { SELECT_SOURCE, toOwnedSource } from './gmailSourceRows.js'
 import type { OwnedGmailSource } from './gmailSourceRows.js'
 import { SELECT_JOB, marks, toOwnedJob } from './jobRows.js'
 import type { OwnedJob } from './jobRows.js'
+import { HealthRecord } from './health.repository.js'
 import { NoteRecord } from './meleteNotes.repository.js'
 
 // The only queries without a user (ADR 0062): the loops that serve every user. Each row says
@@ -217,4 +218,15 @@ export const deleteHealthExcept = ( kinds: readonly string[] ): void => {
         .run( ...kinds )
     }
   } )
+}
+
+// Every user's vault sync row, for the admin's Status panel; each row says whose it is.
+export const listVaultSyncHealth = (): Array< { user_id: string, record: HealthRecord } > => {
+  return getDatabase()
+    .prepare( 'SELECT * FROM health_status WHERE kind = ? AND user_id IS NOT NULL' )
+    .all( 'vault_sync' )
+    .map( ( row ) => ( {
+      user_id: z.object( { user_id: z.string() } ).parse( row ).user_id,
+      record: HealthRecord.parse( row ),
+    } ) )
 }

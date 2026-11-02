@@ -115,6 +115,21 @@ describe( 'StatusPanel', () => {
     } ) ).toEqual( kinds.map( () => true ) )
   } )
 
+  it( 'shows a user\'s vault sync by the name the server gives it', () => {
+    show( [
+      statusRowFixture( { kind: 'vault_sync', id: 'alex', name: 'Vault sync: Alex' } ),
+      failingRowFixture( { kind: 'vault_sync', id: 'sam', name: 'Vault sync: Sam' } ),
+    ] )
+    renderWithClient( <StatusPanel /> )
+
+    const alex = screen.getByRole( 'row', { name: /Vault sync: Alex/ } )
+
+    expect( within( alex ).getByText( 'Vault sync' ) ).toBeInTheDocument()
+    const sam = screen.getByRole( 'row', { name: /Vault sync: Sam/ } )
+
+    expect( within( sam ).getByText( 'Failing' ) ).toBeInTheDocument()
+  } )
+
   it( 'shows a row\'s detail', () => {
     show( [ statusRowFixture( {
       kind: 'replication',

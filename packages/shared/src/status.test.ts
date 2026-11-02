@@ -10,6 +10,7 @@ import {
   HealthState,
   StatusRow,
   UserHealthKind,
+  VaultSyncStatusFile,
 } from './status.js'
 
 const row = {
@@ -127,5 +128,38 @@ describe( 'HealthError and GetHealthErrorsResponse', () => {
   it( 'parses a list of errors, including none', () => {
     expect( GetHealthErrorsResponse.parse( { errors: [ error ] } ).errors ).toHaveLength( 1 )
     expect( GetHealthErrorsResponse.parse( { errors: [] } ).errors ).toEqual( [] )
+  } )
+} )
+
+describe( 'VaultSyncStatusFile', () => {
+  const file = {
+    state: 'running',
+    since: '2026-10-22T09:00:00.000Z',
+    heartbeat_at: '2026-10-22T10:00:00.000Z',
+    last_error: null,
+    cli_version: '1.2.3',
+  }
+
+  it( 'parses the file the sync container writes', () => {
+    expect( VaultSyncStatusFile.parse( file ) ).toEqual( file )
+  } )
+
+  it.each( [ 'starting', 'running', 'failed' ] )( 'accepts the state %s', ( state ) => {
+    expect( VaultSyncStatusFile.parse( { ...file, state } ).state ).toBe( state )
+  } )
+
+  it( 'keeps the last error of a failed sync', () => {
+    const failed = { ...file, state: 'failed', last_error: 'Login expired' }
+
+    expect( VaultSyncStatusFile.parse( failed ).last_error ).toBe( 'Login expired' )
+  } )
+
+  it( 'rejects an unknown state, a time that is not ISO and a missing field', () => {
+    expect( VaultSyncStatusFile.safeParse( { ...file, state: 'paused' } ).success ).toBe( false )
+    expect( VaultSyncStatusFile.safeParse( { ...file, heartbeat_at: 'yesterday' } ).success )
+      .toBe( false )
+    expect( VaultSyncStatusFile.safeParse( { ...file, since: undefined } ).success ).toBe( false )
+    expect( VaultSyncStatusFile.safeParse( { ...file, last_error: undefined } ).success )
+      .toBe( false )
   } )
 } )

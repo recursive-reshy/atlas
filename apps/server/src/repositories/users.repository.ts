@@ -70,6 +70,13 @@ export const findUserByEmail = ( email: string ): StoredUser | undefined => {
   return row === undefined ? undefined : StoredUser.parse( row )
 }
 
+export const findUserByVaultDir = ( vaultDir: string ): StoredUser | undefined => {
+  const row = getDatabase().prepare( `SELECT ${ COLUMNS } FROM users WHERE vault_dir = ?` )
+    .get( vaultDir )
+
+  return row === undefined ? undefined : StoredUser.parse( row )
+}
+
 export const countUsers = (): number => {
   const row = getDatabase().prepare( 'SELECT COUNT(*) AS count FROM users' ).get() as {
     count: number

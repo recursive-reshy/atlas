@@ -16,6 +16,7 @@ import { insertFeed } from '../repositories/feeds.repository.js'
 import type { StoredFeed } from '../repositories/feeds.repository.js'
 import { recordFailure, recordSuccess } from '../repositories/health.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'
+import { updateUser } from '../repositories/users.repository.js'
 // Services
 import { runServiceChecks } from './health.service.js'
 import { getHealthErrors, getStatus, refreshStatus } from './status.service.js'
@@ -37,12 +38,14 @@ const configMock = vi.hoisted( () => {
     gmail: Record< string, unknown > | null
     agent: { url: string } | null
     litestreamMetricsUrl: string | null
+    vaultSyncStatusDir: string | null
   } = {
     logLevel: 'silent',
     sessionDays: 30,
     gmail: { clientId: 'id' },
     agent: { url: 'http://agent.test' },
     litestreamMetricsUrl: null,
+    vaultSyncStatusDir: null,
   }
 
   return mock
@@ -106,6 +109,7 @@ beforeEach( () => {
   configMock.gmail = { clientId: 'id' }
   configMock.agent = { url: 'http://agent.test' }
   configMock.litestreamMetricsUrl = null
+  configMock.vaultSyncStatusDir = null
   vi.mocked( runServiceChecks ).mockReset().mockResolvedValue( undefined )
 } )
 
@@ -533,5 +537,119 @@ describe( 'the app rows belong to the admin', () => {
       .toThrow( NotFoundError )
     expect( getHealthErrors( userId, true, 'agent', 'default' ) )
       .toEqual( [ { at: at( 1 ), message: 'down' } ] )
+  } )
+} )
+
+describe( 'vault sync rows', () => {
+  const named = ( name: string, vaultDir: string | null ): string => {
+    const id = createTestUser( { vault_dir: vaultDir } ).id
+
+    updateUser( id, { name } )
+
+    return id
+  }
+
+  beforeEach( () => {
+    configMock.vaultSyncStatusDir = '/sync-status'
+  } )
+
+  it( 'has no row anywhere where VAULT_SYNC_STATUS_DIR is not set', () => {
+    configMock.vaultSyncStatusDir = null
+    const member = named( 'Alex', 'alex' )
+
+    expect( getStatus( member, false ).rows.map( ( { kind } ) => kind ) )
+      .toEqual( [ 'gmail_connection' ] )
+    expect( getStatus( userId, true ).rows.map( ( { kind } ) => kind ) )
+      .not.toContain( 'vault_sync' )
+  } )
+
+  it( 'gives a member their own row, by their vault folder, and nobody else\'s', () => {
+    const alex = named( 'Alex', 'alex' )
+
+    named( 'Sam', 'sam' )
+    recordSuccess( alex, 'vault_sync', 'alex', at( 1 ) )
+
+    const rows = getStatus( alex, false ).rows.filter( ( { kind } ) => kind === 'vault_sync' )
+
+    expect( rows ).toEqual( [ expect.objectContaining( {
+      kind: 'vault_sync',
+      id: 'alex',
+      name: 'Vault sync',
+      state: 'ok',
+    } ) ] )
+  } )
+
+  it( 'gives a user with no vault no row', () => {
+    const member = named( 'Alex', null )
+
+    expect( getStatus( member, false ).rows.map( ( { kind } ) => kind ) )
+      .toEqual( [ 'gmail_connection' ] )
+  } )
+
+  it( 'shows a failing sync with its message', () => {
+    const alex = named( 'Alex', 'alex' )
+
+    recordFailure( alex, 'vault_sync', 'alex', at( 2 ), 'Login expired' )
+
+    expect( getStatus( alex, false ).rows.find( ( { kind } ) => kind === 'vault_sync' ) )
+      .toMatchObject( { state: 'failing', last_error: 'Login expired' } )
+    expect( getStatus( alex, false ).failing_count ).toBe( 1 )
+  } )
+
+  it( 'gives the admin every user\'s row, each with the user\'s name, ordered by name', () => {
+    const sam = named( 'Sam', 'sam' )
+    const alex = named( 'Alex', 'alex' )
+
+    updateUser( userId, { name: 'Naresh' } )
+    recordSuccess( alex, 'vault_sync', 'alex', at( 1 ) )
+    recordFailure( sam, 'vault_sync', 'sam', at( 2 ), 'Login expired' )
+    named( 'Nobody', null )
+
+    const rows = getStatus( userId, true ).rows.filter( ( { kind } ) => kind === 'vault_sync' )
+
+    expect( rows.map( ( { id, name, state } ) => ( { id, name, state } ) ) ).toEqual( [
+      { id: 'alex', name: 'Vault sync: Alex', state: 'ok' },
+      { id: 'vault', name: 'Vault sync: Naresh', state: 'ok' },
+      { id: 'sam', name: 'Vault sync: Sam', state: 'failing' },
+    ] )
+    expect( getStatus( userId, true ).failing_count ).toBe( 1 )
+  } )
+
+  it( 'leaves out a removed user\'s row', () => {
+    const alex = named( 'Alex', 'alex' )
+
+    updateUser( alex, { status: 'removed' } )
+
+    expect( getStatus( userId, true ).rows.map( ( { id } ) => id ) ).not.toContain( 'alex' )
+  } )
+
+  it( 'answers a member for their own error history only', () => {
+    const alex = named( 'Alex', 'alex' )
+    const sam = named( 'Sam', 'sam' )
+
+    recordFailure( alex, 'vault_sync', 'alex', at( 1 ), 'Login expired' )
+    recordFailure( sam, 'vault_sync', 'sam', at( 1 ), 'Other' )
+
+    expect( getHealthErrors( alex, false, 'vault_sync', 'alex' ) )
+      .toEqual( [ { at: at( 1 ), message: 'Login expired' } ] )
+    expect( () => getHealthErrors( alex, false, 'vault_sync', 'sam' ) ).toThrow( NotFoundError )
+    expect( () => getHealthErrors( alex, false, 'vault_sync', 'nope' ) ).toThrow( NotFoundError )
+  } )
+
+  it( 'answers the admin for any user\'s history', () => {
+    const sam = named( 'Sam', 'sam' )
+
+    recordFailure( sam, 'vault_sync', 'sam', at( 1 ), 'Other' )
+
+    expect( getHealthErrors( userId, true, 'vault_sync', 'sam' ) )
+      .toEqual( [ { at: at( 1 ), message: 'Other' } ] )
+    expect( () => getHealthErrors( userId, true, 'vault_sync', 'nope' ) ).toThrow( NotFoundError )
+  } )
+
+  it( 'answers 404 for the history where it is not configured', () => {
+    configMock.vaultSyncStatusDir = null
+    const alex = named( 'Alex', 'alex' )
+
+    expect( () => getHealthErrors( alex, false, 'vault_sync', 'alex' ) ).toThrow( NotFoundError )
   } )
 } )
