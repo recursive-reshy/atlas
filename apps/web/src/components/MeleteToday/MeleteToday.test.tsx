@@ -87,6 +87,20 @@ describe( 'MeleteToday with a learning root', () => {
       .toHaveAttribute( 'aria-disabled', 'true' )
   } )
 
+  it( 'warns about the paths the last scan could not read', () => {
+    show( meleteTodayFixture( { skipped_paths: [ 'Learning/Locked' ] } ) )
+    renderWithClient( <MeleteToday /> )
+
+    expect( screen.getByRole( 'alert' ) ).toHaveTextContent( 'Learning/Locked' )
+  } )
+
+  it( 'has no warning when nothing was skipped', () => {
+    show( meleteTodayFixture() )
+    renderWithClient( <MeleteToday /> )
+
+    expect( screen.queryByRole( 'alert' ) ).not.toBeInTheDocument()
+  } )
+
   it( 'says how to add subjects when the learning root has none', () => {
     show( meleteTodayFixture( { subjects: [] } ) )
     renderWithClient( <MeleteToday /> )

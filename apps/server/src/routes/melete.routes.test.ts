@@ -31,6 +31,7 @@ import { config } from '../config.js'
 import { MeleteError } from '../errors.js'
 // Melete
 import { resetScanClock } from '../melete/scanClock.js'
+import { rememberSkipped, resetScanOutcome } from '../melete/scanOutcome.js'
 // Repositories
 import { listNotesUnder, updateNote } from '../repositories/meleteNotes.repository.js'
 import { findQuestion } from '../repositories/meleteQuestions.repository.js'
@@ -91,6 +92,7 @@ beforeEach( async () => {
   setSetting( userId, 'melete_grading_model', 'claude-haiku-5-5' )
   grade.mockReset()
   resetScanClock()
+  resetScanOutcome()
 } )
 
 afterEach( async () => {
@@ -117,6 +119,16 @@ describe( 'GET /api/melete/today', () => {
 
     expect( response.status ).toBe( 409 )
     expect( response.body ).toEqual( { error: 'Choose your vault first' } )
+  } )
+
+  it( 'lists the paths the last scan could not read', async () => {
+    await scanned()
+    rememberSkipped( userId, [ 'Learning/Locked' ] )
+
+    const response = await request( app ).get( '/api/melete/today' )
+
+    expect( GetMeleteTodayResponse.parse( response.body ).skipped_paths )
+      .toEqual( [ 'Learning/Locked' ] )
   } )
 
   it( 'answers 200 with a null learning root when none is set', async () => {

@@ -14,6 +14,7 @@ import { ConflictError, NotFoundError } from '../errors.js'
 import { obsidianUrl } from '../melete/obsidian.js'
 import { newRemaining, reviewCounts } from '../melete/queue.js'
 import { listSubjectFolders } from '../melete/scan.js'
+import { lastSkipped } from '../melete/scanOutcome.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
 import {
@@ -339,7 +340,7 @@ export const getToday = async (
     learning_root: learningRoot,
     subjects,
     totals: reviewCounts( userId, records, now ),
-    skipped_paths: [],
+    skipped_paths: lastSkipped( userId ),
   }
 }
 

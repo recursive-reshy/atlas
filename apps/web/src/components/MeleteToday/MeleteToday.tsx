@@ -12,6 +12,7 @@ import { Link as RouterLink } from 'react-router'
 // App
 import { useMeleteToday } from '#src/hooks/useMeleteToday'
 import { LearningRootSetup } from '../LearningRootSetup'
+import { MeleteSkippedNotice } from '../MeleteSkippedNotice'
 import { MeleteSubjectRow } from '../MeleteSubjectRow'
 
 export function MeleteToday(): ReactElement {
@@ -65,6 +66,7 @@ export function MeleteToday(): ReactElement {
           <SettingsIcon />
         </IconButton>
       </Stack>
+      <MeleteSkippedNotice paths={ today.skipped_paths } />
       <Typography variant="h6" component="p">{ `${ due } due · ${ newRemaining } new` }</Typography>
       <Button
         component={ RouterLink }

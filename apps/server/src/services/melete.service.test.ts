@@ -38,6 +38,7 @@ import {
   setSubjectEnrolled,
   updateSubject,
 } from './melete.service.js'
+import { rememberSkipped, resetScanOutcome } from '../melete/scanOutcome.js'
 import { resetScanClock, scanLearningRoot } from './meleteScan.service.js'
 // Test support
 import { addQuestion } from '../test-support/meleteData.fixture.js'
@@ -99,6 +100,7 @@ beforeEach( async () => {
   configMock.vaultsPath = vault.vaultsPath
   setSetting( userId, 'melete_learning_root', 'Learning' )
   resetScanClock()
+  resetScanOutcome()
   await scanLearningRoot( userId, { force: true, now: at( 0 ) } )
 } )
 
@@ -334,6 +336,23 @@ describe( 'getToday', () => {
       totals: { due: 0, new_remaining: 0, learning_soon: 0 },
       skipped_paths: [],
     } )
+  } )
+
+  it( 'returns the paths the last scan could not read, and none for another user', async () => {
+    rememberSkipped( userId, [ 'Learning/Locked' ] )
+
+    expect( ( await getToday( userId, at( 1 ) ) ).skipped_paths ).toEqual( [ 'Learning/Locked' ] )
+
+    const other = createTestUser( { vault_dir: 'elsewhere' } )
+
+    expect( ( await getToday( other.id, at( 1 ) ) ).skipped_paths ).toEqual( [] )
+  } )
+
+  it( 'has no skipped paths when there is no learning root', async () => {
+    rememberSkipped( userId, [ 'Learning/Locked' ] )
+    setSetting( userId, 'melete_learning_root', null )
+
+    expect( ( await getToday( userId, at( 1 ) ) ).skipped_paths ).toEqual( [] )
   } )
 
   it( 'lists the subjects by name with their counts', async () => {
