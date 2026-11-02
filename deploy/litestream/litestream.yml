@@ -1,0 +1,20 @@
+# Litestream 0.5 (ADR 0076): replicates the app's SQLite database to Google Cloud Storage as the
+# VM's service account (Application Default Credentials; there is no key in this file).
+# ${LITESTREAM_BUCKET} is expanded by Litestream from the container's environment.
+
+# Prometheus metrics, on the Compose network only; the server's Status panel reads them
+addr: ":9090"
+
+sync-interval: 1s
+
+# A snapshot a day, and a week (168 h) of history to restore from
+snapshot:
+  interval: 24h
+  retention: 168h
+
+dbs:
+  - path: /data/atlas.db
+    replica:
+      type: gs
+      bucket: ${LITESTREAM_BUCKET}
+      path: atlas.db

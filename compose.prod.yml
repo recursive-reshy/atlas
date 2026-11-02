@@ -1,0 +1,77 @@
+# Production on the VM (ADR 0077): pulls the images that deploy/release.sh pushed, restores the
+# database from the bucket when there is none, replicates it, and syncs each user's vault.
+# Layered over docker-compose.yml by the atlas systemd unit, with /etc/atlas/atlas.env and the
+# fetched secrets as --env-file (deploy/vm/atlas.service).
+services:
+  restore:
+    image: litestream/litestream:0.5.17
+    user: "1000:1000"
+    command: [ "restore", "-if-db-not-exists", "-if-replica-exists", "/data/atlas.db" ]
+    environment:
+      LITESTREAM_BUCKET: ${LITESTREAM_BUCKET:?Set LITESTREAM_BUCKET in /etc/atlas/atlas.env}
+    volumes:
+      - data:/data
+      - /opt/atlas/litestream.yml:/etc/litestream.yml:ro
+    restart: "no"
+
+  app:
+    image: ${REGISTRY:?Set REGISTRY in /etc/atlas/atlas.env}/app:${ATLAS_VERSION:?Set ATLAS_VERSION in /etc/atlas/atlas.env}
+    environment:
+      LITESTREAM_METRICS_URL: http://litestream:9090/metrics
+      VAULT_SYNC_STATUS_DIR: /sync-status
+    volumes:
+      - ${VAULTS_HOST_PATH:?Set VAULTS_HOST_PATH in /etc/atlas/atlas.env}:/vaults
+      - sync-status:/sync-status:ro
+    depends_on:
+      restore:
+        condition: service_completed_successfully
+
+  agent:
+    image: ${REGISTRY}/agent:${ATLAS_VERSION}
+    volumes:
+      - ${VAULTS_HOST_PATH}:/vaults:ro
+
+  litestream:
+    image: litestream/litestream:0.5.17
+    user: "1000:1000"
+    command: [ "replicate" ]
+    environment:
+      LITESTREAM_BUCKET: ${LITESTREAM_BUCKET}
+    volumes:
+      - data:/data
+      - /opt/atlas/litestream.yml:/etc/litestream.yml:ro
+    depends_on:
+      app:
+        condition: service_started
+    restart: unless-stopped
+
+  # One block per synced user. To add one: copy it, rename the service, the VAULT_DIR value, the
+  # vault path and the config volume (and declare that volume below), then do the one-time
+  # `ob login` / `ob sync-setup` from docs/deploy.md.
+  sync-naresh:
+    image: ${REGISTRY}/sync:${ATLAS_VERSION}
+    environment:
+      VAULT_DIR: naresh
+    volumes:
+      - ${VAULTS_HOST_PATH}/naresh:/vault
+      - sync-status:/status
+      - sync-naresh-config:/home/node/.config/obsidian-headless
+    restart: unless-stopped
+
+# The database and status folders live on the host, created by deploy/vm/bootstrap.sh and owned by
+# UID 1000: a fresh named volume is root-owned when the Litestream or sync image mounts it first,
+# and those containers do not run as root.
+volumes:
+  data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /srv/atlas/data
+  sync-status:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: /srv/atlas/sync-status
+  sync-naresh-config:

@@ -108,3 +108,75 @@ test( '.env.example makes plain docker compose use the local files', () => {
   const text = readFileSync( join( root, '.env.example' ), 'utf8' )
   assert.match( text, /^COMPOSE_FILE=docker-compose\.yml:compose\.local\.yml$/m )
 } )
+
+// --- production file (task 5.3) ---
+
+// What deploy/vm/atlas.env.example and the fetched secrets provide on the VM
+const prodEnv = {
+  ...dummyEnv,
+  REGISTRY: 'registry.example/atlas/atlas',
+  ATLAS_VERSION: '0.10.0',
+  VAULTS_HOST_PATH: '/srv/atlas/vaults',
+  LITESTREAM_BUCKET: 'example-bucket',
+}
+
+test( 'production pulls images, builds nothing and publishes only the app', { skip }, () => {
+  const config = render( [ 'docker-compose.yml', 'compose.prod.yml' ], { env: prodEnv } )
+  for( const [ name, service ] of Object.entries( config.services ) ) {
+    assert.equal( service.build, undefined, `${ name } builds` )
+  }
+  assert.equal( config.services.app.image, 'registry.example/atlas/atlas/app:0.10.0' )
+  assert.equal( config.services.agent.image, 'registry.example/atlas/atlas/agent:0.10.0' )
+  assert.equal( config.services[ 'sync-naresh' ].image, 'registry.example/atlas/atlas/sync:0.10.0' )
+  assert.deepEqual( publishedPorts( config ), [ { name: 'app', host_ip: '127.0.0.1', published: '3100' } ] )
+} )
+
+test( 'production restores the database before the app and replicates after it', { skip }, () => {
+  const config = render( [ 'docker-compose.yml', 'compose.prod.yml' ], { env: prodEnv } )
+  const { app, restore, litestream } = config.services
+  assert.equal( app.depends_on.restore.condition, 'service_completed_successfully' )
+  assert.equal( litestream.depends_on.app.condition, 'service_started' )
+  for( const service of [ restore, litestream ] ) {
+    assert.equal( service.user, '1000:1000' )
+    assert.equal( service.image, 'litestream/litestream:0.5.17' )
+    assert.ok( service.volumes.some( ( volume ) => volume.target === '/data' ), 'shares /data' )
+    assert.ok( service.volumes.some( ( volume ) => volume.target === '/etc/litestream.yml' && volume.read_only ), 'config is read only' )
+    assert.equal( service.environment.LITESTREAM_BUCKET, 'example-bucket' )
+  }
+  assert.deepEqual( restore.command.slice( 0, 3 ), [ 'restore', '-if-db-not-exists', '-if-replica-exists' ] )
+  assert.ok( restore.command.includes( '/data/atlas.db' ) )
+  assert.equal( restore.restart, 'no' )
+  assert.deepEqual( litestream.command, [ 'replicate' ] )
+  assert.equal( litestream.restart, 'unless-stopped' )
+  assert.equal( app.environment.LITESTREAM_METRICS_URL, 'http://litestream:9090/metrics' )
+} )
+
+test( 'production syncs the vault with a container that shares only that vault and the status folder', { skip }, () => {
+  const config = render( [ 'docker-compose.yml', 'compose.prod.yml' ], { env: prodEnv } )
+  const sync = config.services[ 'sync-naresh' ]
+  assert.equal( sync.user, undefined, 'the image already runs as node (UID 1000)' )
+  assert.equal( sync.environment.VAULT_DIR, 'naresh' )
+  const targets = Object.fromEntries( sync.volumes.map( ( volume ) => [ volume.target, volume ] ) )
+  assert.equal( targets[ '/vault' ].source, '/srv/atlas/vaults/naresh' )
+  assert.ok( targets[ '/status' ], 'writes the status folder' )
+  assert.ok( targets[ '/home/node/.config/obsidian-headless' ], 'keeps its login in its own volume' )
+  assert.equal( Object.keys( targets ).length, 3 )
+
+  const app = config.services.app
+  assert.equal( app.environment.VAULT_SYNC_STATUS_DIR, '/sync-status' )
+  const status = app.volumes.find( ( volume ) => volume.target === '/sync-status' )
+  assert.equal( status.read_only, true )
+  assert.equal( status.source, targets[ '/status' ].source )
+
+  const vaults = ( name ) => config.services[ name ].volumes.find( ( volume ) => volume.target === '/vaults' )
+  assert.equal( vaults( 'app' ).source, '/srv/atlas/vaults' )
+  assert.equal( vaults( 'agent' ).read_only, true )
+} )
+
+test( 'production keeps the database and status folders on the host with the app user as owner', { skip }, () => {
+  // A fresh named volume is root-owned when the Litestream image mounts it first, and the
+  // services running as UID 1000 could not write to it.
+  const config = render( [ 'docker-compose.yml', 'compose.prod.yml' ], { env: prodEnv } )
+  assert.equal( config.volumes.data.driver_opts.device, '/srv/atlas/data' )
+  assert.equal( config.volumes[ 'sync-status' ].driver_opts.device, '/srv/atlas/sync-status' )
+} )
