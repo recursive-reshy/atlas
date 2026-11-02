@@ -1,10 +1,10 @@
 from pathlib import Path
 
-from mnemosyne_agent.config import Settings
-from mnemosyne_agent.contract.link import LinkNote, LinkSuggestion, SuggestionKind
-from mnemosyne_agent.linker.tools import SubmittedSuggestion
-from mnemosyne_agent.vault.links import LinkTarget
-from mnemosyne_agent.vault.notes import NoteSummary
+from atlas_agent.config import Settings
+from atlas_agent.contract.link import LinkNote, LinkSuggestion, SuggestionKind
+from atlas_agent.linker.tools import SubmittedSuggestion
+from atlas_agent.vault.links import LinkTarget
+from atlas_agent.vault.notes import NoteSummary
 
 def apply_checks(
     submitted: list[ SubmittedSuggestion ],

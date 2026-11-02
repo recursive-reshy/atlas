@@ -14,7 +14,7 @@ LOG_LEVELS: dict[ str, int ] = {
     "silent": logging.CRITICAL + 10
 }
 
-LOGGER_NAMES = [ "mnemosyne_agent", "uvicorn", "uvicorn.access" ]
+LOGGER_NAMES = [ "atlas_agent", "uvicorn", "uvicorn.access" ]
 
 job_id_var: ContextVar[ str | None ] = ContextVar( "job_id", default = None )
 

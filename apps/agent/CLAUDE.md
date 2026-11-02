@@ -1,6 +1,6 @@
 # CLAUDE.md — apps/agent
 
-The Mnemosyne vault agent service: a stateless Python 3.14 / FastAPI service that reads the Obsidian vaults (read-only) and runs Claude tool-use agents for the Express server. Its first endpoint, `POST /v1/link`, proposes wikilinks for a new note. The root `CLAUDE.md` covers the workflow, git and what applies to the whole repo; this file adds only what is specific to this service.
+The Atlas vault agent service: a stateless Python 3.14 / FastAPI service that reads the Obsidian vaults (read-only) and runs Claude tool-use agents for the Express server. Its first endpoint, `POST /v1/link`, proposes wikilinks for a new note. The root `CLAUDE.md` covers the workflow, git and what applies to the whole repo; this file adds only what is specific to this service.
 
 ## Specs
 
@@ -22,7 +22,7 @@ The TRD sections this service needs (`docs/v0.7.0/trd.md`):
 
 - **No state.** The service never writes to disk, and never adds caches or module-level mutable globals. Settings are read once in `create_app()` and passed down.
 - **The vaults are read-only.** Never write, move, rename or delete anything under `VAULTS_ROOT`, in code or in tests. A request names its vault by `vault_dir` (ADR 0063); `vault_for( settings, vault_dir )` in `vault/paths.py` resolves it to a real folder directly inside `VAULTS_ROOT` (not a symlink, not outside the root) or raises `UnknownVaultError`, which the route answers with 422 `{ "error": "unknown_vault" }`. Every path a tool opens then goes through `vault/paths.py` and must stay inside that vault's root, so a run can never see another user's vault. Tests keep the fixture vault in a temporary `VAULTS_ROOT` as `vault` (the `vault_copy`, `vault_dir` and `settings` fixtures). Tests use `tests/fixtures/vault/`, copied to a temporary directory when a test needs to change it; never a real vault.
-- **Change `src/mnemosyne_agent/contract/` only when a task says to.** In the same commit: rerun `uv run python -m mnemosyne_agent.contract.export`, commit the regenerated `schema/link_contract.json`, update `schema/examples/`, and update the Zod mirror in `packages/shared/src/agent.ts` (ADR 0043).
+- **Change `src/atlas_agent/contract/` only when a task says to.** In the same commit: rerun `uv run python -m atlas_agent.contract.export`, commit the regenerated `schema/link_contract.json`, update `schema/examples/`, and update the Zod mirror in `packages/shared/src/agent.ts` (ADR 0043).
 - **No model choice.** The model comes in the request. Never hardcode or default a model name.
 - **One response shape.** Once authorized, `/v1/link` answers HTTP 200 with a `LinkResponse`. A bad request (including a `vault_dir` that isn't a valid folder name) or any agent failure is `outcome: failed` with a reason, never FastAPI's default 422. Only a missing or wrong secret is a 401, and the one deliberate 422 is a well-formed `vault_dir` that names no vault (TRD §7.3, ADR 0063).
 - **The locked instructions (`linker/instructions.py`) are Naresh's prompt text.** Change them only when a task says to. The editable guidance lives in the server's database and arrives in the request.
@@ -38,7 +38,7 @@ uv run pytest
 uv run pyright
 uv run ruff check
 uv run pytest -m docker
-uv run python -m mnemosyne_agent.contract.export
+uv run python -m atlas_agent.contract.export
 ```
 
 `pnpm --filter @atlas/agent test|lint|typecheck` runs the first three through `package.json`, and the root `pnpm test|lint|typecheck` includes them. All three must pass before a task is ticked. Never run `ruff format`, `black`, `yapf` or `isort`: they destroy the house style below. Run `ruff check` without `--fix` and fix findings by hand. Never enable Ruff's import-sorting rules (`I`), the pycodestyle whitespace and blank-line rules (`E1`, `E2`, `E3`, `W`) or the trailing-comma rules (`COM`) in `pyproject.toml`; they contradict the house style.
@@ -76,7 +76,7 @@ There is no formatter. You are the formatter. Follow these rules exactly, and ma
 
 ### Imports
 
-- Absolute imports only: `from mnemosyne_agent.vault.search import search_vault`.
+- Absolute imports only: `from atlas_agent.vault.search import search_vault`.
 - Three groups separated by one blank line: standard library, third-party, local.
 
 ## Code rules
@@ -125,9 +125,9 @@ from enum import StrEnum
 
 from pydantic import BaseModel
 
-from mnemosyne_agent.config import Settings
-from mnemosyne_agent.vault.links import LinkTarget
-from mnemosyne_agent.vault.notes import NoteSummary
+from atlas_agent.config import Settings
+from atlas_agent.vault.links import LinkTarget
+from atlas_agent.vault.notes import NoteSummary
 
 class SuggestionKind( StrEnum ):
     EXISTING_NOTE = "existing_note"

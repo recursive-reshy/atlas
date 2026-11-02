@@ -4,12 +4,12 @@ from typing import Any
 
 import pytest
 
-from mnemosyne_agent.claude import ClaudeError, MessageRequest, TextBlock, ToolResultBlock
-from mnemosyne_agent.config import Settings
-from mnemosyne_agent.contract.link import LinkNote, LinkOutcome, LinkRequest, LinkResponse
-from mnemosyne_agent.linker.instructions import build_instructions
-from mnemosyne_agent.linker.loop import run_linker
-from mnemosyne_agent.vault.paths import UnknownVaultError
+from atlas_agent.claude import ClaudeError, MessageRequest, TextBlock, ToolResultBlock
+from atlas_agent.config import Settings
+from atlas_agent.contract.link import LinkNote, LinkOutcome, LinkRequest, LinkResponse
+from atlas_agent.linker.instructions import build_instructions
+from atlas_agent.linker.loop import run_linker
+from atlas_agent.vault.paths import UnknownVaultError
 from tests.fakes import ScriptedClaude, submit_reply, text_reply, tool_reply
 
 pytestmark = pytest.mark.anyio

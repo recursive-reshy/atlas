@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from mnemosyne_agent.vault.notes import ReadNoteOutcome, list_all_notes, list_notes, read_note
+from atlas_agent.vault.notes import ReadNoteOutcome, list_all_notes, list_notes, read_note
 
 def test_lists_every_note_sorted_by_path( fixture_vault: Path ) -> None:
     result = list_notes( fixture_vault, 500 )

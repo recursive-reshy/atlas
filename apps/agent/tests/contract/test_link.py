@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from pydantic import ValidationError
 
-from mnemosyne_agent.contract.link import (
+from atlas_agent.contract.link import (
     InstructionsResponse,
     LinkNote,
     LinkOutcome,

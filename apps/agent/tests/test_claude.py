@@ -6,7 +6,7 @@ from typing import Any
 import httpx2
 import pytest
 
-from mnemosyne_agent.claude import (
+from atlas_agent.claude import (
     AnthropicClaude,
     CacheControl,
     ClaudeError,

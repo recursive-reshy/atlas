@@ -5,7 +5,7 @@ from typing import Literal
 from pydantic import BaseModel
 from pydantic.json_schema import models_json_schema
 
-from mnemosyne_agent.contract.link import (
+from atlas_agent.contract.link import (
     InstructionsResponse,
     LinkNote,
     LinkRequest,

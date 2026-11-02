@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from mnemosyne_agent.contract.export import build_schema
+from atlas_agent.contract.export import build_schema
 
 SCHEMA_PATH = Path( __file__ ).parents[ 2 ] / "schema" / "link_contract.json"
 

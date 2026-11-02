@@ -3,15 +3,15 @@ import logging
 
 import pytest
 
-from mnemosyne_agent.logging_setup import JsonFormatter, configure_logging, job_id_var
+from atlas_agent.logging_setup import JsonFormatter, configure_logging, job_id_var
 
-NAMES = [ "mnemosyne_agent", "uvicorn", "uvicorn.access" ]
+NAMES = [ "atlas_agent", "uvicorn", "uvicorn.access" ]
 
 def format_record( record: logging.LogRecord ) -> dict[ str, object ]:
     return json.loads( JsonFormatter().format( record ) )
 
 def make_record( message: str = "hello", level: int = logging.INFO, **extra: object ) -> logging.LogRecord:
-    record = logging.LogRecord( "mnemosyne_agent", level, __file__, 1, message, None, None )
+    record = logging.LogRecord( "atlas_agent", level, __file__, 1, message, None, None )
     record.__dict__.update( extra )
     return record
 
@@ -36,7 +36,7 @@ def test_an_exception_becomes_err() -> None:
     except ValueError:
         import sys
 
-        record = logging.LogRecord( "mnemosyne_agent", logging.ERROR, __file__, 1, "failed", None, sys.exc_info() )
+        record = logging.LogRecord( "atlas_agent", logging.ERROR, __file__, 1, "failed", None, sys.exc_info() )
 
     line = format_record( record )
 
@@ -47,11 +47,11 @@ def test_the_handler_copies_the_job_id_onto_each_record( capsys: pytest.CaptureF
     token = job_id_var.set( "job-1" )
 
     try:
-        logging.getLogger( "mnemosyne_agent" ).info( "inside" )
+        logging.getLogger( "atlas_agent" ).info( "inside" )
     finally:
         job_id_var.reset( token )
 
-    logging.getLogger( "mnemosyne_agent" ).info( "outside" )
+    logging.getLogger( "atlas_agent" ).info( "outside" )
     inside, outside = [ json.loads( line ) for line in capsys.readouterr().err.splitlines() ]
 
     assert inside[ "job_id" ] == "job-1"
@@ -80,11 +80,11 @@ def test_uvicorn_loggers_use_the_json_formatter_and_do_not_propagate() -> None:
 def test_the_level_name_sets_the_logger_level( name: str, expected: int ) -> None:
     configure_logging( name )
 
-    assert logging.getLogger( "mnemosyne_agent" ).level == expected
+    assert logging.getLogger( "atlas_agent" ).level == expected
 
 def test_silent_drops_everything( capsys: pytest.CaptureFixture[ str ] ) -> None:
     configure_logging( "silent" )
 
-    logging.getLogger( "mnemosyne_agent" ).critical( "nothing" )
+    logging.getLogger( "atlas_agent" ).critical( "nothing" )
 
     assert capsys.readouterr().err == ""

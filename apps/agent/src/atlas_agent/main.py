@@ -10,21 +10,21 @@ from fastapi import APIRouter, Depends, FastAPI, Header, HTTPException, Request,
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
-from mnemosyne_agent.claude import AnthropicClaude, ClaudeClient
-from mnemosyne_agent.config import Settings, load_settings
-from mnemosyne_agent.contract.link import (
+from atlas_agent.claude import AnthropicClaude, ClaudeClient
+from atlas_agent.config import Settings, load_settings
+from atlas_agent.contract.link import (
     InstructionsResponse,
     LinkOutcome,
     LinkRequest,
     LinkResponse,
     LinkUsage
 )
-from mnemosyne_agent.linker.instructions import build_instructions
-from mnemosyne_agent.linker.loop import run_linker
-from mnemosyne_agent.logging_setup import configure_logging, job_id_var
-from mnemosyne_agent.vault.paths import UnknownVaultError
+from atlas_agent.linker.instructions import build_instructions
+from atlas_agent.linker.loop import run_linker
+from atlas_agent.logging_setup import configure_logging, job_id_var
+from atlas_agent.vault.paths import UnknownVaultError
 
-logger = logging.getLogger( "mnemosyne_agent" )
+logger = logging.getLogger( "atlas_agent" )
 
 def create_secret_check( settings: Settings ) -> Callable[ [ str | None ], Awaitable[ None ] ]:
     expected = f"Bearer {settings.agent_secret}".encode()

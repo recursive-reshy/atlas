@@ -3,8 +3,8 @@ from collections.abc import Callable
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from mnemosyne_agent.config import Settings
-from mnemosyne_agent.linker.instructions import build_instructions
+from atlas_agent.config import Settings
+from atlas_agent.linker.instructions import build_instructions
 
 def test_requires_the_secret( settings: Settings, app_factory: Callable[ [ Settings ], FastAPI ] ) -> None:
     client = TestClient( app_factory( settings ) )

@@ -10,11 +10,11 @@ import pytest
 from fastapi import Depends, FastAPI
 from fastapi.testclient import TestClient
 
-from mnemosyne_agent import main
-from mnemosyne_agent.claude import AnthropicClaude
-from mnemosyne_agent.config import ConfigError, Settings
-from mnemosyne_agent.logging_setup import configure_logging
-from mnemosyne_agent.main import create_app, create_secret_check
+from atlas_agent import main
+from atlas_agent.claude import AnthropicClaude
+from atlas_agent.config import ConfigError, Settings
+from atlas_agent.logging_setup import configure_logging
+from atlas_agent.main import create_app, create_secret_check
 from tests.fakes import ScriptedClaude
 
 def test_health_is_ok_without_auth( settings: Settings, app_factory: Callable[ [ Settings ], FastAPI ] ) -> None:
@@ -80,7 +80,7 @@ def test_logs_one_line_per_request_without_secrets_or_content(
     app_factory: Callable[ [ Settings ], FastAPI ],
     caplog: pytest.LogCaptureFixture
 ) -> None:
-    caplog.set_level( logging.INFO, logger = "mnemosyne_agent" )
+    caplog.set_level( logging.INFO, logger = "atlas_agent" )
     client = TestClient( app_factory( settings ) )
 
     client.post(

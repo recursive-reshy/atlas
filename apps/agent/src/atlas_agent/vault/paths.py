@@ -4,7 +4,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from mnemosyne_agent.config import Settings
+from atlas_agent.config import Settings
 
 class NotePathOutcome( StrEnum ):
     OK = "ok"

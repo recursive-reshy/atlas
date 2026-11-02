@@ -3,7 +3,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from mnemosyne_agent.vault.paths import NotePathOutcome, iter_note_paths, resolve_note
+from atlas_agent.vault.paths import NotePathOutcome, iter_note_paths, resolve_note
 
 class NoteSummary( BaseModel ):
     path: str

@@ -3,7 +3,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from mnemosyne_agent.vault.paths import iter_note_paths
+from atlas_agent.vault.paths import iter_note_paths
 
 class SearchHit( BaseModel ):
     path: str

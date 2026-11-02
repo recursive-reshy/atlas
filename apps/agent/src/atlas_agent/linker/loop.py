@@ -3,7 +3,7 @@ from pathlib import Path
 
 from pydantic import BaseModel, ValidationError
 
-from mnemosyne_agent.claude import (
+from atlas_agent.claude import (
     CacheControl,
     ClaudeClient,
     ClaudeError,
@@ -14,19 +14,19 @@ from mnemosyne_agent.claude import (
     ToolResultBlock,
     ToolUseBlock
 )
-from mnemosyne_agent.config import Settings
-from mnemosyne_agent.contract.link import (
+from atlas_agent.config import Settings
+from atlas_agent.contract.link import (
     LinkOutcome,
     LinkRequest,
     LinkResponse,
     LinkUsage
 )
-from mnemosyne_agent.linker.checks import apply_checks
-from mnemosyne_agent.linker.instructions import build_instructions
-from mnemosyne_agent.linker.tools import SubmitSuggestions, ToolResult, build_tool_definitions, run_vault_tool
-from mnemosyne_agent.vault.links import collect_link_targets
-from mnemosyne_agent.vault.notes import list_all_notes
-from mnemosyne_agent.vault.paths import vault_for
+from atlas_agent.linker.checks import apply_checks
+from atlas_agent.linker.instructions import build_instructions
+from atlas_agent.linker.tools import SubmitSuggestions, ToolResult, build_tool_definitions, run_vault_tool
+from atlas_agent.vault.links import collect_link_targets
+from atlas_agent.vault.notes import list_all_notes
+from atlas_agent.vault.paths import vault_for
 
 SUBMIT_TOOL_NAME = "submit_suggestions"
 

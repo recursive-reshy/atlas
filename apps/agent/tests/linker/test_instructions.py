@@ -1,6 +1,6 @@
 import pytest
 
-from mnemosyne_agent.linker.instructions import build_instructions
+from atlas_agent.linker.instructions import build_instructions
 
 TOOL_NAMES = [ "list_notes", "search_vault", "read_note", "list_link_targets", "submit_suggestions" ]
 

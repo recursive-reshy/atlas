@@ -2,8 +2,8 @@ from pathlib import Path
 
 import pytest
 
-from mnemosyne_agent.config import Settings
-from mnemosyne_agent.vault.paths import (
+from atlas_agent.config import Settings
+from atlas_agent.vault.paths import (
     NotePathOutcome,
     UnknownVaultError,
     iter_note_paths,

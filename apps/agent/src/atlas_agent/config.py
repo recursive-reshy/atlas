@@ -3,7 +3,7 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from mnemosyne_agent.logging_setup import LOG_LEVELS
+from atlas_agent.logging_setup import LOG_LEVELS
 
 SECRET_MINIMUM_LENGTH = 32
 

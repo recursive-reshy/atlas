@@ -23,4 +23,4 @@ USER agent
 
 EXPOSE 8100
 
-CMD [ "uvicorn", "mnemosyne_agent.main:app", "--host", "0.0.0.0", "--port", "8100" ]
+CMD [ "uvicorn", "atlas_agent.main:app", "--host", "0.0.0.0", "--port", "8100" ]

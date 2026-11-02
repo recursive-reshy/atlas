@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 from fastapi import FastAPI
 
-from mnemosyne_agent.config import Settings
-from mnemosyne_agent.main import create_app
+from atlas_agent.config import Settings
+from atlas_agent.main import create_app
 from tests.fakes import ScriptedClaude
 
 FIXTURE_VAULT = Path( __file__ ).parent / "fixtures" / "vault"
@@ -44,7 +44,7 @@ def app_factory() -> Callable[ [ Settings ], FastAPI ]:
 
 @pytest.fixture( autouse = True )
 def restore_loggers() -> Iterator[ None ]:
-    names = [ "mnemosyne_agent", "uvicorn", "uvicorn.access" ]
+    names = [ "atlas_agent", "uvicorn", "uvicorn.access" ]
     saved = [ ( logging.getLogger( name ), list( logging.getLogger( name ).handlers ), logging.getLogger( name ).propagate, logging.getLogger( name ).level ) for name in names ]
 
     yield

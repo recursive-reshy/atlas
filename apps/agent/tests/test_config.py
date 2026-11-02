@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from mnemosyne_agent.config import ConfigError, load_settings
+from atlas_agent.config import ConfigError, load_settings
 
 SECRET = "s" * 32
 

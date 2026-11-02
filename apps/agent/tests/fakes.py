@@ -1,7 +1,7 @@
 import asyncio
 from typing import Any
 
-from mnemosyne_agent.claude import ClaudeError, MessageReply, MessageRequest, TextBlock, ToolUseBlock, Usage
+from atlas_agent.claude import ClaudeError, MessageReply, MessageRequest, TextBlock, ToolUseBlock, Usage
 
 class ScriptedClaude:
     def __init__( self, script: list[ MessageReply | ClaudeError ], delay_seconds: float = 0 ) -> None:

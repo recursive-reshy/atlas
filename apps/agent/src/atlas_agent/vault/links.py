@@ -4,8 +4,8 @@ from pathlib import Path
 
 from pydantic import BaseModel
 
-from mnemosyne_agent.vault.notes import list_all_notes
-from mnemosyne_agent.vault.paths import iter_note_paths
+from atlas_agent.vault.notes import list_all_notes
+from atlas_agent.vault.paths import iter_note_paths
 
 WIKILINK_PATTERN = re.compile( r"(?<!!)\[\[([^\[\]\n]+)\]\]" )
 INLINE_CODE_PATTERN = re.compile( r"`[^`\n]*`" )

@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from mnemosyne_agent.config import Settings
-from mnemosyne_agent.linker.tools import build_tool_definitions, run_vault_tool
+from atlas_agent.config import Settings
+from atlas_agent.linker.tools import build_tool_definitions, run_vault_tool
 
 def test_defines_the_five_tools_in_order() -> None:
     names = [ tool.name for tool in build_tool_definitions() ]

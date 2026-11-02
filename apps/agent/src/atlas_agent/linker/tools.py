@@ -3,11 +3,11 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
-from mnemosyne_agent.claude import ToolDefinition
-from mnemosyne_agent.config import Settings
-from mnemosyne_agent.vault.links import list_link_targets
-from mnemosyne_agent.vault.notes import ReadNoteOutcome, list_notes, read_note
-from mnemosyne_agent.vault.search import search_vault
+from atlas_agent.claude import ToolDefinition
+from atlas_agent.config import Settings
+from atlas_agent.vault.links import list_link_targets
+from atlas_agent.vault.notes import ReadNoteOutcome, list_notes, read_note
+from atlas_agent.vault.search import search_vault
 
 class SubmittedSuggestion( BaseModel ):
     target: str = Field( min_length = 1, max_length = 200 )

@@ -1,4 +1,4 @@
-import mnemosyne_agent
+import atlas_agent
 
 def test_package_imports() -> None:
-    assert mnemosyne_agent.__name__ == "mnemosyne_agent"
+    assert atlas_agent.__name__ == "atlas_agent"

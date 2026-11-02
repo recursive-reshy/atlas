@@ -13,7 +13,7 @@ from tests.conftest import FIXTURE_VAULT
 pytestmark = pytest.mark.docker
 
 AGENT_PATH = Path( __file__ ).parents[ 2 ]
-IMAGE = "mnemosyne-agent:test"
+IMAGE = "atlas-agent:test"
 SECRET = "d" * 32
 
 def run_docker( *arguments: str, check: bool = True ) -> subprocess.CompletedProcess[ str ]:

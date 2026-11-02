@@ -2,7 +2,7 @@ import time
 
 import pytest
 
-from mnemosyne_agent.claude import ClaudeError, MessageReply, MessageRequest, TextBlock, Usage
+from atlas_agent.claude import ClaudeError, MessageReply, MessageRequest, TextBlock, Usage
 from tests.fakes import ScriptedClaude
 
 pytestmark = pytest.mark.anyio

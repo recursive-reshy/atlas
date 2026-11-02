@@ -6,11 +6,11 @@ from typing import Any
 import pytest
 from fastapi.testclient import TestClient
 
-from mnemosyne_agent.config import Settings
-from mnemosyne_agent.contract.link import LinkResponse
-from mnemosyne_agent.logging_setup import configure_logging
-from mnemosyne_agent.claude import ClaudeError
-from mnemosyne_agent.main import create_app
+from atlas_agent.config import Settings
+from atlas_agent.contract.link import LinkResponse
+from atlas_agent.logging_setup import configure_logging
+from atlas_agent.claude import ClaudeError
+from atlas_agent.main import create_app
 from tests.fakes import ScriptedClaude, submit_reply, tool_reply
 
 def make_body( **note_overrides: Any ) -> dict[ str, Any ]:
@@ -177,7 +177,7 @@ def test_logs_tool_calls_and_tokens_but_no_content(
     auth_headers: dict[ str, str ],
     caplog: pytest.LogCaptureFixture
 ) -> None:
-    caplog.set_level( logging.INFO, logger = "mnemosyne_agent" )
+    caplog.set_level( logging.INFO, logger = "atlas_agent" )
     claude = ScriptedClaude( [ submit_reply( [ { "target": "Free Tier", "anchor": None, "reason": "Mentioned." } ] ) ] )
     body = { **make_body( title = "title-sentinel", body = "body-sentinel" ), "guidance": "guidance-sentinel" }
 

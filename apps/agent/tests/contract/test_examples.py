@@ -5,7 +5,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, ValidationError
 
-from mnemosyne_agent.contract.link import (
+from atlas_agent.contract.link import (
     InstructionsResponse,
     LinkNote,
     LinkRequest,

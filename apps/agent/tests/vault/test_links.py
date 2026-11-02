@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from mnemosyne_agent.vault.links import collect_link_targets, list_link_targets, parse_wikilink_targets
+from atlas_agent.vault.links import collect_link_targets, list_link_targets, parse_wikilink_targets
 
 def test_parses_plain_aliased_and_heading_links() -> None:
     text = "[[a]] [[b|alias]] [[c#Heading]] [[d#Heading|alias]]"

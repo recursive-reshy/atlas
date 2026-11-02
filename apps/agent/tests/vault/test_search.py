@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from mnemosyne_agent.vault.search import search_vault
+from atlas_agent.vault.search import search_vault
 
 def hit_locations( root: Path, query: str ) -> list[ tuple[ str, int ] ]:
     result = search_vault( root, query, 20, 200 )
