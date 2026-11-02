@@ -175,8 +175,7 @@ install_file "$SRC/docker-compose.yml" "$R/opt/atlas/docker-compose.yml" 644 || 
 install_file "$SRC/compose.prod.yml" "$R/opt/atlas/compose.prod.yml" 644 || true
 install_file "$SRC/deploy/litestream/litestream.yml" "$R/opt/atlas/litestream.yml" 644 || true
 install_file "$SRC/deploy/vm/fetch-secrets.sh" "$R/opt/atlas/fetch-secrets.sh" 755 || true
-# deploy.sh arrives with task 5.6
-[ ! -f "$SRC/deploy/vm/deploy.sh" ] || install_file "$SRC/deploy/vm/deploy.sh" "$R/opt/atlas/deploy.sh" 755 || true
+install_file "$SRC/deploy/vm/deploy.sh" "$R/opt/atlas/deploy.sh" 755 || true
 
 if [ ! -f "$R/etc/atlas/atlas.env" ]; then
   log "creating /etc/atlas/atlas.env from the example; edit it before the first deploy"

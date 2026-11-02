@@ -11,3 +11,6 @@ playwright-report/
 
 .venv/
 __pycache__/
+
+# Registry settings for deploy/release.sh
+deploy/release.env

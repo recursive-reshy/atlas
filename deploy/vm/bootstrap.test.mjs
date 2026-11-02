@@ -146,10 +146,11 @@ test( 'a first run sets up the packages, swap, Docker, folders, files and the un
   }
 
   // What the unit runs
-  for( const file of [ 'docker-compose.yml', 'compose.prod.yml', 'litestream.yml', 'fetch-secrets.sh' ] ) {
-    assert.equal( read( box, `opt/atlas/${ file }` ), readFileSync( join( repo, file === 'litestream.yml' ? 'deploy/litestream/litestream.yml' : file === 'fetch-secrets.sh' ? 'deploy/vm/fetch-secrets.sh' : file ), 'utf8' ), file )
+  for( const file of [ 'docker-compose.yml', 'compose.prod.yml', 'litestream.yml', 'fetch-secrets.sh', 'deploy.sh' ] ) {
+    assert.equal( read( box, `opt/atlas/${ file }` ), readFileSync( join( repo, file === 'litestream.yml' ? 'deploy/litestream/litestream.yml' : file === 'fetch-secrets.sh' || file === 'deploy.sh' ? `deploy/vm/${ file }` : file ), 'utf8' ), file )
   }
   assert.equal( lstatSync( join( box.root, 'opt/atlas/fetch-secrets.sh' ) ).mode & 0o777, 0o755 )
+  assert.equal( lstatSync( join( box.root, 'opt/atlas/deploy.sh' ) ).mode & 0o777, 0o755 )
   assert.equal( read( box, 'etc/systemd/system/atlas.service' ), readFileSync( join( here, 'atlas.service' ), 'utf8' ) )
   assert.match( calls, /systemctl daemon-reload/ )
   assert.match( calls, /systemctl enable atlas\b/ )
@@ -182,7 +183,7 @@ test( 'a changed file in the checkout reaches /opt/atlas and reloads systemd on 
   assert.equal( box.run().status, 0 )
   const src = mkdtempSync( join( tmpdir(), 'atlas-src-' ) )
   for( const file of [
-    'docker-compose.yml', 'compose.prod.yml', 'deploy/litestream/litestream.yml', 'deploy/vm/fetch-secrets.sh',
+    'docker-compose.yml', 'compose.prod.yml', 'deploy/litestream/litestream.yml', 'deploy/vm/fetch-secrets.sh', 'deploy/vm/deploy.sh',
     'deploy/vm/atlas.service', 'deploy/vm/atlas.env.example', 'deploy/vm/docker-credential-atlas-gar',
   ] ) {
     mkdirSync( dirname( join( src, file ) ), { recursive: true } )
