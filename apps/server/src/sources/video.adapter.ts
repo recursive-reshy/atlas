@@ -4,8 +4,8 @@ import { rm } from 'node:fs/promises'
 import { VideoSource } from '@atlas/shared'
 // Clients
 import { downloadAudio } from '../clients/ytDlp.client.js'
-import { convertToWav } from '../clients/ffmpeg.client.js'
-import { transcribeAudio } from '../clients/whisperServer.client.js'
+import { prepareAudio } from '../clients/ffmpeg.client.js'
+import { transcribePieces } from '../clients/openaiTranscription.client.js'
 // Config
 import { config } from '../config.js'
 // Sources
@@ -42,19 +42,23 @@ export const videoAdapter: SourceAdapter = {
       const { audioPath, meta } = await downloadWithRetry( job.url, workDir )
 
       markStatus( 'converting' )
-      const wavPath = await convertToWav( audioPath )
+      const pieces = await prepareAudio( audioPath )
 
       markStatus( 'transcribing' )
-      const segments = await transcribeAudio( wavPath, config.whisperUrl )
+      const text = await transcribePieces( pieces, {
+        baseUrl: config.openaiBaseUrl,
+        apiKey: config.openaiApiKey,
+        model: config.transcriptionModel,
+      } )
 
       return VideoSource.parse( {
         kind: 'video',
         meta: {
           ...meta,
           transcribed_at: new Date().toISOString(),
-          model: config.whisperModel,
+          model: config.transcriptionModel,
         },
-        text: segments.map( ( { text } ) => text.trim() ).join( ' ' ),
+        text,
       } )
     } finally {
       try {

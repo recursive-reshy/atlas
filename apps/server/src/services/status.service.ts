@@ -114,7 +114,7 @@ const gmailConnectionRow = (
   return toRow( subject, health, false )
 }
 
-// The app's own services (agent, whisper-server, backups) show only to the admin (ADR 0065)
+// The app's own services (agent, transcription, backups) show only to the admin (ADR 0065)
 export const getStatus = ( userId: string, isAdmin: boolean ): GetStatusResponse => {
   const health = new Map< string, HealthRecord >(
     listHealth( userId, isAdmin )
@@ -131,8 +131,8 @@ export const getStatus = ( userId: string, isAdmin: boolean ): GetStatusResponse
       config.agent === null,
     ),
     toRow(
-      { kind: 'whisper', id: SINGLETON_ID, name: 'whisper-server' },
-      find( 'whisper', SINGLETON_ID ),
+      { kind: 'transcription', id: SINGLETON_ID, name: 'Transcription (OpenAI)' },
+      find( 'transcription', SINGLETON_ID ),
       false,
     ),
     toRow(

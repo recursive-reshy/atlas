@@ -8,7 +8,6 @@ import {
   afterEach,
 } from 'vitest'
 // Shared
-import type { Segment } from '../clients/whisperServer.client.js'
 // Errors
 import { ConflictError, NotFoundError } from '../errors.js'
 // Services
@@ -24,8 +23,8 @@ import { clearJobs, findJobById, updateJob } from '../repositories/jobStore.repo
 import { fetchArticle } from '../sources/extractArticle.js'
 // Clients
 import { downloadAudio } from '../clients/ytDlp.client.js'
-import { convertToWav } from '../clients/ffmpeg.client.js'
-import { transcribeAudio } from '../clients/whisperServer.client.js'
+import { prepareAudio } from '../clients/ffmpeg.client.js'
+import { transcribePieces } from '../clients/openaiTranscription.client.js'
 // Worker
 import { runJob } from './runJob.js'
 import { linkJob } from './linkJob.js'
@@ -45,7 +44,7 @@ beforeEach( () => {
 
 vi.mock( '../clients/ytDlp.client.js' )
 vi.mock( '../clients/ffmpeg.client.js' )
-vi.mock( '../clients/whisperServer.client.js' )
+vi.mock( '../clients/openaiTranscription.client.js' )
 vi.mock( './summarizeJob.js' )
 vi.mock( './linkJob.js' )
 vi.mock( '../sources/extractArticle.js' )
@@ -53,8 +52,9 @@ vi.mock( 'node:fs/promises' )
 vi.mock( '../config.js', () => ( {
   config: {
     workDir: '/work',
-    whisperUrl: 'http://whisper:8178',
-    whisperModel: 'test-model',
+    openaiApiKey: 'sk-test',
+    openaiBaseUrl: 'http://openai.test',
+    transcriptionModel: 'test-model',
     logLevel: 'silent',
     sessionDays: 30,
   },
@@ -71,11 +71,12 @@ const meta = {
   duration_seconds: 12,
 }
 const download = { audioPath: '/work/audio.webm', meta }
-const segments: Segment[] = [ { start: 0, end: 1.5, text: 'Hello' } ]
+const pieces = [ '/work/encoded.webm' ]
+const transcriptText = 'Hello'
 
 const downloadMock = vi.mocked( downloadAudio )
-const convertMock = vi.mocked( convertToWav )
-const transcribeMock = vi.mocked( transcribeAudio )
+const convertMock = vi.mocked( prepareAudio )
+const transcribeMock = vi.mocked( transcribePieces )
 const rmMock = vi.mocked( rm )
 const summarizeJobMock = vi.mocked( summarizeJob )
 const linkJobMock = vi.mocked( linkJob )
@@ -96,8 +97,8 @@ beforeEach( () => {
   clearJobs( userId )
   vi.resetAllMocks()
   downloadMock.mockResolvedValue( download )
-  convertMock.mockResolvedValue( '/work/audio.wav' )
-  transcribeMock.mockResolvedValue( segments )
+  convertMock.mockResolvedValue( pieces )
+  transcribeMock.mockResolvedValue( transcriptText )
   rmMock.mockResolvedValue( undefined )
   summarizeJobMock.mockResolvedValue( undefined )
   linkJobMock.mockResolvedValue( undefined )
@@ -132,7 +133,11 @@ describe( 'runJob', () => {
       `/work/${ id }`,
     )
     expect( convertMock ).toHaveBeenCalledWith( '/work/audio.webm' )
-    expect( transcribeMock ).toHaveBeenCalledWith( '/work/audio.wav', 'http://whisper:8178' )
+    expect( transcribeMock ).toHaveBeenCalledWith( pieces, {
+      baseUrl: 'http://openai.test',
+      apiKey: 'sk-test',
+      model: 'test-model',
+    } )
   } )
 
   it( 'moves through downloading, converting and transcribing', async () => {
@@ -144,11 +149,11 @@ describe( 'runJob', () => {
     } )
     convertMock.mockImplementation( () => {
       seen.push( findJob( userId, id ).status )
-      return Promise.resolve( '/work/audio.wav' )
+      return Promise.resolve( pieces )
     } )
     transcribeMock.mockImplementation( () => {
       seen.push( findJob( userId, id ).status )
-      return Promise.resolve( segments )
+      return Promise.resolve( transcriptText )
     } )
 
     await runJob( userId, id )

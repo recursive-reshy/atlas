@@ -9,7 +9,7 @@ import {
 } from 'vitest'
 // Clients
 import { checkHealth } from '../clients/agent.client.js'
-import { checkWhisperHealth } from '../clients/whisperServer.client.js'
+import { checkTranscriptionModel } from '../clients/openaiTranscription.client.js'
 // Logging
 import { logger } from '../logger.js'
 // Repositories
@@ -29,18 +29,22 @@ beforeEach( () => {
 const configMock = vi.hoisted( () => ( {
   logLevel: 'silent',
   sessionDays: 30,
-  whisperUrl: 'http://whisper.test:8178',
+  openaiApiKey: 'sk-test',
+  openaiBaseUrl: 'http://openai.test',
+  transcriptionModel: 'gpt-transcribe',
   agent: null as { url: string } | null,
 } ) )
 
 vi.mock( '../config.js', () => ( { config: configMock } ) )
 vi.mock( '../clients/agent.client.js', () => ( { checkHealth: vi.fn() } ) )
-vi.mock( '../clients/whisperServer.client.js', () => ( { checkWhisperHealth: vi.fn() } ) )
+vi.mock( '../clients/openaiTranscription.client.js', () => ( {
+  checkTranscriptionModel: vi.fn(),
+} ) )
 
 beforeEach( () => {
   configMock.agent = { url: 'http://agent.test:8100' }
   vi.mocked( checkHealth ).mockReset().mockResolvedValue( 'ok' )
-  vi.mocked( checkWhisperHealth ).mockReset().mockResolvedValue( undefined )
+  vi.mocked( checkTranscriptionModel ).mockReset().mockResolvedValue( undefined )
 } )
 
 afterEach( () => {
@@ -93,25 +97,29 @@ describe( 'recordCheck', () => {
     recordCheck( userId, { kind: 'feed', id: 'f1' }, { ok: true } )
     expect( warn ).not.toHaveBeenCalled()
 
-    recordCheck( null, { kind: 'whisper', id: 'default' }, { ok: false, message: 'refused' } )
+    recordCheck( null, { kind: 'transcription', id: 'default' }, { ok: false, message: 'refused' } )
 
     expect( warn ).toHaveBeenCalledWith(
-      { kind: 'whisper', subject_id: 'default' },
+      { kind: 'transcription', subject_id: 'default' },
       'Health check failed',
     )
   } )
 } )
 
 describe( 'runServiceChecks', () => {
-  it( 'records the agent and whisper-server as ok, asking the agent afresh', async () => {
+  it( 'records the agent and the transcription model as ok, asking the agent afresh', async () => {
     await runServiceChecks()
 
     expect( checkHealth ).toHaveBeenCalledWith( { fresh: true } )
-    expect( checkWhisperHealth ).toHaveBeenCalledWith( 'http://whisper.test:8178' )
+    expect( checkTranscriptionModel ).toHaveBeenCalledWith( {
+      baseUrl: 'http://openai.test',
+      apiKey: 'sk-test',
+      model: 'gpt-transcribe',
+    } )
     expect( getHealth( null, 'agent', 'default' ) ).toMatchObject( { last_error: null } )
     expect( getHealth( null, 'agent', 'default' )?.last_success_at ).not.toBeNull()
-    expect( getHealth( null, 'whisper', 'default' ) ).toMatchObject( { last_error: null } )
-    expect( getHealth( null, 'whisper', 'default' )?.last_success_at ).not.toBeNull()
+    expect( getHealth( null, 'transcription', 'default' ) ).toMatchObject( { last_error: null } )
+    expect( getHealth( null, 'transcription', 'default' )?.last_success_at ).not.toBeNull()
   } )
 
   it( 'records an unavailable agent as failing', async () => {
@@ -121,18 +129,18 @@ describe( 'runServiceChecks', () => {
 
     expect( getHealth( null, 'agent', 'default' )?.last_error )
       .toBe( 'The agent service is not reachable' )
-    expect( getHealth( null, 'whisper', 'default' )?.last_error ).toBeNull()
+    expect( getHealth( null, 'transcription', 'default' )?.last_error ).toBeNull()
   } )
 
-  it( 'records whisper-server\'s message when it is down', async () => {
-    vi.mocked( checkWhisperHealth ).mockRejectedValue(
-      new Error( 'Could not reach whisper-server at http://whisper.test:8178: fetch failed' ),
+  it( 'records OpenAI\'s message when the model check fails', async () => {
+    vi.mocked( checkTranscriptionModel ).mockRejectedValue(
+      new Error( 'OpenAI model check failed (401): Bad key' ),
     )
 
     await runServiceChecks()
 
-    expect( getHealth( null, 'whisper', 'default' )?.last_error )
-      .toBe( 'Could not reach whisper-server at http://whisper.test:8178: fetch failed' )
+    expect( getHealth( null, 'transcription', 'default' )?.last_error )
+      .toBe( 'OpenAI model check failed (401): Bad key' )
     expect( getHealth( null, 'agent', 'default' )?.last_error ).toBeNull()
   } )
 
@@ -143,7 +151,7 @@ describe( 'runServiceChecks', () => {
 
     expect( checkHealth ).not.toHaveBeenCalled()
     expect( getHealth( null, 'agent', 'default' ) ).toBeUndefined()
-    expect( getHealth( null, 'whisper', 'default' ) ).toBeDefined()
+    expect( getHealth( null, 'transcription', 'default' ) ).toBeDefined()
   } )
 
   it( 'still checks the agent when a user switched linking off', async () => {
@@ -155,12 +163,12 @@ describe( 'runServiceChecks', () => {
     expect( getHealth( null, 'agent', 'default' ) ).toMatchObject( { last_error: null } )
   } )
 
-  it( 'still checks whisper-server when the agent check throws', async () => {
+  it( 'still checks the transcription model when the agent check throws', async () => {
     vi.mocked( checkHealth ).mockRejectedValue( new Error( 'boom' ) )
 
     await runServiceChecks()
 
     expect( getHealth( null, 'agent', 'default' )?.last_error ).toBe( 'boom' )
-    expect( getHealth( null, 'whisper', 'default' ) ).toBeDefined()
+    expect( getHealth( null, 'transcription', 'default' ) ).toBeDefined()
   } )
 } )

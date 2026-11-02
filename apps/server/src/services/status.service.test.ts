@@ -111,7 +111,7 @@ describe( 'getStatus', () => {
     const { rows, failing_count } = getStatus( userId, true )
 
     expect( rows.map( ( { kind } ) => kind ) )
-      .toEqual( [ 'agent', 'whisper', 'backup', 'gmail_connection' ] )
+      .toEqual( [ 'agent', 'transcription', 'backup', 'gmail_connection' ] )
     expect( failing_count ).toBe( 0 )
     expect( GetStatusResponse.parse( getStatus( userId, true ) ) )
       .toEqual( getStatus( userId, true ) )
@@ -119,14 +119,14 @@ describe( 'getStatus', () => {
 
   it( 'names the singletons', () => {
     expect( getStatus( userId, true ).rows.map( ( { name } ) => name ) )
-      .toEqual( [ 'Agent service', 'whisper-server', 'Backups', 'Gmail connection' ] )
+      .toEqual( [ 'Agent service', 'Transcription (OpenAI)', 'Backups', 'Gmail connection' ] )
   } )
 
   it( 'shows a never-checked service as ok with no times', () => {
-    expect( rowOf( 'whisper' ) ).toEqual( {
-      kind: 'whisper',
+    expect( rowOf( 'transcription' ) ).toEqual( {
+      kind: 'transcription',
       id: 'default',
-      name: 'whisper-server',
+      name: 'Transcription (OpenAI)',
       state: 'ok',
       last_checked_at: null,
       last_success_at: null,
@@ -137,24 +137,24 @@ describe( 'getStatus', () => {
   } )
 
   it( 'is failing with the error and the times when a check failed', () => {
-    recordSuccess( null, 'whisper', 'default', at( 1 ) )
-    recordFailure( null, 'whisper', 'default', at( 2 ), 'Could not reach whisper-server' )
+    recordSuccess( null, 'transcription', 'default', at( 1 ) )
+    recordFailure( null, 'transcription', 'default', at( 2 ), 'Could not reach OpenAI' )
 
-    expect( rowOf( 'whisper' ) ).toMatchObject( {
+    expect( rowOf( 'transcription' ) ).toMatchObject( {
       state: 'failing',
       last_checked_at: at( 2 ),
       last_success_at: at( 1 ),
-      last_error: 'Could not reach whisper-server',
+      last_error: 'Could not reach OpenAI',
       failing_since: at( 2 ),
     } )
     expect( getStatus( userId, true ).failing_count ).toBe( 1 )
   } )
 
-  it( 'never marks whisper-server off', () => {
+  it( 'never marks the transcription row off', () => {
     configMock.agent = null
     setSetting( userId, 'linking_enabled', false )
 
-    expect( rowOf( 'whisper' ).state ).toBe( 'ok' )
+    expect( rowOf( 'transcription' ).state ).toBe( 'ok' )
   } )
 
   describe( 'agent', () => {
@@ -357,7 +357,7 @@ describe( 'getStatus', () => {
       expect( getStatus( userId, true ).rows.map( ( { kind, name } ) => `${ kind }:${ name }` ) )
         .toEqual( [
           'agent:Agent service',
-          'whisper:whisper-server',
+          'transcription:Transcription (OpenAI)',
           'backup:Backups',
           'gmail_connection:Gmail connection',
           'gmail_source:alpha alerts',
@@ -374,7 +374,7 @@ describe( 'getStatus', () => {
       insertFeed( userId, feed )
       recordFailure( userId, 'feed', feed.id, at( 1 ), 'a' )
       recordFailure( userId, 'gmail_source', source.id, at( 1 ), 'b' )
-      recordFailure( null, 'whisper', 'default', at( 1 ), 'c' )
+      recordFailure( null, 'transcription', 'default', at( 1 ), 'c' )
 
       expect( getStatus( userId, true ).failing_count ).toBe( 3 )
     } )
@@ -384,7 +384,7 @@ describe( 'getStatus', () => {
 describe( 'refreshStatus', () => {
   it( 'runs the service checks once and then returns the status', async () => {
     vi.mocked( runServiceChecks ).mockImplementation( () => {
-      recordFailure( null, 'whisper', 'default', at( 7 ), 'down' )
+      recordFailure( null, 'transcription', 'default', at( 7 ), 'down' )
 
       return Promise.resolve()
     } )
@@ -392,7 +392,7 @@ describe( 'refreshStatus', () => {
     const status = await refreshStatus( userId, true )
 
     expect( runServiceChecks ).toHaveBeenCalledTimes( 1 )
-    expect( status.rows.find( ( { kind } ) => kind === 'whisper' )?.state ).toBe( 'failing' )
+    expect( status.rows.find( ( { kind } ) => kind === 'transcription' )?.state ).toBe( 'failing' )
     expect( status.failing_count ).toBe( 1 )
   } )
 } )
@@ -415,7 +415,7 @@ describe( 'getHealthErrors', () => {
     const source = addStoredSource( userId )
 
     expect( getHealthErrors( userId, true, 'gmail_source', source.id ) ).toEqual( [] )
-    expect( getHealthErrors( userId, true, 'whisper', 'default' ) ).toEqual( [] )
+    expect( getHealthErrors( userId, true, 'transcription', 'default' ) ).toEqual( [] )
   } )
 
   it( 'refuses a feed or source that is unknown or deleted', () => {
@@ -447,7 +447,13 @@ describe( 'getStatus for two users', () => {
     const theirs = getStatus( other, false ).rows
 
     expect( mine.map( ( { name } ) => name ) )
-      .toEqual( [ 'Agent service', 'whisper-server', 'Backups', 'Gmail connection', 'Mine' ] )
+      .toEqual( [
+        'Agent service',
+        'Transcription (OpenAI)',
+        'Backups',
+        'Gmail connection',
+        'Mine',
+      ] )
     expect( theirs.map( ( { name } ) => name ) )
       .toEqual( [ 'Gmail connection', 'Their source', 'Theirs' ] )
     expect( mine.find( ( { kind } ) => kind === 'gmail_connection' ) )
@@ -471,10 +477,10 @@ describe( 'getStatus for two users', () => {
 } )
 
 describe( 'the app rows belong to the admin', () => {
-  it( 'hides the agent, whisper-server and backups from a member, and their failures', () => {
+  it( 'hides the agent, transcription and backups from a member, and their failures', () => {
     const member = createTestUser().id
 
-    recordFailure( null, 'whisper', 'default', at( 1 ), 'down' )
+    recordFailure( null, 'transcription', 'default', at( 1 ), 'down' )
 
     expect( getStatus( member, false ).rows.map( ( { kind } ) => kind ) )
       .toEqual( [ 'gmail_connection' ] )

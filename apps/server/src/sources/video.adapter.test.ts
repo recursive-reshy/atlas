@@ -11,11 +11,10 @@ import {
 } from 'vitest'
 // Shared
 import { Job, SourceDocument } from '@atlas/shared'
-import type { Segment } from '../clients/whisperServer.client.js'
 // Clients
 import { downloadAudio } from '../clients/ytDlp.client.js'
-import { convertToWav } from '../clients/ffmpeg.client.js'
-import { transcribeAudio } from '../clients/whisperServer.client.js'
+import { prepareAudio } from '../clients/ffmpeg.client.js'
+import { transcribePieces } from '../clients/openaiTranscription.client.js'
 // Sources
 import type { AdapterContext } from './adapter.js'
 import { videoAdapter } from './video.adapter.js'
@@ -24,12 +23,13 @@ import { logger } from '../logger.js'
 
 vi.mock( '../clients/ytDlp.client.js' )
 vi.mock( '../clients/ffmpeg.client.js' )
-vi.mock( '../clients/whisperServer.client.js' )
+vi.mock( '../clients/openaiTranscription.client.js' )
 vi.mock( 'node:fs/promises' )
 vi.mock( '../config.js', () => ( {
   config: {
-    whisperUrl: 'http://whisper:8178',
-    whisperModel: 'test-model',
+    openaiApiKey: 'sk-test',
+    openaiBaseUrl: 'http://openai.test',
+    transcriptionModel: 'test-model',
     logLevel: 'silent',
   },
 } ) )
@@ -45,11 +45,12 @@ const meta = {
   duration_seconds: 12,
 }
 const download = { audioPath: '/work/audio.webm', meta }
-const segments: Segment[] = [ { start: 0, end: 1.5, text: 'Hello' } ]
+const pieces = [ '/work/encoded.webm' ]
+const transcriptText = 'Hello'
 
 const downloadMock = vi.mocked( downloadAudio )
-const convertMock = vi.mocked( convertToWav )
-const transcribeMock = vi.mocked( transcribeAudio )
+const convertMock = vi.mocked( prepareAudio )
+const transcribeMock = vi.mocked( transcribePieces )
 const rmMock = vi.mocked( rm )
 
 const context = (
@@ -91,8 +92,8 @@ beforeEach( () => {
   vi.setSystemTime( new Date( NOW ) )
   vi.resetAllMocks()
   downloadMock.mockResolvedValue( download )
-  convertMock.mockResolvedValue( '/work/audio.wav' )
-  transcribeMock.mockResolvedValue( segments )
+  convertMock.mockResolvedValue( pieces )
+  transcribeMock.mockResolvedValue( transcriptText )
   rmMock.mockResolvedValue( undefined )
 } )
 
@@ -116,7 +117,11 @@ describe( 'videoAdapter.acquire', () => {
 
     expect( downloadMock ).toHaveBeenCalledWith( meta.source, '/work/job' )
     expect( convertMock ).toHaveBeenCalledWith( '/work/audio.webm' )
-    expect( transcribeMock ).toHaveBeenCalledWith( '/work/audio.wav', 'http://whisper:8178' )
+    expect( transcribeMock ).toHaveBeenCalledWith( pieces, {
+      baseUrl: 'http://openai.test',
+      apiKey: 'sk-test',
+      model: 'test-model',
+    } )
   } )
 
   it( 'marks downloading, converting and transcribing before each step', async () => {
@@ -132,7 +137,7 @@ describe( 'videoAdapter.acquire', () => {
     convertMock.mockImplementation( () => {
       seen.push( 'convert' )
 
-      return Promise.resolve( '/work/audio.wav' )
+      return Promise.resolve( pieces )
     } )
 
     await videoAdapter.acquire( context( markStatus ) )

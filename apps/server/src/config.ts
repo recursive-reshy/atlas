@@ -103,7 +103,13 @@ const originsSchema = z
   } )
 
 // Removed variables that are still read by nothing; a leftover value is reported at startup
-const IGNORED_VARIABLES = [ 'GOOGLE_REDIRECT_URI', 'VAULT_PATH', 'OBSIDIAN_VAULT_NAME' ]
+const IGNORED_VARIABLES = [
+  'GOOGLE_REDIRECT_URI',
+  'VAULT_PATH',
+  'OBSIDIAN_VAULT_NAME',
+  'WHISPER_URL',
+  'WHISPER_MODEL',
+]
 
 export const ignoredEnv = ( env: NodeJS.ProcessEnv ): string[] => {
   return IGNORED_VARIABLES.filter( ( name ) => env[ name ] !== undefined && env[ name ] !== '' )
@@ -112,13 +118,17 @@ export const ignoredEnv = ( env: NodeJS.ProcessEnv ): string[] => {
 const EnvSchema = z
   .object( {
     PORT: z.preprocess( emptyAsUnset, portSchema ),
-    WHISPER_URL: z.preprocess( emptyAsUnset, z.url().default( 'http://localhost:8178' ) ),
     WORK_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( defaultWorkDir ) ),
     DATA_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( defaultDataDir ) ),
     BACKUP_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( defaultBackupDir ) ),
-    WHISPER_MODEL: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( 'large-v3-turbo' ) ),
     WEB_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
     ANTHROPIC_API_KEY: z.string().min( 1 ),
+    OPENAI_API_KEY: z.string().min( 1 ),
+    OPENAI_BASE_URL: z.preprocess( emptyAsUnset, z.url().default( 'https://api.openai.com' ) ),
+    TRANSCRIPTION_MODEL: z.preprocess(
+      emptyAsUnset,
+      z.string().min( 1 ).default( 'gpt-transcribe' ),
+    ),
     DEFAULT_NOTE_FOLDER: z.preprocess( emptyAsUnset, noteFolderSchema ),
     LOG_LEVEL: z.preprocess( emptyAsUnset, logLevelSchema ),
     SUMMARY_TIMEOUT_MS: z.preprocess( emptyAsUnset, summaryTimeoutSchema ),
@@ -144,13 +154,14 @@ const EnvSchema = z
   } )
   .transform( ( env ) => ( {
     port: env.PORT,
-    whisperUrl: env.WHISPER_URL,
     workDir: env.WORK_DIR,
     dataDir: env.DATA_DIR,
     backupDir: env.BACKUP_DIR,
-    whisperModel: env.WHISPER_MODEL,
     webDir: env.WEB_DIR,
     anthropicApiKey: env.ANTHROPIC_API_KEY,
+    openaiApiKey: env.OPENAI_API_KEY,
+    openaiBaseUrl: env.OPENAI_BASE_URL,
+    transcriptionModel: env.TRANSCRIPTION_MODEL,
     vaultsPath: env.VAULTS_PATH,
     adminEmail: env.ADMIN_EMAIL,
     appOrigins: env.APP_ORIGINS,

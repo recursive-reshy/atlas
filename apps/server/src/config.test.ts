@@ -14,6 +14,7 @@ const google = {
 }
 const base = {
   ANTHROPIC_API_KEY: 'sk-test',
+  OPENAI_API_KEY: 'sk-openai',
   ADMIN_EMAIL: 'Admin@Example.com',
   APP_ORIGINS: 'http://localhost:3100',
   ...google,
@@ -23,13 +24,14 @@ describe( 'loadConfig', () => {
   it( 'returns the defaults for a minimal environment', () => {
     expect( loadConfig( base ) ).toEqual( {
       port: 3100,
-      whisperUrl: 'http://localhost:8178',
       workDir: join( tmpdir(), 'atlas' ),
       dataDir: join( tmpdir(), 'atlas-data' ),
       backupDir: join( tmpdir(), 'atlas-backups' ),
-      whisperModel: 'large-v3-turbo',
       webDir: undefined,
       anthropicApiKey: 'sk-test',
+      openaiApiKey: 'sk-openai',
+      openaiBaseUrl: 'https://api.openai.com',
+      transcriptionModel: 'gpt-transcribe',
       defaultNoteFolder: 'Mnemosyne',
       summaryTimeoutMs: 300_000,
       reviewTtlHours: 24,
@@ -63,11 +65,11 @@ describe( 'loadConfig', () => {
       VAULTS_PATH: '/Users/x/Vaults',
       DEFAULT_NOTE_FOLDER: 'Learning/AI',
       PORT: '4000',
-      WHISPER_URL: 'http://host.docker.internal:8178',
+      OPENAI_BASE_URL: 'http://fakes:4000',
+      TRANSCRIPTION_MODEL: 'gpt-transcribe-2',
       WORK_DIR: '/tmp/custom',
       DATA_DIR: '/data',
       BACKUP_DIR: '/backups',
-      WHISPER_MODEL: 'large-v3',
       WEB_DIR: '/srv/web',
       SUMMARY_TIMEOUT_MS: '60000',
       REVIEW_TTL_HOURS: '48',
@@ -82,13 +84,14 @@ describe( 'loadConfig', () => {
 
     expect( config ).toEqual( {
       port: 4000,
-      whisperUrl: 'http://host.docker.internal:8178',
       workDir: '/tmp/custom',
       dataDir: '/data',
       backupDir: '/backups',
-      whisperModel: 'large-v3',
       webDir: '/srv/web',
       anthropicApiKey: 'sk-test',
+      openaiApiKey: 'sk-openai',
+      openaiBaseUrl: 'http://fakes:4000',
+      transcriptionModel: 'gpt-transcribe-2',
       defaultNoteFolder: 'Learning/AI',
       summaryTimeoutMs: 60_000,
       reviewTtlHours: 48,
@@ -146,10 +149,10 @@ describe( 'loadConfig', () => {
   )
 
   it( 'treats empty strings as unset', () => {
-    const config = loadConfig( { ...base, PORT: '', WHISPER_URL: '' } )
+    const config = loadConfig( { ...base, PORT: '', OPENAI_BASE_URL: '' } )
 
     expect( config.port ).toBe( 3100 )
-    expect( config.whisperUrl ).toBe( 'http://localhost:8178' )
+    expect( config.openaiBaseUrl ).toBe( 'https://api.openai.com' )
   } )
 
   it( 'treats an empty DATA_DIR as unset', () => {
@@ -164,8 +167,9 @@ describe( 'loadConfig', () => {
     )
   } )
 
-  it( 'falls back to the default model for an empty WHISPER_MODEL', () => {
-    expect( loadConfig( { ...base, WHISPER_MODEL: '' } ).whisperModel ).toBe( 'large-v3-turbo' )
+  it( 'falls back to the default model for an empty TRANSCRIPTION_MODEL', () => {
+    expect( loadConfig( { ...base, TRANSCRIPTION_MODEL: '' } ).transcriptionModel )
+      .toBe( 'gpt-transcribe' )
   } )
 
   it( 'reads WEB_DIR and treats an empty value as unset', () => {
@@ -190,8 +194,13 @@ describe( 'loadConfig', () => {
     expect( () => loadConfig( { ...base, PORT: port } ) ).toThrow( /PORT/ )
   } )
 
-  it( 'throws naming WHISPER_URL for an invalid URL', () => {
-    expect( () => loadConfig( { ...base, WHISPER_URL: 'not-a-url' } ) ).toThrow( /WHISPER_URL/ )
+  it( 'throws naming OPENAI_BASE_URL for an invalid URL', () => {
+    expect( () => loadConfig( { ...base, OPENAI_BASE_URL: 'not-a-url' } ) )
+      .toThrow( /OPENAI_BASE_URL/ )
+  } )
+
+  it.each( [ undefined, '' ] )( 'throws naming OPENAI_API_KEY when it is %j', ( value ) => {
+    expect( () => loadConfig( { ...base, OPENAI_API_KEY: value } ) ).toThrow( /OPENAI_API_KEY/ )
   } )
 
   it.each( [ undefined, '' ] )( 'throws naming ANTHROPIC_API_KEY when it is %j', ( key ) => {
@@ -465,6 +474,10 @@ describe( 'loadConfig', () => {
 
       expect( ignoredEnv( env ) ).toEqual( [ 'OBSIDIAN_VAULT_NAME' ] )
       expect( loadConfig( env ) ).not.toHaveProperty( 'obsidianVaultName' )
+    } )
+
+    it.each( [ 'WHISPER_URL', 'WHISPER_MODEL' ] )( 'names %s when it is set', ( name ) => {
+      expect( ignoredEnv( { ...base, [ name ]: 'x' } ) ).toEqual( [ name ] )
     } )
 
     it( 'is empty when no removed variable is set, or the value is empty', () => {

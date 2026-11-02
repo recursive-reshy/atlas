@@ -8,8 +8,7 @@ services:
       - "127.0.0.1:3100:3100"
     env_file: .env
     environment:
-      WHISPER_URL: http://host.docker.internal:8178
-      WHISPER_MODEL: ${WHISPER_MODEL:-large-v3-turbo}
+      TRANSCRIPTION_MODEL: ${TRANSCRIPTION_MODEL:-gpt-transcribe}
       AGENT_URL: http://agent:8100
       LOG_LEVEL: ${LOG_LEVEL:-info}
       STATUS_CHECK_INTERVAL_MINUTES: ${STATUS_CHECK_INTERVAL_MINUTES:-2}

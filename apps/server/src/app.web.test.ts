@@ -21,10 +21,9 @@ const state = vi.hoisted( () => ( { webDir: '' } ) )
 vi.mock( './config.js', () => ( {
   config: {
     port: 3100,
-    whisperUrl: 'http://localhost:8178',
     workDir: '/work',
     logLevel: 'silent',
-    whisperModel: 'test-model',
+    transcriptionModel: 'test-model',
     sessionDays: 30,
     get webDir(): string {
       return state.webDir

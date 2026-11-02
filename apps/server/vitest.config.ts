@@ -7,6 +7,7 @@ export default defineConfig( {
   test: {
     env: {
       ANTHROPIC_API_KEY: 'test-key',
+      OPENAI_API_KEY: 'test-openai-key',
       LOG_LEVEL: 'silent',
       ADMIN_EMAIL: 'admin@example.com',
       APP_ORIGINS: 'http://localhost:3100',

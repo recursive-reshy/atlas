@@ -17,6 +17,8 @@ import { app } from './app.js'
 import { signedInRequest as request } from './test-support/auth.js'
 // Config
 import { config } from './config.js'
+// Clients
+import { checkTranscriptionModel } from './clients/openaiTranscription.client.js'
 // Repositories
 import { clearJobs, findJobById } from './repositories/jobStore.repository.js'
 // Worker
@@ -74,11 +76,15 @@ const exists = async ( target: string ): Promise< boolean > => {
 
 beforeAll( async () => {
   try {
-    await fetch( config.whisperUrl, { signal: AbortSignal.timeout( 3000 ) } )
+    await checkTranscriptionModel( {
+      baseUrl: config.openaiBaseUrl,
+      apiKey: config.openaiApiKey,
+      model: config.transcriptionModel,
+    } )
   } catch( error ) {
     throw new Error(
-      `whisper-server is not reachable at ${ config.whisperUrl }. `
-      + 'Start it before running the integration tests.',
+      'OpenAI is not reachable with OPENAI_API_KEY. Set a real key in .env before running the '
+      + 'integration tests.',
       { cause: error },
     )
   }
@@ -91,7 +97,7 @@ afterAll( async () => {
   clearJobs( userId )
 } )
 
-describe( 'pipeline (real yt-dlp, ffmpeg and whisper-server)', () => {
+describe( 'pipeline (real yt-dlp, ffmpeg and OpenAI)', () => {
   let failedJobId = ''
 
   it( 'fails a job for a video that does not exist and cleans up', async () => {
@@ -117,7 +123,7 @@ describe( 'pipeline (real yt-dlp, ffmpeg and whisper-server)', () => {
     expect( markdown.status ).toBe( 200 )
     expect( markdown.headers[ 'content-type' ] ).toMatch( /text\/markdown/ )
     expect( markdown.text.startsWith( '---' ) ).toBe( true )
-    expect( markdown.text ).toContain( 'model: large-v3-turbo' )
+    expect( markdown.text ).toContain( `model: ${ config.transcriptionModel }` )
 
     const srt = await request( app ).get( `/api/jobs/${ jobId }/download?format=srt` )
     expect( srt.status ).toBe( 400 )

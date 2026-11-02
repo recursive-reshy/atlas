@@ -2,7 +2,7 @@
 import type { HealthKind } from '@atlas/shared'
 // Clients
 import { checkHealth } from '../clients/agent.client.js'
-import { checkWhisperHealth } from '../clients/whisperServer.client.js'
+import { checkTranscriptionModel } from '../clients/openaiTranscription.client.js'
 // Config
 import { config } from '../config.js'
 // Logging
@@ -51,11 +51,15 @@ const checkAgent = async (): Promise< void > => {
   }
 }
 
-const checkWhisper = async (): Promise< void > => {
-  const subject: HealthSubject = { kind: 'whisper', id: 'default' }
+const checkTranscription = async (): Promise< void > => {
+  const subject: HealthSubject = { kind: 'transcription', id: 'default' }
 
   try {
-    await checkWhisperHealth( config.whisperUrl )
+    await checkTranscriptionModel( {
+      baseUrl: config.openaiBaseUrl,
+      apiKey: config.openaiApiKey,
+      model: config.transcriptionModel,
+    } )
     recordCheck( null, subject, { ok: true } )
   } catch( error ) {
     recordCheck( null, subject, { ok: false, message: errorMessage( error ) } )
@@ -64,7 +68,7 @@ const checkWhisper = async (): Promise< void > => {
 
 // The agent is checked whenever it is configured; its row reads as off while it is not.
 export const runServiceChecks = async (): Promise< void > => {
-  const checks = [ checkWhisper() ]
+  const checks = [ checkTranscription() ]
 
   if( config.agent !== null ) {
     checks.push( checkAgent() )

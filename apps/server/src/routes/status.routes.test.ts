@@ -88,7 +88,7 @@ describe( 'GET /api/status', () => {
 describe( 'POST /api/status/refresh', () => {
   it( 'runs the service checks once and returns the status', async () => {
     vi.mocked( runServiceChecks ).mockImplementation( () => {
-      recordFailure( null, 'whisper', 'default', at( 2 ), 'down' )
+      recordFailure( null, 'transcription', 'default', at( 2 ), 'down' )
 
       return Promise.resolve()
     } )
@@ -98,7 +98,7 @@ describe( 'POST /api/status/refresh', () => {
 
     expect( response.status ).toBe( 200 )
     expect( runServiceChecks ).toHaveBeenCalledTimes( 1 )
-    expect( body.rows.find( ( { kind } ) => kind === 'whisper' )?.state ).toBe( 'failing' )
+    expect( body.rows.find( ( { kind } ) => kind === 'transcription' )?.state ).toBe( 'failing' )
     expect( body.failing_count ).toBe( 1 )
   } )
 } )
@@ -120,10 +120,10 @@ describe( 'GET /api/status/:kind/:id/errors', () => {
 
   it( 'keeps only the last 5', async () => {
     for( let minute = 1; minute <= 8; minute += 1 ) {
-      recordFailure( null, 'whisper', 'default', at( minute ), `error ${ minute }` )
+      recordFailure( null, 'transcription', 'default', at( minute ), `error ${ minute }` )
     }
 
-    const response = await request( app ).get( '/api/status/whisper/default/errors' )
+    const response = await request( app ).get( '/api/status/transcription/default/errors' )
 
     expect( GetHealthErrorsResponse.parse( response.body ).errors ).toHaveLength( 5 )
   } )
@@ -148,7 +148,7 @@ describe( 'the status of a member', () => {
     const member = createTestUser()
 
     addFeed()
-    recordFailure( null, 'whisper', 'default', at( 1 ), 'down' )
+    recordFailure( null, 'transcription', 'default', at( 1 ), 'down' )
 
     const response = await request( app, member ).get( '/api/status' )
     const body = GetStatusResponse.parse( response.body )
@@ -170,11 +170,11 @@ describe( 'the status of a member', () => {
   it( 'gets 404 for the error history of an app service, as for an unknown subject', async () => {
     const member = createTestUser()
 
-    recordFailure( null, 'whisper', 'default', at( 1 ), 'down' )
+    recordFailure( null, 'transcription', 'default', at( 1 ), 'down' )
 
-    const app404 = await request( app, member ).get( '/api/status/whisper/default/errors' )
-    const unknown = await request( app, member ).get( '/api/status/whisper/other/errors' )
-    const admin = await request( app ).get( '/api/status/whisper/default/errors' )
+    const app404 = await request( app, member ).get( '/api/status/transcription/default/errors' )
+    const unknown = await request( app, member ).get( '/api/status/transcription/other/errors' )
+    const admin = await request( app ).get( '/api/status/transcription/default/errors' )
 
     expect( app404.status ).toBe( 404 )
     expect( app404.body ).toEqual( unknown.body )
@@ -187,6 +187,6 @@ describe( 'the status of a member', () => {
     const response = await request( app ).get( '/api/status' )
 
     expect( GetStatusResponse.parse( response.body ).rows.map( ( { kind } ) => kind ) )
-      .toEqual( [ 'agent', 'whisper', 'backup', 'gmail_connection', 'feed' ] )
+      .toEqual( [ 'agent', 'transcription', 'backup', 'gmail_connection', 'feed' ] )
   } )
 } )
