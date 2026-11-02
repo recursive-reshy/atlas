@@ -16,30 +16,15 @@ import { MeleteError } from '../errors.js'
 import { buildSystemPrompt } from '../summarizer/prompts.js'
 import { SUMMARY_MAX_TOKENS } from '../summarizer/models.js'
 
-const Timestamped = z.object( {
-  text: z.string(),
-  seconds: z.number(),
-} )
-
 export const SummaryResult = z.object( {
-  overview: z.string(),
-  key_points: z.array( Timestamped ),
-  quotes: z.array( Timestamped ),
-  tags: z.array( z.string() ),
-} )
-export type SummaryResult = z.infer< typeof SummaryResult >
-
-export const ArticleSummaryResult = z.object( {
   overview: z.string(),
   key_points: z.array( z.string() ),
   quotes: z.array( z.string() ),
   tags: z.array( z.string() ),
 } )
-export type ArticleSummaryResult = z.infer< typeof ArticleSummaryResult >
+export type SummaryResult = z.infer< typeof SummaryResult >
 
-export type Summary =
-  | ( { kind: 'video' } & SummaryResult )
-  | ( { kind: 'article' } & ArticleSummaryResult )
+export type Summary = { kind: 'video' | 'article' } & SummaryResult
 
 export interface TokenUsage {
   input_tokens: number
@@ -74,15 +59,9 @@ const toUserMessage = ( document: SourceDocument ): string => {
 }
 
 const toSummary = ( document: SourceDocument, output: unknown ): Summary | undefined => {
-  if( document.kind === 'video' ) {
-    const parsed = SummaryResult.safeParse( output )
+  const parsed = SummaryResult.safeParse( output )
 
-    return parsed.success ? { kind: 'video', ...parsed.data } : undefined
-  }
-
-  const parsed = ArticleSummaryResult.safeParse( output )
-
-  return parsed.success ? { kind: 'article', ...parsed.data } : undefined
+  return parsed.success ? { kind: document.kind, ...parsed.data } : undefined
 }
 
 export const summarizeSource = async (
@@ -93,9 +72,7 @@ export const summarizeSource = async (
     timeout: config.summaryTimeoutMs,
     maxRetries: 1,
   } )
-  const format = document.kind === 'video'
-    ? zodOutputFormat( SummaryResult )
-    : zodOutputFormat( ArticleSummaryResult )
+  const format = zodOutputFormat( SummaryResult )
 
   try {
     const response = await client.messages.parse( {

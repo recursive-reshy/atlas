@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest'
 import { UsageResponse } from '@atlas/shared'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
+import { insertTranscriptionRun } from '../repositories/transcriptionRuns.repository.js'
 // Services
 import { getUsage } from './admin.service.js'
 // Test support
@@ -60,6 +61,40 @@ const addVideoJob = ( userId: string, seconds: number | null, createdAt: string 
 
 const NOW = new Date( '2026-10-27T05:00:00.000Z' )
 const ZERO = { input_tokens: 0, output_tokens: 0, cost_usd: null, runs: 0 }
+
+describe( 'getUsage for transcription', () => {
+  it( 'counts transcription runs with their cost and no tokens, in the month and all time', () => {
+    const user = createTestUser()
+    const run = ( at: string, cost: number | null ): void => {
+      insertTranscriptionRun( user.id, {
+        job_id: 'job',
+        model: 'gpt-transcribe',
+        audio_seconds: 3600,
+        pieces: 1,
+        cost_usd: cost,
+        outcome: 'ok',
+        error: null,
+        created_at: at,
+      } )
+    }
+
+    run( '2026-10-05T01:00:00.000Z', 0.27 )
+    run( '2026-10-06T01:00:00.000Z', 0.5 )
+    run( '2026-08-06T01:00:00.000Z', 0.1 )
+
+    const mine = getUsage( undefined, NOW, 'Asia/Singapore' ).users
+      .find( ( row ) => row.user_id === user.id )
+
+    expect( mine?.month.transcription ).toEqual( {
+      input_tokens: 0,
+      output_tokens: 0,
+      cost_usd: 0.77,
+      runs: 2,
+    } )
+    expect( mine?.all_time.transcription ).toMatchObject( { runs: 3, cost_usd: 0.87 } )
+    expect( mine?.month.summary ).toEqual( ZERO )
+  } )
+} )
 
 describe( 'getUsage', () => {
   it( 'totals each category for the month and for all time', () => {

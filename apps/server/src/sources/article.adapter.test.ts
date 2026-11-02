@@ -60,6 +60,7 @@ const context = ( markStatus = vi.fn() ): Parameters< typeof articleAdapter.acqu
     } ),
     workDir: '/work/job',
     markStatus,
+    recordTranscription: vi.fn(),
   }
 }
 

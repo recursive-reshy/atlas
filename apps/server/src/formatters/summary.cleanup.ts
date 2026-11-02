@@ -26,39 +26,16 @@ const normalizeForQuote = ( text: string ): string => {
 }
 
 export const cleanSummary = ( summary: Summary, document: SourceDocument ): Summary => {
-  const tags = cleanTags( summary.tags )
-
-  if( summary.kind === 'article' ) {
-    const text = document.kind === 'article' ? normalizeForQuote( document.markdown ) : ''
-
-    return {
-      kind: 'article',
-      overview: summary.overview,
-      key_points: summary.key_points,
-      quotes: summary.quotes
-        .map( cleanText )
-        .filter( ( quote ) => quote !== '' && text.includes( normalizeForQuote( quote ) ) ),
-      tags,
-    }
-  }
-
-  if( document.kind !== 'video' ) {
-    return { ...summary, tags }
-  }
-
-  const spoken = cleanText( document.text )
-  const isInRange = ( { seconds }: { seconds: number } ): boolean => {
-    return seconds >= 0 && seconds <= document.meta.duration_seconds
-  }
+  const body = document.kind === 'article' ? document.markdown : document.text
+  const source = normalizeForQuote( body )
 
   return {
-    kind: 'video',
+    kind: summary.kind,
     overview: summary.overview,
-    key_points: summary.key_points.filter( isInRange ),
+    key_points: summary.key_points,
     quotes: summary.quotes
-      .map( ( quote ) => ( { ...quote, text: cleanText( quote.text ) } ) )
-      .filter( ( quote ) => quote.text !== '' && spoken.includes( quote.text ) )
-      .filter( isInRange ),
-    tags,
+      .map( cleanText )
+      .filter( ( quote ) => quote !== '' && source.includes( normalizeForQuote( quote ) ) ),
+    tags: cleanTags( summary.tags ),
   }
 }

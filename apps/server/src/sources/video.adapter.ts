@@ -35,7 +35,7 @@ const downloadWithRetry = async (
 }
 
 export const videoAdapter: SourceAdapter = {
-  acquire: async ( { job, workDir, markStatus } ) => {
+  acquire: async ( { job, workDir, markStatus, recordTranscription } ) => {
     markStatus( 'downloading' )
 
     try {
@@ -45,11 +45,30 @@ export const videoAdapter: SourceAdapter = {
       const pieces = await prepareAudio( audioPath )
 
       markStatus( 'transcribing' )
-      const text = await transcribePieces( pieces, {
-        baseUrl: config.openaiBaseUrl,
-        apiKey: config.openaiApiKey,
+      const attempt = {
         model: config.transcriptionModel,
-      } )
+        audio_seconds: meta.duration_seconds,
+        pieces: pieces.length,
+      }
+      let text: string
+
+      try {
+        text = await transcribePieces( pieces, {
+          baseUrl: config.openaiBaseUrl,
+          apiKey: config.openaiApiKey,
+          model: config.transcriptionModel,
+        } )
+      } catch( error ) {
+        recordTranscription( {
+          ...attempt,
+          outcome: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error',
+        } )
+
+        throw error
+      }
+
+      recordTranscription( { ...attempt, outcome: 'ok', error: null } )
 
       return VideoSource.parse( {
         kind: 'video',

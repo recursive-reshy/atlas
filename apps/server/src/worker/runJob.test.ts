@@ -19,6 +19,7 @@ import {
 } from '../services/jobs.service.js'
 // Repositories
 import { clearJobs, findJobById, updateJob } from '../repositories/jobStore.repository.js'
+import { listTranscriptionRuns } from '../repositories/transcriptionRuns.repository.js'
 // Sources
 import { fetchArticle } from '../sources/extractArticle.js'
 // Clients
@@ -192,6 +193,45 @@ describe( 'runJob', () => {
       await runJob( userId, id )
 
       expect( findJob( userId, id ) ).toMatchObject( { status: 'failed', error: 'Unknown error' } )
+    } )
+  } )
+
+  describe( 'transcription runs', () => {
+    it( 'stores an ok run with its cost for the job\'s owner', async () => {
+      const id = await queue()
+
+      await runJob( userId, id )
+
+      expect( listTranscriptionRuns( userId, id ) ).toMatchObject( [ {
+        job_id: id,
+        model: 'test-model',
+        audio_seconds: meta.duration_seconds,
+        pieces: 1,
+        outcome: 'ok',
+        error: null,
+        created_at: NOW,
+      } ] )
+    } )
+
+    it( 'stores an error run when OpenAI fails, and fails the job', async () => {
+      const id = await queue()
+      transcribeMock.mockRejectedValue( new Error( 'OpenAI transcription failed (500)' ) )
+
+      await runJob( userId, id )
+
+      expect( findJob( userId, id ) ).toMatchObject( { status: 'failed' } )
+      expect( listTranscriptionRuns( userId, id ) ).toMatchObject( [
+        { outcome: 'error', error: 'OpenAI transcription failed (500)' },
+      ] )
+    } )
+
+    it( 'stores nothing when the download fails', async () => {
+      const id = await queue()
+      downloadMock.mockRejectedValue( new Error( 'boom' ) )
+
+      await runJob( userId, id )
+
+      expect( listTranscriptionRuns( userId, id ) ).toEqual( [] )
     } )
   } )
 

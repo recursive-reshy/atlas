@@ -9,7 +9,6 @@ import {
 } from 'vitest'
 // Clients
 import {
-  ArticleSummaryResult,
   SummaryError,
   SummaryResult,
   generateQuestions,
@@ -57,12 +56,12 @@ vi.mock( '../config.js', () => ( {
 
 const summary: SummaryResult = {
   overview: 'A short talk about formatters.',
-  key_points: [ { text: 'Formatters are pure', seconds: 9 } ],
-  quotes: [ { text: 'No I/O is involved.', seconds: 22 } ],
+  key_points: [ 'Formatters are pure' ],
+  quotes: [ 'No I/O is involved.' ],
   tags: [ 'formatters' ],
 }
 
-const articleSummary: ArticleSummaryResult = {
+const articleSummary: SummaryResult = {
   overview: 'A short post about habits.',
   key_points: [ 'Small habits compound' ],
   quotes: [ 'Do it daily.' ],
@@ -277,8 +276,10 @@ describe( 'summarizeSource for an article', () => {
       .rejects.toThrow( 'Summary response did not match the expected format' )
   } )
 
-  it( 'rejects an output shaped like a video summary', async () => {
-    parse.mockResolvedValue( reply( { parsed_output: summary } ) )
+  it( 'rejects an output with timestamped points', async () => {
+    parse.mockResolvedValue( reply( {
+      parsed_output: { ...summary, key_points: [ { text: 'Formatters are pure', seconds: 9 } ] },
+    } ) )
 
     await expect( summarizeSource( articleInput ) ).rejects.toThrow( SummaryError )
   } )

@@ -4,12 +4,10 @@ import type { SourceType } from '@atlas/shared'
 
 export const LOCKED_INSTRUCTIONS_VIDEO = `You summarize the transcript of a video for a personal Obsidian vault.
 
-Each transcript line starts with the second at which it begins, in square brackets, for example [754].
-
 Your output has four parts:
 - overview: the main summary, in Markdown. Use paragraphs, bullet lists and bold lead-ins. Do not use headings, tables, images or code blocks; the app adds the headings.
-- key_points: the most useful points, in the order they come up. Each is one or two sentences on a single line, with the second where it is made.
-- quotes: notable lines copied word for word from the transcript, each with the second where it occurs. A quote that is not word for word is discarded.
+- key_points: the most useful points, in the order they come up. Each is one or two sentences on a single line.
+- quotes: notable lines copied word for word from the transcript. A quote that is not word for word is discarded.
 - tags: 3 to 5 short topical tags, lowercase, without the # sign.
 
 Use only what the transcript says. When you add your own judgement, label it as your inference.

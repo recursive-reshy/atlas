@@ -46,5 +46,10 @@ const SECONDS_PER_MINUTE = 60
 export const estimateTranscriptionCostUsd = ( model: string, seconds: number ): number | null => {
   const price = TRANSCRIPTION_PRICES_PER_MINUTE[ model ]
 
-  return price === undefined ? null : ( seconds / SECONDS_PER_MINUTE ) * price
+  if( price === undefined ) {
+    return null
+  }
+
+  // To the millionth of a dollar, so 3,600 s is 0.27 and not 0.26999999999999996
+  return Math.round( ( seconds / SECONDS_PER_MINUTE ) * price * 1_000_000 ) / 1_000_000
 }

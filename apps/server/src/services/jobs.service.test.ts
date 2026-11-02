@@ -44,6 +44,7 @@ import {
   setLastFolder,
 } from '../repositories/promptProfiles.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'
+import { listTranscriptionRuns } from '../repositories/transcriptionRuns.repository.js'
 import { insertFeed } from '../repositories/feeds.repository.js'
 import { addStoredSource } from '../test-support/gmailSources.fixture.js'
 // Services
@@ -68,6 +69,7 @@ import {
   recordLinkRun,
   recordLinkSuggestions,
   recordSummaryRun,
+  recordTranscriptionRun,
   recoverInterruptedJobs,
   regenerateSummary,
   rejectSuggestions,
@@ -1154,6 +1156,62 @@ describe( 'updateDraft', () => {
       expect( () => updateDraft( userId, id, { target_folder: 'A' } ) ).toThrow( ConflictError )
     },
   )
+} )
+
+describe( 'recordTranscriptionRun', () => {
+  it( 'stores a run with the estimated cost of the audio', async () => {
+    const id = await queueJobAt( 'transcribing' )
+
+    recordTranscriptionRun( userId, id, {
+      model: 'gpt-transcribe',
+      audio_seconds: 3600,
+      pieces: 2,
+      outcome: 'ok',
+      error: null,
+    } )
+
+    expect( listTranscriptionRuns( userId, id ) ).toEqual( [ {
+      id: 1,
+      job_id: id,
+      model: 'gpt-transcribe',
+      audio_seconds: 3600,
+      pieces: 2,
+      cost_usd: 0.27,
+      outcome: 'ok',
+      error: null,
+      created_at: startTime.toISOString(),
+    } ] )
+  } )
+
+  it( 'stores a failed run with its error and the same estimate', async () => {
+    const id = await queueJobAt( 'transcribing' )
+
+    recordTranscriptionRun( userId, id, {
+      model: 'gpt-transcribe',
+      audio_seconds: 60,
+      pieces: 1,
+      outcome: 'error',
+      error: 'OpenAI transcription failed (500)',
+    } )
+
+    expect( listTranscriptionRuns( userId, id ) ).toMatchObject( [
+      { outcome: 'error', error: 'OpenAI transcription failed (500)', cost_usd: 0.0045 },
+    ] )
+  } )
+
+  it( 'has no cost for a model that is not priced', async () => {
+    const id = await queueJobAt( 'transcribing' )
+
+    recordTranscriptionRun( userId, id, {
+      model: 'some-new-model',
+      audio_seconds: 60,
+      pieces: 1,
+      outcome: 'ok',
+      error: null,
+    } )
+
+    expect( listTranscriptionRuns( userId, id )[ 0 ]?.cost_usd ).toBeNull()
+  } )
 } )
 
 describe( 'recordSummaryRun and summary_usage', () => {

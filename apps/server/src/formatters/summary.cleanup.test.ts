@@ -3,7 +3,7 @@ import { describe, it, expect } from 'vitest'
 // Shared
 import { SourceDocument, VideoSource } from '@atlas/shared'
 // Clients
-import type { ArticleSummaryResult, Summary, SummaryResult } from '../clients/claude.client.js'
+import type { Summary, SummaryResult } from '../clients/claude.client.js'
 // Formatters
 import { cleanSummary } from './summary.cleanup.js'
 
@@ -32,56 +32,25 @@ const result = ( overrides: Partial< SummaryResult > = {} ): Summary => ( {
 
 describe( 'cleanSummary quotes', () => {
   it( 'keeps a quote that appears verbatim, ignoring whitespace differences', () => {
-    const quotes = [
-      { text: 'ownership model that is unusual.', seconds: 3 },
-      { text: 'Memory safety comes free.', seconds: 12 },
-    ]
+    const quotes = [ 'ownership model that is unusual.', 'Memory safety comes free.' ]
 
     expect( cleanSummary( result( { quotes } ), video ).quotes ).toEqual( quotes )
   } )
 
   it( 'drops a quote that is not in the transcript', () => {
-    const quotes = [
-      { text: 'Memory safety comes for free.', seconds: 12 },
-      { text: 'memory safety comes free.', seconds: 12 },
-    ]
+    const quotes = [ 'Memory safety comes for free.', 'memory safety comes free.' ]
 
     expect( cleanSummary( result( { quotes } ), video ).quotes ).toEqual( [] )
   } )
 
   it( 'drops an empty quote', () => {
-    const quotes = [ { text: '   ', seconds: 1 } ]
-
-    expect( cleanSummary( result( { quotes } ), video ).quotes ).toEqual( [] )
-  } )
-} )
-
-describe( 'cleanSummary timestamps', () => {
-  const points = [
-    { text: 'before', seconds: -1 },
-    { text: 'start', seconds: 0 },
-    { text: 'end', seconds: 100 },
-    { text: 'after', seconds: 101 },
-  ]
-
-  it( 'drops key points outside 0 to the duration', () => {
-    const cleaned = cleanSummary( result( { key_points: points } ), video )
-
-    expect( cleaned.key_points ).toEqual( [
-      { text: 'start', seconds: 0 },
-      { text: 'end', seconds: 100 },
-    ] )
+    expect( cleanSummary( result( { quotes: [ '   ' ] } ), video ).quotes ).toEqual( [] )
   } )
 
-  it( 'drops quotes outside 0 to the duration', () => {
-    const quotes = [
-      { text: 'Memory safety comes free.', seconds: 101 },
-      { text: 'Memory safety comes free.', seconds: 12 },
-    ]
+  it( 'keeps every key point as it is, with no range to check', () => {
+    const points = [ 'First point', 'A point not quoted from the text' ]
 
-    expect( cleanSummary( result( { quotes } ), video ).quotes ).toEqual( [
-      { text: 'Memory safety comes free.', seconds: 12 },
-    ] )
+    expect( cleanSummary( result( { key_points: points } ), video ).key_points ).toEqual( points )
   } )
 } )
 
@@ -114,7 +83,7 @@ describe( 'cleanSummary tags', () => {
 describe( 'cleanSummary', () => {
   it( 'keeps the overview and does not mutate its input', () => {
     const input = result( {
-      key_points: [ { text: 'late', seconds: 500 } ],
+      key_points: [ 'late' ],
       tags: [ 'Rust' ],
     } )
     const snapshot = structuredClone( input )
@@ -149,7 +118,7 @@ describe( 'cleanSummary for an article', () => {
     ].join( '\n' ),
   }
 
-  const summaryOf = ( overrides: Partial< ArticleSummaryResult > = {} ): Summary => ( {
+  const summaryOf = ( overrides: Partial< SummaryResult > = {} ): Summary => ( {
     kind: 'article',
     overview: 'Overview',
     key_points: [],
@@ -159,7 +128,7 @@ describe( 'cleanSummary for an article', () => {
   } )
 
   const quotes = ( input: string[] ): string[] => {
-    return cleanSummary( summaryOf( { quotes: input } ), article ).quotes as string[]
+    return cleanSummary( summaryOf( { quotes: input } ), article ).quotes
   }
 
   it( 'keeps a quote found in the Markdown after normalizing both', () => {

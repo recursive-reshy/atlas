@@ -55,6 +55,7 @@ const rmMock = vi.mocked( rm )
 
 const context = (
   markStatus: AdapterContext[ 'markStatus' ] = vi.fn(),
+  recordTranscription: AdapterContext[ 'recordTranscription' ] = vi.fn(),
 ): AdapterContext => {
   return {
     job: Job.parse( {
@@ -84,6 +85,7 @@ const context = (
     } ),
     workDir: '/work/job',
     markStatus,
+    recordTranscription,
   }
 }
 
@@ -149,6 +151,53 @@ describe( 'videoAdapter.acquire', () => {
       'convert',
       'transcribing',
     ] )
+  } )
+
+  describe( 'recording the transcription', () => {
+    it( 'records an ok run with the video length, model and pieces', async () => {
+      const record = vi.fn()
+      convertMock.mockResolvedValue( [ '/work/01.webm', '/work/02.webm' ] )
+
+      await videoAdapter.acquire( context( vi.fn(), record ) )
+
+      expect( record ).toHaveBeenCalledOnce()
+      expect( record ).toHaveBeenCalledWith( {
+        model: 'test-model',
+        audio_seconds: 12,
+        pieces: 2,
+        outcome: 'ok',
+        error: null,
+      } )
+    } )
+
+    it( 'records an error run, and still fails the job, when the API fails', async () => {
+      const record = vi.fn()
+      transcribeMock.mockRejectedValue( new Error( 'OpenAI transcription failed (500)' ) )
+
+      await expect( videoAdapter.acquire( context( vi.fn(), record ) ) )
+        .rejects.toThrow( 'OpenAI transcription failed (500)' )
+
+      expect( record ).toHaveBeenCalledOnce()
+      expect( record ).toHaveBeenCalledWith( {
+        model: 'test-model',
+        audio_seconds: 12,
+        pieces: 1,
+        outcome: 'error',
+        error: 'OpenAI transcription failed (500)',
+      } )
+    } )
+
+    it.each( [
+      [ 'the download', () => downloadMock ],
+      [ 'preparing the audio', () => convertMock ],
+    ] )( 'records nothing when %s fails', async ( _step, mock ) => {
+      const record = vi.fn()
+      mock().mockRejectedValue( new Error( 'boom' ) )
+
+      await expect( videoAdapter.acquire( context( vi.fn(), record ) ) ).rejects.toThrow( 'boom' )
+
+      expect( record ).not.toHaveBeenCalled()
+    } )
   } )
 
   it( 'removes the work folder after success', async () => {

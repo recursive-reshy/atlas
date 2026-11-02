@@ -63,6 +63,7 @@ import {
   setLastFolder,
 } from '../repositories/promptProfiles.repository.js'
 import { insertSummaryRun, listRunsForJob } from '../repositories/summaryRuns.repository.js'
+import { insertTranscriptionRun } from '../repositories/transcriptionRuns.repository.js'
 import {
   claimNextJob as claimNextStoredJob,
   listExpiredJobs,
@@ -72,7 +73,7 @@ import {
 // Sources
 import { articleFromText } from '../sources/text.js'
 // Summarizer
-import { estimateCostUsd } from '../summarizer/pricing.js'
+import { estimateCostUsd, estimateTranscriptionCostUsd } from '../summarizer/pricing.js'
 // Lifecycle
 import { STATES, assertMove as assertTableMove } from '../jobs/lifecycle.js'
 // Services
@@ -82,6 +83,14 @@ import { isLinkingEnabled } from './settings.service.js'
 import { vaultRootFor } from './vault.service.js'
 // Logging
 import { logger } from '../logger.js'
+
+export interface TranscriptionAttempt {
+  model: string
+  audio_seconds: number
+  pieces: number
+  outcome: 'ok' | 'error'
+  error: string | null
+}
 
 export type StepStatus = 'fetching' | 'downloading' | 'converting' | 'transcribing'
 
@@ -485,6 +494,19 @@ export const recordSummaryRun = (
     cost_usd: estimateCostUsd( run.model, inputTokens, outputTokens ),
     outcome: run.error === undefined ? 'succeeded' : 'failed',
     error: run.error ?? null,
+    created_at: new Date().toISOString(),
+  } )
+}
+
+export const recordTranscriptionRun = (
+  userId: string,
+  jobId: string,
+  attempt: TranscriptionAttempt,
+): void => {
+  insertTranscriptionRun( userId, {
+    job_id: jobId,
+    ...attempt,
+    cost_usd: estimateTranscriptionCostUsd( attempt.model, attempt.audio_seconds ),
     created_at: new Date().toISOString(),
   } )
 }

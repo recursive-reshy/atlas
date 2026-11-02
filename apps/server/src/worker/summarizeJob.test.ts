@@ -78,11 +78,8 @@ beforeEach( () => {
     summary: {
       kind: 'video',
       overview: 'An overview.',
-      key_points: [ { text: 'Ownership', seconds: 2 }, { text: 'Too late', seconds: 999 } ],
-      quotes: [
-        { text: 'Memory safety comes free.', seconds: 5 },
-        { text: 'Invented quote', seconds: 6 },
-      ],
+      key_points: [ 'Ownership', 'Borrowing' ],
+      quotes: [ 'Memory safety comes free.', 'Invented quote' ],
       tags: [ 'Rust Lang', 'mnemosyne' ],
     },
     usage: { input_tokens: 100, output_tokens: 20 },
@@ -119,11 +116,12 @@ describe( 'summarizeJob', () => {
       '',
       '## Key points',
       '',
-      '- Ownership ([00:02](https://youtu.be/abc123?t=2))',
+      '- Ownership',
+      '- Borrowing',
       '',
       '## Notable quotes',
       '',
-      '> "Memory safety comes free." ([00:05](https://youtu.be/abc123?t=5))',
+      '> "Memory safety comes free."',
       '',
     ].join( '\n' ) )
   } )

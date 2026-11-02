@@ -24,15 +24,6 @@ describe.skipIf( !hasApiKey )( 'claude.client (real Claude API)', () => {
     expect( Array.isArray( result.quotes ) ).toBe( true )
     expect( cleaned.tags.length ).toBeLessThanOrEqual( 5 )
     expect( cleaned.tags ).not.toContain( 'atlas' )
-
-    if( cleaned.kind !== 'video' ) {
-      throw new Error( 'Expected a video summary' )
-    }
-
-    for( const { seconds } of [ ...cleaned.key_points, ...cleaned.quotes ] ) {
-      expect( seconds ).toBeGreaterThanOrEqual( 0 )
-      expect( seconds ).toBeLessThanOrEqual( transcriptFixture.meta.duration_seconds )
-    }
   } )
 } )
 

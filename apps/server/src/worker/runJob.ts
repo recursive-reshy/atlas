@@ -8,6 +8,7 @@ import {
   failJob,
   findJob,
   markStatus,
+  recordTranscriptionRun,
 } from '../services/jobs.service.js'
 // Sources
 import { adapterFor } from '../sources/index.js'
@@ -46,6 +47,9 @@ export const runJob = async ( userId: string, jobId: string ): Promise< void > =
       workDir: path.join( config.workDir, jobId ),
       markStatus: ( status ) => {
         markStatus( userId, jobId, status )
+      },
+      recordTranscription: ( attempt ) => {
+        recordTranscriptionRun( userId, jobId, attempt )
       },
     } )
 

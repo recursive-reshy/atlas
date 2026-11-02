@@ -45,7 +45,7 @@ export const summarizeJob = async ( userId: string, jobId: string ): Promise< vo
     completeSummary(
       userId,
       jobId,
-      formatSummary( summary, document ),
+      formatSummary( summary ),
       summary.tags,
     )
   } catch( error ) {

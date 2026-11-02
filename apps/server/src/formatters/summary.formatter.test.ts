@@ -1,41 +1,22 @@
 // Packages
 import { describe, it, expect } from 'vitest'
 // Clients
-import { SourceDocument } from '@atlas/shared'
 import type { Summary, SummaryResult } from '../clients/claude.client.js'
 // Formatters
 import { formatSummary } from './summary.formatter.js'
 
-const youtube = 'https://www.youtube.com/watch?v=abc123'
-
-const videoDocument = ( source: string ): SourceDocument => ( {
-  kind: 'video',
-  meta: {
-    title: 'A talk',
-    source,
-    channel: 'Channel',
-    duration_seconds: 4000,
-    transcribed_at: '2026-10-15T10:00:00.000Z',
-    model: 'large-v3-turbo',
-  },
-  text: 'Hello',
-} )
-
 const base: SummaryResult = {
   overview: 'First paragraph.\n\nSecond paragraph.',
-  key_points: [
-    { text: 'Ownership is central', seconds: 754 },
-    { text: 'Borrowing follows', seconds: 3920.9 },
-  ],
-  quotes: [ { text: 'Memory safety comes free.', seconds: 3920 } ],
+  key_points: [ 'Ownership is central', 'Borrowing follows' ],
+  quotes: [ 'Memory safety comes free.' ],
   tags: [],
 }
 
 const summary: Summary = { kind: 'video', ...base }
 
 describe( 'formatSummary', () => {
-  it( 'renders the three sections with YouTube timestamp links', () => {
-    expect( formatSummary( summary, videoDocument( youtube ) ) ).toBe( [
+  it( 'renders the three sections with no timestamps or YouTube links', () => {
+    expect( formatSummary( summary ) ).toBe( [
       '## Summary',
       '',
       'First paragraph.',
@@ -44,67 +25,42 @@ describe( 'formatSummary', () => {
       '',
       '## Key points',
       '',
-      '- Ownership is central ([12:34](https://youtu.be/abc123?t=754))',
-      '- Borrowing follows ([1:05:20](https://youtu.be/abc123?t=3920))',
+      '- Ownership is central',
+      '- Borrowing follows',
       '',
       '## Notable quotes',
       '',
-      '> "Memory safety comes free." ([1:05:20](https://youtu.be/abc123?t=3920))',
+      '> "Memory safety comes free."',
       '',
     ].join( '\n' ) )
   } )
 
-  it( 'uses plain timestamps for non-YouTube sources', () => {
-    const body = formatSummary( summary, videoDocument( 'https://vimeo.com/123' ) )
-
-    expect( body ).toContain( '- Ownership is central (12:34)' )
-    expect( body ).toContain( '> "Memory safety comes free." (1:05:20)' )
-    expect( body ).not.toContain( 'youtu.be' )
-  } )
-
   it( 'omits empty key points and quotes sections but always writes the summary', () => {
-    const body = formatSummary(
-      { ...summary, key_points: [], quotes: [] },
-      videoDocument( youtube ),
-    )
+    const body = formatSummary( { ...summary, key_points: [], quotes: [] } )
 
     expect( body ).toBe( '## Summary\n\nFirst paragraph.\n\nSecond paragraph.\n' )
   } )
 
   it( 'omits only the empty section', () => {
-    const body = formatSummary( { ...summary, quotes: [] }, videoDocument( youtube ) )
+    const body = formatSummary( { ...summary, quotes: [] } )
 
     expect( body ).toContain( '## Key points' )
     expect( body ).not.toContain( '## Notable quotes' )
   } )
 
-  it( 'keeps a multi-line point on one line', () => {
+  it( 'keeps a multi-line point and quote on one line', () => {
     const body = formatSummary(
-      { ...summary, key_points: [ { text: 'Two\nlines', seconds: 5 } ], quotes: [] },
-      videoDocument( youtube ),
+      { ...summary, key_points: [ 'Two\nlines' ], quotes: [ 'Also\ntwo' ] },
     )
 
-    expect( body ).toContain( '- Two lines ([00:05](https://youtu.be/abc123?t=5))' )
+    expect( body ).toContain( '- Two lines' )
+    expect( body ).toContain( '> "Also two"' )
   } )
 } )
 
-describe( 'formatSummary for an article', () => {
-  const article: SourceDocument = {
+describe( 'formatSummary for an article summary', () => {
+  const summaryOf = ( overrides: Partial< SummaryResult > = {} ): Summary => ( {
     kind: 'article',
-    meta: {
-      title: 'A post',
-      source: 'https://example.com/post',
-      author: null,
-      site: null,
-      published: null,
-      fetched_at: '2026-10-18T10:00:00.000Z',
-      origin: 'fetched',
-    },
-    markdown: 'Text',
-  }
-
-  const summaryOf = ( overrides: Partial< Extract< Summary, { kind: 'article' } > > = {} ) => ( {
-    kind: 'article' as const,
     overview: 'First paragraph.\n\nSecond paragraph.',
     key_points: [ 'Habits compound', 'Start small' ],
     quotes: [ 'Do it daily.' ],
@@ -113,7 +69,7 @@ describe( 'formatSummary for an article', () => {
   } )
 
   it( 'renders the three sections with no timestamps', () => {
-    expect( formatSummary( summaryOf(), article ) ).toBe( [
+    expect( formatSummary( summaryOf() ) ).toBe( [
       '## Summary',
       '',
       'First paragraph.',
@@ -133,14 +89,13 @@ describe( 'formatSummary for an article', () => {
   } )
 
   it( 'omits empty sections but always writes the summary', () => {
-    expect( formatSummary( summaryOf( { key_points: [], quotes: [] } ), article ) )
+    expect( formatSummary( summaryOf( { key_points: [], quotes: [] } ) ) )
       .toBe( '## Summary\n\nFirst paragraph.\n\nSecond paragraph.\n' )
   } )
 
   it( 'keeps a multi-line point and quote on one line', () => {
     const body = formatSummary(
       summaryOf( { key_points: [ 'Two\nlines' ], quotes: [ 'Also\ntwo' ] } ),
-      article,
     )
 
     expect( body ).toContain( '- Two lines' )
