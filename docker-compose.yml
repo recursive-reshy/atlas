@@ -2,21 +2,35 @@ name: atlas
 
 services:
   app:
-    build: .
-    image: atlas-app:local
     ports:
       - "127.0.0.1:3100:3100"
-    env_file: .env
+    # Production has no env_file, so every variable the server reads is named here. An unset
+    # optional one reaches the server as an empty string, which config.ts treats as unset; the
+    # server itself refuses to start without the rest.
     environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY in .env}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+      AGENT_SECRET: ${AGENT_SECRET:?Set AGENT_SECRET in .env}
+      ADMIN_EMAIL: ${ADMIN_EMAIL:-}
+      APP_ORIGINS: ${APP_ORIGINS:-}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID:-}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:-}
+      TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:-}
       TRANSCRIPTION_MODEL: ${TRANSCRIPTION_MODEL:-gpt-transcribe}
+      VAULT_CREATE_ENABLED: ${VAULT_CREATE_ENABLED:-true}
+      DEFAULT_NOTE_FOLDER: ${DEFAULT_NOTE_FOLDER:-}
       AGENT_URL: http://agent:8100
+      AGENT_TIMEOUT_MS: ${AGENT_TIMEOUT_MS:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       STATUS_CHECK_INTERVAL_MINUTES: ${STATUS_CHECK_INTERVAL_MINUTES:-2}
+      SESSION_DAYS: ${SESSION_DAYS:-}
+      APP_TIME_ZONE: ${APP_TIME_ZONE:-}
+      MELETE_DAY_START_HOUR: ${MELETE_DAY_START_HOUR:-}
+      MELETE_REQUEST_RETENTION: ${MELETE_REQUEST_RETENTION:-}
+      MELETE_GRADING_TIMEOUT_MS: ${MELETE_GRADING_TIMEOUT_MS:-}
+      MELETE_GENERATION_TIMEOUT_MS: ${MELETE_GENERATION_TIMEOUT_MS:-}
     volumes:
       - data:/data
-      - ${VAULTS_HOST_PATH:?Set VAULTS_HOST_PATH in .env to the folder that holds the vaults}:/vaults
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     restart: unless-stopped
     stop_grace_period: 75s
     healthcheck:
@@ -31,15 +45,11 @@ services:
       retries: 3
 
   agent:
-    build: apps/agent
-    image: atlas-agent:local
     environment:
       ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY in .env}
       AGENT_SECRET: ${AGENT_SECRET:?Set AGENT_SECRET in .env}
       VAULTS_ROOT: /vaults
       LOG_LEVEL: ${LOG_LEVEL:-info}
-    volumes:
-      - ${VAULTS_HOST_PATH:?Set VAULTS_HOST_PATH in .env to the folder that holds the vaults}:/vaults:ro
     read_only: true
     tmpfs:
       - /tmp

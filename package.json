@@ -12,7 +12,7 @@
     }
   },
   "scripts": {
-    "test": "pnpm -r test && node --test scripts/nameGuard.test.mjs",
+    "test": "pnpm -r test && node --test \"scripts/*.test.mjs\"",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "build": "pnpm -r build",

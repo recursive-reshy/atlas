@@ -8,7 +8,7 @@ ROOT="$( cd "$( dirname "${BASH_SOURCE[ 0 ]}" )/.." && pwd )"
 cd "$ROOT"
 
 PROJECT=atlas-e2e
-COMPOSE=( docker compose -p "$PROJECT" --project-directory "$ROOT" -f "$ROOT/docker-compose.yml" -f "$ROOT/e2e/docker-compose.e2e.yml" )
+COMPOSE=( docker compose -p "$PROJECT" --project-directory "$ROOT" -f "$ROOT/docker-compose.yml" -f "$ROOT/compose.local.yml" -f "$ROOT/e2e/docker-compose.e2e.yml" )
 
 VAULTS_HOST_PATH="$( mktemp -d )"
 # One vault per e2e user; the specs sign in as these users through the test-only session route

@@ -1,0 +1,17 @@
+# Local use on the Mac (ADR 0077): builds both images from this checkout, reads .env and mounts the
+# vaults folder. Layered over docker-compose.yml through COMPOSE_FILE in .env.
+services:
+  app:
+    build: .
+    image: atlas-app:local
+    env_file:
+      - path: .env
+        required: false
+    volumes:
+      - ${VAULTS_HOST_PATH:?Set VAULTS_HOST_PATH in .env to the folder that holds the vaults}:/vaults
+
+  agent:
+    build: apps/agent
+    image: atlas-agent:local
+    volumes:
+      - ${VAULTS_HOST_PATH:?Set VAULTS_HOST_PATH in .env to the folder that holds the vaults}:/vaults:ro
