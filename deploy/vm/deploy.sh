@@ -52,7 +52,7 @@ done
 previous=$(grep -m 1 '^ATLAS_VERSION=' "$ETC/atlas.env" | cut -d= -f2- || true)
 previous=${previous:-unknown}
 
-compose=(docker compose --project-directory "$OPT" --env-file "$ETC/atlas.env" --env-file "$RUN/secrets.env" -f docker-compose.yml -f compose.prod.yml)
+compose=(docker compose --project-directory "$OPT" --env-file "$ETC/atlas.env" --env-file "$RUN/secrets.env" -f "$OPT/docker-compose.yml" -f "$OPT/compose.prod.yml")
 
 # step DESCRIPTION COMMAND...: prints it, runs it unless this is a dry run
 step() {

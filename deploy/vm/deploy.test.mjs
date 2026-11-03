@@ -40,6 +40,7 @@ const sandbox = ( { uid = 0, current = 'ATLAS_VERSION=0.10.0\nREGISTRY=r.example
   writeFileSync( join( etc, 'atlas.env' ), current )
   chmodSync( join( etc, 'atlas.env' ), 0o640 )
   writeFileSync( join( opt, 'docker-compose.yml' ), 'installed\n' )
+  writeFileSync( join( opt, 'compose.prod.yml' ), 'installed\n' )
   write( join( opt, 'fetch-secrets.sh' ), '#!/bin/sh\necho "fetch-secrets" >> "$FAKE_DIR/calls"\n' )
   return {
     dir,
@@ -47,8 +48,9 @@ const sandbox = ( { uid = 0, current = 'ATLAS_VERSION=0.10.0\nREGISTRY=r.example
     opt,
     env: () => readFileSync( join( etc, 'atlas.env' ), 'utf8' ),
     calls: () => ( existsSync( join( dir, 'calls' ) ) ? readFileSync( join( dir, 'calls' ), 'utf8' ).trim().split( '\n' ) : [] ),
-    run: ( args, env = {} ) => spawnSync( 'bash', [ script, ...args ], {
+    run: ( args, env = {}, cwd = undefined ) => spawnSync( 'bash', [ script, ...args ], {
       encoding: 'utf8',
+      cwd,
       env: {
         PATH: `${ bin }:/usr/bin:/bin`,
         FAKE_DIR: dir,
@@ -64,7 +66,7 @@ const sandbox = ( { uid = 0, current = 'ATLAS_VERSION=0.10.0\nREGISTRY=r.example
   }
 }
 
-const compose = ( box ) => `docker compose --project-directory ${ box.opt } --env-file ${ join( box.etc, 'atlas.env' ) } --env-file ${ join( box.dir, 'run', 'secrets.env' ) } -f docker-compose.yml -f compose.prod.yml`
+const compose = ( box ) => `docker compose --project-directory ${ box.opt } --env-file ${ join( box.etc, 'atlas.env' ) } --env-file ${ join( box.dir, 'run', 'secrets.env' ) } -f ${ join( box.opt, 'docker-compose.yml' ) } -f ${ join( box.opt, 'compose.prod.yml' ) }`
 
 test( 'sets the version, reads the secrets, pulls, restarts the unit and waits for health', () => {
   const box = sandbox()
@@ -84,6 +86,23 @@ test( 'sets the version, reads the secrets, pulls, restarts the unit and waits f
   assert.equal( calls.filter( ( call ) => call === 'sleep 5' ).length, 2 )
   assert.match( result.stdout, /Atlas 0\.10\.1 is up/ )
   assert.match( result.stdout, /previous version was 0\.10\.0/ )
+} )
+
+test( 'runs from any working directory: Compose files are named by absolute path', () => {
+  const box = sandbox()
+  // Like real Compose, this docker fails when a -f file does not exist relative to where it runs
+  const strict = mkdtempSync( join( tmpdir(), 'atlas-deploy-strict-' ) )
+  write( join( strict, 'docker' ), `#!/bin/sh
+echo "docker $*" >> "$FAKE_DIR/calls"
+while [ $# -gt 0 ]; do
+  if [ "$1" = "-f" ]; then [ -f "$2" ] || { echo "compose file \"$PWD/$2\" is invalid: no such file" >&2; exit 1; }; shift; fi
+  shift
+done
+` )
+  const elsewhere = mkdtempSync( join( tmpdir(), 'atlas-deploy-cwd-' ) )
+  const result = box.run( [ '0.10.1' ], { PATH: `${ strict }:${ bin }:/usr/bin:/bin` }, elsewhere )
+  assert.equal( result.status, 0, result.stderr )
+  assert.ok( box.calls().includes( `${ compose( box ) } pull` ) )
 } )
 
 test( 'a version line is added when atlas.env has none', () => {
