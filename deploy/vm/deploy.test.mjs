@@ -88,6 +88,14 @@ test( 'sets the version, reads the secrets, pulls, restarts the unit and waits f
   assert.match( result.stdout, /previous version was 0\.10\.0/ )
 } )
 
+test( 'the first deploy has no previous version and offers no rollback', () => {
+  const box = sandbox( { current: 'ATLAS_VERSION=\nREGISTRY=r.example/atlas\n' } )
+  const result = box.run( [ '0.10.0' ] )
+  assert.equal( result.status, 0, result.stderr )
+  assert.match( result.stdout, /Atlas 0\.10\.0 is up \(previous version was none\)/ )
+  assert.doesNotMatch( result.stdout, /to go back/ )
+} )
+
 test( 'runs from any working directory: Compose files are named by absolute path', () => {
   const box = sandbox()
   // Like real Compose, this docker fails when a -f file does not exist relative to where it runs

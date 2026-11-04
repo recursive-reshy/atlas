@@ -8,7 +8,8 @@
 # and leaves nothing half-written. No value is ever printed.
 #
 # Each line is KEY='value'. Compose reads single-quoted values literally (no $ interpolation, no
-# comment handling), which is why a value containing ' or a line break is refused.
+# comment handling), which is why a value containing ' or a line break is refused. Control
+# characters are refused too (ADR 0078): an ESC in an OpenAI key once reached the Authorization header.
 set -euo pipefail
 umask 077
 
@@ -62,7 +63,16 @@ for entry in "${SECRETS[@]}"; do
   name=${entry%%:*}
   variable=${entry#*:}
   value=$(read_secret "$name" 2>/dev/null) || fail "could not read secret '$name' (is it created, and can the VM's service account access it?)"
+  # Trailing whitespace (a newline typed or piped in) is trimmed; anything else that is not plain
+  # text (a control character such as ESC from a paste, or leading whitespace) is refused, because
+  # it would reach an Authorization header or a key unchanged.
+  value=${value%"${value##*[![:space:]]}"}
   [ -n "$value" ] || fail "secret '$name' is empty"
+  cleaned=$(printf '%s' "$value" | LC_ALL=C tr -d '\000-\037\177')
+  [ "$cleaned" = "$value" ] || fail "secret '$name' contains a control character; add the secret again without it (pipe the value through: tr -d '\\000-\\037\\177')"
+  case "$value" in
+    [[:space:]]*) fail "secret '$name' starts with whitespace; add the secret again without it" ;;
+  esac
   case "$value" in
     *"'"* | *$'\n'* | *$'\r'*) fail "secret '$name' contains a quote or a line break, which the env file cannot hold" ;;
   esac

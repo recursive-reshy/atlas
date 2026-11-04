@@ -74,3 +74,14 @@ test( 'the runbook states that prices are Google\'s, not copied here', () => {
 test( 'docs/README.md links the runbook', () => {
   assert.match( read( 'docs/README.md' ), /\(deploy\.md\)/ )
 } )
+
+test( 'the dc helper names the Compose files by absolute path, and secrets are piped through tr', () => {
+  const text = read( 'docs/deploy.md' )
+  assert.match( text, /-f \/opt\/atlas\/docker-compose\.yml -f \/opt\/atlas\/compose\.prod\.yml "\$@"/ )
+  assert.doesNotMatch( text, /-f docker-compose\.yml/ )
+  const lines = text.split( '\n' ).filter( ( line ) => /\| gcloud secrets (create|versions add)/.test( line ) )
+  assert.ok( lines.length >= 5, 'secret-creating commands are in the runbook' )
+  for( const line of lines ) {
+    assert.ok( line.includes( "tr -d '\\000-\\037\\177'" ), `no control-character filter: ${ line }` )
+  }
+} )

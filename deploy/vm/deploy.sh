@@ -50,7 +50,6 @@ done
 [ -z "$files" ] || [ -d "$files" ] || fail "$files is not a folder"
 
 previous=$(grep -m 1 '^ATLAS_VERSION=' "$ETC/atlas.env" | cut -d= -f2- || true)
-previous=${previous:-unknown}
 
 compose=(docker compose --project-directory "$OPT" --env-file "$ETC/atlas.env" --env-file "$RUN/secrets.env" -f "$OPT/docker-compose.yml" -f "$OPT/compose.prod.yml")
 
@@ -128,10 +127,14 @@ fi
 echo "deploy: waiting for $HEALTH_URL (up to ${HEALTH_TIMEOUT}s)"
 if wait_for_health; then
   "${compose[@]}" ps
-  echo "Atlas $version is up (previous version was $previous; to go back: $OPT/deploy.sh $previous)"
+  if [ -n "$previous" ]; then
+    echo "Atlas $version is up (previous version was $previous; to go back: $OPT/deploy.sh $previous)"
+  else
+    echo "Atlas $version is up (previous version was none)"
+  fi
 else
   "${compose[@]}" ps >&2 || true
   "${compose[@]}" logs --tail 40 app >&2 || true
-  echo "deploy: Atlas $version did not become healthy within ${HEALTH_TIMEOUT}s; to go back: $OPT/deploy.sh $previous" >&2
+  echo "deploy: Atlas $version did not become healthy within ${HEALTH_TIMEOUT}s${previous:+; to go back: $OPT/deploy.sh $previous}" >&2
   exit 1
 fi

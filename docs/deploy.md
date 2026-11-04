@@ -33,7 +33,7 @@ Several steps run Compose by hand. This function (put it in your shell on the VM
 dc() {
   sudo docker compose --project-directory /opt/atlas \
     --env-file /etc/atlas/atlas.env --env-file /run/atlas/secrets.env \
-    -f docker-compose.yml -f compose.prod.yml "$@"
+    -f /opt/atlas/docker-compose.yml -f /opt/atlas/compose.prod.yml "$@"
 }
 ```
 
@@ -94,10 +94,10 @@ The five secrets. Run this in `bash` (type `bash` first on a Mac, where the defa
 ```sh
 for name in anthropic-api-key openai-api-key google-client-secret; do
   printf '%s: ' "$name"; read -rs value; echo
-  printf '%s' "$value" | gcloud secrets create "$name" --data-file=-
+  printf '%s' "$value" | tr -d '\000-\037\177' | gcloud secrets create "$name" --data-file=-
 done
-printf '%s' "$(openssl rand -hex 32)"    | gcloud secrets create agent-secret --data-file=-
-printf '%s' "$(openssl rand -base64 32)" | gcloud secrets create token-encryption-key --data-file=-
+printf '%s' "$(openssl rand -hex 32)"    | tr -d '\000-\037\177' | gcloud secrets create agent-secret --data-file=-
+printf '%s' "$(openssl rand -base64 32)" | tr -d '\000-\037\177' | gcloud secrets create token-encryption-key --data-file=-
 
 for name in anthropic-api-key openai-api-key agent-secret google-client-secret token-encryption-key; do
   gcloud secrets add-iam-policy-binding "$name" \
@@ -105,7 +105,7 @@ for name in anthropic-api-key openai-api-key agent-secret google-client-secret t
 done
 ```
 
-`google-client-secret` comes from the OAuth client you create below. If you don't have it yet, create the other four now and add this one when you have it (`printf '%s' "$value" | gcloud secrets create google-client-secret --data-file=-`, then the binding). A value may not contain a single quote or a line break (the secrets file cannot hold them); API keys and the two generated ones never do.
+`google-client-secret` comes from the OAuth client you create below. If you don't have it yet, create the other four now and add this one when you have it (`printf '%s' "$value" | tr -d '\000-\037\177' | gcloud secrets create google-client-secret --data-file=-`, then the binding). A value may not contain a single quote, a line break or any control character (the secrets file cannot hold them, and `fetch-secrets.sh` refuses the value, naming the secret); API keys and the two generated ones never do. The `tr` in each command removes control characters such as the ESC that a paste through `read` can bring along.
 
 The firewall. The default network allows SSH, RDP and ICMP from anywhere; remove those and allow SSH only from Google's IAP range, as a fallback if Tailscale is down:
 
@@ -271,7 +271,7 @@ Add a version in Secret Manager, then restart the service so it fetches again:
 **You run:**
 
 ```sh
-printf '%s' "$NEW_VALUE" | gcloud secrets versions add anthropic-api-key --data-file=-
+printf '%s' "$NEW_VALUE" | tr -d '\000-\037\177' | gcloud secrets versions add anthropic-api-key --data-file=-
 ```
 
 On the VM:

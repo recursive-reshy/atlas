@@ -200,6 +200,34 @@ test( 'atlas.env.example holds the non-secret settings and none of the secrets',
   assert.match( text, /^VAULT_CREATE_ENABLED=false$/m )
 } )
 
+test( 'trailing whitespace is trimmed from a value, interior text stays', () => {
+  const box = sandbox( { withGcloud: true }, { 'openai-api-key': 'sk-openai-SENTINEL-2 \t\r\n', 'agent-secret': 'a b\n\n' } )
+  const result = box.run()
+  assert.equal( result.status, 0, result.stderr )
+  const lines = readFileSync( box.out, 'utf8' ).trimEnd().split( '\n' )
+  assert.ok( lines.includes( "OPENAI_API_KEY='sk-openai-SENTINEL-2'" ), lines.join( '|' ) )
+  assert.ok( lines.includes( "AGENT_SECRET='a b'" ) )
+} )
+
+test( 'anything else cleaning would remove is refused, naming the secret and never showing the value', () => {
+  const cases = [
+    [ '\u001bsk-openai-SENTINEL-2', 'leading escape (a key pasted through read)' ],
+    [ 'sk-\u001b[31mx-SENTINEL-2', 'escape in the middle' ],
+    [ 'sk-ab\u0007cd-SENTINEL-2', 'bell' ],
+    [ 'a\u007fb-SENTINEL-2', 'DEL' ],
+    [ 'sk-SENTINEL-2\u001b', 'trailing escape' ],
+    [ '  sk-SENTINEL-2', 'leading space' ],
+  ]
+  for( const [ bad, what ] of cases ) {
+    const box = sandbox( { withGcloud: true }, { 'openai-api-key': bad } )
+    const result = box.run()
+    assert.notEqual( result.status, 0, `accepted ${ what }` )
+    assert.match( result.stderr, /openai-api-key/, what )
+    assert.doesNotMatch( result.stderr, /SENTINEL-2/, what )
+    assert.equal( existsSync( box.out ), false )
+  }
+} )
+
 test( 'production renders with the real example file and a fetched secrets file', { skip: hasDocker ? false : 'docker is not installed' }, () => {
   const box = sandbox( { withGcloud: true } )
   assert.equal( box.run().status, 0 )
@@ -208,6 +236,6 @@ test( 'production renders with the real example file and a fetched secrets file'
     '-f', join( root, 'docker-compose.yml' ), '-f', join( root, 'compose.prod.yml' ),
     '--env-file', join( root, 'deploy', 'vm', 'atlas.env.example' ), '--env-file', box.out,
     'config', '--quiet',
-  ], { encoding: 'utf8', env: { PATH: process.env.PATH, HOME: process.env.HOME } } )
+  ], { encoding: 'utf8', env: { PATH: process.env.PATH, HOME: process.env.HOME, ATLAS_VERSION: '0.10.0' } } )
   assert.equal( result.status, 0, result.stderr )
 } )
