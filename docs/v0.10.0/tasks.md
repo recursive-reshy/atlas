@@ -105,7 +105,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 ---
 
 ## Checkpoint F: Phase 8 (YouTube on the VM)
-**Plan:** ⬜ [`plans/checkpoint-f.md`](plans/checkpoint-f.md)
+**Plan:** ✅ [`plans/checkpoint-f.md`](plans/checkpoint-f.md)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
