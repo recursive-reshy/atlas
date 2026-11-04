@@ -14,6 +14,7 @@ import {
 // Clients
 import { checkHealth } from '../clients/agent.client.js'
 import { fetchReplicationMetrics } from '../clients/litestreamMetrics.client.js'
+import { checkPotProvider } from '../clients/potProvider.client.js'
 import { checkTranscriptionModel } from '../clients/openaiTranscription.client.js'
 // Logging
 import { logger } from '../logger.js'
@@ -46,12 +47,14 @@ const configMock = vi.hoisted( () => ( {
   transcriptionModel: 'gpt-transcribe',
   agent: null as { url: string } | null,
   litestreamMetricsUrl: null as string | null,
+  potProviderUrl: null as string | null,
   vaultSyncStatusDir: null as string | null,
 } ) )
 
 vi.mock( '../config.js', () => ( { config: configMock } ) )
 vi.mock( '../clients/agent.client.js', () => ( { checkHealth: vi.fn() } ) )
 vi.mock( '../clients/litestreamMetrics.client.js', () => ( { fetchReplicationMetrics: vi.fn() } ) )
+vi.mock( '../clients/potProvider.client.js', () => ( { checkPotProvider: vi.fn() } ) )
 vi.mock( '../clients/openaiTranscription.client.js', () => ( {
   checkTranscriptionModel: vi.fn(),
 } ) )
@@ -59,7 +62,9 @@ vi.mock( '../clients/openaiTranscription.client.js', () => ( {
 beforeEach( () => {
   configMock.agent = { url: 'http://agent.test:8100' }
   configMock.litestreamMetricsUrl = null
+  configMock.potProviderUrl = null
   configMock.vaultSyncStatusDir = null
+  vi.mocked( checkPotProvider ).mockReset().mockResolvedValue( { version: '2.0.2' } )
   resetReplicationCheck()
   vi.mocked( fetchReplicationMetrics ).mockReset()
   vi.mocked( checkHealth ).mockReset().mockResolvedValue( 'ok' )
@@ -190,6 +195,51 @@ describe( 'runServiceChecks', () => {
 
     expect( getHealth( null, 'agent', 'default' )?.last_error ).toBe( 'boom' )
     expect( getHealth( null, 'transcription', 'default' ) ).toBeDefined()
+  } )
+} )
+
+describe( 'the PO token provider check', () => {
+  it( 'is not run, and records nothing, without POT_PROVIDER_URL', async () => {
+    await runServiceChecks()
+
+    expect( checkPotProvider ).not.toHaveBeenCalled()
+    expect( getHealth( null, 'pot_provider', 'default' ) ).toBeUndefined()
+  } )
+
+  it( 'asks the configured URL and records a success with the provider\'s version', async () => {
+    configMock.potProviderUrl = 'http://pot-provider:4416'
+
+    await runServiceChecks()
+
+    expect( checkPotProvider ).toHaveBeenCalledWith( 'http://pot-provider:4416' )
+    expect( getHealth( null, 'pot_provider', 'default' ) ).toMatchObject( {
+      last_error: null,
+      detail: '2.0.2',
+    } )
+  } )
+
+  it( 'records a failure with the reason, and never throws', async () => {
+    configMock.potProviderUrl = 'http://pot-provider:4416'
+    vi.mocked( checkPotProvider )
+      .mockRejectedValue( new Error( 'The PO token provider answered 500' ) )
+
+    await expect( runServiceChecks() ).resolves.toBeUndefined()
+
+    expect( getHealth( null, 'pot_provider', 'default' )?.last_error )
+      .toBe( 'The PO token provider answered 500' )
+  } )
+
+  it( 'deletes its row where it is not configured and keeps it where it is', () => {
+    getDatabase().prepare( `INSERT INTO health_status ( user_id, kind, subject_id )
+      VALUES ( NULL, 'pot_provider', 'default' )` ).run()
+    pruneHealth()
+    expect( getHealth( null, 'pot_provider', 'default' ) ).toBeUndefined()
+
+    configMock.potProviderUrl = 'http://pot-provider:4416'
+    getDatabase().prepare( `INSERT INTO health_status ( user_id, kind, subject_id )
+      VALUES ( NULL, 'pot_provider', 'default' )` ).run()
+    pruneHealth()
+    expect( getHealth( null, 'pot_provider', 'default' ) ).toBeDefined()
   } )
 } )
 

@@ -69,7 +69,7 @@ describe( 'the schema guard', () => {
         .prepare( 'SELECT sql FROM sqlite_master WHERE name = ?' )
         .get( table ) as { sql: string } ).sql
 
-      const kinds = "'agent', 'whisper', 'backup', 'transcription', 'replication'"
+      const kinds = "'agent', 'whisper', 'backup', 'transcription', 'replication', 'pot_provider'"
 
       expect( sql.replace( /\s+/g, ' ' ), `${ table } has the kind check` )
         .toContain( `CHECK ( ( kind IN ( ${ kinds } ) ) = ( user_id IS NULL ) )` )

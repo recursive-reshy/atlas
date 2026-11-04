@@ -38,6 +38,7 @@ const configMock = vi.hoisted( () => {
     gmail: Record< string, unknown > | null
     agent: { url: string } | null
     litestreamMetricsUrl: string | null
+    potProviderUrl: string | null
     vaultSyncStatusDir: string | null
   } = {
     logLevel: 'silent',
@@ -45,6 +46,7 @@ const configMock = vi.hoisted( () => {
     gmail: { clientId: 'id' },
     agent: { url: 'http://agent.test' },
     litestreamMetricsUrl: null,
+    potProviderUrl: null,
     vaultSyncStatusDir: null,
   }
 
@@ -109,6 +111,7 @@ beforeEach( () => {
   configMock.gmail = { clientId: 'id' }
   configMock.agent = { url: 'http://agent.test' }
   configMock.litestreamMetricsUrl = null
+  configMock.potProviderUrl = null
   configMock.vaultSyncStatusDir = null
   vi.mocked( runServiceChecks ).mockReset().mockResolvedValue( undefined )
 } )
@@ -297,6 +300,65 @@ describe( 'getStatus', () => {
 
       expect( getStatus( userId, true ).rows.map( ( { kind } ) => kind ) )
         .toEqual( [ 'agent', 'transcription', 'replication', 'gmail_connection' ] )
+    } )
+  } )
+
+  describe( 'YouTube tokens', () => {
+    const PROVIDER_URL = 'http://pot-provider:4416'
+
+    it( 'has no row where the provider is not configured', () => {
+      expect( getStatus( userId, true ).rows.map( ( { kind } ) => kind ) )
+        .not.toContain( 'pot_provider' )
+    } )
+
+    it( 'is ok, with the provider\'s version, after a good check', () => {
+      configMock.potProviderUrl = PROVIDER_URL
+      recordSuccess( null, 'pot_provider', 'default', at( 1 ), '2.0.2' )
+
+      expect( rowOf( 'pot_provider' ) ).toMatchObject( {
+        name: 'YouTube tokens (PO token provider)',
+        state: 'ok',
+        detail: 'Version 2.0.2',
+      } )
+    } )
+
+    it( 'is ok with no detail before the first check', () => {
+      configMock.potProviderUrl = PROVIDER_URL
+
+      expect( rowOf( 'pot_provider' ) ).toMatchObject( { state: 'ok', detail: null } )
+    } )
+
+    it( 'is failing with the check\'s message', () => {
+      configMock.potProviderUrl = PROVIDER_URL
+      recordFailure( null, 'pot_provider', 'default', at( 2 ), 'Provider answered 500' )
+
+      expect( rowOf( 'pot_provider' ) ).toMatchObject( {
+        state: 'failing',
+        last_error: 'Provider answered 500',
+      } )
+    } )
+
+    it( 'is hidden from a member, and its history is a 404', () => {
+      configMock.potProviderUrl = PROVIDER_URL
+      const member = createTestUser().id
+
+      expect( getStatus( member, false ).rows.map( ( { kind } ) => kind ) )
+        .not.toContain( 'pot_provider' )
+      expect( () => getHealthErrors( member, false, 'pot_provider', 'default' ) )
+        .toThrow( NotFoundError )
+    } )
+
+    it( 'sits after the replication row, before the connection', () => {
+      configMock.litestreamMetricsUrl = 'http://litestream:9090/metrics'
+      configMock.potProviderUrl = PROVIDER_URL
+
+      expect( getStatus( userId, true ).rows.map( ( { kind } ) => kind ) ).toEqual( [
+        'agent',
+        'transcription',
+        'replication',
+        'pot_provider',
+        'gmail_connection',
+      ] )
     } )
   } )
 

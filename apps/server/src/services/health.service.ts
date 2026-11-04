@@ -6,6 +6,7 @@ import { HealthKind, VaultSyncStatusFile } from '@atlas/shared'
 // Clients
 import { checkHealth } from '../clients/agent.client.js'
 import { fetchReplicationMetrics } from '../clients/litestreamMetrics.client.js'
+import { checkPotProvider } from '../clients/potProvider.client.js'
 import type { ReplicationMetrics } from '../clients/litestreamMetrics.client.js'
 import { checkTranscriptionModel } from '../clients/openaiTranscription.client.js'
 // Config
@@ -119,6 +120,18 @@ const checkReplication = async ( url: string ): Promise< void > => {
   }
 }
 
+const checkPotProviderHealth = async ( url: string ): Promise< void > => {
+  const subject: HealthSubject = { kind: 'pot_provider', id: 'default' }
+
+  try {
+    const { version } = await checkPotProvider( url )
+
+    recordCheck( null, subject, { ok: true, detail: version } )
+  } catch( error ) {
+    recordCheck( null, subject, { ok: false, message: errorMessage( error ) } )
+  }
+}
+
 const parseJson = ( text: string ): unknown => {
   try {
     return JSON.parse( text ) as unknown
@@ -184,6 +197,10 @@ export const runServiceChecks = async (): Promise< void > => {
     checks.push( checkReplication( config.litestreamMetricsUrl ) )
   }
 
+  if( config.potProviderUrl !== null ) {
+    checks.push( checkPotProviderHealth( config.potProviderUrl ) )
+  }
+
   if( config.vaultSyncStatusDir !== null ) {
     checks.push( checkVaultSync( config.vaultSyncStatusDir ) )
   }
@@ -196,6 +213,10 @@ export const pruneHealth = (): void => {
   const kept = HealthKind.options.filter( ( kind ) => {
     if( kind === 'replication' ) {
       return config.litestreamMetricsUrl !== null
+    }
+
+    if( kind === 'pot_provider' ) {
+      return config.potProviderUrl !== null
     }
 
     return kind === 'vault_sync' ? config.vaultSyncStatusDir !== null : true

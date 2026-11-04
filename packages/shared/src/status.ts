@@ -6,6 +6,7 @@ export const AppHealthKind = z.enum( [
   'agent',
   'transcription',
   'replication',
+  'pot_provider',
 ] )
 export type AppHealthKind = z.infer< typeof AppHealthKind >
 
@@ -21,7 +22,7 @@ export type HealthKind = z.infer< typeof HealthKind >
 export const HealthState = z.enum( [ 'ok', 'failing', 'off' ] )
 export type HealthState = z.infer< typeof HealthState >
 
-// Singleton subjects (gmail_connection, agent, transcription, replication) use the id "default".
+// Singleton subjects (gmail_connection and the app kinds) use the id "default".
 export const StatusRow = z.object( {
   kind: HealthKind,
   id: z.string().min( 1 ),

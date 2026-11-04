@@ -144,7 +144,7 @@ describe( 'openDatabase and closeDatabase', () => {
 describe( 'runMigrations', () => {
   it( 'numbers migrations from SCHEMA_BASE and reads that as the stored version', () => {
     expect( SCHEMA_BASE ).toBe( 9 )
-    expect( migrations ).toHaveLength( 2 )
+    expect( migrations ).toHaveLength( 3 )
   } )
 
   const version = ( database: Database.Database ): unknown => {
@@ -563,8 +563,8 @@ describe( 'the baseline schema', () => {
       .map( ( { name } ) => name )
   }
 
-  it( 'stores schema version 11 on an empty database', () => {
-    expect( getDatabase().pragma( 'user_version', { simple: true } ) ).toBe( 11 )
+  it( 'stores schema version 12 on an empty database', () => {
+    expect( getDatabase().pragma( 'user_version', { simple: true } ) ).toBe( 12 )
   } )
 
   it( 'creates exactly the 0.8 tables, unchanged, and the four user tables', () => {
@@ -780,6 +780,73 @@ describe( 'the baseline schema', () => {
         ( user_id, job_id, model, prompt_version_id, outcome, created_at )
         VALUES ( ?, 'gone', 'm', ?, 'ok', 'now' )` ).run( userId, version.id ) ).not.toThrow()
     } )
+  } )
+} )
+
+describe( 'the PO token provider migration (schema 12, ADR 0080)', () => {
+  const kindOf = ( database: Database.Database, kind: string, userId: string | null ): void => {
+    database.prepare( `INSERT INTO health_status ( user_id, kind, subject_id )
+      VALUES ( ?, ?, 'default' )` ).run( userId, kind )
+  }
+
+  it( 'upgrades a schema 11 database, keeps its health rows and accepts the new kind', () => {
+    const database = new Database( ':memory:' )
+
+    runMigrations( database, migrations.slice( 0, 2 ) )
+    database.pragma( 'foreign_keys = OFF' )
+    kindOf( database, 'replication', null )
+    database.prepare( `INSERT INTO health_errors ( user_id, kind, subject_id, at, message )
+      VALUES ( NULL, 'replication', 'default', 'now', 'boom' )` ).run()
+    expect( () => kindOf( database, 'pot_provider', null ) ).toThrow()
+
+    runMigrations( database, migrations )
+
+    expect( database.pragma( 'user_version', { simple: true } ) ).toBe( 12 )
+    expect( database.prepare( 'SELECT kind FROM health_status' ).pluck().all() )
+      .toEqual( [ 'replication' ] )
+    expect( database.prepare( 'SELECT message FROM health_errors' ).pluck().all() )
+      .toEqual( [ 'boom' ] )
+    expect( () => kindOf( database, 'pot_provider', null ) ).not.toThrow()
+    const insertError = database.prepare( `INSERT INTO health_errors
+      ( user_id, kind, subject_id, at, message )
+      VALUES ( NULL, 'pot_provider', 'default', 'now', 'x' )` )
+
+    expect( () => insertError.run() ).not.toThrow()
+  } )
+
+  it( 'still ties an app kind to a null user and a user kind to a user', () => {
+    const database = new Database( ':memory:' )
+
+    runMigrations( database, migrations )
+    database.pragma( 'foreign_keys = OFF' )
+
+    expect( () => kindOf( database, 'pot_provider', 'someone' ) ).toThrow()
+    expect( () => kindOf( database, 'feed', null ) ).toThrow()
+  } )
+
+  it( 'keeps the health indexes and the table columns', () => {
+    const database = new Database( ':memory:' )
+
+    runMigrations( database, migrations )
+
+    const columns = ( database.pragma( 'table_info(health_status)' ) as { name: string }[] )
+      .map( ( { name } ) => name )
+
+    const index = database
+      .prepare( "SELECT name FROM sqlite_master WHERE name = 'health_errors_subject'" )
+      .all()
+
+    expect( index ).toHaveLength( 1 )
+    expect( columns ).toEqual( [
+      'user_id',
+      'kind',
+      'subject_id',
+      'last_checked_at',
+      'last_success_at',
+      'last_error',
+      'failing_since',
+      'detail',
+    ] )
   } )
 } )
 

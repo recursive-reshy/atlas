@@ -30,6 +30,10 @@ const byName = ( first: StatusRow, second: StatusRow ): number => {
   return first.name.localeCompare( second.name, undefined, { sensitivity: 'base' } )
 }
 
+const describePotProvider = ( detail: string | null ): string | null => {
+  return detail === null ? null : `Version ${ detail }`
+}
+
 const ReplicationDetail = z.object( { last_sync_at: z.iso.datetime() } )
 
 // The check stores { last_sync_at } as JSON; the panel shows it as one line.
@@ -173,8 +177,18 @@ export const getStatus = ( userId: string, isAdmin: boolean ): GetStatusResponse
         describeReplication( find( 'replication', SINGLETON_ID )?.detail ?? null ),
       ),
     ]
+  const potProviderRows: StatusRow[] = config.potProviderUrl === null
+    ? []
+    : [
+      toRow(
+        { kind: 'pot_provider', id: SINGLETON_ID, name: 'YouTube tokens (PO token provider)' },
+        find( 'pot_provider', SINGLETON_ID ),
+        false,
+        describePotProvider( find( 'pot_provider', SINGLETON_ID )?.detail ?? null ),
+      ),
+    ]
   const rows: StatusRow[] = [
-    ...isAdmin ? [ ...appRows, ...replicationRows ] : [],
+    ...isAdmin ? [ ...appRows, ...replicationRows, ...potProviderRows ] : [],
     ...vaultSyncRows( userId, isAdmin, find ),
     gmailConnectionRow( userId, find( 'gmail_connection', userId ) ),
     ...listSources( userId )

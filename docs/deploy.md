@@ -344,14 +344,15 @@ dc logs -f --tail 100 app           # app log (JSON lines; a job's ID is on ever
 dc logs --tail 50 litestream sync-naresh
 ```
 
-The Status panel (Settings → Sources) shows the Agent, Transcription, Replication and each person's Vault sync. A failing row shows its last errors.
+The Status panel (Settings → Sources) shows the Agent, Transcription, Replication, YouTube tokens and each person's Vault sync. A failing row shows its last errors.
 
 - **`deploy.sh` says the app didn't become healthy.** The last 40 app log lines are printed; fix the cause (often a missing value in `atlas.env`, which the server names when it refuses to start) and run it again, or roll back.
 - **`pull access denied` or `unauthorized` on a pull.** The VM's service account lacks `artifactregistry.reader` on the repository, or `REGISTRY` in `atlas.env` is wrong.
 - **`fetch-secrets` names a secret it can't read.** It doesn't exist, has no version, or the service account lacks `secretmanager.secretAccessor` on it.
 - **Replication is Failing.** `dc logs litestream` usually shows a bucket permission error (`storage.objectAdmin` on the bucket).
 - **Vault sync is Failing.** `dc logs sync-naresh` shows the Obsidian client's last line. After a login problem repeat step 6; the client retries by itself with a growing wait up to five minutes (`dc restart sync-naresh` starts it now).
-- **YouTube blocks the VM's address.** Videos may fail with a sign-in or bot error from a data-center address. Articles and feeds are unaffected. This is a known issue of the release; cookies and a proxy are deferred.
+- **A YouTube video fails with HTTP 403, a sign-in or a bot error.** YouTube wants a proof-of-origin (PO) token from a data-center address. The `pot-provider` container makes them and the `yt-dlp` plugin in the app image asks it (ADR 0079). Check the **YouTube tokens** row (Failing means the app can't reach the provider), `dc ps` (is `pot-provider` healthy?) and `dc logs --tail 50 pot-provider`. To see the plugin work: `dc exec app yt-dlp -v --simulate "https://www.youtube.com/watch?v=jNQXAC9IVRw"` prints `PO Token Providers: bgutil:http-2.0.2 …` (the two `script` providers are unused and show as unavailable). Articles and feeds never need it. If tokens alone are not enough, cookies from a second Google account are the next step and need their own decision (a new ADR).
+- **Upgrading the PO token provider.** The plugin in the app image and the provider container must be the same release: change `BGUTIL_VERSION` in the `Dockerfile` and the image tag of `pot-provider` in `compose.prod.yml` together (a test checks that they match), then release as usual. `yt-dlp` itself updates at every start.
 
 ## Shutting down the old project
 

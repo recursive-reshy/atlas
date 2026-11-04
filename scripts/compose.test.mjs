@@ -180,3 +180,26 @@ test( 'production keeps the database and status folders on the host with the app
   assert.equal( config.volumes.data.driver_opts.device, '/srv/atlas/data' )
   assert.equal( config.volumes[ 'sync-status' ].driver_opts.device, '/srv/atlas/sync-status' )
 } )
+
+test( 'production runs the PO token provider, internal only, at the plugin\'s version, and tells the app', { skip }, () => {
+  const config = render( [ 'docker-compose.yml', 'compose.prod.yml' ], { env: prodEnv } )
+  const provider = config.services[ 'pot-provider' ]
+  const pinned = readFileSync( join( root, 'Dockerfile' ), 'utf8' ).match( /^ARG BGUTIL_VERSION=(\S+)$/m )?.[ 1 ]
+  assert.ok( pinned, 'the Dockerfile pins BGUTIL_VERSION' )
+  assert.equal( provider.image, `brainicism/bgutil-ytdlp-pot-provider:${ pinned }` )
+  assert.equal( provider.init, true )
+  assert.equal( provider.restart, 'unless-stopped' )
+  assert.equal( provider.ports, undefined, 'no published port' )
+  assert.equal( provider.volumes, undefined, 'mounts nothing' )
+  assert.ok( provider.command == null, 'keeps the image\'s --host 0.0.0.0, which Compose networking needs' )
+  assert.deepEqual( provider.healthcheck.test.slice( 0, 2 ), [ 'CMD', '/usr/local/bin/node' ] )
+  assert.match( provider.healthcheck.test.join( ' ' ), /127\.0\.0\.1:4416\/ping/ )
+  assert.equal( config.services.app.environment.POT_PROVIDER_URL, 'http://pot-provider:4416' )
+  assert.deepEqual( publishedPorts( config ), [ { name: 'app', host_ip: '127.0.0.1', published: '3100' } ] )
+} )
+
+test( 'locally and in e2e there is no PO token provider and the app is not told about one', { skip }, () => {
+  const local = render( [ 'docker-compose.yml', 'compose.local.yml' ] )
+  assert.equal( local.services[ 'pot-provider' ], undefined )
+  assert.equal( local.services.app.environment.POT_PROVIDER_URL ?? '', '' )
+} )
