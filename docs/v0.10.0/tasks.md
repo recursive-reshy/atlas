@@ -92,17 +92,42 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 ---
 
 ## Checkpoint E: Phase 7 (cutover, with Naresh)
-**Plan:** ✅ [`plans/checkpoint-e.md`](plans/checkpoint-e.md)
+**Plan:** ✅ [`plans/checkpoint-e.md`](plans/checkpoint-e.md) (its release checks and notes moved to checkpoint G as 9.1 and 9.2 on 2026-11-04)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
 | **Phase 7** | **Cutover** | | |
 | 7.1 | Naresh creates the GCP resources, secrets and OAuth client from the runbook; Claude Code fixes any runbook step that didn't match and records the project ID, registry and bucket names in `atlas.env` guidance | 0077, 0078 | ⬜ |
-| 7.2 | Naresh bootstraps the VM, joins Tailscale, sets up Obsidian Sync on the Mac, logs the VM's sync in (`sync-naresh`), and deploys 0.10.0 with `release.sh` / `deploy.sh`; Status panel shows Agent, Transcription, Replication and his Vault sync healthy | 0075–0078 | ⬜ |
-| 7.3 | Release checks with Naresh: sign in on phone and Mac; one video, one article and one feed item to saved notes that appear in Obsidian on the Mac; a note written on the Mac reaches the VM (linker or Melete sees it); a Melete review on the phone; `docker stats` during a video job (TRD §8.5); a test restore into a scratch path from the bucket; the Mac can sleep | 0076, 0077 | ⬜ |
-| 7.4 | `docs/v0.10.0/release-notes.md` from TRD §10, linked from `docs/README.md` (v0.10.0 done); README status line; note in the log when Naresh shuts down the old GCP project | | ⬜ |
+| 7.2 | Naresh bootstraps the VM, joins Tailscale, sets up Obsidian Sync on the Mac, logs the VM's sync in (`sync-naresh`), and deploys 0.10.0 with `release.sh` / `deploy.sh`; Status panel shows Agent, Transcription, Replication and his Vault sync healthy; fixes for anything found on the way | 0075–0078 | ⬜ |
 
-**Checkpoint E done when:** the release checks pass on the VM and the release notes are in place.
+**Checkpoint E done when:** the stack runs on the VM with every Status row healthy.
+
+---
+
+## Checkpoint F: Phase 8 (YouTube on the VM)
+**Plan:** ⬜ [`plans/checkpoint-f.md`](plans/checkpoint-f.md)
+
+| ID | Task | ADRs | Status |
+| --- | --- | --- | --- |
+| **Phase 8** | **PO token provider (TRD §11)** | | |
+| 8.1 | Plugin in the app image (pinned, same version as the provider image; plugin folder verified for the standalone binary) and `POT_PROVIDER_URL` → `--extractor-args` on every yt-dlp call (argument name verified for the pinned version); tests | 0079 | ⬜ |
+| 8.2 | `pot-provider` service in `compose.prod.yml` (pinned, internal only), `POT_PROVIDER_URL` for the app; "YouTube tokens" Status row (`pot_provider` kind, ping endpoint verified) only when configured; Compose and health tests; runbook and README | 0050, 0079 | ⬜ |
+| 8.3 | With Naresh: release and deploy 0.10.0 again; on the VM `yt-dlp -v` lists the bgutil provider and a video job completes. If YouTube still refuses, stop and propose cookies as an ADR | 0079 | ⬜ |
+
+**Checkpoint F done when:** a video job completes on the VM.
+
+---
+
+## Checkpoint G: Phase 9 (release checks, notes)
+**Plan:** ⬜ [`plans/checkpoint-g.md`](plans/checkpoint-g.md)
+
+| ID | Task | ADRs | Status |
+| --- | --- | --- | --- |
+| **Phase 9** | **Release** | | |
+| 9.1 | Release checks with Naresh (was 7.3): sign in on phone and Mac; one video, one article and one feed item to saved notes that appear in Obsidian on the Mac; a note written on the Mac reaches the VM (linker or Melete sees it); a Melete review on the phone; `docker stats` during a video job (TRD §8.5); a test restore into a scratch path from the bucket; the Mac can sleep | 0076, 0077 | ⬜ |
+| 9.2 | `docs/v0.10.0/release-notes.md` from TRD §10 (was 7.4), linked from `docs/README.md` (v0.10.0 done); README status line; note in the log when Naresh shuts down the old GCP project | | ⬜ |
+
+**Checkpoint G done when:** the release checks pass on the VM and the release notes are in place.
 
 ---
 

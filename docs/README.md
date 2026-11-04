@@ -102,6 +102,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0076](decisions/0076-litestream-replication.md) | Continuous replication with Litestream replaces manual backups | Accepted (supersedes 0051) |
 | [0077](decisions/0077-gcp-vm-hosting-and-deploys.md) | Hosting on one GCP VM: Compose files, images from the Mac, a bootstrap script | Accepted (amends 0060) |
 | [0078](decisions/0078-secrets-from-secret-manager.md) | Secrets are fetched from Secret Manager into memory when the stack starts | Accepted |
+| [0079](decisions/0079-youtube-po-token-provider.md) | YouTube downloads on the VM use a PO token provider | Accepted |
 
 ## Template for new ADRs
 

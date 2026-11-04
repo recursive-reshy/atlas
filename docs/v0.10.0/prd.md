@@ -38,7 +38,7 @@ Decided while scoping the cloud move (0.9 PRD §2, and the 0.10 scoping chat):
 - **No data migration.** The VM starts with an empty database; the Mac's database is left as it is.
 - **No public internet exposure.** No public web address, no Funnel, no load balancer, no domain name.
 - **No CI/CD.** No GitHub Actions this release.
-- **No yt-dlp workarounds.** If YouTube blocks the VM's address, video jobs fail with a clear error; articles, feeds and Gmail keep working.
+- **No cookies or proxy for yt-dlp.** The VM gets a PO token provider (§6.9, added 2026-11-04 after YouTube refused media downloads from the VM); cookies and a residential proxy stay deferred.
 - **No second user's sync set up.** The brother's vault, Obsidian account and sync are not configured (the design supports it).
 - **No feature changes** to summarizing, linking, review, saving, Melete, sign-in or admin, beyond the transcription source and its cost.
 - No high availability, autoscaling, staging environment or uptime alerting.
@@ -134,6 +134,13 @@ As Naresh, I want deploying to be a short, written procedure.
 - [ ] A version is rolled back by deploying the previous tag.
 - [ ] The local `docker compose` on the Mac keeps working for development and the e2e run.
 
+### 6.9 YouTube on the VM (added 2026-11-04)
+As a user, I want video jobs to work on the VM, not only on the Mac.
+- [ ] yt-dlp on the VM gets proof-of-origin (PO) tokens from a small provider service, so YouTube's media servers don't refuse it with 403.
+- [ ] No Google account or paid proxy is involved.
+- [ ] The admin's Status panel shows whether the token provider is answering.
+- [ ] On the Mac nothing changes; the provider is only configured on the VM.
+
 ### 6.8 Cutover and the old GCP project
 - [ ] The release checklist ends with:
   - signing in on the VM from the phone and the Mac;
@@ -151,7 +158,7 @@ As Naresh, I want deploying to be a short, written procedure.
 - **Nothing assumes the Mac:** the production stack runs from the VM's own files and Secret Manager, with no path, host or tool from the Mac.
 
 ## 8. Out of scope (KIV)
-- yt-dlp cookies and a residential proxy for YouTube on datacenter addresses (next release).
+- yt-dlp cookies (secondary Google account) and a residential proxy, if PO tokens stop being enough.
 - GitHub Actions building and pushing images (needs Workload Identity Federation from GitHub to GCP).
 - The second user's Obsidian Sync, Obsidian account and vault.
 - Uptime alerting, a staging VM, Cloud Run.
@@ -183,5 +190,5 @@ Decided while scoping:
 - Atlas is the umbrella app; Mnemosyne stays the transcriber module, with its note tag and folder unchanged.
 - The rename comes first, inside 0.10.0, not as a separate release.
 - A new `atlas` GCP project rather than renaming the old one, whose ID can't change.
-- OpenAI `gpt-transcribe` for transcription, without timestamps; whisper-server deleted. Fresh database on the VM. Litestream replaces manual backups. Secret Manager for secrets. Images built on the Mac and pushed to Artifact Registry. yt-dlp workarounds deferred.
+- OpenAI `gpt-transcribe` for transcription, without timestamps; whisper-server deleted. Fresh database on the VM. Litestream replaces manual backups. Secret Manager for secrets. Images built on the Mac and pushed to Artifact Registry. yt-dlp gets a PO token provider on the VM (ADR 0079); cookies and proxy deferred.
 - Obsidian Headless designed for two users, with only Naresh's sync configured. Not an Obsidian MCP server: those either need the desktop app running or read a vault that something else syncs.
