@@ -125,6 +125,7 @@ const EnvSchema = z
     ANTHROPIC_API_KEY: z.string().min( 1 ),
     OPENAI_API_KEY: z.string().min( 1 ),
     LITESTREAM_METRICS_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
+    POT_PROVIDER_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
     VAULT_CREATE_ENABLED: z.preprocess(
       emptyAsUnset,
       z.enum( [ 'true', 'false', '1', '0' ] ).default( 'true' ),
@@ -169,6 +170,8 @@ const EnvSchema = z
     transcriptionModel: env.TRANSCRIPTION_MODEL,
     vaultsPath: env.VAULTS_PATH,
     litestreamMetricsUrl: env.LITESTREAM_METRICS_URL ?? null,
+    // The YouTube PO token provider (ADR 0079); unset where yt-dlp needs none
+    potProviderUrl: env.POT_PROVIDER_URL ?? null,
     vaultSyncStatusDir: env.VAULT_SYNC_STATUS_DIR ?? null,
     vaultCreateEnabled: env.VAULT_CREATE_ENABLED === 'true' || env.VAULT_CREATE_ENABLED === '1',
     adminEmail: env.ADMIN_EMAIL,

@@ -11,6 +11,9 @@ import { mkdir, readdir } from 'node:fs/promises'
 import { downloadAudio } from './ytDlp.client.js'
 import { runCommand } from './runCommand.js'
 
+const configMock = vi.hoisted( () => ( { potProviderUrl: null as string | null } ) )
+
+vi.mock( '../config.js', () => ( { config: configMock } ) )
 vi.mock( './runCommand.js' )
 vi.mock( 'node:fs/promises' )
 
@@ -35,6 +38,7 @@ const line = ( fields: Record< string, unknown > ): string => {
 
 beforeEach( () => {
   vi.resetAllMocks()
+  configMock.potProviderUrl = null
   vi.mocked( mkdir ).mockResolvedValue( undefined )
 } )
 
@@ -68,6 +72,21 @@ describe( 'downloadAudio', () => {
       ],
       30 * 60 * 1000,
     )
+  } )
+
+  it( 'passes the PO token provider before the URL when one is configured', async () => {
+    configMock.potProviderUrl = 'http://pot-provider:4416'
+    stubOutput( realStdout )
+
+    await downloadAudio( url, outputDir )
+
+    const args = vi.mocked( runCommand ).mock.calls[ 0 ]?.[ 1 ] ?? []
+    const flag = args.indexOf( '--extractor-args' )
+
+    expect( args[ flag + 1 ] ).toBe( 'youtubepot-bgutilhttp:base_url=http://pot-provider:4416' )
+    expect( flag ).toBeGreaterThanOrEqual( 0 )
+    expect( flag ).toBeLessThan( args.indexOf( '--' ) )
+    expect( args.slice( -2 ) ).toEqual( [ '--', url ] )
   } )
 
   it( 'returns the audio path and metadata', async () => {

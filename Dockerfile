@@ -24,9 +24,12 @@ RUN pnpm --filter @atlas/shared --filter @atlas/server build \
   && pnpm --filter @atlas/server deploy --legacy --prod /deploy
 
 
-FROM node:24-slim
+# The download tools, built on their own so a test can check them without building the app
+FROM node:24-slim AS tools
 
 ARG TARGETARCH
+# The bgutil PO token plugin and the pot-provider image in compose.prod.yml must be the same release (ADR 0079)
+ARG BGUTIL_VERSION=2.0.2
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends ca-certificates curl ffmpeg \
@@ -42,9 +45,15 @@ RUN case "${TARGETARCH}" in \
   && chown node:node /usr/local/bin/yt-dlp \
   && chmod 755 /usr/local/bin/yt-dlp \
   && chown node:node /usr/local/bin \
+  && mkdir -p /etc/yt-dlp/plugins \
+  && curl -fsSL -o /etc/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip \
+    "https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/download/${BGUTIL_VERSION}/bgutil-ytdlp-pot-provider.zip" \
+  && chmod 644 /etc/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip \
   && apt-get purge -y curl && apt-get autoremove -y
 
 RUN echo "--js-runtimes node" > /etc/yt-dlp.conf
+
+FROM tools
 
 ENV NODE_ENV=production \
     PORT=3100 \

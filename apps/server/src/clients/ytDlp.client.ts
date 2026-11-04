@@ -4,6 +4,8 @@ import path from 'node:path'
 import { z } from 'zod'
 // Shared
 import { TranscriptMeta } from '@atlas/shared'
+// Config
+import { config } from '../config.js'
 // Clients
 import { runCommand } from './runCommand.js'
 
@@ -55,6 +57,13 @@ const parseOutput = ( stdout: string ): z.infer< typeof YtDlpOutput > => {
   return parsed.data
 }
 
+// Where yt-dlp's bgutil plugin asks for PO tokens (ADR 0079)
+const potProviderArgs = (): string[] => {
+  return config.potProviderUrl === null
+    ? []
+    : [ '--extractor-args', `youtubepot-bgutilhttp:base_url=${ config.potProviderUrl }` ]
+}
+
 export const downloadAudio = async (
   url: string,
   outputDir: string,
@@ -72,6 +81,7 @@ export const downloadAudio = async (
       path.join( outputDir, 'audio.%(ext)s' ),
       '--print',
       '%(.{id,title,channel,uploader,duration,webpage_url})j',
+      ...potProviderArgs(),
       '--',
       url,
     ],

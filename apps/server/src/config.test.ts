@@ -48,6 +48,7 @@ describe( 'loadConfig', () => {
       e2eTestSignin: false,
       vaultsPath: '/vaults',
       litestreamMetricsUrl: null,
+      potProviderUrl: null,
       vaultSyncStatusDir: null,
       vaultCreateEnabled: true,
       agent: null,
@@ -66,6 +67,7 @@ describe( 'loadConfig', () => {
       ...base,
       VAULTS_PATH: '/Users/x/Vaults',
       LITESTREAM_METRICS_URL: 'http://litestream:9090/metrics',
+      POT_PROVIDER_URL: 'http://pot-provider:4416',
       VAULT_SYNC_STATUS_DIR: '/sync-status',
       VAULT_CREATE_ENABLED: 'false',
       DEFAULT_NOTE_FOLDER: 'Learning/AI',
@@ -112,6 +114,7 @@ describe( 'loadConfig', () => {
       sessionDays: 30,
       vaultsPath: '/Users/x/Vaults',
       litestreamMetricsUrl: 'http://litestream:9090/metrics',
+      potProviderUrl: 'http://pot-provider:4416',
       vaultSyncStatusDir: '/sync-status',
       vaultCreateEnabled: false,
       agent: null,
@@ -165,6 +168,11 @@ describe( 'loadConfig', () => {
     expect( loadConfig( { ...base, DATA_DIR: '' } ).dataDir ).toBe(
       join( tmpdir(), 'atlas-data' ),
     )
+  } )
+
+  it( 'treats an empty POT_PROVIDER_URL as unset and rejects a non-URL', () => {
+    expect( loadConfig( { ...base, POT_PROVIDER_URL: '' } ).potProviderUrl ).toBeNull()
+    expect( () => loadConfig( { ...base, POT_PROVIDER_URL: 'pot-provider' } ) ).toThrow()
   } )
 
   it( 'treats an empty LITESTREAM_METRICS_URL as unset and rejects a non-URL', () => {
