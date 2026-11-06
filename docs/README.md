@@ -2,7 +2,7 @@
 
 ## Plans
 
-Each version has its own folder. The current version is 0.10.0 (in progress). User guides: [deploy.md](deploy.md) (hosting on a VM), [backups.md](backups.md), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md).
+Each version has its own folder. The current version is 0.10.0 (done). User guides: [deploy.md](deploy.md) (hosting on a VM), [backups.md](backups.md), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md).
 
 - **v0.10.0 (in progress):** [PRD](v0.10.0/prd.md) · [TRD](v0.10.0/trd.md) · [Tasks](v0.10.0/tasks.md) · [Release notes](v0.10.0/release-notes.md) · checkpoint plans in `v0.10.0/plans/` · [Deploy runbook](deploy.md)
 - **v0.9.1 (done):** [PRD](v0.9.1/prd.md) · [TRD](v0.9.1/trd.md) · [Tasks](v0.9.1/tasks.md) · [Release notes](v0.9.1/release-notes.md) · checkpoint plans in `v0.9.1/plans/`
