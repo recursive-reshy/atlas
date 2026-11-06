@@ -7,6 +7,8 @@ import {
   PRICES_CHECKED_ON,
   estimateCostUsd,
   estimateTranscriptionCostUsd,
+  estimateGeminiCostUsd,
+  GEMINI_PRICES,
 } from './pricing.js'
 
 describe( 'estimateCostUsd', () => {
@@ -71,5 +73,37 @@ describe( 'estimateTranscriptionCostUsd', () => {
 
   it( 'returns null for a model that is not in the table', () => {
     expect( estimateTranscriptionCostUsd( 'whisper-1', 60 ) ).toBeNull()
+  } )
+} )
+
+describe( 'estimateGeminiCostUsd', () => {
+  const price = GEMINI_PRICES[ 'gemini-3.8-flash' ]
+
+  it( 'knows the current Flash model', () => {
+    expect( price ).toBeDefined()
+  } )
+
+  it( 'prices input and output tokens per million', () => {
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 1_000_000, 0 ) ).toBe( price?.input )
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 0, 1_000_000 ) ).toBe( price?.output )
+  } )
+
+  it( 'rounds to the millionth of a dollar', () => {
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 1, 1 ) )
+      .toBe( Math.round( ( ( price?.input ?? 0 ) + ( price?.output ?? 0 ) ) ) / 1_000_000 )
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 123_456, 7_890 ) )
+      .toBe( Math.round(
+        123_456 * ( price?.input ?? 0 ) + 7_890 * ( price?.output ?? 0 ),
+      ) / 1_000_000 )
+  } )
+
+  it( 'returns 0 for no tokens', () => {
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 0, 0 ) ).toBe( 0 )
+  } )
+
+  it( 'returns null for an unknown model or unknown tokens', () => {
+    expect( estimateGeminiCostUsd( 'gemini-9-flash', 10, 10 ) ).toBeNull()
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', null, 10 ) ).toBeNull()
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 10, null ) ).toBeNull()
   } )
 } )

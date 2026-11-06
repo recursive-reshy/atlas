@@ -53,3 +53,27 @@ export const estimateTranscriptionCostUsd = ( model: string, seconds: number ): 
   // To the millionth of a dollar, so 3,600 s is 0.27 and not 0.26999999999999996
   return Math.round( ( seconds / SECONDS_PER_MINUTE ) * price * 1_000_000 ) / 1_000_000
 }
+
+// US dollars per million tokens for Gemini on Vertex AI (standard, not batch). NOT confirmed from
+// Google's own page (it renders with JavaScript): these are what price trackers list on
+// 2026-11-06, and one reports a rise to 1.50 / 7.50 on 2027-01-01. Check the console price.
+export const GEMINI_PRICES_CHECKED_ON = '2026-11-06'
+
+export const GEMINI_PRICES: Record< string, Price > = {
+  'gemini-3.8-flash': { input: 0.75, output: 3.75 },
+}
+
+export const estimateGeminiCostUsd = (
+  model: string,
+  inputTokens: number | null,
+  outputTokens: number | null,
+): number | null => {
+  const price = GEMINI_PRICES[ model ]
+
+  if( price === undefined || inputTokens === null || outputTokens === null ) {
+    return null
+  }
+
+  // To the millionth of a dollar: a token costs price / 1,000,000 dollars
+  return Math.round( inputTokens * price.input + outputTokens * price.output ) / 1_000_000
+}

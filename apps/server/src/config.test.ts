@@ -15,6 +15,9 @@ const google = {
 const base = {
   ANTHROPIC_API_KEY: 'sk-test',
   OPENAI_API_KEY: 'sk-openai',
+  GEMINI_MODEL: 'gemini-3.8-flash',
+  GOOGLE_CLOUD_PROJECT: 'atlas-test',
+  YOUTUBE_API_KEY: 'yt-key',
   ADMIN_EMAIL: 'Admin@Example.com',
   APP_ORIGINS: 'http://localhost:3100',
   ...google,
@@ -31,6 +34,10 @@ describe( 'loadConfig', () => {
       openaiApiKey: 'sk-openai',
       openaiBaseUrl: 'https://api.openai.com',
       transcriptionModel: 'gpt-transcribe',
+      geminiModel: 'gemini-3.8-flash',
+      googleCloudProject: 'atlas-test',
+      geminiLocation: 'global',
+      youtubeApiKey: 'yt-key',
       defaultNoteFolder: 'Mnemosyne',
       summaryTimeoutMs: 300_000,
       reviewTtlHours: 24,
@@ -74,6 +81,8 @@ describe( 'loadConfig', () => {
       PORT: '4000',
       OPENAI_BASE_URL: 'http://fakes:4000',
       TRANSCRIPTION_MODEL: 'gpt-transcribe-2',
+      GEMINI_MODEL: 'gemini-3.5-flash',
+      GEMINI_LOCATION: 'us',
       WORK_DIR: '/tmp/custom',
       DATA_DIR: '/data',
       WEB_DIR: '/srv/web',
@@ -97,6 +106,10 @@ describe( 'loadConfig', () => {
       openaiApiKey: 'sk-openai',
       openaiBaseUrl: 'http://fakes:4000',
       transcriptionModel: 'gpt-transcribe-2',
+      geminiModel: 'gemini-3.5-flash',
+      googleCloudProject: 'atlas-test',
+      geminiLocation: 'us',
+      youtubeApiKey: 'yt-key',
       defaultNoteFolder: 'Learning/AI',
       summaryTimeoutMs: 60_000,
       reviewTtlHours: 48,
@@ -234,6 +247,18 @@ describe( 'loadConfig', () => {
 
   it.each( [ undefined, '' ] )( 'throws naming OPENAI_API_KEY when it is %j', ( value ) => {
     expect( () => loadConfig( { ...base, OPENAI_API_KEY: value } ) ).toThrow( /OPENAI_API_KEY/ )
+  } )
+
+  it.each( [ 'GEMINI_MODEL', 'GOOGLE_CLOUD_PROJECT', 'YOUTUBE_API_KEY' ] )(
+    'throws naming %s when it is missing or empty (ADR 0081)',
+    ( name ) => {
+      expect( () => loadConfig( { ...base, [ name ]: undefined } ) ).toThrow( new RegExp( name ) )
+      expect( () => loadConfig( { ...base, [ name ]: '' } ) ).toThrow( new RegExp( name ) )
+    },
+  )
+
+  it( 'uses the global Gemini location when GEMINI_LOCATION is empty', () => {
+    expect( loadConfig( { ...base, GEMINI_LOCATION: '' } ).geminiLocation ).toBe( 'global' )
   } )
 
   it.each( [ undefined, '' ] )( 'throws naming ANTHROPIC_API_KEY when it is %j', ( key ) => {

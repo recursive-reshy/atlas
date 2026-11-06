@@ -124,6 +124,10 @@ const EnvSchema = z
     WEB_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
     ANTHROPIC_API_KEY: z.string().min( 1 ),
     OPENAI_API_KEY: z.string().min( 1 ),
+    GEMINI_MODEL: z.string().min( 1 ),
+    GOOGLE_CLOUD_PROJECT: z.string().min( 1 ),
+    GEMINI_LOCATION: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( 'global' ) ),
+    YOUTUBE_API_KEY: z.string().min( 1 ),
     LITESTREAM_METRICS_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
     POT_PROVIDER_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
     VAULT_CREATE_ENABLED: z.preprocess(
@@ -168,6 +172,11 @@ const EnvSchema = z
     openaiApiKey: env.OPENAI_API_KEY,
     openaiBaseUrl: env.OPENAI_BASE_URL,
     transcriptionModel: env.TRANSCRIPTION_MODEL,
+    // Gemini on Vertex AI reads YouTube links; the YouTube Data API gives the metadata (ADR 0081)
+    geminiModel: env.GEMINI_MODEL,
+    googleCloudProject: env.GOOGLE_CLOUD_PROJECT,
+    geminiLocation: env.GEMINI_LOCATION,
+    youtubeApiKey: env.YOUTUBE_API_KEY,
     vaultsPath: env.VAULTS_PATH,
     litestreamMetricsUrl: env.LITESTREAM_METRICS_URL ?? null,
     // The YouTube PO token provider (ADR 0079); unset where yt-dlp needs none
