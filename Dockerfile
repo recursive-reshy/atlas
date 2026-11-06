@@ -29,7 +29,6 @@ FROM node:24-slim
 
 ENV NODE_ENV=production \
     PORT=3100 \
-    WORK_DIR=/tmp/atlas \
     DATA_DIR=/data \
     WEB_DIR=/app/web
 

@@ -8,7 +8,6 @@ import { isValidFolderName } from '@atlas/shared'
 
 const emptyAsUnset = ( value: unknown ): unknown => ( value === '' ? undefined : value )
 
-const defaultWorkDir = join( tmpdir(), 'atlas' )
 const defaultDataDir = join( tmpdir(), 'atlas-data' )
 const portSchema = z.coerce.number().int().min( 1 ).max( 65535 ).default( 3100 )
 const summaryTimeoutSchema = z.coerce.number().int().positive().default( 300_000 )
@@ -114,6 +113,7 @@ const IGNORED_VARIABLES = [
   'OPENAI_BASE_URL',
   'TRANSCRIPTION_MODEL',
   'POT_PROVIDER_URL',
+  'WORK_DIR',
 ]
 
 export const ignoredEnv = ( env: NodeJS.ProcessEnv ): string[] => {
@@ -123,7 +123,6 @@ export const ignoredEnv = ( env: NodeJS.ProcessEnv ): string[] => {
 const EnvSchema = z
   .object( {
     PORT: z.preprocess( emptyAsUnset, portSchema ),
-    WORK_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( defaultWorkDir ) ),
     DATA_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( defaultDataDir ) ),
     WEB_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
     ANTHROPIC_API_KEY: z.string().min( 1 ),
@@ -165,7 +164,6 @@ const EnvSchema = z
   } )
   .transform( ( env ) => ( {
     port: env.PORT,
-    workDir: env.WORK_DIR,
     dataDir: env.DATA_DIR,
     webDir: env.WEB_DIR,
     anthropicApiKey: env.ANTHROPIC_API_KEY,

@@ -21,7 +21,6 @@ const state = vi.hoisted( () => ( { webDir: '' } ) )
 vi.mock( './config.js', () => ( {
   config: {
     port: 3100,
-    workDir: '/work',
     logLevel: 'silent',
     transcriptionModel: 'test-model',
     sessionDays: 30,

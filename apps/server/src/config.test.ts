@@ -26,7 +26,6 @@ describe( 'loadConfig', () => {
   it( 'returns the defaults for a minimal environment', () => {
     expect( loadConfig( base ) ).toEqual( {
       port: 3100,
-      workDir: join( tmpdir(), 'atlas' ),
       dataDir: join( tmpdir(), 'atlas-data' ),
       webDir: undefined,
       anthropicApiKey: 'sk-test',
@@ -81,7 +80,6 @@ describe( 'loadConfig', () => {
       GEMINI_BASE_URL: 'http://fakes:4000',
       YOUTUBE_API_BASE_URL: 'http://fakes:4000',
       GEMINI_ACCESS_TOKEN: 'e2e-token',
-      WORK_DIR: '/tmp/custom',
       DATA_DIR: '/data',
       WEB_DIR: '/srv/web',
       SUMMARY_TIMEOUT_MS: '60000',
@@ -97,7 +95,6 @@ describe( 'loadConfig', () => {
 
     expect( config ).toEqual( {
       port: 4000,
-      workDir: '/tmp/custom',
       dataDir: '/data',
       webDir: '/srv/web',
       anthropicApiKey: 'sk-test',
@@ -172,6 +169,10 @@ describe( 'loadConfig', () => {
 
     expect( config.port ).toBe( 3100 )
     expect( config.geminiBaseUrl ).toBeNull()
+  } )
+
+  it( 'no longer has a work folder', () => {
+    expect( loadConfig( { ...base, WORK_DIR: '/tmp/custom' } ) ).not.toHaveProperty( 'workDir' )
   } )
 
   it( 'treats an empty DATA_DIR as unset', () => {
@@ -552,6 +553,7 @@ describe( 'loadConfig', () => {
       'OPENAI_BASE_URL',
       'TRANSCRIPTION_MODEL',
       'POT_PROVIDER_URL',
+      'WORK_DIR',
     ] )( 'names %s when it is set', ( name ) => {
       expect( ignoredEnv( { ...base, [ name ]: 'x' } ) ).toEqual( [ name ] )
     } )

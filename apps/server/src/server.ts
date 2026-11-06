@@ -1,5 +1,5 @@
 // Packages
-import { mkdir, rm } from 'node:fs/promises'
+import { mkdir } from 'node:fs/promises'
 import { join } from 'node:path'
 // App
 import { app } from './app.js'
@@ -26,9 +26,6 @@ import { startWorker } from './worker/worker.js'
 for( const name of ignoredEnv( process.env ) ) {
   logger.warn( { variable: name }, 'Ignored a variable that is no longer used' )
 }
-
-// Audio is deleted when a job ends, so anything left here belongs to a job cut short by a shutdown.
-await rm( config.workDir, { recursive: true, force: true } )
 
 try {
   await assertVaultWritable( config.vaultsPath )
