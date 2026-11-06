@@ -180,6 +180,8 @@ test( 'atlas.service fetches the secrets, then starts the stack from /opt/atlas'
   assert.match( up, /--env-file \/run\/atlas\/secrets\.env/ )
   assert.match( up, /-f docker-compose\.yml -f compose\.prod\.yml/ )
   assert.match( up, /up -d --wait/ )
+  // A service dropped from the Compose files (the PO token provider, ADR 0081) must not linger
+  assert.match( up, /--remove-orphans/ )
   assert.match( unit, /^ExecStop=.*compose.* down$/m )
   assert.match( unit, /^WorkingDirectory=\/opt\/atlas$/m )
   assert.match( unit, /^WantedBy=multi-user\.target$/m )

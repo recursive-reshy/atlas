@@ -59,3 +59,57 @@ test( 'the root CLAUDE.md describes the hosting and the deploy folder', () => {
   assert.match( text, /compose\.prod\.yml/ )
   assert.match( text, /docs\/deploy\.md/ )
 } )
+
+// --- Gemini replaces the download pipeline (task 9.6, ADR 0081) ---
+
+const DOWNLOAD_WORDS = /yt-dlp|ffmpeg|ffprobe|openai|pot[-_ ]provider|PO token|bgutil|gpt-transcribe|TRANSCRIPTION_MODEL|OPENAI_/i
+// A line may name them when it says they are gone or what replaced them
+const SAYS_REMOVED = /no longer|removed|replaced|retired|ignored|instead of|used to|upgrad|0\.10|0\.9|ADR 00(02|03|04|74|78|79|80|81)|history|\bgone\b|delete|revoke|old |earlier|was |were /i
+
+const stale = ( file ) => read( file ).split( '\n' )
+  .map( ( line, index ) => ( { line, number: index + 1 } ) )
+  .filter( ( { line } ) => DOWNLOAD_WORDS.test( line ) && !SAYS_REMOVED.test( line ) )
+  .map( ( { number, line } ) => `${ file }:${ number }: ${ line.slice( 0, 110 ) }` )
+
+test( 'the README and the CLAUDE.md files no longer describe downloading, ffmpeg or OpenAI', () => {
+  assert.deepEqual(
+    [ 'README.md', 'CLAUDE.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md' ].flatMap( stale ),
+    [],
+  )
+} )
+
+test( 'the runbook and the Google Cloud guide no longer describe them either', () => {
+  assert.deepEqual( [ 'docs/deploy.md', 'docs/google-cloud-setup.md', 'docs/phone-access.md' ].flatMap( stale ), [] )
+} )
+
+test( 'the README documents the Gemini settings and YouTube-only video', () => {
+  const text = read( 'README.md' )
+  for( const name of [ 'GEMINI_MODEL', 'GOOGLE_CLOUD_PROJECT', 'GEMINI_LOCATION', 'YOUTUBE_API_KEY', 'GOOGLE_ADC_HOST_PATH' ] ) {
+    assert.match( text, new RegExp( `\`${ name }\`` ), name )
+  }
+  assert.match( text, /Gemini/ )
+  assert.match( text, /Only YouTube/i )
+  assert.match( text, /application-default login/ )
+} )
+
+test( 'the runbook sets up Vertex AI, the YouTube Data API and the youtube-api-key secret', () => {
+  const text = read( 'docs/deploy.md' )
+  for( const needle of [ 'aiplatform.googleapis.com', 'youtube.googleapis.com', 'roles/aiplatform.user', 'youtube-api-key', 'GEMINI_MODEL', 'GOOGLE_CLOUD_PROJECT' ] ) {
+    assert.ok( text.includes( needle ), `deploy.md lacks ${ needle }` )
+  }
+  assert.doesNotMatch( text, /for name in [^\n]*openai-api-key/, 'the secrets loops no longer create openai-api-key' )
+  assert.doesNotMatch( text, /^#+ .*(PO token|pot-provider)/im )
+} )
+
+test( 'the Google Cloud guide covers the API key and the Mac credentials', () => {
+  const text = read( 'docs/google-cloud-setup.md' )
+  assert.match( text, /YouTube Data API/ )
+  assert.match( text, /application-default login/ )
+} )
+
+test( 'the root CLAUDE.md describes Gemini and has no ops folder row', () => {
+  const text = read( 'CLAUDE.md' )
+  assert.match( text, /Gemini/ )
+  assert.match( text, /Only YouTube|YouTube-only|YouTube only/i )
+  assert.doesNotMatch( text, /^\| `ops\/` \|/m )
+} )

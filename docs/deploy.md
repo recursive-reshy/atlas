@@ -45,6 +45,7 @@ The fixed costs are the VM, its disk and its external IPv4 address; the bucket a
 - Persistent disk: Balanced, 20 GB.
 - External IPv4 address: in use, standard (ephemeral).
 - Cloud Storage: Standard storage for a few hundred MB, and the operations Litestream makes (it writes about once a second while the app is changing the database).
+- Gemini on Vertex AI: billed per token, per video (a long video is the expensive case; the Usage table in Settings → Admin shows an estimate per month, and the Google Cloud console has the real figure). The YouTube Data API call that comes with it is free within its daily quota.
 - Artifact Registry: storage for three images (a few hundred MB per version) and the egress to the VM, which is in the same region.
 - Secret Manager: five secrets, a few accesses a day.
 
@@ -66,10 +67,11 @@ gcloud projects create "$PROJECT_ID" --name=atlas
 gcloud billing projects link "$PROJECT_ID" --billing-account="$BILLING_ACCOUNT"
 gcloud config set project "$PROJECT_ID"
 gcloud services enable compute.googleapis.com artifactregistry.googleapis.com \
-  secretmanager.googleapis.com storage.googleapis.com iam.googleapis.com iap.googleapis.com
+  secretmanager.googleapis.com storage.googleapis.com iam.googleapis.com iap.googleapis.com \
+  aiplatform.googleapis.com youtube.googleapis.com
 ```
 
-The registry, the bucket and the VM's service account (it gets only what it needs, per resource and not project-wide):
+The registry, the bucket and the VM's service account (it gets only what it needs, per resource and not project-wide, with one exception: `roles/aiplatform.user`, which Vertex AI can only grant on the project; ADR 0081):
 
 **You run:**
 
@@ -85,21 +87,36 @@ gcloud artifacts repositories add-iam-policy-binding atlas --location="$REGION" 
   --member="serviceAccount:$SA_EMAIL" --role=roles/artifactregistry.reader
 gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" \
   --member="serviceAccount:$SA_EMAIL" --role=roles/storage.objectAdmin
+
+# Lets the VM call Gemini on Vertex AI (project-wide: the only role here that is)
+gcloud projects add-iam-policy-binding "$PROJECT_ID" \
+  --member="serviceAccount:$SA_EMAIL" --role=roles/aiplatform.user
 ```
 
-The five secrets. Run this in `bash` (type `bash` first on a Mac, where the default shell is zsh). It asks for the three values you already have and makes the other two; nothing goes into your shell history:
+The YouTube Data API key (it gets a video's title, channel and length before Gemini is asked). Restrict it to that one API so a leaked key can do little else:
 
 **You run:**
 
 ```sh
-for name in anthropic-api-key openai-api-key google-client-secret; do
+gcloud services api-keys create --display-name=atlas-youtube --api-target=service=youtube.googleapis.com
+gcloud services api-keys list --format='value(name,displayName)'     # find the key's name
+gcloud services api-keys get-key-string <the name printed above>     # the key itself (starts with AIza)
+```
+
+Keep the key string for the next step. If a command name has changed, `gcloud services api-keys --help` lists the current ones.
+The five secrets. Run this in `bash` (type `bash` first on a Mac, where the default shell is zsh). It asks for the three values you already have (the Anthropic key, the YouTube Data API key from above and the Google client secret) and makes the other two; nothing goes into your shell history:
+
+**You run:**
+
+```sh
+for name in anthropic-api-key youtube-api-key google-client-secret; do
   printf '%s: ' "$name"; read -rs value; echo
   printf '%s' "$value" | tr -d '\000-\037\177' | gcloud secrets create "$name" --data-file=-
 done
 printf '%s' "$(openssl rand -hex 32)"    | tr -d '\000-\037\177' | gcloud secrets create agent-secret --data-file=-
 printf '%s' "$(openssl rand -base64 32)" | tr -d '\000-\037\177' | gcloud secrets create token-encryption-key --data-file=-
 
-for name in anthropic-api-key openai-api-key agent-secret google-client-secret token-encryption-key; do
+for name in anthropic-api-key youtube-api-key agent-secret google-client-secret token-encryption-key; do
   gcloud secrets add-iam-policy-binding "$name" \
     --member="serviceAccount:$SA_EMAIL" --role=roles/secretmanager.secretAccessor
 done
@@ -163,7 +180,7 @@ Edit the settings:
 sudo nano /etc/atlas/atlas.env
 ```
 
-Set `REGISTRY` (`asia-southeast1-docker.pkg.dev/<PROJECT_ID>/atlas`), `ADMIN_EMAIL`, `GOOGLE_CLIENT_ID`, `LITESTREAM_BUCKET` (the bucket name) and `APP_ORIGINS` (the address from the next step). Leave `VAULT_CREATE_ENABLED=false`: a vault folder made in the app would have no sync client behind it.
+Set `REGISTRY` (`asia-southeast1-docker.pkg.dev/<PROJECT_ID>/atlas`), `ADMIN_EMAIL`, `GOOGLE_CLIENT_ID`, `LITESTREAM_BUCKET` (the bucket name), `GOOGLE_CLOUD_PROJECT` (`<PROJECT_ID>`), `GEMINI_MODEL` (`gemini-3.8-flash`; the current Flash model on Vertex AI when you read this) and `APP_ORIGINS` (the address from the next step). Leave `VAULT_CREATE_ENABLED=false`: a vault folder made in the app would have no sync client behind it.
 
 ## 3. Tailscale
 
@@ -219,7 +236,7 @@ sudo /opt/atlas/deploy.sh 0.10.0 --files ~/atlas-src
 
 `deploy.sh` installs the files, reads the secrets, pulls the images (a bad tag changes nothing), sets `ATLAS_VERSION`, restarts the `atlas` service and waits up to three minutes for `http://127.0.0.1:3100/api/health`. On the first start the `restore` service finds no database and no replica and exits; the app creates `atlas.db`, and Litestream starts replicating it. The vault sync client fails until the next step, which is expected.
 
-Open the Tailscale address and sign in with the admin account. Settings → Sources shows the Agent, Transcription and Replication rows; Vault sync is failing until step 6.
+Open the Tailscale address and sign in with the admin account. Settings → Sources shows the Agent, Transcription (Gemini) and Replication rows; Vault sync is failing until step 6.
 
 ## 6. Obsidian Sync login, per person
 
@@ -344,15 +361,20 @@ dc logs -f --tail 100 app           # app log (JSON lines; a job's ID is on ever
 dc logs --tail 50 litestream sync-naresh
 ```
 
-The Status panel (Settings → Sources) shows the Agent, Transcription, Replication, YouTube tokens and each person's Vault sync. A failing row shows its last errors.
+The Status panel (Settings → Sources) shows the Agent, Transcription (Gemini), Replication and each person's Vault sync. A failing row shows its last errors.
 
 - **`deploy.sh` says the app didn't become healthy.** The last 40 app log lines are printed; fix the cause (often a missing value in `atlas.env`, which the server names when it refuses to start) and run it again, or roll back.
 - **`pull access denied` or `unauthorized` on a pull.** The VM's service account lacks `artifactregistry.reader` on the repository, or `REGISTRY` in `atlas.env` is wrong.
 - **`fetch-secrets` names a secret it can't read.** It doesn't exist, has no version, or the service account lacks `secretmanager.secretAccessor` on it.
 - **Replication is Failing.** `dc logs litestream` usually shows a bucket permission error (`storage.objectAdmin` on the bucket).
 - **Vault sync is Failing.** `dc logs sync-naresh` shows the Obsidian client's last line. After a login problem repeat step 6; the client retries by itself with a growing wait up to five minutes (`dc restart sync-naresh` starts it now).
-- **A YouTube video fails with HTTP 403, a sign-in or a bot error.** YouTube wants a proof-of-origin (PO) token from a data-center address. The `pot-provider` container makes them and the `yt-dlp` plugin in the app image asks it (ADR 0079). Check the **YouTube tokens** row (Failing means the app can't reach the provider), `dc ps` (is `pot-provider` healthy?) and `dc logs --tail 50 pot-provider`. To see the plugin work: `dc exec app yt-dlp -v --simulate "https://www.youtube.com/watch?v=jNQXAC9IVRw"` prints `PO Token Providers: bgutil:http-2.0.2 …` (the two `script` providers are unused and show as unavailable). Articles and feeds never need it. If tokens alone are not enough, cookies from a second Google account are the next step and need their own decision (a new ADR).
-- **Upgrading the PO token provider.** The plugin in the app image and the provider container must be the same release: change `BGUTIL_VERSION` in the `Dockerfile` and the image tag of `pot-provider` in `compose.prod.yml` together (a test checks that they match), then release as usual. `yt-dlp` itself updates at every start.
+- **Transcription (Gemini) is Failing, or a video job fails at transcribing.** Read the row's error or the job's. "Could not get Google credentials" means the VM's service account is not being used (check `dc logs app` and that the VM has the service account attached); a 403 means `roles/aiplatform.user` is missing or `aiplatform.googleapis.com` is not enabled; a 404 on the model check means `GEMINI_MODEL` names a model that does not exist (read the exact name from the Vertex AI model list); a 429 or 5xx is retried once after ten seconds and then reported.
+- **"Only public YouTube videos are supported" or "Video not found or not public".** The YouTube Data API says the video is private, unlisted, members-only or gone. Gemini can read only public videos. A 403 from the YouTube Data API itself means the `youtube-api-key` secret is wrong, the API is not enabled, or the key is restricted to a different API.
+- **A long video's transcript is marked cut short, or the job fails.** Gemini writes at most about 65,000 tokens and takes roughly 45 minutes of video with audio. A cut-short transcript is kept and says so in the review screen; a video over the limit fails with Gemini's own message. Nothing is split into parts (clipping a YouTube link bills the full audio each time, ADR 0081).
+
+## Upgrading from the OpenAI and yt-dlp build
+
+The first 0.10.0 deploy used OpenAI and yt-dlp with a PO token provider. Gemini replaced them (ADR 0081), so after deploying this release: add `GOOGLE_CLOUD_PROJECT` and `GEMINI_MODEL` to `atlas.env`, create the `youtube-api-key` secret (above) and give the service account access to it, and give it `roles/aiplatform.user`. Deploy with `--files`; the `atlas` service starts Compose with `--remove-orphans`, so the old `pot-provider` container goes and the database moves to schema 13 (a copy goes to `pre-migration/`; a job that was downloading or converting fails with "Interrupted by upgrade"). Once a video job has worked, disable and then delete the old `openai-api-key` secret (`gcloud secrets versions disable` on each version, later `gcloud secrets delete`) and revoke the key in OpenAI's dashboard. YouTube videos must be public: private, unlisted, members-only and age-restricted ones fail, and so do other video sites.
 
 ## Shutting down the old project
 
