@@ -1,6 +1,6 @@
 # 0081. Gemini transcribes YouTube links; video is YouTube-only
 
-- Status: Accepted (supersedes 0079 and 0080; supersedes 0074's OpenAI and audio-preparation parts — its no-timestamps decision stands)
+- Status: Accepted (supersedes 0079 and 0080; supersedes 0074's OpenAI and audio-preparation parts — its no-timestamps decision stands); amended by 0083 (Developer API, not Vertex)
 - Date: 2026-11-06
 
 ## Context

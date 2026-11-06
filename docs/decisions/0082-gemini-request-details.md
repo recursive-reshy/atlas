@@ -1,6 +1,6 @@
 # 0082. Gemini request details found when checking the vendor facts
 
-- Status: Accepted (changes TRD §12.1 and §12.10; does not change ADR 0081)
+- Status: Accepted (changes TRD §12.1 and §12.10; does not change ADR 0081); amended by 0083 (Developer API, not Vertex)
 - Date: 2026-11-06
 
 ## Context

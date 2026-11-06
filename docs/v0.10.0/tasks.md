@@ -130,7 +130,9 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 | 9.4 | Removals (TRD §12.7): Dockerfile, entrypoint, server clients and checks, `pot-provider`, Compose, e2e fakes, `fetch-secrets.sh` secret list; ADRs 0079–0080 marked superseded, 0074 partly; `pnpm e2e` green; image size before/after in the log | 0074, 0079, 0080, 0081 | ✅ |
 | 9.5 | `knip` sweep (TRD §12.8); removals listed in the log | 0081 | ✅ |
 | 9.6 | Docs: runbook (§12.9 cloud steps), `google-cloud-setup.md`, README, `CLAUDE.md` files, `.env.example` files | 0081 | ✅ |
-| 9.7 | With Naresh: cloud steps (§12.9), release and deploy; on the VM one short and one long public video complete; cost and any truncation noted | 0081 | ⬜ |
+| 9.7 | With Naresh: cloud steps (§12.9), release and deploy; on the VM one short and one long public video complete; cost and any truncation noted | 0081 | ⏸️ Stopped: Vertex returns 401 for YouTube input with the service account (200 for text); ADR 0083 moves to the Developer API (9.8, 9.9) |
+| 9.8 | Gemini client on the Developer API with `GEMINI_API_KEY` (TRD §13): endpoint, header, health check, config and ignored variables, prices, `compose.local.yml` without ADC, `fetch-secrets.sh` with `gemini-api-key`, e2e fake, runbook and `google-cloud-setup.md` (§13 cloud steps); vendor facts verified and recorded | 0081, 0082, 0083 | ⬜ |
+| 9.9 | With Naresh (was 9.7): cloud steps (§13), release and deploy; on the VM one short and one long public video complete; cost and any truncation noted; then remove `roles/aiplatform.user`, delete `openai-api-key` and revoke the OpenAI key | 0083 | ⬜ |
 
 **Checkpoint G done when:** YouTube jobs complete on the VM through Gemini and nothing of the download pipeline remains.
 
