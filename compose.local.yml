@@ -7,13 +7,8 @@ services:
     env_file:
       - path: .env
         required: false
-    # Gemini signs in with the Mac's Application Default Credentials (`gcloud auth
-    # application-default login`); the VM uses its service account instead (ADR 0081)
-    environment:
-      GOOGLE_APPLICATION_CREDENTIALS: /gcp/adc.json
     volumes:
       - ${VAULTS_HOST_PATH:?Set VAULTS_HOST_PATH in .env to the folder that holds the vaults}:/vaults
-      - ${GOOGLE_ADC_HOST_PATH:-${HOME}/.config/gcloud/application_default_credentials.json}:/gcp/adc.json:ro
 
   agent:
     build: apps/agent

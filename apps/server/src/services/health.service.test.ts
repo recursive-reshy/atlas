@@ -42,10 +42,8 @@ const configMock = vi.hoisted( () => ( {
   logLevel: 'silent',
   sessionDays: 30,
   geminiModel: 'test-gemini',
-  googleCloudProject: 'test-project',
-  geminiLocation: 'global',
+  geminiApiKey: 'test-gemini-key',
   geminiBaseUrl: null,
-  geminiAccessToken: null,
   agent: null as { url: string } | null,
   litestreamMetricsUrl: null as string | null,
   vaultSyncStatusDir: null as string | null,
@@ -56,7 +54,6 @@ vi.mock( '../clients/agent.client.js', () => ( { checkHealth: vi.fn() } ) )
 vi.mock( '../clients/litestreamMetrics.client.js', () => ( { fetchReplicationMetrics: vi.fn() } ) )
 vi.mock( '../clients/gemini.client.js', () => ( {
   checkGeminiModel: vi.fn(),
-  googleAccessToken: vi.fn(),
 } ) )
 
 beforeEach( () => {
@@ -135,9 +132,8 @@ describe( 'runServiceChecks', () => {
 
     expect( checkHealth ).toHaveBeenCalledWith( { fresh: true } )
     expect( checkGeminiModel ).toHaveBeenCalledWith( expect.objectContaining( {
-      project: 'test-project',
-      location: 'global',
       model: 'test-gemini',
+      apiKey: 'test-gemini-key',
     } ) )
     expect( getHealth( null, 'agent', 'default' ) ).toMatchObject( { last_error: null } )
     expect( getHealth( null, 'agent', 'default' )?.last_success_at ).not.toBeNull()

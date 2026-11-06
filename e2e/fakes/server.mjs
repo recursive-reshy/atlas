@@ -120,13 +120,13 @@ export const route = ( method, path, body = '' ) => {
       return json( 200, MODELS )
     }
 
-    if( path.startsWith( '/v1/publishers/google/models/' ) ) {
-      const id = decodeURIComponent( path.slice( '/v1/publishers/google/models/'.length ) )
+    if( path.startsWith( '/v1beta/models/' ) ) {
+      const id = decodeURIComponent( path.slice( '/v1beta/models/'.length ) )
 
       return id === GEMINI_MODEL
-        ? json( 200, { name: `publishers/google/models/${ id }`, launchStage: 'GA' } )
+        ? json( 200, { name: `models/${ id }`, supportedGenerationMethods: [ 'generateContent' ] } )
         : json( 404, {
-          error: { code: 404, message: `Publisher Model ${ id } not found.`, status: 'NOT_FOUND' },
+          error: { code: 404, message: `models/${ id } is not found.`, status: 'NOT_FOUND' },
         } )
     }
 
@@ -139,7 +139,7 @@ export const route = ( method, path, body = '' ) => {
     }
   }
 
-  if( method === 'POST' && /^\/v1\/projects\/[^/]+\/locations\/[^/]+\/publishers\/google\/models\/[^/]+:generateContent$/.test( path ) ) {
+  if( method === 'POST' && /^\/v1beta\/models\/[^/]+:generateContent$/.test( path ) ) {
     return json( 200, {
       candidates: [ { content: { parts: [ { text: TRANSCRIPT } ] }, finishReason: 'STOP' } ],
       usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 200 },

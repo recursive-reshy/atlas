@@ -15,7 +15,7 @@ const google = {
 const base = {
   ANTHROPIC_API_KEY: 'sk-test',
   GEMINI_MODEL: 'gemini-3.8-flash',
-  GOOGLE_CLOUD_PROJECT: 'atlas-test',
+  GEMINI_API_KEY: 'gemini-key',
   YOUTUBE_API_KEY: 'yt-key',
   ADMIN_EMAIL: 'Admin@Example.com',
   APP_ORIGINS: 'http://localhost:3100',
@@ -30,12 +30,10 @@ describe( 'loadConfig', () => {
       webDir: undefined,
       anthropicApiKey: 'sk-test',
       geminiModel: 'gemini-3.8-flash',
-      googleCloudProject: 'atlas-test',
-      geminiLocation: 'global',
+      geminiApiKey: 'gemini-key',
       youtubeApiKey: 'yt-key',
       geminiBaseUrl: null,
       youtubeApiBaseUrl: null,
-      geminiAccessToken: null,
       defaultNoteFolder: 'Mnemosyne',
       summaryTimeoutMs: 300_000,
       reviewTtlHours: 24,
@@ -76,10 +74,8 @@ describe( 'loadConfig', () => {
       DEFAULT_NOTE_FOLDER: 'Learning/AI',
       PORT: '4000',
       GEMINI_MODEL: 'gemini-3.5-flash',
-      GEMINI_LOCATION: 'us',
       GEMINI_BASE_URL: 'http://fakes:4000',
       YOUTUBE_API_BASE_URL: 'http://fakes:4000',
-      GEMINI_ACCESS_TOKEN: 'e2e-token',
       DATA_DIR: '/data',
       WEB_DIR: '/srv/web',
       SUMMARY_TIMEOUT_MS: '60000',
@@ -99,12 +95,10 @@ describe( 'loadConfig', () => {
       webDir: '/srv/web',
       anthropicApiKey: 'sk-test',
       geminiModel: 'gemini-3.5-flash',
-      googleCloudProject: 'atlas-test',
-      geminiLocation: 'us',
+      geminiApiKey: 'gemini-key',
       youtubeApiKey: 'yt-key',
       geminiBaseUrl: 'http://fakes:4000',
       youtubeApiBaseUrl: 'http://fakes:4000',
-      geminiAccessToken: 'e2e-token',
       defaultNoteFolder: 'Learning/AI',
       summaryTimeoutMs: 60_000,
       reviewTtlHours: 48,
@@ -189,8 +183,17 @@ describe( 'loadConfig', () => {
     expect( () => loadConfig( { ...base, [ name ]: 'fakes' } ) ).toThrow( new RegExp( name ) )
   } )
 
-  it( 'treats an empty GEMINI_ACCESS_TOKEN as unset', () => {
-    expect( loadConfig( { ...base, GEMINI_ACCESS_TOKEN: '' } ).geminiAccessToken ).toBeNull()
+  it( 'no longer reads the Vertex AI settings (ADR 0083)', () => {
+    const config = loadConfig( {
+      ...base,
+      GOOGLE_CLOUD_PROJECT: 'atlas',
+      GEMINI_LOCATION: 'global',
+      GEMINI_ACCESS_TOKEN: 'x',
+    } )
+
+    for( const field of [ 'googleCloudProject', 'geminiLocation', 'geminiAccessToken' ] ) {
+      expect( config, field ).not.toHaveProperty( field )
+    }
   } )
 
   it( 'no longer reads the OpenAI or PO token provider settings', () => {
@@ -259,17 +262,13 @@ describe( 'loadConfig', () => {
     expect( () => loadConfig( { ...base, PORT: port } ) ).toThrow( /PORT/ )
   } )
 
-  it.each( [ 'GEMINI_MODEL', 'GOOGLE_CLOUD_PROJECT', 'YOUTUBE_API_KEY' ] )(
+  it.each( [ 'GEMINI_MODEL', 'GEMINI_API_KEY', 'YOUTUBE_API_KEY' ] )(
     'throws naming %s when it is missing or empty (ADR 0081)',
     ( name ) => {
       expect( () => loadConfig( { ...base, [ name ]: undefined } ) ).toThrow( new RegExp( name ) )
       expect( () => loadConfig( { ...base, [ name ]: '' } ) ).toThrow( new RegExp( name ) )
     },
   )
-
-  it( 'uses the global Gemini location when GEMINI_LOCATION is empty', () => {
-    expect( loadConfig( { ...base, GEMINI_LOCATION: '' } ).geminiLocation ).toBe( 'global' )
-  } )
 
   it.each( [ undefined, '' ] )( 'throws naming ANTHROPIC_API_KEY when it is %j', ( key ) => {
     expect( () => loadConfig( { ANTHROPIC_API_KEY: key } ) ).toThrow( /ANTHROPIC_API_KEY/ )
@@ -554,6 +553,9 @@ describe( 'loadConfig', () => {
       'TRANSCRIPTION_MODEL',
       'POT_PROVIDER_URL',
       'WORK_DIR',
+      'GOOGLE_CLOUD_PROJECT',
+      'GEMINI_LOCATION',
+      'GEMINI_ACCESS_TOKEN',
     ] )( 'names %s when it is set', ( name ) => {
       expect( ignoredEnv( { ...base, [ name ]: 'x' } ) ).toEqual( [ name ] )
     } )

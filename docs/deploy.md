@@ -12,7 +12,7 @@ Checked against vendor documentation on 2026-11-02 (Docker's and Tailscale's Deb
 | --- | --- | --- |
 | VM `atlas` (e2-small, Debian, 20 GB disk) | Compute Engine, `asia-southeast1` | [1](#1-google-cloud-resources), [2](#2-bootstrap-the-vm) |
 | Images `app`, `agent`, `sync` | Artifact Registry repository `atlas` | [1](#1-google-cloud-resources), [first deploy](#5-first-deploy) |
-| Five secrets | Secret Manager | [1](#1-google-cloud-resources) |
+| Six secrets | Secret Manager | [1](#1-google-cloud-resources) |
 | Database replica | Cloud Storage bucket | [1](#1-google-cloud-resources) |
 | Private address | Tailscale | [3](#3-tailscale) |
 | Vault files | Obsidian Sync → `/srv/atlas/vaults/<person>` | [6](#6-obsidian-sync-login-per-person) |
@@ -45,9 +45,9 @@ The fixed costs are the VM, its disk and its external IPv4 address; the bucket a
 - Persistent disk: Balanced, 20 GB.
 - External IPv4 address: in use, standard (ephemeral).
 - Cloud Storage: Standard storage for a few hundred MB, and the operations Litestream makes (it writes about once a second while the app is changing the database).
-- Gemini on Vertex AI: billed per token, per video (a long video is the expensive case; the Usage table in Settings → Admin shows an estimate per month, and the Google Cloud console has the real figure). The YouTube Data API call that comes with it is free within its daily quota.
+- Gemini (Developer API, paid tier): billed per token, per video (a long video is the expensive case; the Usage table in Settings → Admin shows an estimate per month, and the Google Cloud console has the real figure). Google's price list shows the current rates through 2026-12-31 and double from 2027-01-01. The YouTube Data API call that comes with it is free within its daily quota.
 - Artifact Registry: storage for three images (a few hundred MB per version) and the egress to the VM, which is in the same region.
-- Secret Manager: five secrets, a few accesses a day.
+- Secret Manager: six secrets, a few accesses a day.
 
 ## 1. Google Cloud resources
 
@@ -68,10 +68,10 @@ gcloud billing projects link "$PROJECT_ID" --billing-account="$BILLING_ACCOUNT"
 gcloud config set project "$PROJECT_ID"
 gcloud services enable compute.googleapis.com artifactregistry.googleapis.com \
   secretmanager.googleapis.com storage.googleapis.com iam.googleapis.com iap.googleapis.com \
-  aiplatform.googleapis.com youtube.googleapis.com
+  generativelanguage.googleapis.com youtube.googleapis.com
 ```
 
-The registry, the bucket and the VM's service account (it gets only what it needs, per resource and not project-wide, with one exception: `roles/aiplatform.user`, which Vertex AI can only grant on the project; ADR 0081):
+The registry, the bucket and the VM's service account (it gets only what it needs, per resource and not project-wide; it has no Gemini role, because Gemini is reached with an API key, ADR 0083):
 
 **You run:**
 
@@ -87,10 +87,6 @@ gcloud artifacts repositories add-iam-policy-binding atlas --location="$REGION" 
   --member="serviceAccount:$SA_EMAIL" --role=roles/artifactregistry.reader
 gcloud storage buckets add-iam-policy-binding "gs://$BUCKET" \
   --member="serviceAccount:$SA_EMAIL" --role=roles/storage.objectAdmin
-
-# Lets the VM call Gemini on Vertex AI (project-wide: the only role here that is)
-gcloud projects add-iam-policy-binding "$PROJECT_ID" \
-  --member="serviceAccount:$SA_EMAIL" --role=roles/aiplatform.user
 ```
 
 The YouTube Data API key (it gets a video's title, channel and length before Gemini is asked). Restrict it to that one API so a leaked key can do little else:
@@ -104,19 +100,27 @@ gcloud services api-keys get-key-string <the name printed above>     # the key i
 ```
 
 Keep the key string for the next step. If a command name has changed, `gcloud services api-keys --help` lists the current ones.
-The five secrets. Run this in `bash` (type `bash` first on a Mac, where the default shell is zsh). It asks for the three values you already have (the Anthropic key, the YouTube Data API key from above and the Google client secret) and makes the other two; nothing goes into your shell history:
+
+The Gemini API key (ADR 0083). Vertex AI refused YouTube input from the VM's service account, so Gemini is reached through the Gemini Developer API with a key. This one is made in the console, not with `gcloud`:
+
+1. Open [Google AI Studio](https://aistudio.google.com/apikey) → **Get API key** → **Create API key**, and pick the `atlas` project (import it into AI Studio first if it is not listed).
+2. Put the project on a **paid tier** (link the billing account in AI Studio). On the free tier inputs may be used to improve Google's products and YouTube input is capped at 8 hours a day.
+3. In the Cloud console (APIs & Services → Credentials) open the key, restrict it to the **Generative Language API**, and copy the key string.
+
+Keep that string for the next step.
+The six secrets. Run this in `bash` (type `bash` first on a Mac, where the default shell is zsh). It asks for the four values you already have (the Anthropic key, the YouTube Data API key and the Gemini API key from above, and the Google client secret) and makes the other two; nothing goes into your shell history:
 
 **You run:**
 
 ```sh
-for name in anthropic-api-key youtube-api-key google-client-secret; do
+for name in anthropic-api-key youtube-api-key gemini-api-key google-client-secret; do
   printf '%s: ' "$name"; read -rs value; echo
   printf '%s' "$value" | tr -d '\000-\037\177' | gcloud secrets create "$name" --data-file=-
 done
 printf '%s' "$(openssl rand -hex 32)"    | tr -d '\000-\037\177' | gcloud secrets create agent-secret --data-file=-
 printf '%s' "$(openssl rand -base64 32)" | tr -d '\000-\037\177' | gcloud secrets create token-encryption-key --data-file=-
 
-for name in anthropic-api-key youtube-api-key agent-secret google-client-secret token-encryption-key; do
+for name in anthropic-api-key youtube-api-key gemini-api-key agent-secret google-client-secret token-encryption-key; do
   gcloud secrets add-iam-policy-binding "$name" \
     --member="serviceAccount:$SA_EMAIL" --role=roles/secretmanager.secretAccessor
 done
@@ -180,7 +184,7 @@ Edit the settings:
 sudo nano /etc/atlas/atlas.env
 ```
 
-Set `REGISTRY` (`asia-southeast1-docker.pkg.dev/<PROJECT_ID>/atlas`), `ADMIN_EMAIL`, `GOOGLE_CLIENT_ID`, `LITESTREAM_BUCKET` (the bucket name), `GOOGLE_CLOUD_PROJECT` (`<PROJECT_ID>`), `GEMINI_MODEL` (`gemini-3.8-flash`; the current Flash model on Vertex AI when you read this) and `APP_ORIGINS` (the address from the next step). Leave `VAULT_CREATE_ENABLED=false`: a vault folder made in the app would have no sync client behind it.
+Set `REGISTRY` (`asia-southeast1-docker.pkg.dev/<PROJECT_ID>/atlas`), `ADMIN_EMAIL`, `GOOGLE_CLIENT_ID`, `LITESTREAM_BUCKET` (the bucket name), `GEMINI_MODEL` (`gemini-3.8-flash`; the current Flash model when you read this) and `APP_ORIGINS` (the address from the next step). Leave `VAULT_CREATE_ENABLED=false`: a vault folder made in the app would have no sync client behind it.
 
 ## 3. Tailscale
 
@@ -368,13 +372,13 @@ The Status panel (Settings → Sources) shows the Agent, Transcription (Gemini),
 - **`fetch-secrets` names a secret it can't read.** It doesn't exist, has no version, or the service account lacks `secretmanager.secretAccessor` on it.
 - **Replication is Failing.** `dc logs litestream` usually shows a bucket permission error (`storage.objectAdmin` on the bucket).
 - **Vault sync is Failing.** `dc logs sync-naresh` shows the Obsidian client's last line. After a login problem repeat step 6; the client retries by itself with a growing wait up to five minutes (`dc restart sync-naresh` starts it now).
-- **Transcription (Gemini) is Failing, or a video job fails at transcribing.** Read the row's error or the job's. "Could not get Google credentials" means the VM's service account is not being used (check `dc logs app` and that the VM has the service account attached); a 403 means `roles/aiplatform.user` is missing or `aiplatform.googleapis.com` is not enabled; a 404 on the model check means `GEMINI_MODEL` names a model that does not exist (read the exact name from the Vertex AI model list); a 429 or 5xx is retried once after ten seconds and then reported.
+- **Transcription (Gemini) is Failing, or a video job fails at transcribing.** Read the row's error or the job's. A 400 "API key not valid" or a 403 means `gemini-api-key` is wrong, was restricted to a different API, or `generativelanguage.googleapis.com` is not enabled for the key's project (the key must belong to a project with billing on); a 404 on the model check means `GEMINI_MODEL` names a model that does not exist; a 429 or 5xx is retried once after ten seconds and then reported. Check the secret reached the container without printing it: `dc exec app sh -c 'test -n "$GEMINI_API_KEY" && echo set'`.
 - **"Only public YouTube videos are supported" or "Video not found or not public".** The YouTube Data API says the video is private, unlisted, members-only or gone. Gemini can read only public videos. A 403 from the YouTube Data API itself means the `youtube-api-key` secret is wrong, the API is not enabled, or the key is restricted to a different API.
 - **A long video's transcript is marked cut short, or the job fails.** Gemini writes at most about 65,000 tokens and takes roughly 45 minutes of video with audio. A cut-short transcript is kept and says so in the review screen; a video over the limit fails with Gemini's own message. Nothing is split into parts (clipping a YouTube link bills the full audio each time, ADR 0081).
 
 ## Upgrading from the OpenAI and yt-dlp build
 
-The first 0.10.0 deploy used OpenAI and yt-dlp with a PO token provider. Gemini replaced them (ADR 0081), so after deploying this release: add `GOOGLE_CLOUD_PROJECT` and `GEMINI_MODEL` to `atlas.env`, create the `youtube-api-key` secret (above) and give the service account access to it, and give it `roles/aiplatform.user`. Deploy with `--files`; the `atlas` service starts Compose with `--remove-orphans`, so the old `pot-provider` container goes and the database moves to schema 13 (a copy goes to `pre-migration/`; a job that was downloading or converting fails with "Interrupted by upgrade"). Once a video job has worked, disable and then delete the old `openai-api-key` secret (`gcloud secrets versions disable` on each version, later `gcloud secrets delete`) and revoke the key in OpenAI's dashboard. YouTube videos must be public: private, unlisted, members-only and age-restricted ones fail, and so do other video sites.
+The first 0.10.0 deploy used OpenAI and yt-dlp with a PO token provider, then Gemini on Vertex AI with the service account. Neither is used any more (ADRs 0081, 0083), so after deploying this release: add `GEMINI_MODEL` to `atlas.env` (and remove `GOOGLE_CLOUD_PROJECT` if you added it), create the `youtube-api-key` and `gemini-api-key` secrets (above) and give the service account access to both. If you granted `roles/aiplatform.user` to the service account, remove it (`gcloud projects remove-iam-policy-binding`), and disable `aiplatform.googleapis.com` if nothing else uses it. Deploy with `--files`; the `atlas` service starts Compose with `--remove-orphans`, so the old `pot-provider` container goes and the database moves to schema 13 (a copy goes to `pre-migration/`; a job that was downloading or converting fails with "Interrupted by upgrade"). Once a video job has worked, disable and then delete the old `openai-api-key` secret (`gcloud secrets versions disable` on each version, later `gcloud secrets delete`) and revoke the key in OpenAI's dashboard. YouTube videos must be public: private, unlisted, members-only and age-restricted ones fail, and so do other video sites.
 
 ## Shutting down the old project
 

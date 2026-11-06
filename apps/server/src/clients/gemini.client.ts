@@ -1,5 +1,4 @@
 // Packages
-import { GoogleAuth } from 'google-auth-library'
 import { z } from 'zod'
 
 const REQUEST_TIMEOUT_MS = 15 * 60 * 1000
@@ -17,10 +16,8 @@ export const TRANSCRIPTION_PROMPT = [
 ].join( ' ' )
 
 export type GeminiOptions = {
-  project: string
-  location: string
   model: string
-  getAccessToken: () => Promise< string >
+  apiKey: string
   // Replaces the Google host; the e2e fakes use it
   baseUrl?: string
 }
@@ -49,49 +46,36 @@ const GenerateBody = z.object( {
 } )
 const ErrorBody = z.object( { error: z.object( { message: z.string() } ) } )
 
-const host = ( { location, baseUrl }: GeminiOptions ): string => {
-  if( baseUrl !== undefined ) {
-    return baseUrl.replace( /\/+$/, '' )
-  }
+const DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com'
 
-  return location === 'global'
-    ? 'https://aiplatform.googleapis.com'
-    : `https://${ location }-aiplatform.googleapis.com`
+const base = ( { baseUrl }: GeminiOptions ): string => {
+  return `${ ( baseUrl ?? DEFAULT_BASE_URL ).replace( /\/+$/, '' ) }/v1beta`
 }
 
-const hide = ( text: string, token: string ): string => text.replaceAll( token, '[hidden]' )
+// The key travels in a header, but Google quotes parts of a rejected key in its messages
+const hide = ( text: string, apiKey: string ): string => text.replaceAll( apiKey, '[hidden]' )
 
-const reasonOf = ( error: unknown, token: string ): string => {
-  return hide( error instanceof Error ? error.message : String( error ), token )
+const reasonOf = ( error: unknown, apiKey: string ): string => {
+  return hide( error instanceof Error ? error.message : String( error ), apiKey )
 }
 
-const tokenFor = async ( { getAccessToken }: GeminiOptions ): Promise< string > => {
-  try {
-    return await getAccessToken()
-  } catch( error ) {
-    const reason = error instanceof Error ? error.message : String( error )
-
-    throw new Error( `Could not get Google credentials: ${ reason }`, { cause: error } )
-  }
-}
-
-const messageOf = async ( response: Response, token: string ): Promise< string > => {
+const messageOf = async ( response: Response, apiKey: string ): Promise< string > => {
   const body = ErrorBody.safeParse( await response.json().catch( () => undefined ) )
 
-  return body.success ? `: ${ hide( body.data.error.message, token ) }` : ''
+  return body.success ? `: ${ hide( body.data.error.message, apiKey ) }` : ''
 }
 
 const send = async (
   url: string,
   init: RequestInit,
-  token: string,
+  { apiKey }: GeminiOptions,
   timeoutMs: number,
   timeoutMessage: string,
 ): Promise< Response > => {
   try {
     return await fetch( url, {
       ...init,
-      headers: { Authorization: `Bearer ${ token }`, 'Content-Type': 'application/json' },
+      headers: { 'x-goog-api-key': apiKey, 'Content-Type': 'application/json' },
       signal: AbortSignal.timeout( timeoutMs ),
     } )
   } catch( error ) {
@@ -99,7 +83,7 @@ const send = async (
       throw new Error( timeoutMessage, { cause: error } )
     }
 
-    throw new Error( `Could not reach Gemini: ${ reasonOf( error, token ) }`, { cause: error } )
+    throw new Error( `Could not reach Gemini: ${ reasonOf( error, apiKey ) }`, { cause: error } )
   }
 }
 
@@ -109,7 +93,7 @@ const requestBody = ( videoUrl: string ): string => JSON.stringify( {
   contents: [ {
     role: 'user',
     parts: [
-      { fileData: { fileUri: videoUrl, mimeType: 'video/mp4' } },
+      { fileData: { fileUri: videoUrl } },
       { text: TRANSCRIPTION_PROMPT },
     ],
   } ],
@@ -117,7 +101,7 @@ const requestBody = ( videoUrl: string ): string => JSON.stringify( {
     temperature: 0,
     maxOutputTokens: MAX_OUTPUT_TOKENS,
     mediaResolution: 'MEDIA_RESOLUTION_LOW',
-    // MINIMAL is refused by gemini-3.8-flash; LOW is the least it accepts
+    // MINIMAL was refused by gemini-3.8-flash on Vertex (ADR 0082); LOW is the level checked
     thinkingConfig: { thinkingLevel: 'LOW', includeThoughts: false },
   },
 } )
@@ -167,18 +151,17 @@ const toTranscript = ( json: unknown ): GeminiTranscript => {
 }
 
 // One request for the whole video, never clipped: clips of a YouTube URL bill the full audio each
+// time. The Developer API, not Vertex AI, which refuses a YouTube part from a service account
+// (ADR 0083).
 export const transcribeYouTube = async (
   videoUrl: string,
   options: GeminiOptions,
 ): Promise< GeminiTranscript > => {
-  const token = await tokenFor( options )
-  const { project, location, model } = options
-  const url = `${ host( options ) }/v1/projects/${ project }/locations/${ location }`
-    + `/publishers/google/models/${ model }:generateContent`
+  const url = `${ base( options ) }/models/${ options.model }:generateContent`
   const post = (): Promise< Response > => send(
     url,
     { method: 'POST', body: requestBody( videoUrl ) },
-    token,
+    options,
     REQUEST_TIMEOUT_MS,
     'Gemini transcription timed out after 15 minutes',
   )
@@ -193,7 +176,7 @@ export const transcribeYouTube = async (
 
   if( !response.ok ) {
     throw new Error( `Gemini request failed (${ response.status })${
-      await messageOf( response, token ) }` )
+      await messageOf( response, options.apiKey ) }` )
   }
 
   return toTranscript( await response.json().catch( () => undefined ) )
@@ -201,35 +184,18 @@ export const transcribeYouTube = async (
 
 // Reading a model resource is free
 export const checkGeminiModel = async ( options: GeminiOptions ): Promise< void > => {
-  const token = await tokenFor( options )
   const response = await send(
-    `${ host( options ) }/v1/publishers/google/models/${ options.model }`,
+    `${ base( options ) }/models/${ options.model }`,
     { method: 'GET' },
-    token,
+    options,
     CHECK_TIMEOUT_MS,
     'Gemini did not answer within 10 seconds',
   )
 
   if( !response.ok ) {
     throw new Error( `Gemini model check failed (${ response.status })${
-      await messageOf( response, token ) }` )
+      await messageOf( response, options.apiKey ) }` )
   }
 
   await response.body?.cancel()
-}
-
-let auth: GoogleAuth | undefined
-
-// Application Default Credentials: the VM's service account, or `gcloud auth application-default
-// login` on the Mac. Created on first use so importing this file never looks for credentials.
-export const googleAccessToken = async (): Promise< string > => {
-  auth ??= new GoogleAuth( { scopes: [ 'https://www.googleapis.com/auth/cloud-platform' ] } )
-
-  const token = await auth.getAccessToken()
-
-  if( !token ) {
-    throw new Error( 'Google gave no access token' )
-  }
-
-  return token
 }

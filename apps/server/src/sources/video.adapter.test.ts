@@ -21,12 +21,10 @@ vi.mock( '../clients/gemini.client.js' )
 vi.mock( '../config.js', () => ( {
   config: {
     geminiModel: 'test-gemini',
-    googleCloudProject: 'test-project',
-    geminiLocation: 'global',
+    geminiApiKey: 'gemini-key',
     youtubeApiKey: 'yt-key',
     geminiBaseUrl: null,
     youtubeApiBaseUrl: null,
-    geminiAccessToken: null,
     logLevel: 'silent',
   },
 } ) )
@@ -153,12 +151,7 @@ describe( 'videoAdapter.acquire', () => {
       .toHaveBeenCalledWith( 'abc123', expect.objectContaining( { apiKey: 'yt-key' } ) )
     expect( transcribeMock ).toHaveBeenCalledWith(
       'https://www.youtube.com/watch?v=abc123',
-      expect.objectContaining( {
-        project: 'test-project',
-        location: 'global',
-        model: 'test-gemini',
-        getAccessToken: expect.any( Function ) as unknown,
-      } ),
+      { model: 'test-gemini', apiKey: 'gemini-key' },
     )
   } )
 

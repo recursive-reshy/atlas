@@ -1,5 +1,10 @@
 // Packages
-import { describe, it, expect } from 'vitest'
+import {
+  describe,
+  it,
+  expect,
+  vi,
+} from 'vitest'
 // Summarizer
 import { SHIPPED_DEFAULT_MODEL } from './models.js'
 import {
@@ -61,33 +66,46 @@ describe( 'MODEL_PRICES', () => {
 } )
 
 describe( 'estimateGeminiCostUsd', () => {
-  const price = GEMINI_PRICES[ 'gemini-3.8-flash' ]
+  const before = new Date( '2026-12-31T23:59:59Z' )
+  const after = new Date( '2027-01-01T00:00:00Z' )
 
   it( 'knows the current Flash model', () => {
-    expect( price ).toBeDefined()
+    expect( GEMINI_PRICES[ 'gemini-3.8-flash' ] ).toHaveLength( 2 )
   } )
 
-  it( 'prices input and output tokens per million', () => {
-    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 1_000_000, 0 ) ).toBe( price?.input )
-    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 0, 1_000_000 ) ).toBe( price?.output )
+  it( 'prices input and output per million at the paid-tier rate until the end of 2026', () => {
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 1_000_000, 0, before ) ).toBe( 0.75 )
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 0, 1_000_000, before ) ).toBe( 3.75 )
+  } )
+
+  it( 'prices at the doubled rate from 2027-01-01, which Google\'s price list announces', () => {
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 1_000_000, 0, after ) ).toBe( 1.5 )
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 0, 1_000_000, after ) ).toBe( 7.5 )
+  } )
+
+  it( 'uses today\'s date when none is given', () => {
+    vi.useFakeTimers()
+    vi.setSystemTime( after )
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 1_000_000, 0 ) ).toBe( 1.5 )
+    vi.setSystemTime( before )
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 1_000_000, 0 ) ).toBe( 0.75 )
+    vi.useRealTimers()
   } )
 
   it( 'rounds to the millionth of a dollar', () => {
-    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 1, 1 ) )
-      .toBe( Math.round( ( ( price?.input ?? 0 ) + ( price?.output ?? 0 ) ) ) / 1_000_000 )
-    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 123_456, 7_890 ) )
-      .toBe( Math.round(
-        123_456 * ( price?.input ?? 0 ) + 7_890 * ( price?.output ?? 0 ),
-      ) / 1_000_000 )
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 1, 1, before ) )
+      .toBe( Math.round( 0.75 + 3.75 ) / 1_000_000 )
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 123_456, 7_890, before ) )
+      .toBe( Math.round( 123_456 * 0.75 + 7_890 * 3.75 ) / 1_000_000 )
   } )
 
   it( 'returns 0 for no tokens', () => {
-    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 0, 0 ) ).toBe( 0 )
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 0, 0, before ) ).toBe( 0 )
   } )
 
   it( 'returns null for an unknown model or unknown tokens', () => {
-    expect( estimateGeminiCostUsd( 'gemini-9-flash', 10, 10 ) ).toBeNull()
-    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', null, 10 ) ).toBeNull()
-    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 10, null ) ).toBeNull()
+    expect( estimateGeminiCostUsd( 'gemini-9-flash', 10, 10, before ) ).toBeNull()
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', null, 10, before ) ).toBeNull()
+    expect( estimateGeminiCostUsd( 'gemini-3.8-flash', 10, null, before ) ).toBeNull()
   } )
 } )

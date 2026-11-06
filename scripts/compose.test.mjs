@@ -19,7 +19,7 @@ const dummyEnv = {
   VAULTS_HOST_PATH: '/tmp/atlas-vaults',
   ANTHROPIC_API_KEY: 'dummy',
   GEMINI_MODEL: 'gemini-test',
-  GOOGLE_CLOUD_PROJECT: 'atlas-test',
+  GEMINI_API_KEY: 'dummy',
   YOUTUBE_API_KEY: 'dummy',
   AGENT_SECRET: 'd'.repeat( 32 ),
   ADMIN_EMAIL: 'admin@example.test',
@@ -82,17 +82,20 @@ test( 'the app gets every variable it reads from the shared file', { skip }, () 
   const names = Object.keys( config.services.app.environment )
   for( const name of [
     'ADMIN_EMAIL', 'APP_ORIGINS', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'TOKEN_ENCRYPTION_KEY',
-    'GEMINI_MODEL', 'GOOGLE_CLOUD_PROJECT', 'GEMINI_LOCATION', 'YOUTUBE_API_KEY',
+    'GEMINI_MODEL', 'GEMINI_API_KEY', 'YOUTUBE_API_KEY',
     'ANTHROPIC_API_KEY', 'AGENT_SECRET', 'AGENT_URL', 'APP_TIME_ZONE',
     'VAULT_CREATE_ENABLED', 'LOG_LEVEL', 'STATUS_CHECK_INTERVAL_MINUTES',
   ] ) {
     assert.ok( names.includes( name ), `app environment lacks ${ name }` )
   }
-  for( const name of [ 'OPENAI_API_KEY', 'OPENAI_BASE_URL', 'TRANSCRIPTION_MODEL', 'POT_PROVIDER_URL' ] ) {
+  for( const name of [
+    'OPENAI_API_KEY', 'OPENAI_BASE_URL', 'TRANSCRIPTION_MODEL', 'POT_PROVIDER_URL',
+    'GOOGLE_CLOUD_PROJECT', 'GEMINI_LOCATION', 'GOOGLE_APPLICATION_CREDENTIALS',
+  ] ) {
     assert.ok( !names.includes( name ), `app environment still has ${ name } (ADR 0081)` )
   }
   assert.equal( config.services.app.environment.GEMINI_MODEL, dummyEnv.GEMINI_MODEL )
-  assert.equal( config.services.app.environment.GOOGLE_CLOUD_PROJECT, dummyEnv.GOOGLE_CLOUD_PROJECT )
+  assert.equal( config.services.app.environment.GEMINI_API_KEY, dummyEnv.GEMINI_API_KEY )
 } )
 
 test( 'a missing required variable stops the shared file', { skip }, () => {
@@ -189,50 +192,40 @@ test( 'production keeps the database and status folders on the host with the app
   assert.equal( config.volumes[ 'sync-status' ].driver_opts.device, '/srv/atlas/sync-status' )
 } )
 
-test( 'production has no PO token provider, and the VM signs in to Google by itself', { skip }, () => {
+test( 'production has no PO token provider and no Google credentials for Gemini', { skip }, () => {
   const config = render( [ 'docker-compose.yml', 'compose.prod.yml' ], { env: prodEnv } )
   assert.equal( config.services[ 'pot-provider' ], undefined )
   assert.equal( config.services.app.environment.POT_PROVIDER_URL, undefined )
-  // Application Default Credentials come from the VM's metadata server: no key file, no mount
+  // Gemini uses an API key (ADR 0083): no credentials file, no mount
   assert.equal( config.services.app.environment.GOOGLE_APPLICATION_CREDENTIALS, undefined )
   assert.ok( !config.services.app.volumes.some( ( volume ) => volume.target === '/gcp/adc.json' ) )
   assert.deepEqual( publishedPorts( config ), [ { name: 'app', host_ip: '127.0.0.1', published: '3100' } ] )
 } )
 
-test( 'locally the Mac\'s Application Default Credentials are mounted read-only', { skip }, () => {
+test( 'locally nothing from the Mac\'s Google login is mounted any more', { skip }, () => {
   const config = render( [ 'docker-compose.yml', 'compose.local.yml' ] )
-  const adc = config.services.app.volumes.find( ( volume ) => volume.target === '/gcp/adc.json' )
-  assert.ok( adc, 'the credentials file is mounted' )
-  assert.equal( adc.source, `${ process.env.HOME }/.config/gcloud/application_default_credentials.json` )
-  assert.equal( adc.read_only, true )
-  assert.equal( config.services.app.environment.GOOGLE_APPLICATION_CREDENTIALS, '/gcp/adc.json' )
+  assert.ok( !config.services.app.volumes.some( ( volume ) => volume.target === '/gcp/adc.json' ) )
+  assert.equal( config.services.app.environment.GOOGLE_APPLICATION_CREDENTIALS, undefined )
   assert.equal( config.services[ 'pot-provider' ], undefined )
+  assert.equal( config.services.app.environment.GEMINI_API_KEY, dummyEnv.GEMINI_API_KEY )
 } )
 
-test( 'the path of the credentials file can be changed with GOOGLE_ADC_HOST_PATH', { skip }, () => {
-  const config = render( [ 'docker-compose.yml', 'compose.local.yml' ], {
-    env: { ...dummyEnv, GOOGLE_ADC_HOST_PATH: '/somewhere/adc.json' },
-  } )
-  const adc = config.services.app.volumes.find( ( volume ) => volume.target === '/gcp/adc.json' )
-  assert.equal( adc.source, '/somewhere/adc.json' )
-} )
-
-test( 'e2e talks to the fakes for Gemini and YouTube and mounts no credentials', { skip }, () => {
+test( 'e2e talks to the fakes for Gemini and YouTube', { skip }, () => {
   const config = render( [ 'docker-compose.yml', 'compose.local.yml', 'e2e/docker-compose.e2e.yml' ] )
   const environment = config.services.app.environment
   assert.equal( environment.GEMINI_BASE_URL, 'http://fakes:4000' )
   assert.equal( environment.YOUTUBE_API_BASE_URL, 'http://fakes:4000' )
   assert.equal( environment.GEMINI_MODEL, 'gemini-e2e' )
-  assert.ok( environment.GEMINI_ACCESS_TOKEN, 'a fixed token replaces Application Default Credentials' )
-  assert.ok( !( 'OPENAI_BASE_URL' in environment ) && !( 'OPENAI_API_KEY' in environment ) )
-  assert.ok( !config.services.app.volumes.some( ( volume ) => volume.target === '/gcp/adc.json' ) )
+  assert.ok( environment.GEMINI_API_KEY, 'a dummy key is set' )
+  for( const name of [ 'GEMINI_ACCESS_TOKEN', 'GOOGLE_CLOUD_PROJECT', 'OPENAI_BASE_URL', 'OPENAI_API_KEY' ] ) {
+    assert.ok( !( name in environment ), `e2e still sets ${ name }` )
+  }
   assert.ok( config.services.app.volumes.some( ( volume ) => volume.target === '/vaults' ), 'still has the vaults' )
   assert.ok( config.services.app.volumes.some( ( volume ) => volume.target === '/data' ), 'still has the data volume' )
 } )
 
-test( 'atlas.env.example names the Gemini settings the VM needs', () => {
+test( 'atlas.env.example names the Gemini model and no Vertex settings', () => {
   const text = readFileSync( join( root, 'deploy/vm/atlas.env.example' ), 'utf8' )
   assert.match( text, /^GEMINI_MODEL=/m )
-  assert.match( text, /^GOOGLE_CLOUD_PROJECT=/m )
-  assert.doesNotMatch( text, /TRANSCRIPTION_MODEL|OPENAI/ )
+  assert.doesNotMatch( text, /GOOGLE_CLOUD_PROJECT|GEMINI_LOCATION|TRANSCRIPTION_MODEL|OPENAI/ )
 } )

@@ -36,19 +36,27 @@ export const estimateCostUsd = (
   return ( inputTokens * price.input + outputTokens * price.output ) / TOKENS_PER_PRICE_UNIT
 }
 
-// US dollars per million tokens for Gemini on Vertex AI (standard, not batch). NOT confirmed from
-// Google's own page (it renders with JavaScript): these are what price trackers list on
-// 2026-11-06, and one reports a rise to 1.50 / 7.50 on 2027-01-01. Check the console price.
-export const GEMINI_PRICES: Record< string, Price > = {
-  'gemini-3.8-flash': { input: 0.75, output: 3.75 },
+type DatedPrice = Price & { from: string }
+
+// US dollars per million tokens for the Gemini Developer API, paid tier, standard (not batch),
+// checked against Google's price list on 2026-11-06. Output includes thinking tokens. Google's
+// list shows these rates through 2026-12-31 and double from 2027-01-01, so each model has the
+// rate that applies from a date; the newest entry whose date has come is used.
+export const GEMINI_PRICES: Record< string, DatedPrice[] > = {
+  'gemini-3.8-flash': [
+    { from: '1970-01-01', input: 0.75, output: 3.75 },
+    { from: '2027-01-01', input: 1.5, output: 7.5 },
+  ],
 }
 
 export const estimateGeminiCostUsd = (
   model: string,
   inputTokens: number | null,
   outputTokens: number | null,
+  at: Date = new Date(),
 ): number | null => {
-  const price = GEMINI_PRICES[ model ]
+  const day = at.toISOString().slice( 0, 10 )
+  const price = GEMINI_PRICES[ model ]?.findLast( ( { from } ) => from <= day )
 
   if( price === undefined || inputTokens === null || outputTokens === null ) {
     return null

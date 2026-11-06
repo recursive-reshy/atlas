@@ -114,6 +114,9 @@ const IGNORED_VARIABLES = [
   'TRANSCRIPTION_MODEL',
   'POT_PROVIDER_URL',
   'WORK_DIR',
+  'GOOGLE_CLOUD_PROJECT',
+  'GEMINI_LOCATION',
+  'GEMINI_ACCESS_TOKEN',
 ]
 
 export const ignoredEnv = ( env: NodeJS.ProcessEnv ): string[] => {
@@ -127,13 +130,11 @@ const EnvSchema = z
     WEB_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
     ANTHROPIC_API_KEY: z.string().min( 1 ),
     GEMINI_MODEL: z.string().min( 1 ),
-    GOOGLE_CLOUD_PROJECT: z.string().min( 1 ),
-    GEMINI_LOCATION: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( 'global' ) ),
+    GEMINI_API_KEY: z.string().min( 1 ),
     YOUTUBE_API_KEY: z.string().min( 1 ),
     LITESTREAM_METRICS_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
     GEMINI_BASE_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
     YOUTUBE_API_BASE_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
-    GEMINI_ACCESS_TOKEN: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
     VAULT_CREATE_ENABLED: z.preprocess(
       emptyAsUnset,
       z.enum( [ 'true', 'false', '1', '0' ] ).default( 'true' ),
@@ -167,18 +168,16 @@ const EnvSchema = z
     dataDir: env.DATA_DIR,
     webDir: env.WEB_DIR,
     anthropicApiKey: env.ANTHROPIC_API_KEY,
-    // Gemini on Vertex AI reads YouTube links; the YouTube Data API gives the metadata (ADR 0081)
+    // Gemini (Developer API, ADR 0083) reads YouTube links; the YouTube Data API gives the metadata
     geminiModel: env.GEMINI_MODEL,
-    googleCloudProject: env.GOOGLE_CLOUD_PROJECT,
-    geminiLocation: env.GEMINI_LOCATION,
+    geminiApiKey: env.GEMINI_API_KEY,
     youtubeApiKey: env.YOUTUBE_API_KEY,
     vaultsPath: env.VAULTS_PATH,
     litestreamMetricsUrl: env.LITESTREAM_METRICS_URL ?? null,
-    // Test doubles for the e2e stack (ADR 0053): other hosts for Vertex AI and the YouTube Data
-    // API, and a fixed token instead of Application Default Credentials. Unset in production.
+    // Test doubles for the e2e stack (ADR 0053): other hosts for Gemini and the YouTube Data API.
+    // Unset in production.
     geminiBaseUrl: env.GEMINI_BASE_URL ?? null,
     youtubeApiBaseUrl: env.YOUTUBE_API_BASE_URL ?? null,
-    geminiAccessToken: env.GEMINI_ACCESS_TOKEN ?? null,
     vaultSyncStatusDir: env.VAULT_SYNC_STATUS_DIR ?? null,
     vaultCreateEnabled: env.VAULT_CREATE_ENABLED === 'true' || env.VAULT_CREATE_ENABLED === '1',
     adminEmail: env.ADMIN_EMAIL,

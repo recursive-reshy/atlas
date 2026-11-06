@@ -67,20 +67,19 @@ Restart (`docker compose up -d` on the Mac, `sudo systemctl restart atlas` on th
 
 ## 6. Gemini and the YouTube Data API
 
-Videos are transcribed by Gemini on Vertex AI, which is given the YouTube link and fetches the public video itself (ADR 0081). This needs no OAuth client; it needs two APIs, a key and credentials, all in the same `atlas` project:
+Videos are transcribed by Gemini through the Gemini Developer API, which is given the YouTube link and fetches the public video itself (ADRs 0081, 0083). This needs no OAuth client; it needs two API keys, both in the same `atlas` project. (Vertex AI was tried first and is no longer used: from the VM it refused YouTube input when called with the service account.)
 
-1. **Enable the APIs:** APIs & Services → Library → **Vertex AI API** and **YouTube Data API v3** → Enable (`aiplatform.googleapis.com`, `youtube.googleapis.com`).
+1. **Enable the APIs:** APIs & Services → Library → **Generative Language API** and **YouTube Data API v3** → Enable (`generativelanguage.googleapis.com`, `youtube.googleapis.com`).
 2. **A YouTube Data API key** (title, channel and length of a video; one quota unit a call): APIs & Services → Credentials → Create credentials → API key, then restrict it to **YouTube Data API v3**. This is `YOUTUBE_API_KEY`.
-3. **Credentials for Gemini.** On the Mac, run `gcloud auth application-default login` once, with an account that can use Vertex AI in the project; Compose mounts the file it writes (`~/.config/gcloud/application_default_credentials.json`, or the path in `GOOGLE_ADC_HOST_PATH`) into the app container. Without it the Status panel's Transcription row fails with "Could not get Google credentials". On the VM nothing is mounted: the service account `atlas-vm` has `roles/aiplatform.user` ([`deploy.md`](deploy.md#1-google-cloud-resources)).
+3. **A Gemini API key** in [Google AI Studio](https://aistudio.google.com/apikey): Get API key → Create API key, against the `atlas` project. Put the project on a **paid** tier (link billing there): on the free tier your inputs may be used to improve Google's products and YouTube input is capped at 8 hours a day. Then, in the Cloud console, restrict the key to the **Generative Language API**. This is `GEMINI_API_KEY`.
 4. **Settings.** On the Mac, in `.env`:
 
    ```sh
-   GEMINI_MODEL=gemini-3.8-flash   # the current Flash model on Vertex AI
-   GOOGLE_CLOUD_PROJECT=...        # the project's ID, not its name
+   GEMINI_MODEL=gemini-3.8-flash   # the current Flash model
+   GEMINI_API_KEY=...
    YOUTUBE_API_KEY=...
-   # GEMINI_LOCATION=global        # the default
    ```
 
-   On the VM, `GEMINI_MODEL` and `GOOGLE_CLOUD_PROJECT` go in `/etc/atlas/atlas.env` and the key in the `youtube-api-key` secret.
+   On the VM, `GEMINI_MODEL` goes in `/etc/atlas/atlas.env` and the two keys in the `gemini-api-key` and `youtube-api-key` secrets ([`deploy.md`](deploy.md#1-google-cloud-resources)).
 
-Only public videos work: a private, unlisted, members-only or age-restricted video fails before Gemini is asked, and other video sites are refused. A video much over 45 minutes may be cut short or refused by Gemini. The cost is per token (an estimate is on the Admin tab's Usage table; check the Google Cloud console for the real figure).
+Only public videos work: a private, unlisted, members-only or age-restricted video fails before Gemini is asked, and other video sites are refused. On the paid tier Google sets no limit on the length of a video, but a very long one may fill Gemini's output limit and be cut short (the review screen says so). The cost is per token (an estimate is on the Admin tab's Usage table; check the Google Cloud console for the real figure).

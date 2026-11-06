@@ -46,12 +46,10 @@ vi.mock( '../sources/extractArticle.js' )
 vi.mock( '../config.js', () => ( {
   config: {
     geminiModel: 'test-model',
-    googleCloudProject: 'test-project',
-    geminiLocation: 'global',
+    geminiApiKey: 'gemini-key',
     youtubeApiKey: 'yt-key',
     geminiBaseUrl: null,
     youtubeApiBaseUrl: null,
-    geminiAccessToken: null,
     logLevel: 'silent',
     sessionDays: 30,
   },
@@ -120,7 +118,7 @@ describe( 'runJob', () => {
     expect( metaMock ).toHaveBeenCalledWith( 'abc', { apiKey: 'yt-key' } )
     expect( transcribeMock ).toHaveBeenCalledWith(
       'https://www.youtube.com/watch?v=abc',
-      expect.objectContaining( { project: 'test-project', model: 'test-model' } ),
+      { model: 'test-model', apiKey: 'gemini-key' },
     )
   } )
 

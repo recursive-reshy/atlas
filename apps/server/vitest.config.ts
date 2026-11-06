@@ -8,7 +8,7 @@ export default defineConfig( {
     env: {
       ANTHROPIC_API_KEY: 'test-key',
       GEMINI_MODEL: 'test-gemini',
-      GOOGLE_CLOUD_PROJECT: 'test-project',
+      GEMINI_API_KEY: 'test-gemini-api-key',
       YOUTUBE_API_KEY: 'test-youtube-key',
       LOG_LEVEL: 'silent',
       ADMIN_EMAIL: 'admin@example.com',

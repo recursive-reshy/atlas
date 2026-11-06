@@ -70,18 +70,18 @@ describe( 'GET /v1/models', () => {
   } )
 } )
 
-describe( 'Gemini on Vertex AI', () => {
-  const generate = '/v1/projects/e2e/locations/global/publishers/google/models/gemini-e2e:generateContent'
+describe( 'Gemini Developer API', () => {
+  const generate = '/v1beta/models/gemini-e2e:generateContent'
 
   it( 'knows the model, so the Transcription status row is healthy', () => {
-    const response = route( 'GET', '/v1/publishers/google/models/gemini-e2e' )
+    const response = route( 'GET', '/v1beta/models/gemini-e2e' )
 
     assert.equal( response.status, 200 )
-    assert.equal( JSON.parse( response.body ).name, 'publishers/google/models/gemini-e2e' )
+    assert.equal( JSON.parse( response.body ).name, 'models/gemini-e2e' )
   } )
 
   it( 'answers 404 with a Google-shaped error for any other model', () => {
-    const response = route( 'GET', '/v1/publishers/google/models/nope' )
+    const response = route( 'GET', '/v1beta/models/nope' )
 
     assert.equal( response.status, 404 )
     assert.match( JSON.parse( response.body ).error.message, /nope/ )

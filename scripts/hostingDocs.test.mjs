@@ -84,27 +84,48 @@ test( 'the runbook and the Google Cloud guide no longer describe them either', (
 
 test( 'the README documents the Gemini settings and YouTube-only video', () => {
   const text = read( 'README.md' )
-  for( const name of [ 'GEMINI_MODEL', 'GOOGLE_CLOUD_PROJECT', 'GEMINI_LOCATION', 'YOUTUBE_API_KEY', 'GOOGLE_ADC_HOST_PATH' ] ) {
+  for( const name of [ 'GEMINI_MODEL', 'GEMINI_API_KEY', 'YOUTUBE_API_KEY' ] ) {
     assert.match( text, new RegExp( `\`${ name }\`` ), name )
   }
   assert.match( text, /Gemini/ )
   assert.match( text, /Only YouTube/i )
-  assert.match( text, /application-default login/ )
+  assert.match( text, /AI Studio/ )
 } )
 
-test( 'the runbook sets up Vertex AI, the YouTube Data API and the youtube-api-key secret', () => {
+// Gemini goes through the Developer API with a key (ADR 0083): Vertex AI, Application Default
+// Credentials and the settings that went with them survive only in lines that say they are gone
+const VERTEX_WORDS = /vertex|aiplatform|application-default|application default|GOOGLE_CLOUD_PROJECT|GEMINI_LOCATION|GOOGLE_ADC_HOST_PATH|GEMINI_ACCESS_TOKEN|GOOGLE_APPLICATION_CREDENTIALS/i
+const SAYS_NOT_VERTEX = /no longer|removed|remove |disable|ignored|instead of|not Vertex|ADR 0083|upgrad|\bwere\b|refuses/i
+
+test( 'no doc describes Vertex AI or Application Default Credentials as how Gemini works', () => {
+  const offenders = [
+    'README.md', 'CLAUDE.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md',
+    'docs/deploy.md', 'docs/google-cloud-setup.md', '.env.example', 'apps/server/.env.example',
+  ].flatMap( ( file ) => read( file ).split( '\n' )
+    .map( ( line, index ) => ( { line, number: index + 1 } ) )
+    .filter( ( { line } ) => VERTEX_WORDS.test( line ) && !SAYS_NOT_VERTEX.test( line ) )
+    .map( ( { number, line } ) => `${ file }:${ number }: ${ line.slice( 0, 110 ) }` ) )
+  assert.deepEqual( offenders, [] )
+} )
+
+test( 'the runbook sets up the Gemini key, the YouTube Data API and six secrets', () => {
   const text = read( 'docs/deploy.md' )
-  for( const needle of [ 'aiplatform.googleapis.com', 'youtube.googleapis.com', 'roles/aiplatform.user', 'youtube-api-key', 'GEMINI_MODEL', 'GOOGLE_CLOUD_PROJECT' ] ) {
+  for( const needle of [ 'generativelanguage.googleapis.com', 'youtube.googleapis.com', 'gemini-api-key', 'youtube-api-key', 'GEMINI_MODEL', 'AI Studio' ] ) {
     assert.ok( text.includes( needle ), `deploy.md lacks ${ needle }` )
   }
   assert.doesNotMatch( text, /for name in [^\n]*openai-api-key/, 'the secrets loops no longer create openai-api-key' )
+  assert.match( text, /for name in [^\n]*gemini-api-key/, 'the secrets loops create gemini-api-key' )
   assert.doesNotMatch( text, /^#+ .*(PO token|pot-provider)/im )
+  assert.doesNotMatch( text, /services enable[^`]*aiplatform/ )
+  assert.doesNotMatch( text, /add-iam-policy-binding "\$PROJECT_ID"[^`]*aiplatform\.user/ )
 } )
 
-test( 'the Google Cloud guide covers the API key and the Mac credentials', () => {
+test( 'the Google Cloud guide covers the AI Studio key and the YouTube Data API key', () => {
   const text = read( 'docs/google-cloud-setup.md' )
   assert.match( text, /YouTube Data API/ )
-  assert.match( text, /application-default login/ )
+  assert.match( text, /AI Studio/ )
+  assert.match( text, /paid/i )
+  assert.match( text, /Generative Language API/ )
 } )
 
 test( 'the root CLAUDE.md describes Gemini and has no ops folder row', () => {

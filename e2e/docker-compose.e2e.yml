@@ -20,21 +20,16 @@ services:
     env_file: !override []
     ports: !override
       - "3101:3100"
-    # No Application Default Credentials in e2e: the local file's mount is replaced
-    volumes: !override
-      - data:/data
-      - ${VAULTS_HOST_PATH:?run e2e/run.sh}:/vaults
     environment:
       ANTHROPIC_BASE_URL: http://fakes:4000
       ANTHROPIC_API_KEY: e2e
       AGENT_SECRET: ${AGENT_SECRET:?run e2e/run.sh}
-      # Gemini and the YouTube Data API are the fakes too, with a fixed token instead of ADC
+      # Gemini and the YouTube Data API are the fakes too
       GEMINI_MODEL: gemini-e2e
-      GOOGLE_CLOUD_PROJECT: e2e
+      GEMINI_API_KEY: e2e
       YOUTUBE_API_KEY: e2e
       GEMINI_BASE_URL: http://fakes:4000
       YOUTUBE_API_BASE_URL: http://fakes:4000
-      GEMINI_ACCESS_TOKEN: e2e
       ADMIN_EMAIL: admin@e2e.test
       # Mounts POST /api/test/session, which the server only allows under NODE_ENV=test (TRD §11.4)
       NODE_ENV: test
