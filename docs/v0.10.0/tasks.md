@@ -119,7 +119,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 ---
 
 ## Checkpoint G: Phase 9 (Gemini for YouTube, cleanup)
-**Plan:** ⬜ [`plans/checkpoint-g.md`](plans/checkpoint-g.md)
+**Plan:** ✅ [`plans/checkpoint-g.md`](plans/checkpoint-g.md)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
