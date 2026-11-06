@@ -62,8 +62,6 @@ const transcript: Pick< VideoSource, 'meta' | 'text' > = {
 
 const queueSummarizing = async (): Promise< string > => {
   const { id } = await queueJob( userId, { url: transcript.meta.source } )
-  markStatus( userId, id, 'downloading' )
-  markStatus( userId, id, 'converting' )
   markStatus( userId, id, 'transcribing' )
   completeAcquisition( userId, id, { kind: 'video', ...transcript } )
 
@@ -392,8 +390,6 @@ describe( 'summarizeJob for two users', () => {
     setSetting( member, 'default_model', 'claude-haiku-5-5' )
 
     const { id: theirs } = await queueJob( member, { url: transcript.meta.source } )
-    markStatus( member, theirs, 'downloading' )
-    markStatus( member, theirs, 'converting' )
     markStatus( member, theirs, 'transcribing' )
     completeAcquisition( member, theirs, { kind: 'video', ...transcript } )
 

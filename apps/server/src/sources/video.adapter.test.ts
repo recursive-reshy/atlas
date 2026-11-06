@@ -126,7 +126,7 @@ describe( 'videoAdapter.acquire', () => {
     } )
   } )
 
-  it( 'marks downloading, converting and transcribing before each step', async () => {
+  it( 'marks transcribing before the work starts (the download steps are gone)', async () => {
     const seen: string[] = []
     const markStatus = vi.fn( ( status: string ) => {
       seen.push( status )
@@ -144,13 +144,7 @@ describe( 'videoAdapter.acquire', () => {
 
     await videoAdapter.acquire( context( markStatus ) )
 
-    expect( seen ).toEqual( [
-      'downloading',
-      'download',
-      'converting',
-      'convert',
-      'transcribing',
-    ] )
+    expect( seen ).toEqual( [ 'transcribing', 'download', 'convert' ] )
   } )
 
   describe( 'recording the transcription', () => {

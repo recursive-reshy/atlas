@@ -144,7 +144,7 @@ describe( 'openDatabase and closeDatabase', () => {
 describe( 'runMigrations', () => {
   it( 'numbers migrations from SCHEMA_BASE and reads that as the stored version', () => {
     expect( SCHEMA_BASE ).toBe( 9 )
-    expect( migrations ).toHaveLength( 3 )
+    expect( migrations ).toHaveLength( 4 )
   } )
 
   const version = ( database: Database.Database ): unknown => {
@@ -384,6 +384,8 @@ const BASELINE_COLUMNS: Record< string, string[] > = {
     'outcome',
     'error',
     'created_at',
+    'input_tokens',
+    'output_tokens',
   ],
   link_runs: [
     'id',
@@ -563,8 +565,8 @@ describe( 'the baseline schema', () => {
       .map( ( { name } ) => name )
   }
 
-  it( 'stores schema version 12 on an empty database', () => {
-    expect( getDatabase().pragma( 'user_version', { simple: true } ) ).toBe( 12 )
+  it( 'stores schema version 13 on an empty database', () => {
+    expect( getDatabase().pragma( 'user_version', { simple: true } ) ).toBe( 13 )
   } )
 
   it( 'creates exactly the 0.8 tables, unchanged, and the four user tables', () => {
@@ -799,7 +801,7 @@ describe( 'the PO token provider migration (schema 12, ADR 0080)', () => {
       VALUES ( NULL, 'replication', 'default', 'now', 'boom' )` ).run()
     expect( () => kindOf( database, 'pot_provider', null ) ).toThrow()
 
-    runMigrations( database, migrations )
+    runMigrations( database, migrations.slice( 0, 3 ) )
 
     expect( database.pragma( 'user_version', { simple: true } ) ).toBe( 12 )
     expect( database.prepare( 'SELECT kind FROM health_status' ).pluck().all() )
@@ -817,7 +819,7 @@ describe( 'the PO token provider migration (schema 12, ADR 0080)', () => {
   it( 'still ties an app kind to a null user and a user kind to a user', () => {
     const database = new Database( ':memory:' )
 
-    runMigrations( database, migrations )
+    runMigrations( database, migrations.slice( 0, 3 ) )
     database.pragma( 'foreign_keys = OFF' )
 
     expect( () => kindOf( database, 'pot_provider', 'someone' ) ).toThrow()

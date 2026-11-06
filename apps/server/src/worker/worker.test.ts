@@ -44,7 +44,7 @@ let stopWorker: () => Promise< void >
 
 const useRealisticRunJob = (): void => {
   runJobMock.mockImplementation( async ( owner, id ) => {
-    markStatus( owner, id, 'downloading' )
+    markStatus( owner, id, 'transcribing' )
     events.push( `start:${ id }` )
 
     if( hold ) {
@@ -187,7 +187,7 @@ describe( 'startWorker', () => {
     await vi.advanceTimersByTimeAsync( 0 )
     expect( errorSpy ).toHaveBeenCalled()
 
-    markStatus( userId, broken, 'downloading' )
+    markStatus( userId, broken, 'transcribing' )
     const later = await queue()
     await vi.advanceTimersByTimeAsync( 1000 )
 

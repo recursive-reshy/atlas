@@ -92,7 +92,7 @@ export interface TranscriptionAttempt {
   error: string | null
 }
 
-export type StepStatus = 'fetching' | 'downloading' | 'converting' | 'transcribing'
+export type StepStatus = 'fetching' | 'transcribing'
 
 const transcriptFormats = {
   md: { contentType: 'text/markdown; charset=utf-8', formatter: formatMarkdown },

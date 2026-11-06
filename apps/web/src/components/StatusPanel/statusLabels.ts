@@ -13,7 +13,6 @@ export const KIND_LABELS = {
   agent: 'Service',
   transcription: 'Service',
   replication: 'Service',
-  pot_provider: 'Service',
 } as const satisfies Record< HealthKind, string >
 
 export const STATE_LABELS = {

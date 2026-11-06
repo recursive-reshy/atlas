@@ -178,8 +178,6 @@ const notPending = ( run: () => unknown ): string => {
 
 // The service functions that move a job, by name
 const OPS: Record< string, Op > = {
-  'markStatus downloading': ( id ) => markStatus( userId, id, 'downloading' ),
-  'markStatus converting': ( id ) => markStatus( userId, id, 'converting' ),
   'markStatus transcribing': ( id ) => markStatus( userId, id, 'transcribing' ),
   'markStatus fetching': ( id ) => markStatus( userId, id, 'fetching' ),
   completeAcquisition: ( id, source ) => completeAcquisition( userId, id, documentFor( source ) ),
@@ -276,14 +274,8 @@ afterEach( () => {
 // For each function: the (source, status) pairs where it succeeds, and the state the job is
 // left in. Every other pair gives a ConflictError.
 const EXPECTED: Record< string, Matrix > = {
-  'markStatus downloading': {
-    [ key( 'video', 'queued' ) ]: 'downloading | expires null | link null',
-  },
-  'markStatus converting': {
-    [ key( 'video', 'downloading' ) ]: 'converting | expires null | link null',
-  },
   'markStatus transcribing': {
-    [ key( 'video', 'converting' ) ]: 'transcribing | expires null | link null',
+    [ key( 'video', 'queued' ) ]: 'transcribing | expires null | link null',
   },
   'markStatus fetching': { [ key( 'article', 'queued' ) ]: 'fetching | expires null | link null' },
   completeAcquisition: {
@@ -302,8 +294,6 @@ const EXPECTED: Record< string, Matrix > = {
   submitPastedText: { [ key( 'article', 'failed' ) ]: 'summarizing | expires null | link null' },
   failJob: {
     ...both( 'queued', 'failed | expires null | link null' ),
-    ...both( 'downloading', 'failed | expires null | link null' ),
-    ...both( 'converting', 'failed | expires null | link null' ),
     ...both( 'transcribing', 'failed | expires null | link null' ),
     ...both( 'fetching', 'failed | expires null | link null' ),
     ...both( 'summarizing', 'failed | expires null | link null' ),
@@ -352,8 +342,8 @@ describe( 'job lifecycle, as in 0.7.0', () => {
     const summaryFailed = seed( 'summary_failed', 'article' )
     const linking = seed( 'linking', 'article' )
 
-    expect( () => markStatus( userId, queued, 'converting' ) )
-      .toThrow( 'Cannot move job from queued to converting' )
+    expect( () => markStatus( userId, queued, 'fetching' ) )
+      .toThrow( 'Cannot move job from queued to fetching' )
     expect( () => completeAcquisition( userId, queued, videoDocument ) )
       .toThrow( 'Cannot move job from queued to summarizing' )
     expect( () => completeSummary( userId, queued, 'x', [] ) )
@@ -397,8 +387,6 @@ describe( 'job lifecycle, as in 0.7.0', () => {
     expect( outcomes ).toEqual( {
       queued: '409, 409',
       fetching: '409, 409',
-      downloading: '409, 409',
-      converting: '409, 409',
       transcribing: '409, 409',
       summarizing: '409, 409',
       linking: '409, 409',
@@ -441,8 +429,6 @@ describe( 'job lifecycle, as in 0.7.0', () => {
 
     expect( deleteExpiredJobs() ).toBe( 2 )
     expect( listJobs( userId ).map( ( job ) => job.status ).sort() ).toEqual( [
-      'converting',
-      'downloading',
       'fetching',
       'linking',
       'queued',
@@ -456,7 +442,7 @@ describe( 'job lifecycle, as in 0.7.0', () => {
       STATUSES.map( ( status ) => [ status, seed( status, 'article' ) ] ),
     ) as Record< JobStatus, string >
 
-    expect( recoverInterruptedJobs() ).toBe( 5 )
+    expect( recoverInterruptedJobs() ).toBe( 3 )
 
     const after = ( status: JobStatus ) => {
       const job = findJobById( userId, ids[ status ] )!
@@ -470,7 +456,7 @@ describe( 'job lifecycle, as in 0.7.0', () => {
       ]
     }
 
-    for( const status of [ 'fetching', 'downloading', 'converting', 'transcribing' ] as const ) {
+    for( const status of [ 'fetching', 'transcribing' ] as const ) {
       expect( after( status ) ).toEqual( [
         'failed',
         'Interrupted by restart',

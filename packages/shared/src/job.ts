@@ -8,8 +8,6 @@ import { SummaryUsage } from './summarizer.js'
 export const JobStatus = z.enum( [
   'queued',
   'fetching',
-  'downloading',
-  'converting',
   'transcribing',
   'summarizing',
   'linking',

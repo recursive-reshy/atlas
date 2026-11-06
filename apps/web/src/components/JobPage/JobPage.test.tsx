@@ -81,7 +81,7 @@ beforeEach( () => {
 
 describe( 'JobPage', () => {
   it( 'watches the job in the address', () => {
-    showJob( jobFixture( { status: 'downloading' } ) )
+    showJob( jobFixture( { status: 'transcribing' } ) )
     renderPage()
 
     expect( lastUseJobArgument() ).toBe( jobId )
@@ -241,7 +241,7 @@ describe( 'JobPage', () => {
   } )
 
   it( 'shows a connection error next to the job', () => {
-    showJob( jobFixture( { status: 'downloading' } ), 'Could not reach the server' )
+    showJob( jobFixture( { status: 'transcribing' } ), 'Could not reach the server' )
     renderPage()
 
     expect( screen.getByRole( 'alert' ) )

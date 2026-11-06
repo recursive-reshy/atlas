@@ -43,6 +43,12 @@ describe( 'TranscriptMeta', () => {
     expect( result.success ).toBe( false )
   } )
 
+  it( 'accepts truncated as an optional flag', () => {
+    expect( TranscriptMeta.parse( validMeta ).truncated ).toBeUndefined()
+    expect( TranscriptMeta.parse( { ...validMeta, truncated: true } ).truncated ).toBe( true )
+    expect( TranscriptMeta.safeParse( { ...validMeta, truncated: 'yes' } ).success ).toBe( false )
+  } )
+
   it( 'rejects an empty model', () => {
     expect( TranscriptMeta.safeParse( { ...validMeta, model: '' } ).success ).toBe( false )
   } )

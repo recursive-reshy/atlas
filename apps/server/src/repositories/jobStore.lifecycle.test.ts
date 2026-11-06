@@ -122,16 +122,16 @@ describe( 'status lists built from the lifecycle table', () => {
   } )
 
   it( 'markInterruptedJobs uses the states that fail on restart', () => {
-    const downloading = buildJob( 'downloading' )
+    const transcribing = buildJob( 'transcribing' )
     const saved = buildJob( 'saved' )
-    insertJob( userId, downloading )
+    insertJob( userId, transcribing )
     insertJob( userId, saved )
 
     onlySaved()
 
     expect( markInterruptedJobs( 'Interrupted', '2026-10-14T11:00:00.000Z' ) ).toBe( 1 )
     expect( findJobById( userId, saved.id )?.status ).toBe( 'failed' )
-    expect( findJobById( userId, downloading.id )?.status ).toBe( 'downloading' )
+    expect( findJobById( userId, transcribing.id )?.status ).toBe( 'transcribing' )
     expect( statusesWhereMock ).toHaveBeenCalledWith( 'onRestart', 'failed' )
   } )
 

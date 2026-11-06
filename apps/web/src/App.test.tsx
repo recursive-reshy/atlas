@@ -67,11 +67,11 @@ describe( 'App', () => {
   } )
 
   it( 'shows the job on /jobs/:id', () => {
-    mockedUseJob.mockReturnValue( { job: jobFixture( { status: 'downloading' } ), error: null } )
+    mockedUseJob.mockReturnValue( { job: jobFixture( { status: 'transcribing' } ), error: null } )
     renderWithRouter( `/jobs/${ jobId }` )
 
     expect( screen.getByRole( 'heading', { level: 1, name: 'Atlas' } ) ).toBeInTheDocument()
-    expect( screen.getByRole( 'status' ) ).toHaveTextContent( 'Downloading audio…' )
+    expect( screen.getByRole( 'status' ) ).toHaveTextContent( 'Transcribing…' )
     expect( screen.queryByRole( 'form', { name: 'Add a video or article' } ) )
       .not.toBeInTheDocument()
   } )

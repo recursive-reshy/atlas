@@ -67,7 +67,7 @@ const youtubeUrl = 'https://www.youtube.com/watch?v=abc'
 
 const seedJobAt = async ( status: JobStatus ): Promise< string > => {
   const { id } = await queueJob( userId, { url: youtubeUrl } )
-  const steps = [ 'downloading', 'converting', 'transcribing' ] as const
+  const steps = [ 'transcribing' ] as const
 
   if( status === 'queued' ) {
     return id
@@ -187,7 +187,7 @@ describe( 'GET /api/jobs', () => {
   it( 'lists active jobs newest first, without transcripts', async () => {
     const first = await queueJob( userId, { url: youtubeUrl } )
     const second = await queueJob( userId, { url: 'https://www.youtube.com/watch?v=def' } )
-    markStatus( userId, second.id, 'downloading' )
+    markStatus( userId, second.id, 'transcribing' )
 
     const response = await request( app ).get( '/api/jobs' )
 
@@ -239,8 +239,6 @@ describe( 'GET /api/jobs/:id/download', () => {
   const seedReviewJob = async ( title?: string ): Promise< string > => {
     const { id } = await queueJob( userId, { url: youtubeUrl } )
 
-    markStatus( userId, id, 'downloading' )
-    markStatus( userId, id, 'converting' )
     markStatus( userId, id, 'transcribing' )
     completeAcquisition( userId, id, {
       kind: 'video',

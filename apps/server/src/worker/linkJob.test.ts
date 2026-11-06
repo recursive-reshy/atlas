@@ -85,8 +85,6 @@ const queueLinking = async (
 ): Promise< string > => {
   const { id } = await queueJob( owner, { url: source, profile_id } )
 
-  markStatus( owner, id, 'downloading' )
-  markStatus( owner, id, 'converting' )
   markStatus( owner, id, 'transcribing' )
   completeAcquisition( owner, id, {
     kind: 'video',

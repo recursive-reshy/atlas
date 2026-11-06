@@ -40,8 +40,6 @@ let other: TestUser
 const reviewedJob = async (): Promise< { id: string, suggestion: string } > => {
   const { id } = await queueJob( owner.id, { url: 'https://www.youtube.com/watch?v=abc' } )
 
-  markStatus( owner.id, id, 'downloading' )
-  markStatus( owner.id, id, 'converting' )
   markStatus( owner.id, id, 'transcribing' )
   completeAcquisition( owner.id, id, { kind: 'video', ...transcriptFixture } )
   completeSummary( owner.id, id, '## Summary', [] )

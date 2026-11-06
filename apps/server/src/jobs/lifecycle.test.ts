@@ -21,9 +21,7 @@ const SOURCES = SourceType.options
 // The 0.7.0 moves, written out independently of the table (pinned by the characterization test)
 const ALLOWED: Record< SourceType, string[] > = {
   video: [
-    'queued>downloading',
-    'downloading>converting',
-    'converting>transcribing',
+    'queued>transcribing',
     'transcribing>summarizing',
   ],
   article: [
@@ -43,8 +41,6 @@ const ANY_SOURCE = [
   'ready_for_review>linking',
   'ready_for_review>saved',
   'queued>failed',
-  'downloading>failed',
-  'converting>failed',
   'transcribing>failed',
   'fetching>failed',
   'summarizing>failed',
@@ -74,19 +70,19 @@ describe( 'canMove', () => {
 
 describe( 'assertMove', () => {
   it( 'returns for an allowed move', () => {
-    expect( () => assertMove( { status: 'queued', source_type: 'video' }, 'downloading' ) )
+    expect( () => assertMove( { status: 'queued', source_type: 'video' }, 'transcribing' ) )
       .not.toThrow()
   } )
 
   it( 'throws the existing ConflictError message for a refused move', () => {
-    const refuse = () => assertMove( { status: 'queued', source_type: 'video' }, 'converting' )
+    const refuse = () => assertMove( { status: 'queued', source_type: 'video' }, 'summarizing' )
 
     expect( refuse ).toThrow( ConflictError )
-    expect( refuse ).toThrow( 'Cannot move job from queued to converting' )
+    expect( refuse ).toThrow( 'Cannot move job from queued to summarizing' )
   } )
 
   it( 'refuses a move the job\'s source does not make', () => {
-    expect( () => assertMove( { status: 'queued', source_type: 'article' }, 'downloading' ) )
+    expect( () => assertMove( { status: 'queued', source_type: 'article' }, 'transcribing' ) )
       .toThrow( ConflictError )
     expect( () => assertMove( { status: 'failed', source_type: 'video' }, 'summarizing' ) )
       .toThrow( ConflictError )
@@ -122,8 +118,6 @@ describe( 'statusesWhere', () => {
       [
         'queued',
         'fetching',
-        'downloading',
-        'converting',
         'transcribing',
         'summarizing',
         'linking',
@@ -141,8 +135,6 @@ describe( 'statusesWhere', () => {
   it( 'returns the states that go to failed on restart', () => {
     expect( statusesWhere( 'onRestart', 'failed' ) ).toEqual( [
       'fetching',
-      'downloading',
-      'converting',
       'transcribing',
     ] )
   } )

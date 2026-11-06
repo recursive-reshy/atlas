@@ -55,8 +55,6 @@ describe( 'useJobs', () => {
 
   it.each( [
     'queued',
-    'downloading',
-    'converting',
     'transcribing',
     'summarizing',
   ] as const )( 'polls fast while a job is %s', async ( status ) => {

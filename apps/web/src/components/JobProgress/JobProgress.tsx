@@ -20,8 +20,6 @@ import { PasteTextDialog } from '../PasteTextDialog'
 
 const VIDEO_STAGES = [
   { status: 'queued', label: 'Waiting to start' },
-  { status: 'downloading', label: 'Downloading audio' },
-  { status: 'converting', label: 'Converting audio' },
   { status: 'transcribing', label: 'Transcribing' },
   { status: 'summarizing', label: 'Summarizing' },
 ] as const
@@ -41,8 +39,6 @@ const LINKED_STATES: Job[ 'link_state' ][] = [ 'pending', 'linked', 'failed' ]
 const STATUS_MESSAGES = {
   queued: 'Waiting in the queue…',
   fetching: 'Fetching the article…',
-  downloading: 'Downloading audio…',
-  converting: 'Converting audio…',
   transcribing: 'Transcribing…',
   summarizing: 'Summarizing…',
   linking: 'Linking…',

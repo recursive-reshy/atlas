@@ -141,7 +141,7 @@ describe( 'runJob', () => {
     } )
   } )
 
-  it( 'moves through downloading, converting and transcribing', async () => {
+  it( 'is transcribing for the whole of the video pipeline', async () => {
     const id = await queue()
     const seen: string[] = []
     downloadMock.mockImplementation( () => {
@@ -159,7 +159,7 @@ describe( 'runJob', () => {
 
     await runJob( userId, id )
 
-    expect( seen ).toEqual( [ 'downloading', 'converting', 'transcribing' ] )
+    expect( seen ).toEqual( [ 'transcribing', 'transcribing', 'transcribing' ] )
   } )
 
   describe.each( [
@@ -314,20 +314,18 @@ describe( 'runJob', () => {
 
   it( 'rejects with ConflictError when the job is not queued', async () => {
     const id = await queue()
-    markStatus( userId, id, 'downloading' )
+    markStatus( userId, id, 'transcribing' )
 
     await expect( runJob( userId, id ) ).rejects.toBeInstanceOf( ConflictError )
 
     expectClientsNotCalled()
     expect( rmMock ).not.toHaveBeenCalled()
-    expect( findJob( userId, id ).status ).toBe( 'downloading' )
+    expect( findJob( userId, id ).status ).toBe( 'transcribing' )
   } )
 
   describe( 'when the job is already summarizing', () => {
     const queueSummarizing = async (): Promise< string > => {
       const id = await queue()
-      markStatus( userId, id, 'downloading' )
-      markStatus( userId, id, 'converting' )
       markStatus( userId, id, 'transcribing' )
       completeAcquisition( userId, id, {
         kind: 'video',
@@ -400,8 +398,6 @@ describe( 'runJob', () => {
   describe( 'when the job is already linking', () => {
     const queueLinking = async (): Promise< string > => {
       const id = await queue()
-      markStatus( userId, id, 'downloading' )
-      markStatus( userId, id, 'converting' )
       markStatus( userId, id, 'transcribing' )
       completeAcquisition( userId, id, {
         kind: 'video',

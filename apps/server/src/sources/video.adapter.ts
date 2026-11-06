@@ -36,15 +36,14 @@ const downloadWithRetry = async (
 
 export const videoAdapter: SourceAdapter = {
   acquire: async ( { job, workDir, markStatus, recordTranscription } ) => {
-    markStatus( 'downloading' )
+    // Until the Gemini adapter replaces this pipeline (9.3), transcribing covers all of it
+    markStatus( 'transcribing' )
 
     try {
       const { audioPath, meta } = await downloadWithRetry( job.url, workDir )
 
-      markStatus( 'converting' )
       const pieces = await prepareAudio( audioPath )
 
-      markStatus( 'transcribing' )
       const attempt = {
         model: config.transcriptionModel,
         audio_seconds: meta.duration_seconds,

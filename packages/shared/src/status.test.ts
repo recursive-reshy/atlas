@@ -34,7 +34,6 @@ describe( 'HealthKind', () => {
     'agent',
     'transcription',
     'replication',
-    'pot_provider',
   ] )(
     'accepts %s',
     ( kind ) => {
@@ -42,7 +41,7 @@ describe( 'HealthKind', () => {
     },
   )
 
-  it.each( [ 'vault', 'whisper', 'backup' ] )( 'rejects %s', ( kind ) => {
+  it.each( [ 'vault', 'whisper', 'backup', 'pot_provider' ] )( 'rejects %s', ( kind ) => {
     expect( HealthKind.safeParse( kind ).success ).toBe( false )
   } )
 } )
@@ -50,7 +49,7 @@ describe( 'HealthKind', () => {
 describe( 'AppHealthKind and UserHealthKind', () => {
   it( 'split the kinds into app services and a user\'s own sources', () => {
     expect( AppHealthKind.options )
-      .toEqual( [ 'agent', 'transcription', 'replication', 'pot_provider' ] )
+      .toEqual( [ 'agent', 'transcription', 'replication' ] )
     expect( UserHealthKind.options ).toEqual( [
       'feed',
       'gmail_source',

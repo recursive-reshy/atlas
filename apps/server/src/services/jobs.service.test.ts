@@ -143,12 +143,9 @@ const transcript: Pick< VideoSource, 'meta' | 'text' > = {
 
 const queueJobAt = async ( status: JobStatus ): Promise< string > => {
   const { id } = await queueJob( userId, { url } )
-  const path: JobStatus[] = [ 'downloading', 'converting', 'transcribing' ]
 
-  for( const step of path ) {
-    if( status === 'queued' ) break
-    markStatus( userId, id, step as 'downloading' | 'converting' | 'transcribing' )
-    if( step === status ) break
+  if( status !== 'queued' ) {
+    markStatus( userId, id, 'transcribing' )
   }
   if( status === 'ready_for_review' || status === 'summary_failed' ) {
     completeAcquisition( userId, id, { kind: 'video', ...transcript } )
@@ -252,11 +249,9 @@ describe( 'findJob', () => {
 } )
 
 describe( 'markStatus', () => {
-  it( 'walks queued to transcribing', async () => {
+  it( 'moves a video job from queued to transcribing', async () => {
     const { id } = await queueJob( userId, { url } )
 
-    expect( markStatus( userId, id, 'downloading' ).status ).toBe( 'downloading' )
-    expect( markStatus( userId, id, 'converting' ).status ).toBe( 'converting' )
     expect( markStatus( userId, id, 'transcribing' ).status ).toBe( 'transcribing' )
   } )
 
@@ -264,7 +259,7 @@ describe( 'markStatus', () => {
     const { id } = await queueJob( userId, { url } )
     vi.setSystemTime( laterTime )
 
-    const job = markStatus( userId, id, 'downloading' )
+    const job = markStatus( userId, id, 'transcribing' )
 
     expect( job.updated_at ).toBe( laterTime.toISOString() )
     expect( job.created_at ).toBe( startTime.toISOString() )
@@ -273,9 +268,9 @@ describe( 'markStatus', () => {
   it( 'throws ConflictError when skipping a step', async () => {
     const { id } = await queueJob( userId, { url } )
 
-    expect( () => markStatus( userId, id, 'converting' ) ).toThrow( ConflictError )
-    expect( () => markStatus( userId, id, 'converting' ) ).toThrow(
-      'Cannot move job from queued to converting',
+    expect( () => markStatus( userId, id, 'fetching' ) ).toThrow( ConflictError )
+    expect( () => markStatus( userId, id, 'fetching' ) ).toThrow(
+      'Cannot move job from queued to fetching',
     )
   } )
 
@@ -283,33 +278,33 @@ describe( 'markStatus', () => {
     const warnSpy = vi.spyOn( logger, 'warn' ).mockImplementation( () => undefined )
     const { id } = await queueJob( userId, { url } )
 
-    expect( () => markStatus( userId, id, 'converting' ) ).toThrow( ConflictError )
+    expect( () => markStatus( userId, id, 'fetching' ) ).toThrow( ConflictError )
 
     expect( warnSpy ).toHaveBeenCalledWith(
-      { from: 'queued', to: 'converting', source_type: 'video' },
+      { from: 'queued', to: 'fetching', source_type: 'video' },
       'Job move refused',
     )
   } )
 
   it( 'throws ConflictError when moving backwards', async () => {
-    const id = await queueJobAt( 'converting' )
+    const id = await queueJobAt( 'transcribing' )
 
-    expect( () => markStatus( userId, id, 'downloading' ) ).toThrow( ConflictError )
+    expect( () => markStatus( userId, id, 'fetching' ) ).toThrow( ConflictError )
   } )
 
   it( 'throws ConflictError from a final status', async () => {
     const id = await queueJobAt( 'failed' )
 
-    expect( () => markStatus( userId, id, 'downloading' ) ).toThrow( ConflictError )
+    expect( () => markStatus( userId, id, 'transcribing' ) ).toThrow( ConflictError )
   } )
 
   it( 'throws NotFoundError for an unknown id', () => {
-    expect( () => markStatus( userId, 'missing', 'downloading' ) ).toThrow( NotFoundError )
+    expect( () => markStatus( userId, 'missing', 'transcribing' ) ).toThrow( NotFoundError )
   } )
 } )
 
 describe( 'failJob', () => {
-  it.each( [ 'queued', 'downloading', 'converting', 'transcribing' ] as const )(
+  it.each( [ 'queued', 'transcribing' ] as const )(
     'fails a job from %s with the message',
     async ( status ) => {
       const id = await queueJobAt( status )
@@ -334,8 +329,6 @@ describe( 'renderTranscript', () => {
   ): Promise< string > => {
     const { id } = await queueJob( userId, { url } )
 
-    markStatus( userId, id, 'downloading' )
-    markStatus( userId, id, 'converting' )
     markStatus( userId, id, 'transcribing' )
     completeAcquisition( userId, id, { kind: 'video', ...transcriptFixture } )
 
@@ -387,8 +380,6 @@ describe( 'renderTranscript', () => {
 
   it.each( [
     'queued',
-    'downloading',
-    'converting',
     'transcribing',
     'summarizing',
     'failed',
@@ -425,7 +416,7 @@ describe( 'claimNextJob', () => {
   it( 'skips jobs that are no longer queued', async () => {
     const first = await queueJob( userId, { url: 'https://www.youtube.com/watch?v=a' } )
     const second = await queueJob( userId, { url: 'https://www.youtube.com/watch?v=b' } )
-    markStatus( userId, first.id, 'downloading' )
+    markStatus( userId, first.id, 'transcribing' )
 
     expect( claimNextJob() ).toEqual( { job: second, userId } )
   } )
@@ -433,8 +424,8 @@ describe( 'claimNextJob', () => {
   it( 'returns undefined when every job has moved on', async () => {
     const first = await queueJob( userId, { url: 'https://www.youtube.com/watch?v=a' } )
     const second = await queueJob( userId, { url: 'https://www.youtube.com/watch?v=b' } )
-    markStatus( userId, first.id, 'downloading' )
-    markStatus( userId, second.id, 'downloading' )
+    markStatus( userId, first.id, 'transcribing' )
+    markStatus( userId, second.id, 'transcribing' )
 
     expect( claimNextJob() ).toBeUndefined()
   } )
@@ -449,19 +440,17 @@ describe( 'claimNextJob', () => {
 describe( 'recoverInterruptedJobs', () => {
   it( 'fails jobs left mid-processing and returns how many', async () => {
     const queued = await queueJobAt( 'queued' )
-    const downloading = await queueJobAt( 'downloading' )
     const transcribing = await queueJobAt( 'transcribing' )
     const finished = await queueJobAt( 'ready_for_review' )
     vi.setSystemTime( laterTime )
 
-    expect( recoverInterruptedJobs() ).toBe( 2 )
+    expect( recoverInterruptedJobs() ).toBe( 1 )
 
-    expect( findJob( userId, downloading ) ).toMatchObject( {
+    expect( findJob( userId, transcribing ) ).toMatchObject( {
       status: 'failed',
       error: 'Interrupted by restart',
       updated_at: laterTime.toISOString(),
     } )
-    expect( findJob( userId, transcribing ).status ).toBe( 'failed' )
     expect( findJob( userId, queued ).status ).toBe( 'queued' )
     expect( findJob( userId, finished ).status ).toBe( 'ready_for_review' )
   } )
@@ -490,7 +479,7 @@ describe( 'completeAcquisition', () => {
     expect( findJobById( userId, id )?.source_document ).toEqual( { kind: 'video', ...transcript } )
   } )
 
-  it.each( [ 'queued', 'downloading', 'converting', 'failed' ] as const )(
+  it.each( [ 'queued', 'failed' ] as const )(
     'throws ConflictError from %s and changes nothing',
     async ( status ) => {
       const id = await queueJobAt( status )
@@ -672,8 +661,6 @@ describe( 'folder memory', () => {
   const reviewJob = async ( profile: string | null ): Promise< string > => {
     const { id } = await queueJob( userId, { url, profile_id: profile ?? undefined } )
 
-    markStatus( userId, id, 'downloading' )
-    markStatus( userId, id, 'converting' )
     markStatus( userId, id, 'transcribing' )
     completeAcquisition( userId, id, { kind: 'video', ...transcript } )
     completeSummary( userId, id, '## Summary', [] )
@@ -1467,8 +1454,6 @@ describe( 'regenerateSummary', () => {
       userId,
       { url: url, model: 'claude-opus-5-5', profile_id: profileId },
     )
-    markStatus( userId, id, 'downloading' )
-    markStatus( userId, id, 'converting' )
     markStatus( userId, id, 'transcribing' )
     completeAcquisition( userId, id, { kind: 'video', ...transcript } )
     completeSummary( userId, id, '## Summary', [] )
@@ -1481,8 +1466,6 @@ describe( 'regenerateSummary', () => {
 
   it.each( [
     'queued',
-    'downloading',
-    'converting',
     'transcribing',
     'summary_failed',
     'failed',
@@ -1811,9 +1794,9 @@ describe( 'step rules per source type', () => {
   it( 'moves an article job queued to fetching and nowhere else', async () => {
     const { id } = await queueJob( userId, { url: articleUrl } )
 
-    expect( () => markStatus( userId, id, 'downloading' ) ).toThrow( ConflictError )
+    expect( () => markStatus( userId, id, 'transcribing' ) ).toThrow( ConflictError )
     expect( markStatus( userId, id, 'fetching' ).status ).toBe( 'fetching' )
-    expect( () => markStatus( userId, id, 'converting' ) ).toThrow( ConflictError )
+    expect( () => markStatus( userId, id, 'transcribing' ) ).toThrow( ConflictError )
   } )
 
   it( 'refuses fetching for a video job', async () => {
@@ -1984,8 +1967,6 @@ describe( 'linking', () => {
   const summarizing = async (): Promise< string > => {
     const { id } = await queueJob( userId, { url } )
 
-    markStatus( userId, id, 'downloading' )
-    markStatus( userId, id, 'converting' )
     markStatus( userId, id, 'transcribing' )
     completeAcquisition( userId, id, { kind: 'video', ...transcript } )
 
@@ -2214,8 +2195,8 @@ describe( 'linking', () => {
   describe( 'recoverInterruptedJobs', () => {
     it( 'moves a linking job to review as failed, and counts it with the step jobs', async () => {
       const id = await linking()
-      const { id: downloading } = await queueJob( userId, { url } )
-      markStatus( userId, downloading, 'downloading' )
+      const { id: transcribing } = await queueJob( userId, { url } )
+      markStatus( userId, transcribing, 'transcribing' )
       const stillSummarizing = await summarizing()
 
       expect( recoverInterruptedJobs() ).toBe( 2 )
@@ -2225,7 +2206,7 @@ describe( 'linking', () => {
         link_error: 'Interrupted by restart',
         expires_at: new Date( startTime.getTime() + 24 * 3_600_000 ).toISOString(),
       } )
-      expect( findJob( userId, downloading ).status ).toBe( 'failed' )
+      expect( findJob( userId, transcribing ).status ).toBe( 'failed' )
       expect( findJob( userId, stillSummarizing ).status ).toBe( 'summarizing' )
     } )
   } )
@@ -2614,9 +2595,9 @@ describe( 'jobs of two users', () => {
 
   it( 'recovers the interrupted jobs of every user', async () => {
     const member = createTestUser().id
-    const mine = await queueJobAt( 'downloading' )
+    const mine = await queueJobAt( 'transcribing' )
     const { id: theirs } = await queueJob( member, { url } )
-    markStatus( member, theirs, 'downloading' )
+    markStatus( member, theirs, 'transcribing' )
 
     expect( recoverInterruptedJobs() ).toBe( 2 )
     expect( findJob( userId, mine ).status ).toBe( 'failed' )
@@ -2627,8 +2608,6 @@ describe( 'jobs of two users', () => {
     const member = createTestUser().id
     const mine = await queueJobAt( 'ready_for_review' )
     const { id: theirs } = await queueJob( member, { url } )
-    markStatus( member, theirs, 'downloading' )
-    markStatus( member, theirs, 'converting' )
     markStatus( member, theirs, 'transcribing' )
     completeAcquisition( member, theirs, { kind: 'video', ...transcript } )
     completeSummary( member, theirs, '## Summary', [] )

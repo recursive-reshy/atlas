@@ -6,7 +6,6 @@ export const AppHealthKind = z.enum( [
   'agent',
   'transcription',
   'replication',
-  'pot_provider',
 ] )
 export type AppHealthKind = z.infer< typeof AppHealthKind >
 

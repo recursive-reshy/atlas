@@ -100,8 +100,6 @@ describe( 'JobList', () => {
   it.each( [
     [ 'queued', 'Queued' ],
     [ 'fetching', 'Fetching' ],
-    [ 'downloading', 'Downloading' ],
-    [ 'converting', 'Converting' ],
     [ 'transcribing', 'Transcribing' ],
     [ 'summarizing', 'Summarizing' ],
     [ 'ready_for_review', 'Ready for review' ],

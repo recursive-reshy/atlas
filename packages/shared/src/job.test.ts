@@ -39,8 +39,6 @@ describe( 'JobStatus', () => {
   it.each( [
     'queued',
     'fetching',
-    'downloading',
-    'converting',
     'transcribing',
     'summarizing',
     'linking',
@@ -54,6 +52,10 @@ describe( 'JobStatus', () => {
       expect( JobStatus.safeParse( status ).success ).toBe( true )
     },
   )
+
+  it.each( [ 'downloading', 'converting' ] )( 'no longer accepts %s (ADR 0081)', ( status ) => {
+    expect( JobStatus.safeParse( status ).success ).toBe( false )
+  } )
 
   it( 'rejects an unknown status', () => {
     expect( JobStatus.safeParse( 'paused' ).success ).toBe( false )

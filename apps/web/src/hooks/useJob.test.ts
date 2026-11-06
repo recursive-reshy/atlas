@@ -77,7 +77,7 @@ describe( 'useJob', () => {
   it( 'polls every interval while the job is unfinished', async () => {
     mockedGetJob
       .mockResolvedValueOnce( jobFixture( { status: 'queued' } ) )
-      .mockResolvedValueOnce( jobFixture( { status: 'downloading' } ) )
+      .mockResolvedValueOnce( jobFixture( { status: 'transcribing' } ) )
       .mockResolvedValueOnce( jobFixture( { status: 'transcribing' } ) )
 
     const { result } = renderHookWithClient( () => useJob( 'a' ) )
@@ -85,7 +85,7 @@ describe( 'useJob', () => {
     expect( result.current.job?.status ).toBe( 'queued' )
 
     await advance( POLL_INTERVAL_MS )
-    expect( result.current.job?.status ).toBe( 'downloading' )
+    expect( result.current.job?.status ).toBe( 'transcribing' )
 
     await advance( POLL_INTERVAL_MS )
     expect( result.current.job?.status ).toBe( 'transcribing' )
@@ -127,7 +127,7 @@ describe( 'useJob', () => {
   it( 'never overlaps requests', async () => {
     const first = deferred()
     mockedGetJob.mockReturnValueOnce( first.promise )
-    mockedGetJob.mockResolvedValue( jobFixture( { status: 'downloading' } ) )
+    mockedGetJob.mockResolvedValue( jobFixture( { status: 'transcribing' } ) )
 
     renderHookWithClient( () => useJob( 'a' ) )
     await advance( 10_000 )
@@ -145,7 +145,7 @@ describe( 'useJob', () => {
     mockedGetJob
       .mockResolvedValueOnce( jobFixture( { status: 'queued' } ) )
       .mockRejectedValueOnce( new ApiError( 'Could not reach the server', null ) )
-      .mockResolvedValueOnce( jobFixture( { status: 'downloading' } ) )
+      .mockResolvedValueOnce( jobFixture( { status: 'transcribing' } ) )
 
     const { result } = renderHookWithClient( () => useJob( 'a' ) )
     await advance( 0 )
@@ -156,7 +156,7 @@ describe( 'useJob', () => {
 
     await advance( POLL_INTERVAL_MS )
 
-    expect( result.current.job?.status ).toBe( 'downloading' )
+    expect( result.current.job?.status ).toBe( 'transcribing' )
     expect( result.current.error ).toBeNull()
   } )
 
@@ -164,7 +164,7 @@ describe( 'useJob', () => {
     mockedGetJob
       .mockResolvedValueOnce( jobFixture( { status: 'queued' } ) )
       .mockRejectedValueOnce( 'boom' )
-      .mockResolvedValueOnce( jobFixture( { status: 'downloading' } ) )
+      .mockResolvedValueOnce( jobFixture( { status: 'transcribing' } ) )
 
     const { result } = renderHookWithClient( () => useJob( 'a' ) )
     await advance( 0 )
@@ -175,7 +175,7 @@ describe( 'useJob', () => {
 
     await advance( POLL_INTERVAL_MS )
 
-    expect( result.current.job?.status ).toBe( 'downloading' )
+    expect( result.current.job?.status ).toBe( 'transcribing' )
     expect( result.current.error ).toBeNull()
   } )
 
@@ -259,7 +259,7 @@ describe( 'useJob', () => {
   } )
 
   it( 'gives a new observer the cached job straight away', async () => {
-    mockedGetJob.mockResolvedValue( jobFixture( { status: 'downloading' } ) )
+    mockedGetJob.mockResolvedValue( jobFixture( { status: 'transcribing' } ) )
     const first = renderHookWithClient( () => useJob( 'a' ) )
     await advance( 0 )
 
@@ -267,6 +267,6 @@ describe( 'useJob', () => {
       queryClient: first.queryClient,
     } )
 
-    expect( second.result.current.job?.status ).toBe( 'downloading' )
+    expect( second.result.current.job?.status ).toBe( 'transcribing' )
   } )
 } )

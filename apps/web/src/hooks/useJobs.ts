@@ -11,8 +11,6 @@ export const SLOW_POLL_MS = 30_000
 
 const IN_PROGRESS_STATUSES: Job[ 'status' ][] = [
   'queued',
-  'downloading',
-  'converting',
   'transcribing',
   'summarizing',
 ]

@@ -81,10 +81,10 @@ const setColumn = ( userId: string, column: string, value: string ): void => {
 describe( 'claimNextJob', () => {
   it( 'returns the earliest-inserted queued job with its owner, skipping other statuses', () => {
     const { id: userId } = createTestUser()
-    const downloading = buildJob( { status: 'downloading' } )
+    const transcribing = buildJob( { status: 'transcribing' } )
     const firstQueued = buildJob()
     const secondQueued = buildJob()
-    insertJob( userId, downloading )
+    insertJob( userId, transcribing )
     insertJob( userId, firstQueued )
     insertJob( userId, secondQueued )
 
@@ -248,8 +248,7 @@ describe( 'claimNextJob', () => {
 describe( 'markInterruptedJobs', () => {
   const statuses = [
     'queued',
-    'downloading',
-    'converting',
+    'fetching',
     'transcribing',
     'summarizing',
     'ready_for_review',
@@ -257,9 +256,9 @@ describe( 'markInterruptedJobs', () => {
     'saved',
     'failed',
   ] as const
-  const interrupted = [ 'downloading', 'converting', 'transcribing' ]
+  const interrupted = [ 'fetching', 'transcribing' ]
 
-  it( 'fails only the download, convert and transcribe jobs', () => {
+  it( 'fails only the fetch and transcribe jobs', () => {
     const { id: userId } = createTestUser()
     const ids = new Map( statuses.map( ( status ) => {
       const job = buildJob( { status } )
@@ -270,7 +269,7 @@ describe( 'markInterruptedJobs', () => {
 
     const count = markInterruptedJobs( 'Interrupted by restart', '2026-10-15T09:00:00.000Z' )
 
-    expect( count ).toBe( 3 )
+    expect( count ).toBe( 2 )
 
     for( const status of statuses ) {
       const job = findJobById( userId, ids.get( status ) ?? '' )
@@ -291,8 +290,8 @@ describe( 'markInterruptedJobs', () => {
   it( 'fails the interrupted jobs of every user', () => {
     const first = createTestUser().id
     const second = createTestUser().id
-    const one = buildJob( { status: 'downloading' } )
-    const two = buildJob( { status: 'converting' } )
+    const one = buildJob( { status: 'fetching' } )
+    const two = buildJob( { status: 'transcribing' } )
     insertJob( first, one )
     insertJob( second, two )
 
@@ -806,8 +805,8 @@ describe( 'deleteHealthExcept', () => {
   it( 'deletes the rows and error history of every other kind, for every user', () => {
     const user = createTestUser().id
 
-    insert( null, 'whisper', 'default' )
-    insert( null, 'backup', 'default' )
+    insert( null, 'replication', 'default' )
+    insert( null, 'transcription', 'default' )
     insert( null, 'agent', 'default' )
     insert( user, 'vault_sync', 'alex' )
     insert( user, 'feed', 'f1' )

@@ -18,8 +18,6 @@ import { GmailSourceChip } from '../GmailSourceChip'
 const STATUS_LABELS = {
   queued: 'Queued',
   fetching: 'Fetching',
-  downloading: 'Downloading',
-  converting: 'Converting',
   transcribing: 'Transcribing',
   summarizing: 'Summarizing',
   linking: 'Linking',

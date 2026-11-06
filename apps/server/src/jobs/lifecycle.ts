@@ -28,8 +28,6 @@ const state = ( overrides: Partial< StateInfo > = {} ): StateInfo => ( {
 export const STATES: Record< JobStatus, StateInfo > = {
   queued: state( { runnable: true, active: true } ),
   fetching: state( { active: true, onRestart: 'failed' } ),
-  downloading: state( { active: true, onRestart: 'failed' } ),
-  converting: state( { active: true, onRestart: 'failed' } ),
   transcribing: state( { active: true, onRestart: 'failed' } ),
   summarizing: state( { runnable: true, active: true } ),
   linking: state( { runnable: true, active: true, onRestart: 'ready_for_review' } ),
@@ -43,9 +41,7 @@ type Move = { from: JobStatus, to: JobStatus, sources?: SourceType[] }
 
 // A move without `sources` is made by jobs of any source
 export const MOVES: readonly Move[] = [
-  { from: 'queued', to: 'downloading', sources: [ 'video' ] },
-  { from: 'downloading', to: 'converting', sources: [ 'video' ] },
-  { from: 'converting', to: 'transcribing', sources: [ 'video' ] },
+  { from: 'queued', to: 'transcribing', sources: [ 'video' ] },
   { from: 'transcribing', to: 'summarizing', sources: [ 'video' ] },
   { from: 'queued', to: 'fetching', sources: [ 'article' ] },
   { from: 'fetching', to: 'summarizing', sources: [ 'article' ] },
@@ -59,8 +55,6 @@ export const MOVES: readonly Move[] = [
   { from: 'ready_for_review', to: 'saved' },
   { from: 'failed', to: 'summarizing', sources: [ 'article' ] },
   { from: 'queued', to: 'failed' },
-  { from: 'downloading', to: 'failed' },
-  { from: 'converting', to: 'failed' },
   { from: 'transcribing', to: 'failed' },
   { from: 'fetching', to: 'failed' },
   { from: 'summarizing', to: 'failed' },

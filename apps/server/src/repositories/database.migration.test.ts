@@ -61,7 +61,7 @@ describe( 'the migration after the 0.9 baseline', () => {
     it( 'keeps the health rows and errors it can still check', () => {
       const db = migrate()
 
-      expect( kinds( db, 'health_status' ) ).toEqual( [ 'agent', 'backup', 'feed', 'whisper' ] )
+      expect( kinds( db, 'health_status' ) ).toEqual( [ 'agent', 'feed' ] )
       expect( kinds( db, 'health_errors' ) ).toEqual( [ 'agent', 'feed' ] )
     } )
 
@@ -124,12 +124,104 @@ describe( 'the migration after the 0.9 baseline', () => {
     } )
   } )
 
+  describe( 'from schema 12 (Gemini replaces the download pipeline, ADR 0081)', () => {
+    const insertJob = ( db: Database.Database, id: string, status: string ): void => {
+      db.prepare( `INSERT INTO jobs ( id, user_id, url, status, created_at, updated_at )
+        VALUES ( ?, 'u1', 'https://youtu.be/x', ?, 'now', 'now' )` ).run( id, status )
+    }
+
+    const migrate = (): Database.Database => {
+      const db = open()
+
+      runMigrations( db, migrations.slice( 0, 3 ) )
+      addUser( db, 'u1' )
+      insertHealth( db, null, 'agent' )
+      insertHealth( db, null, 'transcription' )
+      insertHealth( db, null, 'replication' )
+      insertHealth( db, null, 'pot_provider' )
+      insertHealth( db, 'u1', 'feed', 'feed-1' )
+      db.prepare( `INSERT INTO health_errors ( user_id, kind, subject_id, at, message )
+        VALUES
+          ( NULL, 'pot_provider', 'default', 'now', 'down' ),
+          ( NULL, 'agent', 'default', 'now', 'down' ),
+          ( 'u1', 'feed', 'feed-1', 'now', 'bad' )` ).run()
+      insertJob( db, 'j-down', 'downloading' )
+      insertJob( db, 'j-conv', 'converting' )
+      insertJob( db, 'j-tr', 'transcribing' )
+      insertJob( db, 'j-ok', 'saved' )
+      db.prepare( `INSERT INTO transcription_runs (
+          user_id, job_id, model, audio_seconds, pieces, cost_usd, outcome, created_at
+        ) VALUES ( 'u1', 'j-ok', 'gpt-transcribe', 60, 1, 0.01, 'ok', 'now' )` ).run()
+      runMigrations( db, migrations )
+
+      return db
+    }
+
+    it( 'is the fourth migration, schema 13', () => {
+      const db = migrate()
+
+      expect( migrations ).toHaveLength( 4 )
+      expect( db.pragma( 'user_version', { simple: true } ) ).toBe( 13 )
+    } )
+
+    it( 'keeps the kinds that are still checked and drops the others', () => {
+      const db = migrate()
+
+      expect( kinds( db, 'health_status' ) )
+        .toEqual( [ 'agent', 'feed', 'replication', 'transcription' ] )
+      expect( kinds( db, 'health_errors' ) ).toEqual( [ 'agent', 'feed' ] )
+    } )
+
+    it( 'no longer accepts pot_provider, whisper or backup', () => {
+      const db = migrate()
+
+      for( const kind of [ 'pot_provider', 'whisper', 'backup' ] ) {
+        expect( () => insertHealth( db, null, kind ) ).toThrow()
+      }
+    } )
+
+    it( 'keeps app kinds and user kinds apart and the error index', () => {
+      const db = migrate()
+
+      expect( () => insertHealth( db, 'u1', 'agent', 'x' ) ).toThrow()
+      expect( () => insertHealth( db, null, 'feed', 'x' ) ).toThrow()
+      expect( db.prepare( `SELECT name FROM sqlite_master
+        WHERE type = 'index' AND name = 'health_errors_subject'` ).all() ).toHaveLength( 1 )
+    } )
+
+    it( 'fails jobs that were downloading or converting and leaves the rest', () => {
+      const db = migrate()
+      const rows = db.prepare( 'SELECT id, status, error FROM jobs ORDER BY id' ).all()
+
+      expect( rows ).toEqual( [
+        { id: 'j-conv', status: 'failed', error: 'Interrupted by upgrade' },
+        { id: 'j-down', status: 'failed', error: 'Interrupted by upgrade' },
+        { id: 'j-ok', status: 'saved', error: null },
+        { id: 'j-tr', status: 'transcribing', error: null },
+      ] )
+    } )
+
+    it( 'adds nullable token columns and keeps old runs', () => {
+      const db = migrate()
+
+      expect( db.prepare( `SELECT model, input_tokens, output_tokens
+        FROM transcription_runs` ).all() )
+        .toEqual( [ { model: 'gpt-transcribe', input_tokens: null, output_tokens: null } ] )
+
+      db.prepare( `INSERT INTO transcription_runs (
+          user_id, job_id, model, audio_seconds, pieces, input_tokens, output_tokens, outcome,
+          created_at
+        ) VALUES ( 'u1', 'j', 'gemini-3.8-flash', 60, 1, 100, 20, 'ok', 'now' )` ).run()
+    } )
+  } )
+
   it( 'also builds the same tables from an empty database', () => {
     const db = open()
 
     runMigrations( db, migrations )
 
     expect( () => insertHealth( db, null, 'transcription' ) ).not.toThrow()
+    expect( () => insertHealth( db, null, 'pot_provider' ) ).toThrow()
     expect( db.prepare( 'SELECT COUNT(*) AS n FROM transcription_runs' ).get() ).toEqual( { n: 0 } )
   } )
 } )

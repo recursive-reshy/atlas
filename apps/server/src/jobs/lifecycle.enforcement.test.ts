@@ -107,7 +107,7 @@ const seed = ( status: JobStatus, source: SourceType = 'video' ): string => {
 }
 
 const CASES: Array< [ string, JobStatus, ( id: string ) => unknown, SourceType? ] > = [
-  [ 'markStatus', 'queued', ( id ) => markStatus( userId, id, 'downloading' ) ],
+  [ 'markStatus', 'queued', ( id ) => markStatus( userId, id, 'transcribing' ) ],
   [ 'completeAcquisition', 'transcribing', ( id ) => completeAcquisition( userId, id, document ) ],
   [ 'completeSummary', 'summarizing', ( id ) => completeSummary( userId, id, '## Summary', [] ) ],
   [ 'completeLinking', 'linking', ( id ) => completeLinking( userId, id ) ],

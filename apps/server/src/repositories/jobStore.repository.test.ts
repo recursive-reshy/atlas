@@ -149,10 +149,10 @@ describe( 'updateJob', () => {
     const job = buildJob()
     insertJob( userId, job )
 
-    const updated = updateJob( userId, job.id, { status: 'downloading' } )
+    const updated = updateJob( userId, job.id, { status: 'transcribing' } )
 
-    expect( updated ).toEqual( { ...job, status: 'downloading' } )
-    expect( findJobById( userId, job.id ) ).toEqual( { ...job, status: 'downloading' } )
+    expect( updated ).toEqual( { ...job, status: 'transcribing' } )
+    expect( findJobById( userId, job.id ) ).toEqual( { ...job, status: 'transcribing' } )
   } )
 
   it( 'returns undefined for an unknown id', () => {
@@ -542,8 +542,6 @@ describe( 'storage', () => {
 describe( 'listActiveJobs', () => {
   const active = [
     'queued',
-    'downloading',
-    'converting',
     'transcribing',
     'summarizing',
     'ready_for_review',
