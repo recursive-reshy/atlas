@@ -44,6 +44,8 @@ const configMock = vi.hoisted( () => ( {
   geminiModel: 'test-gemini',
   googleCloudProject: 'test-project',
   geminiLocation: 'global',
+  geminiBaseUrl: null,
+  geminiAccessToken: null,
   agent: null as { url: string } | null,
   litestreamMetricsUrl: null as string | null,
   vaultSyncStatusDir: null as string | null,

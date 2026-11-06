@@ -2,7 +2,7 @@
 import { ONLY_YOUTUBE_MESSAGE, VideoSource } from '@atlas/shared'
 // Clients
 import { transcribeYouTube } from '../clients/gemini.client.js'
-import { geminiOptions } from '../clients/geminiOptions.js'
+import { geminiOptions, youtubeDataOptions } from '../clients/geminiOptions.js'
 import { getVideoMeta } from '../clients/youtubeData.client.js'
 // Config
 import { config } from '../config.js'
@@ -31,7 +31,7 @@ export const videoAdapter: SourceAdapter = {
     }
 
     // First, so a private or missing video never reaches Gemini and costs nothing
-    const meta = await getVideoMeta( videoId, { apiKey: config.youtubeApiKey } )
+    const meta = await getVideoMeta( videoId, youtubeDataOptions() )
     const source = `https://www.youtube.com/watch?v=${ videoId }`
     const attempt = { model: config.geminiModel, audio_seconds: meta.duration_seconds }
     let transcript: Awaited< ReturnType< typeof transcribeYouTube > >

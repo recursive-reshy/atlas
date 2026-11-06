@@ -24,6 +24,9 @@ vi.mock( '../config.js', () => ( {
     googleCloudProject: 'test-project',
     geminiLocation: 'global',
     youtubeApiKey: 'yt-key',
+    geminiBaseUrl: null,
+    youtubeApiBaseUrl: null,
+    geminiAccessToken: null,
     logLevel: 'silent',
   },
 } ) )

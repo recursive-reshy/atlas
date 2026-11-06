@@ -12,7 +12,8 @@ import {
 } from './fixtures.mjs'
 
 const SUBMIT_TOOL = 'submit_suggestions'
-const TRANSCRIPTION_MODEL = 'gpt-transcribe'
+// The Gemini model the e2e stack is configured with (GEMINI_MODEL in docker-compose.e2e.yml)
+const GEMINI_MODEL = 'gemini-e2e'
 const TRANSCRIPT = 'Welcome to the talk. Today we cover ownership.\n\nMemory safety comes free.'
 const USAGE = { input_tokens: 1200, output_tokens: 300 }
 
@@ -119,17 +120,30 @@ export const route = ( method, path, body = '' ) => {
       return json( 200, MODELS )
     }
 
-    if( path.startsWith( '/v1/models/' ) ) {
-      const id = decodeURIComponent( path.slice( '/v1/models/'.length ) )
+    if( path.startsWith( '/v1/publishers/google/models/' ) ) {
+      const id = decodeURIComponent( path.slice( '/v1/publishers/google/models/'.length ) )
 
-      return id === TRANSCRIPTION_MODEL
-        ? json( 200, { id, object: 'model' } )
-        : json( 404, { error: { message: `The model '${ id }' does not exist` } } )
+      return id === GEMINI_MODEL
+        ? json( 200, { name: `publishers/google/models/${ id }`, launchStage: 'GA' } )
+        : json( 404, {
+          error: { code: 404, message: `Publisher Model ${ id } not found.`, status: 'NOT_FOUND' },
+        } )
+    }
+
+    if( path === '/youtube/v3/videos' ) {
+      return json( 200, { items: [ {
+        snippet: { title: 'A talk about ownership', channelTitle: 'Fake Channel' },
+        contentDetails: { duration: 'PT5M30S' },
+        status: { privacyStatus: 'public' },
+      } ] } )
     }
   }
 
-  if( method === 'POST' && path === '/v1/audio/transcriptions' ) {
-    return json( 200, { text: TRANSCRIPT } )
+  if( method === 'POST' && /^\/v1\/projects\/[^/]+\/locations\/[^/]+\/publishers\/google\/models\/[^/]+:generateContent$/.test( path ) ) {
+    return json( 200, {
+      candidates: [ { content: { parts: [ { text: TRANSCRIPT } ] }, finishReason: 'STOP' } ],
+      usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 200 },
+    } )
   }
 
   if( method === 'POST' && path === '/v1/messages' ) {

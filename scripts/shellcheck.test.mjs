@@ -20,7 +20,7 @@ const scripts = () => execFileSync( 'git', [ 'ls-files', '--cached', '--others',
 
 test( 'the repo has shell scripts to check', () => {
   const files = scripts()
-  for( const expected of [ 'deploy/sync/sync.sh', 'deploy/vm/fetch-secrets.sh', 'deploy/vm/bootstrap.sh', 'deploy/vm/docker-credential-atlas-gar', 'e2e/run.sh', 'ops/docker-entrypoint.sh' ] ) {
+  for( const expected of [ 'deploy/sync/sync.sh', 'deploy/vm/fetch-secrets.sh', 'deploy/vm/bootstrap.sh', 'deploy/vm/docker-credential-atlas-gar', 'e2e/run.sh' ] ) {
     assert.ok( files.includes( expected ), `${ expected } is not found by the shell-script filter` )
   }
 } )

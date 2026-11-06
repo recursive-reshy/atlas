@@ -22,7 +22,7 @@ test( 'the README no longer describes whisper-server or manual backups', () => {
 
 test( 'the README lists the new variables and the deployment files', () => {
   const text = read( 'README.md' )
-  for( const name of [ 'OPENAI_API_KEY', 'OPENAI_BASE_URL', 'TRANSCRIPTION_MODEL', 'VAULT_CREATE_ENABLED', 'LITESTREAM_METRICS_URL', 'VAULT_SYNC_STATUS_DIR', 'COMPOSE_FILE' ] ) {
+  for( const name of [ 'VAULT_CREATE_ENABLED', 'LITESTREAM_METRICS_URL', 'VAULT_SYNC_STATUS_DIR', 'COMPOSE_FILE' ] ) {
     assert.match( text, new RegExp( `\`${ name }\`` ), name )
   }
   assert.match( text, /docs\/deploy\.md/ )
@@ -31,7 +31,7 @@ test( 'the README lists the new variables and the deployment files', () => {
 test( 'the whisper-server launchd files are gone', () => {
   assert.equal( existsSync( join( root, 'ops/com.naresh.whisper-server.plist' ) ), false )
   assert.equal( existsSync( join( root, 'ops/README.md' ) ), false )
-  assert.ok( existsSync( join( root, 'ops/docker-entrypoint.sh' ) ), 'the app image still uses the entrypoint' )
+  assert.equal( existsSync( join( root, 'ops/docker-entrypoint.sh' ) ), false, 'the entrypoint only updated yt-dlp (ADR 0081)' )
   assert.doesNotMatch( read( '.dockerignore' ), /plist/ )
 } )
 

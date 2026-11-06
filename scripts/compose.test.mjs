@@ -18,7 +18,9 @@ const skip = hasDocker ? false : 'docker is not installed'
 const dummyEnv = {
   VAULTS_HOST_PATH: '/tmp/atlas-vaults',
   ANTHROPIC_API_KEY: 'dummy',
-  OPENAI_API_KEY: 'dummy',
+  GEMINI_MODEL: 'gemini-test',
+  GOOGLE_CLOUD_PROJECT: 'atlas-test',
+  YOUTUBE_API_KEY: 'dummy',
   AGENT_SECRET: 'd'.repeat( 32 ),
   ADMIN_EMAIL: 'admin@example.test',
   APP_ORIGINS: 'http://localhost:3100',
@@ -80,11 +82,17 @@ test( 'the app gets every variable it reads from the shared file', { skip }, () 
   const names = Object.keys( config.services.app.environment )
   for( const name of [
     'ADMIN_EMAIL', 'APP_ORIGINS', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'TOKEN_ENCRYPTION_KEY',
-    'OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'AGENT_SECRET', 'AGENT_URL', 'APP_TIME_ZONE',
-    'VAULT_CREATE_ENABLED', 'TRANSCRIPTION_MODEL', 'LOG_LEVEL', 'STATUS_CHECK_INTERVAL_MINUTES',
+    'GEMINI_MODEL', 'GOOGLE_CLOUD_PROJECT', 'GEMINI_LOCATION', 'YOUTUBE_API_KEY',
+    'ANTHROPIC_API_KEY', 'AGENT_SECRET', 'AGENT_URL', 'APP_TIME_ZONE',
+    'VAULT_CREATE_ENABLED', 'LOG_LEVEL', 'STATUS_CHECK_INTERVAL_MINUTES',
   ] ) {
     assert.ok( names.includes( name ), `app environment lacks ${ name }` )
   }
+  for( const name of [ 'OPENAI_API_KEY', 'OPENAI_BASE_URL', 'TRANSCRIPTION_MODEL', 'POT_PROVIDER_URL' ] ) {
+    assert.ok( !names.includes( name ), `app environment still has ${ name } (ADR 0081)` )
+  }
+  assert.equal( config.services.app.environment.GEMINI_MODEL, dummyEnv.GEMINI_MODEL )
+  assert.equal( config.services.app.environment.GOOGLE_CLOUD_PROJECT, dummyEnv.GOOGLE_CLOUD_PROJECT )
 } )
 
 test( 'a missing required variable stops the shared file', { skip }, () => {
@@ -181,25 +189,50 @@ test( 'production keeps the database and status folders on the host with the app
   assert.equal( config.volumes[ 'sync-status' ].driver_opts.device, '/srv/atlas/sync-status' )
 } )
 
-test( 'production runs the PO token provider, internal only, at the plugin\'s version, and tells the app', { skip }, () => {
+test( 'production has no PO token provider, and the VM signs in to Google by itself', { skip }, () => {
   const config = render( [ 'docker-compose.yml', 'compose.prod.yml' ], { env: prodEnv } )
-  const provider = config.services[ 'pot-provider' ]
-  const pinned = readFileSync( join( root, 'Dockerfile' ), 'utf8' ).match( /^ARG BGUTIL_VERSION=(\S+)$/m )?.[ 1 ]
-  assert.ok( pinned, 'the Dockerfile pins BGUTIL_VERSION' )
-  assert.equal( provider.image, `brainicism/bgutil-ytdlp-pot-provider:${ pinned }` )
-  assert.equal( provider.init, true )
-  assert.equal( provider.restart, 'unless-stopped' )
-  assert.equal( provider.ports, undefined, 'no published port' )
-  assert.equal( provider.volumes, undefined, 'mounts nothing' )
-  assert.ok( provider.command == null, 'keeps the image\'s --host 0.0.0.0, which Compose networking needs' )
-  assert.deepEqual( provider.healthcheck.test.slice( 0, 2 ), [ 'CMD', '/usr/local/bin/node' ] )
-  assert.match( provider.healthcheck.test.join( ' ' ), /127\.0\.0\.1:4416\/ping/ )
-  assert.equal( config.services.app.environment.POT_PROVIDER_URL, 'http://pot-provider:4416' )
+  assert.equal( config.services[ 'pot-provider' ], undefined )
+  assert.equal( config.services.app.environment.POT_PROVIDER_URL, undefined )
+  // Application Default Credentials come from the VM's metadata server: no key file, no mount
+  assert.equal( config.services.app.environment.GOOGLE_APPLICATION_CREDENTIALS, undefined )
+  assert.ok( !config.services.app.volumes.some( ( volume ) => volume.target === '/gcp/adc.json' ) )
   assert.deepEqual( publishedPorts( config ), [ { name: 'app', host_ip: '127.0.0.1', published: '3100' } ] )
 } )
 
-test( 'locally and in e2e there is no PO token provider and the app is not told about one', { skip }, () => {
-  const local = render( [ 'docker-compose.yml', 'compose.local.yml' ] )
-  assert.equal( local.services[ 'pot-provider' ], undefined )
-  assert.equal( local.services.app.environment.POT_PROVIDER_URL ?? '', '' )
+test( 'locally the Mac\'s Application Default Credentials are mounted read-only', { skip }, () => {
+  const config = render( [ 'docker-compose.yml', 'compose.local.yml' ] )
+  const adc = config.services.app.volumes.find( ( volume ) => volume.target === '/gcp/adc.json' )
+  assert.ok( adc, 'the credentials file is mounted' )
+  assert.equal( adc.source, `${ process.env.HOME }/.config/gcloud/application_default_credentials.json` )
+  assert.equal( adc.read_only, true )
+  assert.equal( config.services.app.environment.GOOGLE_APPLICATION_CREDENTIALS, '/gcp/adc.json' )
+  assert.equal( config.services[ 'pot-provider' ], undefined )
+} )
+
+test( 'the path of the credentials file can be changed with GOOGLE_ADC_HOST_PATH', { skip }, () => {
+  const config = render( [ 'docker-compose.yml', 'compose.local.yml' ], {
+    env: { ...dummyEnv, GOOGLE_ADC_HOST_PATH: '/somewhere/adc.json' },
+  } )
+  const adc = config.services.app.volumes.find( ( volume ) => volume.target === '/gcp/adc.json' )
+  assert.equal( adc.source, '/somewhere/adc.json' )
+} )
+
+test( 'e2e talks to the fakes for Gemini and YouTube and mounts no credentials', { skip }, () => {
+  const config = render( [ 'docker-compose.yml', 'compose.local.yml', 'e2e/docker-compose.e2e.yml' ] )
+  const environment = config.services.app.environment
+  assert.equal( environment.GEMINI_BASE_URL, 'http://fakes:4000' )
+  assert.equal( environment.YOUTUBE_API_BASE_URL, 'http://fakes:4000' )
+  assert.equal( environment.GEMINI_MODEL, 'gemini-e2e' )
+  assert.ok( environment.GEMINI_ACCESS_TOKEN, 'a fixed token replaces Application Default Credentials' )
+  assert.ok( !( 'OPENAI_BASE_URL' in environment ) && !( 'OPENAI_API_KEY' in environment ) )
+  assert.ok( !config.services.app.volumes.some( ( volume ) => volume.target === '/gcp/adc.json' ) )
+  assert.ok( config.services.app.volumes.some( ( volume ) => volume.target === '/vaults' ), 'still has the vaults' )
+  assert.ok( config.services.app.volumes.some( ( volume ) => volume.target === '/data' ), 'still has the data volume' )
+} )
+
+test( 'atlas.env.example names the Gemini settings the VM needs', () => {
+  const text = readFileSync( join( root, 'deploy/vm/atlas.env.example' ), 'utf8' )
+  assert.match( text, /^GEMINI_MODEL=/m )
+  assert.match( text, /^GOOGLE_CLOUD_PROJECT=/m )
+  assert.doesNotMatch( text, /TRANSCRIPTION_MODEL|OPENAI/ )
 } )

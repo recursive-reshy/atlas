@@ -9,7 +9,7 @@
 #
 # Each line is KEY='value'. Compose reads single-quoted values literally (no $ interpolation, no
 # comment handling), which is why a value containing ' or a line break is refused. Control
-# characters are refused too (ADR 0078): an ESC in an OpenAI key once reached the Authorization header.
+# characters are refused too (ADR 0078): an ESC in a pasted API key once reached the Authorization header.
 set -euo pipefail
 umask 077
 
@@ -20,7 +20,7 @@ API=${SECRET_MANAGER_URL:-https://secretmanager.googleapis.com/v1}
 # secret name in Secret Manager : variable the stack reads
 SECRETS=(
   'anthropic-api-key:ANTHROPIC_API_KEY'
-  'openai-api-key:OPENAI_API_KEY'
+  'youtube-api-key:YOUTUBE_API_KEY'
   'agent-secret:AGENT_SECRET'
   'google-client-secret:GOOGLE_CLIENT_SECRET'
   'token-encryption-key:TOKEN_ENCRYPTION_KEY'

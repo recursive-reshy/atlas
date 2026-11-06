@@ -16,7 +16,7 @@ const root = join( here, '..', '..' )
 // Secret name -> variable name -> value. The values are sentinels the output must never show.
 const SECRETS = {
   'anthropic-api-key': [ 'ANTHROPIC_API_KEY', 'sk-ant-SENTINEL-1' ],
-  'openai-api-key': [ 'OPENAI_API_KEY', 'sk-openai-SENTINEL-2' ],
+  'youtube-api-key': [ 'YOUTUBE_API_KEY', 'AIza-youtube-SENTINEL-2' ],
   'agent-secret': [ 'AGENT_SECRET', 'a=b$c"d #e f SENTINEL-3' ],
   'google-client-secret': [ 'GOOGLE_CLIENT_SECRET', 'GOCSPX-SENTINEL-4' ],
   'token-encryption-key': [ 'TOKEN_ENCRYPTION_KEY', 'abc+/SENTINEL5==' ],
@@ -113,7 +113,7 @@ test( 'without gcloud: metadata token, then the Secret Manager REST API', () => 
   assert.deepEqual( readFileSync( box.out, 'utf8' ).trimEnd().split( '\n' ), expectedLines() )
   assert.equal( statSync( box.out ).mode & 0o777, 0o600 )
   assert.match( box.calls(), /service-accounts\/default\/token/ )
-  assert.match( box.calls(), /secrets\/openai-api-key\/versions\/latest:access/ )
+  assert.match( box.calls(), /secrets\/youtube-api-key\/versions\/latest:access/ )
   assertNothingLeaked( result )
 } )
 
@@ -140,10 +140,10 @@ test( 'a failed run leaves an earlier file as it was', () => {
 
 test( 'a value with a quote or a line break is refused, not written wrongly', () => {
   for( const bad of [ "it's", 'two\nlines', '' ] ) {
-    const box = sandbox( { withGcloud: true }, { 'openai-api-key': bad } )
+    const box = sandbox( { withGcloud: true }, { 'youtube-api-key': bad } )
     const result = box.run()
     assert.notEqual( result.status, 0, `accepted ${ JSON.stringify( bad ) }` )
-    assert.match( result.stderr, /openai-api-key/ )
+    assert.match( result.stderr, /youtube-api-key/ )
     assert.equal( existsSync( box.out ), false )
   }
 } )
@@ -201,17 +201,17 @@ test( 'atlas.env.example holds the non-secret settings and none of the secrets',
 } )
 
 test( 'trailing whitespace is trimmed from a value, interior text stays', () => {
-  const box = sandbox( { withGcloud: true }, { 'openai-api-key': 'sk-openai-SENTINEL-2 \t\r\n', 'agent-secret': 'a b\n\n' } )
+  const box = sandbox( { withGcloud: true }, { 'youtube-api-key': 'AIza-youtube-SENTINEL-2 \t\r\n', 'agent-secret': 'a b\n\n' } )
   const result = box.run()
   assert.equal( result.status, 0, result.stderr )
   const lines = readFileSync( box.out, 'utf8' ).trimEnd().split( '\n' )
-  assert.ok( lines.includes( "OPENAI_API_KEY='sk-openai-SENTINEL-2'" ), lines.join( '|' ) )
+  assert.ok( lines.includes( "YOUTUBE_API_KEY='AIza-youtube-SENTINEL-2'" ), lines.join( '|' ) )
   assert.ok( lines.includes( "AGENT_SECRET='a b'" ) )
 } )
 
 test( 'anything else cleaning would remove is refused, naming the secret and never showing the value', () => {
   const cases = [
-    [ '\u001bsk-openai-SENTINEL-2', 'leading escape (a key pasted through read)' ],
+    [ '\u001bAIza-youtube-SENTINEL-2', 'leading escape (a key pasted through read)' ],
     [ 'sk-\u001b[31mx-SENTINEL-2', 'escape in the middle' ],
     [ 'sk-ab\u0007cd-SENTINEL-2', 'bell' ],
     [ 'a\u007fb-SENTINEL-2', 'DEL' ],
@@ -219,10 +219,10 @@ test( 'anything else cleaning would remove is refused, naming the secret and nev
     [ '  sk-SENTINEL-2', 'leading space' ],
   ]
   for( const [ bad, what ] of cases ) {
-    const box = sandbox( { withGcloud: true }, { 'openai-api-key': bad } )
+    const box = sandbox( { withGcloud: true }, { 'youtube-api-key': bad } )
     const result = box.run()
     assert.notEqual( result.status, 0, `accepted ${ what }` )
-    assert.match( result.stderr, /openai-api-key/, what )
+    assert.match( result.stderr, /youtube-api-key/, what )
     assert.doesNotMatch( result.stderr, /SENTINEL-2/, what )
     assert.equal( existsSync( box.out ), false )
   }

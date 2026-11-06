@@ -70,27 +70,46 @@ describe( 'GET /v1/models', () => {
   } )
 } )
 
-describe( 'OpenAI transcription', () => {
-  it( 'knows the gpt-transcribe model, so the Transcription status row is healthy', () => {
-    const response = route( 'GET', '/v1/models/gpt-transcribe' )
+describe( 'Gemini on Vertex AI', () => {
+  const generate = '/v1/projects/e2e/locations/global/publishers/google/models/gemini-e2e:generateContent'
+
+  it( 'knows the model, so the Transcription status row is healthy', () => {
+    const response = route( 'GET', '/v1/publishers/google/models/gemini-e2e' )
 
     assert.equal( response.status, 200 )
-    assert.equal( JSON.parse( response.body ).id, 'gpt-transcribe' )
+    assert.equal( JSON.parse( response.body ).name, 'publishers/google/models/gemini-e2e' )
   } )
 
-  it( 'answers 404 with an OpenAI-shaped error for any other model', () => {
-    const response = route( 'GET', '/v1/models/nope' )
+  it( 'answers 404 with a Google-shaped error for any other model', () => {
+    const response = route( 'GET', '/v1/publishers/google/models/nope' )
 
     assert.equal( response.status, 404 )
     assert.match( JSON.parse( response.body ).error.message, /nope/ )
+    assert.equal( JSON.parse( response.body ).error.status, 'NOT_FOUND' )
   } )
 
-  it( 'answers a transcription upload with fixed text', () => {
-    const response = route( 'POST', '/v1/audio/transcriptions', 'multipart bytes' )
+  it( 'answers generateContent with a fixed transcript and token counts', () => {
+    const response = route( 'POST', generate, '{}' )
+    const body = JSON.parse( response.body )
 
     assert.equal( response.status, 200 )
-    assert.match( response.headers[ 'content-type' ], /json/ )
-    assert.ok( JSON.parse( response.body ).text.length > 20 )
+    assert.ok( body.candidates[ 0 ].content.parts[ 0 ].text.length > 20 )
+    assert.equal( body.candidates[ 0 ].finishReason, 'STOP' )
+    assert.equal( typeof body.usageMetadata.promptTokenCount, 'number' )
+    assert.equal( typeof body.usageMetadata.candidatesTokenCount, 'number' )
+  } )
+} )
+
+describe( 'YouTube Data API', () => {
+  it( 'answers videos.list with one public video', () => {
+    const response = route( 'GET', '/youtube/v3/videos' )
+    const [ item ] = JSON.parse( response.body ).items
+
+    assert.equal( response.status, 200 )
+    assert.ok( item.snippet.title.length > 0 )
+    assert.ok( item.snippet.channelTitle.length > 0 )
+    assert.match( item.contentDetails.duration, /^PT/ )
+    assert.equal( item.status.privacyStatus, 'public' )
   } )
 } )
 

@@ -110,6 +110,10 @@ const IGNORED_VARIABLES = [
   'WHISPER_MODEL',
   'BACKUP_DIR',
   'BACKUP_HOST_PATH',
+  'OPENAI_API_KEY',
+  'OPENAI_BASE_URL',
+  'TRANSCRIPTION_MODEL',
+  'POT_PROVIDER_URL',
 ]
 
 export const ignoredEnv = ( env: NodeJS.ProcessEnv ): string[] => {
@@ -123,23 +127,19 @@ const EnvSchema = z
     DATA_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( defaultDataDir ) ),
     WEB_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
     ANTHROPIC_API_KEY: z.string().min( 1 ),
-    OPENAI_API_KEY: z.string().min( 1 ),
     GEMINI_MODEL: z.string().min( 1 ),
     GOOGLE_CLOUD_PROJECT: z.string().min( 1 ),
     GEMINI_LOCATION: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( 'global' ) ),
     YOUTUBE_API_KEY: z.string().min( 1 ),
     LITESTREAM_METRICS_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
-    POT_PROVIDER_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
+    GEMINI_BASE_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
+    YOUTUBE_API_BASE_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
+    GEMINI_ACCESS_TOKEN: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
     VAULT_CREATE_ENABLED: z.preprocess(
       emptyAsUnset,
       z.enum( [ 'true', 'false', '1', '0' ] ).default( 'true' ),
     ),
     VAULT_SYNC_STATUS_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
-    OPENAI_BASE_URL: z.preprocess( emptyAsUnset, z.url().default( 'https://api.openai.com' ) ),
-    TRANSCRIPTION_MODEL: z.preprocess(
-      emptyAsUnset,
-      z.string().min( 1 ).default( 'gpt-transcribe' ),
-    ),
     DEFAULT_NOTE_FOLDER: z.preprocess( emptyAsUnset, noteFolderSchema ),
     LOG_LEVEL: z.preprocess( emptyAsUnset, logLevelSchema ),
     SUMMARY_TIMEOUT_MS: z.preprocess( emptyAsUnset, summaryTimeoutSchema ),
@@ -169,9 +169,6 @@ const EnvSchema = z
     dataDir: env.DATA_DIR,
     webDir: env.WEB_DIR,
     anthropicApiKey: env.ANTHROPIC_API_KEY,
-    openaiApiKey: env.OPENAI_API_KEY,
-    openaiBaseUrl: env.OPENAI_BASE_URL,
-    transcriptionModel: env.TRANSCRIPTION_MODEL,
     // Gemini on Vertex AI reads YouTube links; the YouTube Data API gives the metadata (ADR 0081)
     geminiModel: env.GEMINI_MODEL,
     googleCloudProject: env.GOOGLE_CLOUD_PROJECT,
@@ -179,8 +176,11 @@ const EnvSchema = z
     youtubeApiKey: env.YOUTUBE_API_KEY,
     vaultsPath: env.VAULTS_PATH,
     litestreamMetricsUrl: env.LITESTREAM_METRICS_URL ?? null,
-    // The YouTube PO token provider (ADR 0079); unset where yt-dlp needs none
-    potProviderUrl: env.POT_PROVIDER_URL ?? null,
+    // Test doubles for the e2e stack (ADR 0053): other hosts for Vertex AI and the YouTube Data
+    // API, and a fixed token instead of Application Default Credentials. Unset in production.
+    geminiBaseUrl: env.GEMINI_BASE_URL ?? null,
+    youtubeApiBaseUrl: env.YOUTUBE_API_BASE_URL ?? null,
+    geminiAccessToken: env.GEMINI_ACCESS_TOKEN ?? null,
     vaultSyncStatusDir: env.VAULT_SYNC_STATUS_DIR ?? null,
     vaultCreateEnabled: env.VAULT_CREATE_ENABLED === 'true' || env.VAULT_CREATE_ENABLED === '1',
     adminEmail: env.ADMIN_EMAIL,

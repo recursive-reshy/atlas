@@ -6,7 +6,6 @@ import {
   MODEL_PRICES,
   PRICES_CHECKED_ON,
   estimateCostUsd,
-  estimateTranscriptionCostUsd,
   estimateGeminiCostUsd,
   GEMINI_PRICES,
 } from './pricing.js'
@@ -58,21 +57,6 @@ describe( 'MODEL_PRICES', () => {
   it( 'records the date the prices were checked', () => {
     expect( PRICES_CHECKED_ON ).toMatch( /^\d{4}-\d{2}-\d{2}$/ )
     expect( Number.isNaN( Date.parse( PRICES_CHECKED_ON ) ) ).toBe( false )
-  } )
-} )
-
-describe( 'estimateTranscriptionCostUsd', () => {
-  it( 'prices gpt-transcribe per minute of audio', () => {
-    expect( estimateTranscriptionCostUsd( 'gpt-transcribe', 3600 ) ).toBeCloseTo( 0.27, 10 )
-    expect( estimateTranscriptionCostUsd( 'gpt-transcribe', 90 ) ).toBeCloseTo( 0.00675, 10 )
-  } )
-
-  it( 'returns 0 for no audio', () => {
-    expect( estimateTranscriptionCostUsd( 'gpt-transcribe', 0 ) ).toBe( 0 )
-  } )
-
-  it( 'returns null for a model that is not in the table', () => {
-    expect( estimateTranscriptionCostUsd( 'whisper-1', 60 ) ).toBeNull()
   } )
 } )
 

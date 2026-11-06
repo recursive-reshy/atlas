@@ -14,7 +14,6 @@ const google = {
 }
 const base = {
   ANTHROPIC_API_KEY: 'sk-test',
-  OPENAI_API_KEY: 'sk-openai',
   GEMINI_MODEL: 'gemini-3.8-flash',
   GOOGLE_CLOUD_PROJECT: 'atlas-test',
   YOUTUBE_API_KEY: 'yt-key',
@@ -31,13 +30,13 @@ describe( 'loadConfig', () => {
       dataDir: join( tmpdir(), 'atlas-data' ),
       webDir: undefined,
       anthropicApiKey: 'sk-test',
-      openaiApiKey: 'sk-openai',
-      openaiBaseUrl: 'https://api.openai.com',
-      transcriptionModel: 'gpt-transcribe',
       geminiModel: 'gemini-3.8-flash',
       googleCloudProject: 'atlas-test',
       geminiLocation: 'global',
       youtubeApiKey: 'yt-key',
+      geminiBaseUrl: null,
+      youtubeApiBaseUrl: null,
+      geminiAccessToken: null,
       defaultNoteFolder: 'Mnemosyne',
       summaryTimeoutMs: 300_000,
       reviewTtlHours: 24,
@@ -55,7 +54,6 @@ describe( 'loadConfig', () => {
       e2eTestSignin: false,
       vaultsPath: '/vaults',
       litestreamMetricsUrl: null,
-      potProviderUrl: null,
       vaultSyncStatusDir: null,
       vaultCreateEnabled: true,
       agent: null,
@@ -74,15 +72,15 @@ describe( 'loadConfig', () => {
       ...base,
       VAULTS_PATH: '/Users/x/Vaults',
       LITESTREAM_METRICS_URL: 'http://litestream:9090/metrics',
-      POT_PROVIDER_URL: 'http://pot-provider:4416',
       VAULT_SYNC_STATUS_DIR: '/sync-status',
       VAULT_CREATE_ENABLED: 'false',
       DEFAULT_NOTE_FOLDER: 'Learning/AI',
       PORT: '4000',
-      OPENAI_BASE_URL: 'http://fakes:4000',
-      TRANSCRIPTION_MODEL: 'gpt-transcribe-2',
       GEMINI_MODEL: 'gemini-3.5-flash',
       GEMINI_LOCATION: 'us',
+      GEMINI_BASE_URL: 'http://fakes:4000',
+      YOUTUBE_API_BASE_URL: 'http://fakes:4000',
+      GEMINI_ACCESS_TOKEN: 'e2e-token',
       WORK_DIR: '/tmp/custom',
       DATA_DIR: '/data',
       WEB_DIR: '/srv/web',
@@ -103,13 +101,13 @@ describe( 'loadConfig', () => {
       dataDir: '/data',
       webDir: '/srv/web',
       anthropicApiKey: 'sk-test',
-      openaiApiKey: 'sk-openai',
-      openaiBaseUrl: 'http://fakes:4000',
-      transcriptionModel: 'gpt-transcribe-2',
       geminiModel: 'gemini-3.5-flash',
       googleCloudProject: 'atlas-test',
       geminiLocation: 'us',
       youtubeApiKey: 'yt-key',
+      geminiBaseUrl: 'http://fakes:4000',
+      youtubeApiBaseUrl: 'http://fakes:4000',
+      geminiAccessToken: 'e2e-token',
       defaultNoteFolder: 'Learning/AI',
       summaryTimeoutMs: 60_000,
       reviewTtlHours: 48,
@@ -127,7 +125,6 @@ describe( 'loadConfig', () => {
       sessionDays: 30,
       vaultsPath: '/Users/x/Vaults',
       litestreamMetricsUrl: 'http://litestream:9090/metrics',
-      potProviderUrl: 'http://pot-provider:4416',
       vaultSyncStatusDir: '/sync-status',
       vaultCreateEnabled: false,
       agent: null,
@@ -171,10 +168,10 @@ describe( 'loadConfig', () => {
   )
 
   it( 'treats empty strings as unset', () => {
-    const config = loadConfig( { ...base, PORT: '', OPENAI_BASE_URL: '' } )
+    const config = loadConfig( { ...base, PORT: '', GEMINI_BASE_URL: '' } )
 
     expect( config.port ).toBe( 3100 )
-    expect( config.openaiBaseUrl ).toBe( 'https://api.openai.com' )
+    expect( config.geminiBaseUrl ).toBeNull()
   } )
 
   it( 'treats an empty DATA_DIR as unset', () => {
@@ -183,9 +180,35 @@ describe( 'loadConfig', () => {
     )
   } )
 
-  it( 'treats an empty POT_PROVIDER_URL as unset and rejects a non-URL', () => {
-    expect( loadConfig( { ...base, POT_PROVIDER_URL: '' } ).potProviderUrl ).toBeNull()
-    expect( () => loadConfig( { ...base, POT_PROVIDER_URL: 'pot-provider' } ) ).toThrow()
+  it.each( [
+    [ 'GEMINI_BASE_URL', 'geminiBaseUrl' ],
+    [ 'YOUTUBE_API_BASE_URL', 'youtubeApiBaseUrl' ],
+  ] as const )( 'treats an empty %s as unset and rejects a non-URL', ( name, field ) => {
+    expect( loadConfig( { ...base, [ name ]: '' } )[ field ] ).toBeNull()
+    expect( () => loadConfig( { ...base, [ name ]: 'fakes' } ) ).toThrow( new RegExp( name ) )
+  } )
+
+  it( 'treats an empty GEMINI_ACCESS_TOKEN as unset', () => {
+    expect( loadConfig( { ...base, GEMINI_ACCESS_TOKEN: '' } ).geminiAccessToken ).toBeNull()
+  } )
+
+  it( 'no longer reads the OpenAI or PO token provider settings', () => {
+    const config = loadConfig( {
+      ...base,
+      OPENAI_API_KEY: 'sk-x',
+      OPENAI_BASE_URL: 'http://x.test',
+      TRANSCRIPTION_MODEL: 'm',
+      POT_PROVIDER_URL: 'http://pot-provider:4416',
+    } )
+
+    for( const field of [
+      'openaiApiKey',
+      'openaiBaseUrl',
+      'transcriptionModel',
+      'potProviderUrl',
+    ] ) {
+      expect( config, field ).not.toHaveProperty( field )
+    }
   } )
 
   it( 'treats an empty LITESTREAM_METRICS_URL as unset and rejects a non-URL', () => {
@@ -213,11 +236,6 @@ describe( 'loadConfig', () => {
     expect( loadConfig( { ...base, VAULT_SYNC_STATUS_DIR: '' } ).vaultSyncStatusDir ).toBeNull()
   } )
 
-  it( 'falls back to the default model for an empty TRANSCRIPTION_MODEL', () => {
-    expect( loadConfig( { ...base, TRANSCRIPTION_MODEL: '' } ).transcriptionModel )
-      .toBe( 'gpt-transcribe' )
-  } )
-
   it( 'reads WEB_DIR and treats an empty value as unset', () => {
     expect( loadConfig( { ...base, WEB_DIR: '/srv/web' } ).webDir ).toBe( '/srv/web' )
     expect( loadConfig( { ...base, WEB_DIR: '' } ).webDir ).toBeUndefined()
@@ -238,15 +256,6 @@ describe( 'loadConfig', () => {
 
   it.each( [ 'abc', '0', '70000' ] )( 'throws naming PORT for PORT=%s', ( port ) => {
     expect( () => loadConfig( { ...base, PORT: port } ) ).toThrow( /PORT/ )
-  } )
-
-  it( 'throws naming OPENAI_BASE_URL for an invalid URL', () => {
-    expect( () => loadConfig( { ...base, OPENAI_BASE_URL: 'not-a-url' } ) )
-      .toThrow( /OPENAI_BASE_URL/ )
-  } )
-
-  it.each( [ undefined, '' ] )( 'throws naming OPENAI_API_KEY when it is %j', ( value ) => {
-    expect( () => loadConfig( { ...base, OPENAI_API_KEY: value } ) ).toThrow( /OPENAI_API_KEY/ )
   } )
 
   it.each( [ 'GEMINI_MODEL', 'GOOGLE_CLOUD_PROJECT', 'YOUTUBE_API_KEY' ] )(
@@ -539,6 +548,10 @@ describe( 'loadConfig', () => {
       'WHISPER_MODEL',
       'BACKUP_DIR',
       'BACKUP_HOST_PATH',
+      'OPENAI_API_KEY',
+      'OPENAI_BASE_URL',
+      'TRANSCRIPTION_MODEL',
+      'POT_PROVIDER_URL',
     ] )( 'names %s when it is set', ( name ) => {
       expect( ignoredEnv( { ...base, [ name ]: 'x' } ) ).toEqual( [ name ] )
     } )

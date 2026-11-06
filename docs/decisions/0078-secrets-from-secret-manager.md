@@ -1,6 +1,6 @@
 # 0078. Secrets are fetched from Secret Manager into memory when the stack starts
 
-- Status: Accepted
+- Status: Accepted (the secret list changed in ADR 0081: `youtube-api-key` replaces `openai-api-key`)
 - Date: 2026-11-02
 
 ## Context

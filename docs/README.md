@@ -101,7 +101,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0075](decisions/0075-obsidian-headless-per-user.md) | Vaults on the VM are synced by Obsidian Headless, one container per user | Accepted (amends 0063) |
 | [0076](decisions/0076-litestream-replication.md) | Continuous replication with Litestream replaces manual backups | Accepted (supersedes 0051) |
 | [0077](decisions/0077-gcp-vm-hosting-and-deploys.md) | Hosting on one GCP VM: Compose files, images from the Mac, a bootstrap script | Accepted (amends 0060) |
-| [0078](decisions/0078-secrets-from-secret-manager.md) | Secrets are fetched from Secret Manager into memory when the stack starts | Accepted |
+| [0078](decisions/0078-secrets-from-secret-manager.md) | Secrets are fetched from Secret Manager into memory when the stack starts | Accepted (secret list changed by 0081) |
 | [0079](decisions/0079-youtube-po-token-provider.md) | YouTube downloads on the VM use a PO token provider | Superseded by 0081 |
 | [0080](decisions/0080-pot-provider-health-kind-and-schema-12.md) | The PO token provider gets its own health kind, which needs schema 12 | Superseded by 0081 |
 | [0081](decisions/0081-gemini-transcribes-youtube-links.md) | Gemini transcribes YouTube links; video is YouTube-only | Accepted (supersedes 0079, 0080; 0074 in part) |

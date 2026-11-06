@@ -36,24 +36,6 @@ export const estimateCostUsd = (
   return ( inputTokens * price.input + outputTokens * price.output ) / TOKENS_PER_PRICE_UNIT
 }
 
-// US dollars per minute of audio, from OpenAI's pricing page
-export const TRANSCRIPTION_PRICES_PER_MINUTE: Record< string, number > = {
-  'gpt-transcribe': 0.0045,
-}
-
-const SECONDS_PER_MINUTE = 60
-
-export const estimateTranscriptionCostUsd = ( model: string, seconds: number ): number | null => {
-  const price = TRANSCRIPTION_PRICES_PER_MINUTE[ model ]
-
-  if( price === undefined ) {
-    return null
-  }
-
-  // To the millionth of a dollar, so 3,600 s is 0.27 and not 0.26999999999999996
-  return Math.round( ( seconds / SECONDS_PER_MINUTE ) * price * 1_000_000 ) / 1_000_000
-}
-
 // US dollars per million tokens for Gemini on Vertex AI (standard, not batch). NOT confirmed from
 // Google's own page (it renders with JavaScript): these are what price trackers list on
 // 2026-11-06, and one reports a rise to 1.50 / 7.50 on 2027-01-01. Check the console price.
