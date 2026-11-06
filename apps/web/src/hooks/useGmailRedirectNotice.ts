@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 // Packages
 import { useSearchParams } from 'react-router'
 
-export interface GmailNotice {
+interface GmailNotice {
   severity: 'success' | 'error'
   message: string
 }

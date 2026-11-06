@@ -3,7 +3,7 @@ import type { APIRequestContext, BrowserContext } from '@playwright/test'
 
 export { expect } from '@playwright/test'
 
-export const ADMIN_EMAIL = 'admin@e2e.test'
+const ADMIN_EMAIL = 'admin@e2e.test'
 
 type TestSignIn = {
   email: string

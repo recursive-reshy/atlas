@@ -7,7 +7,7 @@ import { isInside, isSkippable, resolveExistingFolder } from '../clients/vault.c
 // Errors
 import { ValidationError } from '../errors.js'
 
-export const MAX_FILES_PER_SCAN = 5000
+const MAX_FILES_PER_SCAN = 5000
 
 export type ScannedFile = { path: string, mtimeMs: number, size: number }
 

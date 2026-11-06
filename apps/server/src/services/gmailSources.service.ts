@@ -82,11 +82,11 @@ export const requireConnectedGmail = ( userId: string ): void => {
   }
 }
 
-export const marginStart = ( syncFrom: Date ): Date => {
+const marginStart = ( syncFrom: Date ): Date => {
   return new Date( syncFrom.getTime() - MARGIN_DAYS * DAY_MS )
 }
 
-export const toStoredMessage = (
+const toStoredMessage = (
   sourceId: string,
   parsed: ParsedMessage,
   status: MessageStatus,
@@ -221,7 +221,7 @@ const toPublicSource = (
   }
 }
 
-export const presentSources = async (
+const presentSources = async (
   userId: string,
   sources: StoredGmailSource[],
 ): Promise< GmailSource[] > => {
@@ -230,7 +230,7 @@ export const presentSources = async (
   return sources.map( ( source ) => toPublicSource( userId, source, names ) )
 }
 
-export const presentSource = async (
+const presentSource = async (
   userId: string,
   source: StoredGmailSource,
 ): Promise< GmailSource > => {
@@ -239,7 +239,7 @@ export const presentSource = async (
   return presented
 }
 
-export const requireActiveSource = ( userId: string, id: string ): StoredGmailSource => {
+const requireActiveSource = ( userId: string, id: string ): StoredGmailSource => {
   const source = findSourceById( userId, id )
 
   if( source === undefined || source.deleted_at !== null ) {

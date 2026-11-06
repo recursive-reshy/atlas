@@ -28,7 +28,7 @@ export const connectGmail = ( userId: string ): void => {
   } )
 }
 
-export const buildStoredSource = (
+const buildStoredSource = (
   overrides: Partial< StoredGmailSource > = {},
 ): StoredGmailSource => {
   return {

@@ -91,8 +91,6 @@ export const statusesWhere = (
 
 type LinkValue = LinkState | null
 
-export const LINK_STATES: readonly LinkValue[] = [ null, ...LinkState.options ]
-
 export const LINK_MOVES: ReadonlyArray< { from: LinkValue, to: LinkValue } > = [
   { from: null, to: 'off' },
   { from: null, to: 'pending' },

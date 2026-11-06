@@ -17,8 +17,8 @@ import { ColorModeControl } from '../ColorModeControl'
 import { NavItem } from '../NavItem'
 import { SignOutItem } from '../SignOutItem'
 
-export const DRAWER_WIDTH = 240
-export const MINI_DRAWER_WIDTH = 64
+const DRAWER_WIDTH = 240
+const MINI_DRAWER_WIDTH = 64
 
 const NAV_ITEMS = [
   {

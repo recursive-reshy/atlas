@@ -39,8 +39,6 @@ export const estimateCostUsd = (
 // US dollars per million tokens for Gemini on Vertex AI (standard, not batch). NOT confirmed from
 // Google's own page (it renders with JavaScript): these are what price trackers list on
 // 2026-11-06, and one reports a rise to 1.50 / 7.50 on 2027-01-01. Check the console price.
-export const GEMINI_PRICES_CHECKED_ON = '2026-11-06'
-
 export const GEMINI_PRICES: Record< string, Price > = {
   'gemini-3.8-flash': { input: 0.75, output: 3.75 },
 }

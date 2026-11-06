@@ -37,7 +37,7 @@ import { createSession } from './session.service.js'
 export const OAUTH_COOKIE = 'atlas_oauth'
 export const OAUTH_COOKIE_MAX_AGE_MS = 10 * 60 * 1000
 
-export type SignInFailure = 'not_allowed' | 'expired' | 'failed'
+type SignInFailure = 'not_allowed' | 'expired' | 'failed'
 
 type Pending = {
   state: string
@@ -76,7 +76,7 @@ const sign = ( payload: string ): string => {
 const random = (): string => randomBytes( 32 ).toString( 'base64url' )
 
 // Only same-site paths: an absolute or protocol-relative URL would send the person elsewhere
-export const safeReturnTo = ( value: unknown ): string => {
+const safeReturnTo = ( value: unknown ): string => {
   const isPath = typeof value === 'string'
     && value.startsWith( '/' )
     && !value.startsWith( '//' )

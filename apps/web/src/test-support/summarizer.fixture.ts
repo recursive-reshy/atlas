@@ -11,7 +11,7 @@ export const LINKER_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a09'
 export const MELETE_QUESTIONS_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a0a'
 export const MELETE_GRADING_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a0b'
 export const CODING_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a02'
-export const GENERAL_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a03'
+const GENERAL_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a03'
 
 export const versionFixture = ( overrides: Partial< PromptVersion > = {} ): PromptVersion => {
   return {

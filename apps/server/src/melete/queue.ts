@@ -21,7 +21,7 @@ export const newRemaining = ( userId: string, subject: SubjectRecord, now: Date 
 }
 
 // Learning cards coming up within the learn-ahead limit, not yet due
-export const countLearningSoon = ( userId: string, subjectIds: string[], now: Date ): number => {
+const countLearningSoon = ( userId: string, subjectIds: string[], now: Date ): number => {
   return listLearningSoon( userId, {
     subjectIds,
     until: new Date( now.getTime() + LEARN_AHEAD_MS ).toISOString(),
