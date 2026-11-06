@@ -23,17 +23,12 @@ import { listTranscriptionRuns } from '../repositories/transcriptionRuns.reposit
 // Sources
 import { fetchArticle } from '../sources/extractArticle.js'
 // Clients
-import { downloadAudio } from '../clients/ytDlp.client.js'
-import { prepareAudio } from '../clients/ffmpeg.client.js'
-import { transcribePieces } from '../clients/openaiTranscription.client.js'
+import { getVideoMeta } from '../clients/youtubeData.client.js'
+import { transcribeYouTube } from '../clients/gemini.client.js'
 // Worker
 import { runJob } from './runJob.js'
 import { linkJob } from './linkJob.js'
 import { summarizeJob } from './summarizeJob.js'
-// Node
-import { rm } from 'node:fs/promises'
-// Logging
-import { logger } from '../logger.js'
 // Test support
 import { defaultTestAdmin } from '../test-support/auth.js'
 
@@ -43,27 +38,23 @@ beforeEach( () => {
   userId = defaultTestAdmin().id
 } )
 
-vi.mock( '../clients/ytDlp.client.js' )
-vi.mock( '../clients/ffmpeg.client.js' )
-vi.mock( '../clients/openaiTranscription.client.js' )
+vi.mock( '../clients/youtubeData.client.js' )
+vi.mock( '../clients/gemini.client.js' )
 vi.mock( './summarizeJob.js' )
 vi.mock( './linkJob.js' )
 vi.mock( '../sources/extractArticle.js' )
-vi.mock( 'node:fs/promises' )
 vi.mock( '../config.js', () => ( {
   config: {
-    workDir: '/work',
-    openaiApiKey: 'sk-test',
-    openaiBaseUrl: 'http://openai.test',
-    transcriptionModel: 'test-model',
+    geminiModel: 'test-model',
+    googleCloudProject: 'test-project',
+    geminiLocation: 'global',
+    youtubeApiKey: 'yt-key',
     logLevel: 'silent',
     sessionDays: 30,
   },
 } ) )
 
 const NOW = '2026-10-14T12:00:00.000Z'
-const URL_FORBIDDEN =
-  'yt-dlp failed: ERROR: unable to download video data: HTTP Error 403: Forbidden'
 
 const meta = {
   title: 'A video',
@@ -71,14 +62,11 @@ const meta = {
   channel: 'A channel',
   duration_seconds: 12,
 }
-const download = { audioPath: '/work/audio.webm', meta }
-const pieces = [ '/work/encoded.webm' ]
-const transcriptText = 'Hello'
+const metadata = { ...meta, privacy: 'public' as const }
+const transcript = { text: 'Hello', truncated: false, inputTokens: 1000, outputTokens: 200 }
 
-const downloadMock = vi.mocked( downloadAudio )
-const convertMock = vi.mocked( prepareAudio )
-const transcribeMock = vi.mocked( transcribePieces )
-const rmMock = vi.mocked( rm )
+const metaMock = vi.mocked( getVideoMeta )
+const transcribeMock = vi.mocked( transcribeYouTube )
 const summarizeJobMock = vi.mocked( summarizeJob )
 const linkJobMock = vi.mocked( linkJob )
 
@@ -87,8 +75,7 @@ const queue = async (): Promise< string > => {
 }
 
 const expectClientsNotCalled = (): void => {
-  expect( downloadMock ).not.toHaveBeenCalled()
-  expect( convertMock ).not.toHaveBeenCalled()
+  expect( metaMock ).not.toHaveBeenCalled()
   expect( transcribeMock ).not.toHaveBeenCalled()
 }
 
@@ -97,10 +84,8 @@ beforeEach( () => {
   vi.setSystemTime( new Date( NOW ) )
   clearJobs( userId )
   vi.resetAllMocks()
-  downloadMock.mockResolvedValue( download )
-  convertMock.mockResolvedValue( pieces )
-  transcribeMock.mockResolvedValue( transcriptText )
-  rmMock.mockResolvedValue( undefined )
+  metaMock.mockResolvedValue( metadata )
+  transcribeMock.mockResolvedValue( transcript )
   summarizeJobMock.mockResolvedValue( undefined )
   linkJobMock.mockResolvedValue( undefined )
 } )
@@ -124,51 +109,45 @@ describe( 'runJob', () => {
     } )
   } )
 
-  it( 'passes the right arguments to each client', async () => {
+  it( 'asks YouTube for the metadata and Gemini for the transcript of the link', async () => {
     const id = await queue()
 
     await runJob( userId, id )
 
-    expect( downloadMock ).toHaveBeenCalledWith(
+    expect( metaMock ).toHaveBeenCalledWith( 'abc', { apiKey: 'yt-key' } )
+    expect( transcribeMock ).toHaveBeenCalledWith(
       'https://www.youtube.com/watch?v=abc',
-      `/work/${ id }`,
+      expect.objectContaining( { project: 'test-project', model: 'test-model' } ),
     )
-    expect( convertMock ).toHaveBeenCalledWith( '/work/audio.webm' )
-    expect( transcribeMock ).toHaveBeenCalledWith( pieces, {
-      baseUrl: 'http://openai.test',
-      apiKey: 'sk-test',
-      model: 'test-model',
-    } )
   } )
 
-  it( 'is transcribing for the whole of the video pipeline', async () => {
+  it( 'is transcribing while the clients work', async () => {
     const id = await queue()
     const seen: string[] = []
-    downloadMock.mockImplementation( () => {
+
+    metaMock.mockImplementation( () => {
       seen.push( findJob( userId, id ).status )
-      return Promise.resolve( download )
-    } )
-    convertMock.mockImplementation( () => {
-      seen.push( findJob( userId, id ).status )
-      return Promise.resolve( pieces )
+
+      return Promise.resolve( metadata )
     } )
     transcribeMock.mockImplementation( () => {
       seen.push( findJob( userId, id ).status )
-      return Promise.resolve( transcriptText )
+
+      return Promise.resolve( transcript )
     } )
 
     await runJob( userId, id )
 
-    expect( seen ).toEqual( [ 'transcribing', 'transcribing', 'transcribing' ] )
+    expect( seen ).toEqual( [ 'transcribing', 'transcribing' ] )
   } )
 
   describe.each( [
-    { step: 'download', fail: () => downloadMock, later: [ convertMock, transcribeMock ] },
-    { step: 'convert', fail: () => convertMock, later: [ transcribeMock ] },
-    { step: 'transcribe', fail: () => transcribeMock, later: [] },
+    { step: 'the metadata', fail: () => metaMock, later: [ transcribeMock ] },
+    { step: 'the transcription', fail: () => transcribeMock, later: [] },
   ] )( 'when $step fails', ( { fail, later } ) => {
     it( 'fails the job with the message and skips later clients', async () => {
       const id = await queue()
+
       fail().mockRejectedValue( new Error( 'boom' ) )
 
       await runJob( userId, id )
@@ -177,17 +156,19 @@ describe( 'runJob', () => {
       later.forEach( ( mock ) => expect( mock ).not.toHaveBeenCalled() )
     } )
 
-    it( 'still removes the work folder', async () => {
+    it( 'does not summarize', async () => {
       const id = await queue()
+
       fail().mockRejectedValue( new Error( 'boom' ) )
 
       await runJob( userId, id )
 
-      expect( rmMock ).toHaveBeenCalledWith( `/work/${ id }`, { recursive: true, force: true } )
+      expect( summarizeJobMock ).not.toHaveBeenCalled()
     } )
 
     it( 'fails with Unknown error for a non-Error rejection', async () => {
       const id = await queue()
+
       fail().mockRejectedValue( 'nope' )
 
       await runJob( userId, id )
@@ -197,7 +178,7 @@ describe( 'runJob', () => {
   } )
 
   describe( 'transcription runs', () => {
-    it( 'stores an ok run with its cost for the job\'s owner', async () => {
+    it( 'stores an ok run with its tokens and cost for the job\'s owner', async () => {
       const id = await queue()
 
       await runJob( userId, id )
@@ -206,28 +187,31 @@ describe( 'runJob', () => {
         job_id: id,
         model: 'test-model',
         audio_seconds: meta.duration_seconds,
-        pieces: 1,
+        input_tokens: 1000,
+        output_tokens: 200,
         outcome: 'ok',
         error: null,
         created_at: NOW,
       } ] )
     } )
 
-    it( 'stores an error run when OpenAI fails, and fails the job', async () => {
+    it( 'stores an error run when Gemini fails, and fails the job', async () => {
       const id = await queue()
-      transcribeMock.mockRejectedValue( new Error( 'OpenAI transcription failed (500)' ) )
+
+      transcribeMock.mockRejectedValue( new Error( 'Gemini request failed (500)' ) )
 
       await runJob( userId, id )
 
       expect( findJob( userId, id ) ).toMatchObject( { status: 'failed' } )
       expect( listTranscriptionRuns( userId, id ) ).toMatchObject( [
-        { outcome: 'error', error: 'OpenAI transcription failed (500)' },
+        { outcome: 'error', error: 'Gemini request failed (500)', input_tokens: null },
       ] )
     } )
 
-    it( 'stores nothing when the download fails', async () => {
+    it( 'stores nothing when the metadata fails', async () => {
       const id = await queue()
-      downloadMock.mockRejectedValue( new Error( 'boom' ) )
+
+      metaMock.mockRejectedValue( new Error( 'Only public YouTube videos are supported' ) )
 
       await runJob( userId, id )
 
@@ -235,81 +219,12 @@ describe( 'runJob', () => {
     } )
   } )
 
-  it( 'summarizes after the audio is removed', async () => {
+  it( 'summarizes once the transcript is stored', async () => {
     const id = await queue()
 
     await runJob( userId, id )
 
     expect( summarizeJobMock ).toHaveBeenCalledWith( userId, id )
-    expect( rmMock.mock.invocationCallOrder[ 0 ] ).toBeLessThan(
-      summarizeJobMock.mock.invocationCallOrder[ 0 ],
-    )
-  } )
-
-  it( 'does not summarize when the pipeline fails', async () => {
-    const id = await queue()
-    transcribeMock.mockRejectedValue( new Error( 'boom' ) )
-
-    await runJob( userId, id )
-
-    expect( summarizeJobMock ).not.toHaveBeenCalled()
-  } )
-
-  it( 'removes the work folder after success', async () => {
-    const id = await queue()
-
-    await runJob( userId, id )
-
-    expect( rmMock ).toHaveBeenCalledWith( `/work/${ id }`, { recursive: true, force: true } )
-  } )
-
-  it( 'keeps the job summarizing and resolves when cleanup fails', async () => {
-    const id = await queue()
-    const errorSpy = vi.spyOn( logger, 'error' ).mockImplementation( () => undefined )
-    rmMock.mockRejectedValue( new Error( 'disk' ) )
-
-    await expect( runJob( userId, id ) ).resolves.toBeUndefined()
-
-    expect( findJob( userId, id ).status ).toBe( 'summarizing' )
-    expect( errorSpy ).toHaveBeenCalled()
-  } )
-
-  it( 'retries once after a 403, cleaning up first', async () => {
-    const id = await queue()
-    downloadMock
-      .mockRejectedValueOnce( new Error( URL_FORBIDDEN ) )
-      .mockResolvedValueOnce( download )
-
-    const run = runJob( userId, id )
-    await vi.advanceTimersByTimeAsync( 3000 )
-    await run
-
-    expect( findJob( userId, id ).status ).toBe( 'summarizing' )
-    expect( downloadMock ).toHaveBeenCalledTimes( 2 )
-    expect( rmMock.mock.invocationCallOrder[ 0 ] ).toBeLessThan(
-      downloadMock.mock.invocationCallOrder[ 1 ],
-    )
-  } )
-
-  it( 'fails after a second 403 without a third attempt', async () => {
-    const id = await queue()
-    downloadMock.mockRejectedValue( new Error( URL_FORBIDDEN ) )
-
-    const run = runJob( userId, id )
-    await vi.advanceTimersByTimeAsync( 3000 )
-    await run
-
-    expect( findJob( userId, id ) ).toMatchObject( { status: 'failed', error: URL_FORBIDDEN } )
-    expect( downloadMock ).toHaveBeenCalledTimes( 2 )
-  } )
-
-  it( 'does not retry other download errors', async () => {
-    const id = await queue()
-    downloadMock.mockRejectedValue( new Error( 'Video unavailable' ) )
-
-    await runJob( userId, id )
-
-    expect( downloadMock ).toHaveBeenCalledTimes( 1 )
   } )
 
   it( 'rejects with ConflictError when the job is not queued', async () => {
@@ -319,7 +234,6 @@ describe( 'runJob', () => {
     await expect( runJob( userId, id ) ).rejects.toBeInstanceOf( ConflictError )
 
     expectClientsNotCalled()
-    expect( rmMock ).not.toHaveBeenCalled()
     expect( findJob( userId, id ).status ).toBe( 'transcribing' )
   } )
 
@@ -343,7 +257,6 @@ describe( 'runJob', () => {
 
       expect( summarizeJobMock ).toHaveBeenCalledExactlyOnceWith( userId, id )
       expectClientsNotCalled()
-      expect( rmMock ).not.toHaveBeenCalled()
     } )
 
     it( 'leaves the status to the summarize step', async () => {
@@ -417,7 +330,6 @@ describe( 'runJob', () => {
       expect( linkJobMock ).toHaveBeenCalledExactlyOnceWith( userId, id )
       expect( summarizeJobMock ).not.toHaveBeenCalled()
       expectClientsNotCalled()
-      expect( rmMock ).not.toHaveBeenCalled()
     } )
   } )
 
@@ -438,7 +350,6 @@ describe( 'runJob', () => {
     await expect( runJob( userId, 'missing' ) ).rejects.toBeInstanceOf( NotFoundError )
 
     expectClientsNotCalled()
-    expect( rmMock ).not.toHaveBeenCalled()
   } )
 } )
 
@@ -480,7 +391,6 @@ describe( 'runJob for articles', () => {
     expect( findJobById( userId, id )?.source_document ).toEqual( article )
     expect( summarizeJobMock ).toHaveBeenCalledExactlyOnceWith( userId, id )
     expectClientsNotCalled()
-    expect( rmMock ).not.toHaveBeenCalled()
   } )
 
   it( 'fails the job with the fetch error and does not summarize', async () => {

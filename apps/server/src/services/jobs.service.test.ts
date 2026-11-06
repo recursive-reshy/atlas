@@ -1146,13 +1146,14 @@ describe( 'updateDraft', () => {
 } )
 
 describe( 'recordTranscriptionRun', () => {
-  it( 'stores a run with the estimated cost of the audio', async () => {
+  it( 'stores a run with the tokens and the cost they come to', async () => {
     const id = await queueJobAt( 'transcribing' )
 
     recordTranscriptionRun( userId, id, {
-      model: 'gpt-transcribe',
+      model: 'gemini-3.8-flash',
       audio_seconds: 3600,
-      pieces: 2,
+      input_tokens: 1_000_000,
+      output_tokens: 200_000,
       outcome: 'ok',
       error: null,
     } )
@@ -1160,30 +1161,36 @@ describe( 'recordTranscriptionRun', () => {
     expect( listTranscriptionRuns( userId, id ) ).toEqual( [ {
       id: 1,
       job_id: id,
-      model: 'gpt-transcribe',
+      model: 'gemini-3.8-flash',
       audio_seconds: 3600,
-      pieces: 2,
-      cost_usd: 0.27,
+      input_tokens: 1_000_000,
+      output_tokens: 200_000,
+      cost_usd: 1.5,
       outcome: 'ok',
       error: null,
       created_at: startTime.toISOString(),
     } ] )
   } )
 
-  it( 'stores a failed run with its error and the same estimate', async () => {
+  it( 'stores a failed run with its error, no tokens and no cost', async () => {
     const id = await queueJobAt( 'transcribing' )
 
     recordTranscriptionRun( userId, id, {
-      model: 'gpt-transcribe',
+      model: 'gemini-3.8-flash',
       audio_seconds: 60,
-      pieces: 1,
+      input_tokens: null,
+      output_tokens: null,
       outcome: 'error',
-      error: 'OpenAI transcription failed (500)',
+      error: 'Gemini request failed (500)',
     } )
 
-    expect( listTranscriptionRuns( userId, id ) ).toMatchObject( [
-      { outcome: 'error', error: 'OpenAI transcription failed (500)', cost_usd: 0.0045 },
-    ] )
+    expect( listTranscriptionRuns( userId, id ) ).toMatchObject( [ {
+      outcome: 'error',
+      error: 'Gemini request failed (500)',
+      input_tokens: null,
+      output_tokens: null,
+      cost_usd: null,
+    } ] )
   } )
 
   it( 'has no cost for a model that is not priced', async () => {
@@ -1192,12 +1199,16 @@ describe( 'recordTranscriptionRun', () => {
     recordTranscriptionRun( userId, id, {
       model: 'some-new-model',
       audio_seconds: 60,
-      pieces: 1,
+      input_tokens: 100,
+      output_tokens: 10,
       outcome: 'ok',
       error: null,
     } )
 
-    expect( listTranscriptionRuns( userId, id )[ 0 ]?.cost_usd ).toBeNull()
+    expect( listTranscriptionRuns( userId, id )[ 0 ] ).toMatchObject( {
+      input_tokens: 100,
+      cost_usd: null,
+    } )
   } )
 } )
 
@@ -1349,6 +1360,50 @@ describe( 'recordSummaryRun and summary_usage', () => {
       profile_id: profileId,
       profile_name: 'Temporary',
     } )
+  } )
+} )
+
+describe( 'queueJob and videos that are not on YouTube (ADR 0081)', () => {
+  it.each( [
+    'https://vimeo.com/123',
+    'https://www.dailymotion.com/video/x1',
+    'https://www.tiktok.com/@a/video/1',
+    'https://www.twitch.tv/videos/1',
+  ] )( 'refuses %s instead of reading it as an article', async ( link ) => {
+    await expect( queueJob( userId, { url: link } ) )
+      .rejects.toThrow( new ValidationError( 'Only YouTube videos are supported' ) )
+    expect( listJobs( userId ) ).toEqual( [] )
+  } )
+
+  it( 'refuses a video chosen for a page that is not YouTube', async () => {
+    await expect( queueJob( userId, { url: 'https://example.com/clip', source_type: 'video' } ) )
+      .rejects.toThrow( ValidationError )
+  } )
+
+  it( 'still queues such a page when it is said to be an article', async () => {
+    const job = await queueJob( userId, { url: 'https://vimeo.com/123', source_type: 'article' } )
+
+    expect( job ).toMatchObject( { status: 'queued', source_type: 'article' } )
+  } )
+
+  it( 'does not refuse a feed item whose text is already in hand', async () => {
+    const document = {
+      kind: 'article' as const,
+      meta: {
+        title: 'Post',
+        source: 'https://vimeo.com/blog/post',
+        author: null,
+        site: 'Vimeo blog',
+        published: null,
+        fetched_at: startTime.toISOString(),
+        origin: 'feed' as const,
+      },
+      markdown: 'x'.repeat( 400 ),
+    }
+
+    const job = await queueJob( userId, { url: 'https://vimeo.com/blog/post' }, { document } )
+
+    expect( job.status ).toBe( 'summarizing' )
   } )
 } )
 
@@ -1670,7 +1725,7 @@ describe( 'queueJob with source types', () => {
   it( 'lets the body override the detected type', async () => {
     expect( ( await queueJob( userId, { url, source_type: 'article' } ) ).source_type )
       .toBe( 'article' )
-    expect( ( await queueJob( userId, { url: articleUrl, source_type: 'video' } ) ).source_type )
+    expect( ( await queueJob( userId, { url, source_type: 'video' } ) ).source_type )
       .toBe( 'video' )
   } )
 

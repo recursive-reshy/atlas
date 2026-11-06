@@ -3,7 +3,7 @@ import { z } from 'zod'
 // Job
 import { Job } from './job.js'
 // Source
-import { detectSourceType } from './detectSourceType.js'
+import { detectSourceType, videoRefusal } from './detectSourceType.js'
 import {
   ARTICLE_LIMITS,
   SourceDocument,
@@ -29,7 +29,13 @@ export const CreateJobBody = z.object( {
     return !hasPasted || ( body.source_type ?? detectSourceType( body.url ) ) === 'article'
   },
   { message: 'Pasted text and a title are only for articles', path: [ 'text' ] },
-)
+).superRefine( ( body, context ) => {
+  const message = videoRefusal( body )
+
+  if( message !== null ) {
+    context.addIssue( { code: 'custom', message, path: [ 'url' ] } )
+  }
+} )
 export type CreateJobBody = z.infer< typeof CreateJobBody >
 
 export const CreateJobResponse = z.object( {

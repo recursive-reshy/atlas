@@ -158,7 +158,7 @@ export const getStatus = ( userId: string, isAdmin: boolean ): GetStatusResponse
       config.agent === null,
     ),
     toRow(
-      { kind: 'transcription', id: SINGLETON_ID, name: 'Transcription (OpenAI)' },
+      { kind: 'transcription', id: SINGLETON_ID, name: 'Transcription (Gemini)' },
       find( 'transcription', SINGLETON_ID ),
       false,
     ),

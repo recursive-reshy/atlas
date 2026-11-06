@@ -56,6 +56,25 @@ describe( 'SourcePane', () => {
     expect( screen.queryByRole( 'status' ) ).not.toBeInTheDocument()
   } )
 
+  it( 'says so above the text when Gemini cut the transcript short', () => {
+    render(
+      <SourcePane
+        source={ { ...video, meta: { ...video.meta, truncated: true } } }
+        sourceType="video"
+        error={ null }
+      />,
+    )
+
+    expect( screen.getByRole( 'note' ) )
+      .toHaveTextContent( 'Transcript was cut short by Gemini\'s output limit' )
+  } )
+
+  it( 'shows no notice for a complete transcript', () => {
+    render( <SourcePane source={ video } sourceType="video" error={ null } /> )
+
+    expect( screen.queryByRole( 'note' ) ).not.toBeInTheDocument()
+  } )
+
   it( 'splits a long unbroken text into several paragraphs', () => {
     const sentence = 'A sentence of moderate length here.'
     const text = Array.from( { length: 60 }, () => sentence ).join( ' ' )

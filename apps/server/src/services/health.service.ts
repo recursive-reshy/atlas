@@ -7,7 +7,8 @@ import { HealthKind, VaultSyncStatusFile } from '@atlas/shared'
 import { checkHealth } from '../clients/agent.client.js'
 import { fetchReplicationMetrics } from '../clients/litestreamMetrics.client.js'
 import type { ReplicationMetrics } from '../clients/litestreamMetrics.client.js'
-import { checkTranscriptionModel } from '../clients/openaiTranscription.client.js'
+import { checkGeminiModel } from '../clients/gemini.client.js'
+import { geminiOptions } from '../clients/geminiOptions.js'
 // Config
 import { config } from '../config.js'
 // Logging
@@ -62,11 +63,7 @@ const checkTranscription = async (): Promise< void > => {
   const subject: HealthSubject = { kind: 'transcription', id: 'default' }
 
   try {
-    await checkTranscriptionModel( {
-      baseUrl: config.openaiBaseUrl,
-      apiKey: config.openaiApiKey,
-      model: config.transcriptionModel,
-    } )
+    await checkGeminiModel( geminiOptions() )
     recordCheck( null, subject, { ok: true } )
   } catch( error ) {
     recordCheck( null, subject, { ok: false, message: errorMessage( error ) } )

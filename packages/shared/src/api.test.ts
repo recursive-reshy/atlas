@@ -60,9 +60,11 @@ describe( 'CreateJobBody with articles', () => {
   const text = 'x'.repeat( 200 )
 
   it( 'accepts an explicit source_type', () => {
+    const youtube = 'https://www.youtube.com/watch?v=abc'
+
     expect( CreateJobBody.safeParse( { url: article, source_type: 'article' } ).success )
       .toBe( true )
-    expect( CreateJobBody.safeParse( { url: article, source_type: 'video' } ).success )
+    expect( CreateJobBody.safeParse( { url: youtube, source_type: 'video' } ).success )
       .toBe( true )
   } )
 
@@ -94,6 +96,37 @@ describe( 'CreateJobBody with articles', () => {
       .toBe( false )
     expect( CreateJobBody.safeParse( { url: article, source_type: 'video', title: 'T' } ).success )
       .toBe( false )
+  } )
+
+  describe( 'only YouTube is a video (ADR 0081)', () => {
+    const issueOf = ( body: unknown ): { path: PropertyKey[], message: string } | undefined => {
+      const result = CreateJobBody.safeParse( body )
+
+      return result.success ? undefined : result.error.issues[ 0 ]
+    }
+
+    it.each( [
+      'https://vimeo.com/123',
+      'https://www.dailymotion.com/video/x1',
+      'https://www.tiktok.com/@a/video/1',
+      'https://www.twitch.tv/videos/1',
+    ] )( 'refuses %s, which is not read as an article either', ( url ) => {
+      expect( issueOf( { url } ) )
+        .toEqual( expect.objectContaining( {
+          path: [ 'url' ],
+          message: 'Only YouTube videos are supported',
+        } ) )
+    } )
+
+    it( 'refuses an explicit video on a site that is not YouTube', () => {
+      expect( issueOf( { url: article, source_type: 'video' } )?.message )
+        .toBe( 'Only YouTube videos are supported' )
+    } )
+
+    it( 'still accepts such a page when it is said to be an article', () => {
+      expect( CreateJobBody.safeParse( { url: 'https://vimeo.com/123', source_type: 'article' } )
+        .success ).toBe( true )
+    } )
   } )
 
   it( 'trims the text and applies the length limits after trimming', () => {

@@ -20,6 +20,7 @@ import {
   VideoSource,
   applyLockedProperties,
   detectSourceType,
+  videoRefusal,
   lockedPropertiesFor,
   parseFolderPath,
   parseNote,
@@ -73,7 +74,7 @@ import {
 // Sources
 import { articleFromText } from '../sources/text.js'
 // Summarizer
-import { estimateCostUsd, estimateTranscriptionCostUsd } from '../summarizer/pricing.js'
+import { estimateCostUsd, estimateGeminiCostUsd } from '../summarizer/pricing.js'
 // Lifecycle
 import { STATES, assertMove as assertTableMove } from '../jobs/lifecycle.js'
 // Services
@@ -87,7 +88,8 @@ import { logger } from '../logger.js'
 export interface TranscriptionAttempt {
   model: string
   audio_seconds: number
-  pieces: number
+  input_tokens: number | null
+  output_tokens: number | null
   outcome: 'ok' | 'error'
   error: string | null
 }
@@ -299,6 +301,13 @@ export const queueJob = async (
 
   await validateChoices( userId, body )
 
+  // Text already in hand (pasted, a feed's full text, an email) is an article whatever the site
+  const refusal = text === undefined && extra.document === undefined ? videoRefusal( body ) : null
+
+  if( refusal !== null ) {
+    throw new ValidationError( refusal )
+  }
+
   if( ( text !== undefined || extra.document !== undefined ) && sourceType !== 'article' ) {
     throw new ValidationError( 'Pasted text is only for articles' )
   }
@@ -506,7 +515,7 @@ export const recordTranscriptionRun = (
   insertTranscriptionRun( userId, {
     job_id: jobId,
     ...attempt,
-    cost_usd: estimateTranscriptionCostUsd( attempt.model, attempt.audio_seconds ),
+    cost_usd: estimateGeminiCostUsd( attempt.model, attempt.input_tokens, attempt.output_tokens ),
     created_at: new Date().toISOString(),
   } )
 }

@@ -23,10 +23,11 @@ const buildRun = (
 ): TranscriptionRunRecord => {
   return {
     job_id: 'job-1',
-    model: 'gpt-transcribe',
+    model: 'gemini-3.8-flash',
     audio_seconds: 3600,
-    pieces: 1,
-    cost_usd: 0.27,
+    input_tokens: 1_000_000,
+    output_tokens: 200_000,
+    cost_usd: 1.5,
     outcome: 'ok',
     error: null,
     created_at: '2026-11-02T10:00:00.000Z',
@@ -44,7 +45,9 @@ describe( 'insertTranscriptionRun', () => {
   it( 'stores a failed run with its error and no cost', () => {
     const run = buildRun( {
       outcome: 'error',
-      error: 'OpenAI transcription failed (401)',
+      error: 'Gemini request failed (401)',
+      input_tokens: null,
+      output_tokens: null,
       cost_usd: null,
     } )
 
@@ -56,7 +59,7 @@ describe( 'insertTranscriptionRun', () => {
       .toThrow()
   } )
 
-  it( 'shows up in usage_events as a transcription with no tokens', () => {
+  it( 'shows up in usage_events as a transcription, with its cost and no tokens', () => {
     insertTranscriptionRun( userId, buildRun() )
 
     expect( getDatabase().prepare( 'SELECT * FROM usage_events WHERE category = ?' )
@@ -65,7 +68,7 @@ describe( 'insertTranscriptionRun', () => {
       category: 'transcription',
       input_tokens: null,
       output_tokens: null,
-      cost_usd: 0.27,
+      cost_usd: 1.5,
       created_at: '2026-11-02T10:00:00.000Z',
     } ] )
   } )

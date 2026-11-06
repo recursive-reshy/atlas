@@ -14,7 +14,7 @@ import {
 // Clients
 import { checkHealth } from '../clients/agent.client.js'
 import { fetchReplicationMetrics } from '../clients/litestreamMetrics.client.js'
-import { checkTranscriptionModel } from '../clients/openaiTranscription.client.js'
+import { checkGeminiModel } from '../clients/gemini.client.js'
 // Logging
 import { logger } from '../logger.js'
 // Repositories
@@ -41,9 +41,9 @@ beforeEach( () => {
 const configMock = vi.hoisted( () => ( {
   logLevel: 'silent',
   sessionDays: 30,
-  openaiApiKey: 'sk-test',
-  openaiBaseUrl: 'http://openai.test',
-  transcriptionModel: 'gpt-transcribe',
+  geminiModel: 'test-gemini',
+  googleCloudProject: 'test-project',
+  geminiLocation: 'global',
   agent: null as { url: string } | null,
   litestreamMetricsUrl: null as string | null,
   vaultSyncStatusDir: null as string | null,
@@ -52,8 +52,9 @@ const configMock = vi.hoisted( () => ( {
 vi.mock( '../config.js', () => ( { config: configMock } ) )
 vi.mock( '../clients/agent.client.js', () => ( { checkHealth: vi.fn() } ) )
 vi.mock( '../clients/litestreamMetrics.client.js', () => ( { fetchReplicationMetrics: vi.fn() } ) )
-vi.mock( '../clients/openaiTranscription.client.js', () => ( {
-  checkTranscriptionModel: vi.fn(),
+vi.mock( '../clients/gemini.client.js', () => ( {
+  checkGeminiModel: vi.fn(),
+  googleAccessToken: vi.fn(),
 } ) )
 
 beforeEach( () => {
@@ -63,7 +64,7 @@ beforeEach( () => {
   resetReplicationCheck()
   vi.mocked( fetchReplicationMetrics ).mockReset()
   vi.mocked( checkHealth ).mockReset().mockResolvedValue( 'ok' )
-  vi.mocked( checkTranscriptionModel ).mockReset().mockResolvedValue( undefined )
+  vi.mocked( checkGeminiModel ).mockReset().mockResolvedValue( undefined )
 } )
 
 afterEach( () => {
@@ -131,11 +132,11 @@ describe( 'runServiceChecks', () => {
     await runServiceChecks()
 
     expect( checkHealth ).toHaveBeenCalledWith( { fresh: true } )
-    expect( checkTranscriptionModel ).toHaveBeenCalledWith( {
-      baseUrl: 'http://openai.test',
-      apiKey: 'sk-test',
-      model: 'gpt-transcribe',
-    } )
+    expect( checkGeminiModel ).toHaveBeenCalledWith( expect.objectContaining( {
+      project: 'test-project',
+      location: 'global',
+      model: 'test-gemini',
+    } ) )
     expect( getHealth( null, 'agent', 'default' ) ).toMatchObject( { last_error: null } )
     expect( getHealth( null, 'agent', 'default' )?.last_success_at ).not.toBeNull()
     expect( getHealth( null, 'transcription', 'default' ) ).toMatchObject( { last_error: null } )
@@ -152,15 +153,15 @@ describe( 'runServiceChecks', () => {
     expect( getHealth( null, 'transcription', 'default' )?.last_error ).toBeNull()
   } )
 
-  it( 'records OpenAI\'s message when the model check fails', async () => {
-    vi.mocked( checkTranscriptionModel ).mockRejectedValue(
-      new Error( 'OpenAI model check failed (401): Bad key' ),
+  it( 'records Gemini\'s message when the model check fails', async () => {
+    vi.mocked( checkGeminiModel ).mockRejectedValue(
+      new Error( 'Gemini model check failed (404): Publisher Model not found.' ),
     )
 
     await runServiceChecks()
 
     expect( getHealth( null, 'transcription', 'default' )?.last_error )
-      .toBe( 'OpenAI model check failed (401): Bad key' )
+      .toBe( 'Gemini model check failed (404): Publisher Model not found.' )
     expect( getHealth( null, 'agent', 'default' )?.last_error ).toBeNull()
   } )
 

@@ -126,14 +126,14 @@ describe( 'getStatus', () => {
 
   it( 'names the singletons', () => {
     expect( getStatus( userId, true ).rows.map( ( { name } ) => name ) )
-      .toEqual( [ 'Agent service', 'Transcription (OpenAI)', 'Gmail connection' ] )
+      .toEqual( [ 'Agent service', 'Transcription (Gemini)', 'Gmail connection' ] )
   } )
 
   it( 'shows a never-checked service as ok with no times', () => {
     expect( rowOf( 'transcription' ) ).toEqual( {
       kind: 'transcription',
       id: 'default',
-      name: 'Transcription (OpenAI)',
+      name: 'Transcription (Gemini)',
       state: 'ok',
       last_checked_at: null,
       last_success_at: null,
@@ -145,13 +145,13 @@ describe( 'getStatus', () => {
 
   it( 'is failing with the error and the times when a check failed', () => {
     recordSuccess( null, 'transcription', 'default', at( 1 ) )
-    recordFailure( null, 'transcription', 'default', at( 2 ), 'Could not reach OpenAI' )
+    recordFailure( null, 'transcription', 'default', at( 2 ), 'Could not reach Gemini' )
 
     expect( rowOf( 'transcription' ) ).toMatchObject( {
       state: 'failing',
       last_checked_at: at( 2 ),
       last_success_at: at( 1 ),
-      last_error: 'Could not reach OpenAI',
+      last_error: 'Could not reach Gemini',
       failing_since: at( 2 ),
     } )
     expect( getStatus( userId, true ).failing_count ).toBe( 1 )
@@ -375,7 +375,7 @@ describe( 'getStatus', () => {
       expect( getStatus( userId, true ).rows.map( ( { kind, name } ) => `${ kind }:${ name }` ) )
         .toEqual( [
           'agent:Agent service',
-          'transcription:Transcription (OpenAI)',
+          'transcription:Transcription (Gemini)',
           'gmail_connection:Gmail connection',
           'gmail_source:alpha alerts',
           'gmail_source:Beta alerts',
@@ -466,7 +466,7 @@ describe( 'getStatus for two users', () => {
     expect( mine.map( ( { name } ) => name ) )
       .toEqual( [
         'Agent service',
-        'Transcription (OpenAI)',
+        'Transcription (Gemini)',
         'Gmail connection',
         'Mine',
       ] )

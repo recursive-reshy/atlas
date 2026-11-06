@@ -7,7 +7,7 @@ import Box from '@mui/material/Box'
 import Button from '@mui/material/Button'
 import TextField from '@mui/material/TextField'
 // Shared
-import { CreateJobBody, detectSourceType } from '@atlas/shared'
+import { CreateJobBody, ONLY_YOUTUBE_MESSAGE, detectSourceType } from '@atlas/shared'
 import type { SourceType } from '@atlas/shared'
 // App
 import { SourceTypeSwitch } from '../SourceTypeSwitch'
@@ -96,6 +96,13 @@ export function SubmitForm(
 
     if( !parsed.success ) {
       const isUrl = parsed.error.issues.some( ( { path } ) => path[ 0 ] === 'url' )
+      const isNotYouTube = parsed.error.issues
+        .some( ( { message } ) => message === ONLY_YOUTUBE_MESSAGE )
+
+      if( isNotYouTube ) {
+        setValidationMessage( ONLY_YOUTUBE_MESSAGE )
+        return
+      }
 
       setValidationMessage( isUrl || !isPasting ? TEXT.invalidUrl : TEXT.invalidText )
       return

@@ -1,5 +1,3 @@
-// Packages
-import path from 'node:path'
 // Errors
 import { ConflictError } from '../errors.js'
 // Services
@@ -12,8 +10,6 @@ import {
 } from '../services/jobs.service.js'
 // Sources
 import { adapterFor } from '../sources/index.js'
-// Config
-import { config } from '../config.js'
 // Worker
 import { linkJob } from './linkJob.js'
 import { summarizeJob } from './summarizeJob.js'
@@ -44,7 +40,6 @@ export const runJob = async ( userId: string, jobId: string ): Promise< void > =
   try {
     const document = await adapterFor( job.source_type ).acquire( {
       job,
-      workDir: path.join( config.workDir, jobId ),
       markStatus: ( status ) => {
         markStatus( userId, jobId, status )
       },

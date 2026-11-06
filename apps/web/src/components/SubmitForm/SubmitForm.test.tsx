@@ -267,15 +267,31 @@ describe( 'SubmitForm, source type', () => {
     expect( onSubmit ).toHaveBeenLastCalledWith( { url: validUrl } )
   } )
 
-  it( 'sends an article override for a site that looks like a video', async () => {
+  it( 'says only YouTube works, and sends nothing, for Video on another site', async () => {
     const { onSubmit, user } = setup()
 
     await typeUrl( user, articleUrl )
     await user.click( screen.getByRole( 'button', { name: 'Video' } ) )
     await user.click( screen.getByRole( 'button', { name: 'Transcribe' } ) )
 
-    expect( onSubmit ).toHaveBeenCalledWith( { url: articleUrl, source_type: 'video' } )
+    expect( screen.getByRole( 'alert' ) ).toHaveTextContent( 'Only YouTube videos are supported' )
+    expect( onSubmit ).not.toHaveBeenCalled()
   } )
+
+  it.each( [ 'https://vimeo.com/123', 'https://www.twitch.tv/videos/1' ] )(
+    'refuses %s with the YouTube-only message instead of treating it as an article',
+    async ( link ) => {
+      const { onSubmit, user } = setup()
+      const input = screen.getByRole( 'textbox', { name: 'URL' } )
+
+      await typeUrl( user, link )
+      await user.click( screen.getByRole( 'button', { name: 'Summarize' } ) )
+
+      expect( screen.getByRole( 'alert' ) ).toHaveTextContent( 'Only YouTube videos are supported' )
+      expect( input ).toHaveAttribute( 'aria-invalid', 'true' )
+      expect( onSubmit ).not.toHaveBeenCalled()
+    },
+  )
 } )
 
 describe( 'SubmitForm, pasted text', () => {
@@ -370,7 +386,9 @@ describe( 'SubmitForm, pasted text', () => {
 
     await user.click( screen.getByRole( 'button', { name: 'Transcribe' } ) )
 
-    expect( onSubmit ).toHaveBeenCalledWith( { url: articleUrl, source_type: 'video' } )
+    // The pasted text is gone, so this is only a video chosen for a site that is not YouTube
+    expect( screen.getByRole( 'alert' ) ).toHaveTextContent( 'Only YouTube videos are supported' )
+    expect( onSubmit ).not.toHaveBeenCalled()
   } )
 
   it( 'closes the section when the field is cleared', async () => {

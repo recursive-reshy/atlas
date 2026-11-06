@@ -1,89 +1,75 @@
-// Packages
-import { rm } from 'node:fs/promises'
 // Shared
-import { VideoSource } from '@atlas/shared'
+import { ONLY_YOUTUBE_MESSAGE, VideoSource } from '@atlas/shared'
 // Clients
-import { downloadAudio } from '../clients/ytDlp.client.js'
-import { prepareAudio } from '../clients/ffmpeg.client.js'
-import { transcribePieces } from '../clients/openaiTranscription.client.js'
+import { transcribeYouTube } from '../clients/gemini.client.js'
+import { geminiOptions } from '../clients/geminiOptions.js'
+import { getVideoMeta } from '../clients/youtubeData.client.js'
 // Config
 import { config } from '../config.js'
+// Formatters
+import { youTubeVideoId } from '../formatters/youtube.js'
 // Sources
 import type { SourceAdapter } from './adapter.js'
-// Logging
-import { logger } from '../logger.js'
 
-const RETRY_DELAY_MS = 3000
-const removeOptions = { recursive: true, force: true }
-
-const downloadWithRetry = async (
-  url: string,
-  workDir: string,
-): ReturnType< typeof downloadAudio > => {
-  try {
-    return await downloadAudio( url, workDir )
-  } catch( error ) {
-    if( !( error instanceof Error && error.message.includes( '403' ) ) ) {
-      throw error
-    }
-  }
-
-  await rm( workDir, removeOptions )
-  await new Promise( ( resolve ) => setTimeout( resolve, RETRY_DELAY_MS ) )
-
-  return downloadAudio( url, workDir )
+const errorMessage = ( error: unknown ): string => {
+  return error instanceof Error ? error.message : 'Unknown error'
 }
 
+// Gemini reads the video from its link, so nothing is downloaded (ADR 0081)
 export const videoAdapter: SourceAdapter = {
-  acquire: async ( { job, workDir, markStatus, recordTranscription } ) => {
-    // Until the Gemini adapter replaces this pipeline (9.3), transcribing covers all of it
+  acquire: async ( { job, markStatus, recordTranscription } ) => {
     markStatus( 'transcribing' )
 
-    try {
-      const { audioPath, meta } = await downloadWithRetry( job.url, workDir )
+    const videoId = youTubeVideoId( job.url )
 
-      const pieces = await prepareAudio( audioPath )
+    if( videoId === undefined ) {
+      const isYouTube = URL.parse( job.url )?.hostname.includes( 'youtu' ) === true
 
-      const attempt = {
-        model: config.transcriptionModel,
-        audio_seconds: meta.duration_seconds,
-        pieces: pieces.length,
-      }
-      let text: string
-
-      try {
-        text = await transcribePieces( pieces, {
-          baseUrl: config.openaiBaseUrl,
-          apiKey: config.openaiApiKey,
-          model: config.transcriptionModel,
-        } )
-      } catch( error ) {
-        recordTranscription( {
-          ...attempt,
-          outcome: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error',
-        } )
-
-        throw error
-      }
-
-      recordTranscription( { ...attempt, outcome: 'ok', error: null } )
-
-      return VideoSource.parse( {
-        kind: 'video',
-        meta: {
-          ...meta,
-          transcribed_at: new Date().toISOString(),
-          model: config.transcriptionModel,
-        },
-        text,
-      } )
-    } finally {
-      try {
-        await rm( workDir, removeOptions )
-      } catch( cleanupError ) {
-        logger.error( { err: cleanupError, workDir }, 'Could not remove work folder' )
-      }
+      throw new Error( isYouTube
+        ? 'Could not find a video in that YouTube link'
+        : ONLY_YOUTUBE_MESSAGE )
     }
+
+    // First, so a private or missing video never reaches Gemini and costs nothing
+    const meta = await getVideoMeta( videoId, { apiKey: config.youtubeApiKey } )
+    const source = `https://www.youtube.com/watch?v=${ videoId }`
+    const attempt = { model: config.geminiModel, audio_seconds: meta.duration_seconds }
+    let transcript: Awaited< ReturnType< typeof transcribeYouTube > >
+
+    try {
+      transcript = await transcribeYouTube( source, geminiOptions() )
+    } catch( error ) {
+      recordTranscription( {
+        ...attempt,
+        input_tokens: null,
+        output_tokens: null,
+        outcome: 'error',
+        error: errorMessage( error ),
+      } )
+
+      throw error
+    }
+
+    recordTranscription( {
+      ...attempt,
+      input_tokens: transcript.inputTokens,
+      output_tokens: transcript.outputTokens,
+      outcome: 'ok',
+      error: null,
+    } )
+
+    return VideoSource.parse( {
+      kind: 'video',
+      meta: {
+        title: meta.title,
+        source,
+        channel: meta.channel,
+        duration_seconds: meta.duration_seconds,
+        transcribed_at: new Date().toISOString(),
+        model: config.geminiModel,
+        ...transcript.truncated ? { truncated: true } : {},
+      },
+      text: transcript.text,
+    } )
   },
 }

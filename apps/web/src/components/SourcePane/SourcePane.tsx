@@ -70,6 +70,11 @@ export function SourcePane(
           <Typography component="pre" sx={ ARTICLE_TEXT_SX }>{ source.markdown }</Typography>
         </>
       ) }
+      { source?.kind === 'video' && source.meta.truncated === true && (
+        <Alert severity="warning" role="note" sx={ { mb: 2 } }>
+          Transcript was cut short by Gemini&apos;s output limit
+        </Alert>
+      ) }
       { paragraphs.map( ( text, index ) => (
         <Typography key={ index } component="p" sx={ PARAGRAPH_SX }>{ text }</Typography>
       ) ) }
