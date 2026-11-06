@@ -97,13 +97,14 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0071](decisions/0071-trusted-proxy-peers.md) | Forwarded headers are trusted from loopback and private-network peers | Accepted (amends ADR 0061, task 3.3) |
 | [0072](decisions/0072-learning-root-created-on-save.md) | The learning root is created on save in Settings | Accepted (amends ADR 0054) |
 | [0073](decisions/0073-rename-to-atlas.md) | The app is Atlas; Mnemosyne is its transcriber module | Accepted |
-| [0074](decisions/0074-openai-transcription-without-timestamps.md) | Transcription with OpenAI's gpt-transcribe, without timestamps | Accepted (supersedes 0002, 0004, 0034) |
+| [0074](decisions/0074-openai-transcription-without-timestamps.md) | Transcription with OpenAI's gpt-transcribe, without timestamps | Accepted (supersedes 0002, 0004, 0034) (OpenAI part superseded by 0081) |
 | [0075](decisions/0075-obsidian-headless-per-user.md) | Vaults on the VM are synced by Obsidian Headless, one container per user | Accepted (amends 0063) |
 | [0076](decisions/0076-litestream-replication.md) | Continuous replication with Litestream replaces manual backups | Accepted (supersedes 0051) |
 | [0077](decisions/0077-gcp-vm-hosting-and-deploys.md) | Hosting on one GCP VM: Compose files, images from the Mac, a bootstrap script | Accepted (amends 0060) |
 | [0078](decisions/0078-secrets-from-secret-manager.md) | Secrets are fetched from Secret Manager into memory when the stack starts | Accepted |
-| [0079](decisions/0079-youtube-po-token-provider.md) | YouTube downloads on the VM use a PO token provider | Accepted |
-| [0080](decisions/0080-pot-provider-health-kind-and-schema-12.md) | The PO token provider gets its own health kind, which needs schema 12 | Accepted |
+| [0079](decisions/0079-youtube-po-token-provider.md) | YouTube downloads on the VM use a PO token provider | Superseded by 0081 |
+| [0080](decisions/0080-pot-provider-health-kind-and-schema-12.md) | The PO token provider gets its own health kind, which needs schema 12 | Superseded by 0081 |
+| [0081](decisions/0081-gemini-transcribes-youtube-links.md) | Gemini transcribes YouTube links; video is YouTube-only | Accepted (supersedes 0079, 0080; 0074 in part) |
 
 ## Template for new ADRs
 

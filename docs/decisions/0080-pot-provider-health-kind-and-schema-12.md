@@ -1,6 +1,6 @@
 # 0080. The PO token provider gets its own health kind, which needs schema 12
 
-- Status: Accepted
+- Status: Superseded by 0081
 - Date: 2026-11-04
 
 ## Context

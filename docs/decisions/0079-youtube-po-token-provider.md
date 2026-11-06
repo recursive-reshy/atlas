@@ -1,6 +1,6 @@
 # 0079. YouTube downloads on the VM use a PO token provider
 
-- Status: Accepted
+- Status: Superseded by 0081
 - Date: 2026-11-04
 
 ## Context

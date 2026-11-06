@@ -1,6 +1,6 @@
 # 0074. Transcription with OpenAI's gpt-transcribe, without timestamps
 
-- Status: Accepted (supersedes 0002 and 0004, and 0034)
+- Status: Accepted (supersedes 0002 and 0004, and 0034); OpenAI and audio-preparation parts superseded by 0081
 - Date: 2026-11-02
 
 ## Context

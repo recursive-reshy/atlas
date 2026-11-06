@@ -265,7 +265,7 @@ e2-small has 2 GB. The bootstrap adds 2 GB swap. The release check records `dock
 - **Scripts:** `shellcheck` over `deploy/**/*.sh` (skipped with a message if not installed); the sync script test; the Compose config test.
 - **No test** touches the network, GCP, OpenAI, Obsidian or a real vault.
 
-## 11. YouTube PO tokens on the VM (ADR 0079, added 2026-11-04)
+## 11. YouTube PO tokens on the VM (ADR 0079, added 2026-11-04; superseded by §12)
 Found in cutover: yt-dlp 2026.10.26 on the VM reads the page and solves the JS challenge, then gets 403 from `googlevideo.com`; verbose output shows `PO Token Providers: none`.
 - **Provider:** `pot-provider` service in `compose.prod.yml`, image `brainicism/bgutil-ytdlp-pot-provider:<pinned>`, `init: true`, `restart: unless-stopped`, no published port, listening on 4416 on the Compose network.
 - **Plugin:** the app `Dockerfile` downloads the matching release's plugin zip (same pinned version as the image; one build arg) into a system plugin folder the standalone binary searches. **Verify:** which folders the `yt-dlp_linux` executable loads plugins from (yt-dlp's plugin docs), and that `yt-dlp -v` lists the bgutil provider under `PO Token Providers`.
@@ -274,5 +274,52 @@ Found in cutover: yt-dlp 2026.10.26 on the VM reads the page and solves the JS c
 - **Tests:** yt-dlp argument building with and without the setting; health check with a fake server; Compose prod test (service present, no published port, app env); a Docker build check that the plugin is in place (`yt-dlp -v` output, no network) where feasible.
 - **Release check:** on the VM, `yt-dlp -v` shows the provider; a video job completes. If 403 persists, stop and decide cookies in a new ADR.
 
+## 12. Gemini for YouTube, cleanup (ADR 0081, added 2026-11-06)
+Supersedes §3.2–§3.4 (audio preparation, OpenAI client, the download steps of the video adapter), §3.8's OpenAI settings and §11. §3.1 (plain-text `VideoSource`), §3.5 (summaries) and §3.7 (web) stand.
+
+### 12.1 Gemini client (`clients/gemini.client.ts`, new)
+```ts
+transcribeYouTube( url: string, options: GeminiOptions ): Promise< { text: string, truncated: boolean, inputTokens: number, outputTokens: number } >
+checkGeminiModel( options: GeminiOptions ): Promise< void >
+GeminiOptions = { project: string, location: string, model: string, getAccessToken: () => Promise< string > }
+```
+- `POST https://{host}/v1/projects/{project}/locations/{location}/publishers/google/models/{model}:generateContent`; host `aiplatform.googleapis.com` for `location = global`, else `{location}-aiplatform.googleapis.com`. **Verify** the endpoint and the recommended location for the chosen model.
+- Body: one user turn with a `fileData` part (`fileUri` = canonical `https://www.youtube.com/watch?v=<id>`, `mimeType: video/*` as the docs require) and a text part with the transcription prompt (constant in `summarizer/prompts.ts` or beside the client): verbatim speech only, original language, paragraphs at natural breaks, no timestamps, speaker labels, headings, commentary or summary; `generationConfig`: `mediaResolution: MEDIA_RESOLUTION_LOW`, `temperature: 0`, `maxOutputTokens` at the model's maximum, thinking off or minimal where the model allows. **Verify** each field name for the chosen model.
+- Response parsed with Zod: text parts joined; `finishReason === 'MAX_TOKENS'` → `truncated: true`; other non-`STOP` reasons (safety, recitation, "video not available") → readable error; `usageMetadata.promptTokenCount` / `candidatesTokenCount` → tokens.
+- Timeout 15 minutes; one retry after 10 s on 429/5xx. Errors never contain the access token. Auth: `google-auth-library` `GoogleAuth({ scopes: cloud-platform }).getAccessToken()` (ADC).
+- `checkGeminiModel`: `GET …/publishers/google/models/{model}` (free). **Verify** path.
+
+### 12.2 YouTube metadata (`clients/youtubeData.client.ts`, new)
+`getVideoMeta( videoId, apiKey ) → { title, channel, duration_seconds, privacy }` from `GET https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,status&id=…&key=…` (ISO-8601 `contentDetails.duration` parsed). No item → "Video not found or not public". `status.privacyStatus !== 'public'` → "Only public YouTube videos are supported". Runs before Gemini, so a private video costs nothing.
+
+### 12.3 Video adapter and sources
+- `video.adapter.ts`: metadata → `transcribing` → `transcribeYouTube` → `VideoSource { kind: 'video', meta: { …, model: config.geminiModel }, text }`; records a transcription run (§12.4); truncated transcripts carry `meta.truncated: true` (new optional `TranscriptMeta` field) and the review screen shows "Transcript was cut short by Gemini's output limit" above the source.
+- `detectSourceType`: `VIDEO_HOSTS` is YouTube only (`youtube.com`, `youtu.be`, `m.youtube.com`); `CreateJobBody` refuses known non-YouTube video hosts (`vimeo.com`, `dailymotion.com`, `tiktok.com`, `twitch.tv`) with "Only YouTube videos are supported" rather than treating them as articles. Feeds behave the same.
+- `JobStatus` loses `downloading` and `converting`.
+
+### 12.4 Cost
+`transcription_runs` gains `input_tokens INTEGER`, `output_tokens INTEGER`; `pieces` is dropped or set to 1 (task decides; document it). `GEMINI_PRICES` (per million input and output tokens, checked on the day, with the date in a comment); cost from tokens; unknown model → null. Usage view unchanged in shape.
+
+### 12.5 Migration (next schema version)
+- Health tables rebuilt with app kinds `agent`, `transcription`, `replication` only; rows of `whisper`, `backup`, `pot_provider` dropped.
+- Jobs: if a `CHECK` lists statuses, rebuild without `downloading`/`converting`; any row in those states becomes `failed` with error "Interrupted by upgrade".
+- `transcription_runs` columns per §12.4.
+- Tests from the current VM schema (12) and from empty.
+
+### 12.6 Config
+New: `GEMINI_MODEL` (required, no default baked in beyond the example file), `GOOGLE_CLOUD_PROJECT` (required), `GEMINI_LOCATION` (default `global`), `YOUTUBE_API_KEY` (required). Removed → `IGNORED_VARIABLES`: `OPENAI_API_KEY`, `OPENAI_BASE_URL`, `TRANSCRIPTION_MODEL`, `POT_PROVIDER_URL`. `fetch-secrets.sh` and ADR 0078's list: `youtube-api-key` replaces `openai-api-key`. Local Compose mounts the Mac's ADC file read-only (`~/.config/gcloud/application_default_credentials.json`) and sets `GOOGLE_APPLICATION_CREDENTIALS`; `pnpm dev` picks ADC up directly.
+
+### 12.7 Removal list (with their tests, fixtures and docs)
+`Dockerfile`: yt-dlp download, `/etc/yt-dlp.conf`, the bgutil plugin and `BGUTIL_VERSION`, `ffmpeg` (apt), curl if nothing else needs it. `ops/docker-entrypoint.sh`: the `yt-dlp -U` step (delete the script if only `exec "$@"` remains, and its Dockerfile use). Server: `ffmpeg.client.ts`, `openaiTranscription.client.ts`, yt-dlp client/helpers and download retry, `POT_PROVIDER_URL` code, the `pot_provider` health check, `formatters/youtube.ts` if nothing uses it after §12.3. Compose: `pot-provider` service and env. e2e: OpenAI fakes replaced by Vertex and YouTube Data fakes. Docs: README, runbook (APIs, IAM, secrets), `google-cloud-setup.md`, `CLAUDE.md` files. ADRs 0079 and 0080 marked superseded.
+
+### 12.8 Unused-code sweep
+Run `knip` once (`pnpm dlx knip`, not added as a dependency) across the workspace after §12.7. Remove what is genuinely unused (files, exports, dependencies, devDependencies); list each removal, and anything kept on purpose with the reason, in the task's log. No behaviour change.
+
+### 12.9 Cloud setup (Naresh, runbook)
+Enable `aiplatform.googleapis.com` and `youtube.googleapis.com`; `gcloud projects add-iam-policy-binding … --member=serviceAccount:atlas-vm@… --role=roles/aiplatform.user`; create an API key restricted to the YouTube Data API v3 and store it as `youtube-api-key` (granting `atlas-vm` access); disable `openai-api-key`'s versions and delete it after the release; revoke the OpenAI key. On the Mac: `gcloud auth application-default login`.
+
+### 12.10 Tests and checks
+Unit: Gemini client (request shape, low resolution, truncation, safety/unavailable errors, retry, token never in errors), YouTube Data client (duration parsing, not found, not public), adapter, source detection and refusals, migration, pricing, health check, config. e2e fakes for both APIs. Release check on the VM: one short and one long (over an hour) public video; note truncation and cost.
+
 ## 10. Release notes outline (for task 9.2)
-New (Atlas name, hosting on the VM, synced vaults, replication, transcription cost, PO token provider for YouTube on the VM), Changes (OpenAI transcription; no timestamps, links or `.srt` for videos; status rows; manual backups gone; new and removed variables), Upgrading (the runbook; Mac clean-up of the old volume and the `.env` lines), Deferred (yt-dlp cookies/proxy if tokens stop being enough, GitHub Actions, the brother's sync, uptime alerting, Terraform, MCP over the vault), Known issues (YouTube may still block the VM's address despite tokens; Obsidian Headless is in open beta; costs are estimates).
+New (Atlas name, hosting on the VM, synced vaults, replication, transcription cost, YouTube transcribed by Gemini from the link), Changes (Gemini transcription of YouTube links; YouTube-only video; yt-dlp, ffmpeg and OpenAI removed; no timestamps, links or `.srt` for videos; status rows; manual backups gone; new and removed variables), Upgrading (the runbook; Mac clean-up of the old volume and the `.env` lines), Deferred (other video sites and unlisted videos, GitHub Actions, the brother's sync, uptime alerting, Terraform, MCP over the vault), Known issues (public YouTube videos only; very long videos may be truncated; Obsidian Headless is in open beta; costs are estimates).

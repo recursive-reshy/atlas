@@ -112,22 +112,40 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 | **Phase 8** | **PO token provider (TRD §11)** | | |
 | 8.1 | Plugin in the app image (pinned, same version as the provider image; plugin folder verified for the standalone binary) and `POT_PROVIDER_URL` → `--extractor-args` on every yt-dlp call (argument name verified for the pinned version); tests | 0079 | ✅ |
 | 8.2 | `pot-provider` service in `compose.prod.yml` (pinned, internal only), `POT_PROVIDER_URL` for the app; "YouTube tokens" Status row (`pot_provider` kind, ping endpoint verified) only when configured; Compose and health tests; runbook and README | 0050, 0079, 0080 | ✅ |
-| 8.3 | With Naresh: release and deploy 0.10.0 again; on the VM `yt-dlp -v` lists the bgutil provider and a video job completes. If YouTube still refuses, stop and propose cookies as an ADR | 0079 | ⬜ |
+| 8.3 | With Naresh: release and deploy 0.10.0 again; on the VM `yt-dlp -v` lists the bgutil provider and a video job completes. If YouTube still refuses, stop and propose cookies as an ADR | 0079 | ⏸️ Superseded: YouTube's bot check still blocked the VM; ADR 0081 replaces the download path (phase 9 removes 8.1–8.2) |
 
-**Checkpoint F done when:** a video job completes on the VM.
+**Checkpoint F closed** by ADR 0081 (2026-11-06).
 
 ---
 
-## Checkpoint G: Phase 9 (release checks, notes)
+## Checkpoint G: Phase 9 (Gemini for YouTube, cleanup)
 **Plan:** ⬜ [`plans/checkpoint-g.md`](plans/checkpoint-g.md)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
-| **Phase 9** | **Release** | | |
-| 9.1 | Release checks with Naresh (was 7.3): sign in on phone and Mac; one video, one article and one feed item to saved notes that appear in Obsidian on the Mac; a note written on the Mac reaches the VM (linker or Melete sees it); a Melete review on the phone; `docker stats` during a video job (TRD §8.5); a test restore into a scratch path from the bucket; the Mac can sleep | 0076, 0077 | ⬜ |
-| 9.2 | `docs/v0.10.0/release-notes.md` from TRD §10 (was 7.4), linked from `docs/README.md` (v0.10.0 done); README status line; note in the log when Naresh shuts down the old GCP project | | ⬜ |
+| **Phase 9** | **Gemini, YouTube-only, removals (TRD §12)** | | |
+| 9.1 | Migration (TRD §12.5): health kinds, job statuses, `transcription_runs` token columns; shared `JobStatus`, health kinds, `TranscriptMeta.truncated`; tests from schema 12 and empty | 0062, 0066, 0081 | ⬜ |
+| 9.2 | `youtubeData.client.ts` and `gemini.client.ts` (TRD §12.1–§12.2), config (§12.6) with ADC; vendor facts verified (endpoint, location, model, field names, prices) and recorded; tests | 0081 | ⬜ |
+| 9.3 | Video adapter on Gemini with run recording and cost (§12.3–§12.4); YouTube-only detection and refusals; truncated notice in review; "Transcription (Gemini)" Status row; tests incl. web | 0050, 0081 | ⬜ |
+| 9.4 | Removals (TRD §12.7): Dockerfile, entrypoint, server clients and checks, `pot-provider`, Compose, e2e fakes, `fetch-secrets.sh` secret list; ADRs 0079–0080 marked superseded, 0074 partly; `pnpm e2e` green; image size before/after in the log | 0074, 0079, 0080, 0081 | ⬜ |
+| 9.5 | `knip` sweep (TRD §12.8); removals listed in the log | 0081 | ⬜ |
+| 9.6 | Docs: runbook (§12.9 cloud steps), `google-cloud-setup.md`, README, `CLAUDE.md` files, `.env.example` files | 0081 | ⬜ |
+| 9.7 | With Naresh: cloud steps (§12.9), release and deploy; on the VM one short and one long public video complete; cost and any truncation noted | 0081 | ⬜ |
 
-**Checkpoint G done when:** the release checks pass on the VM and the release notes are in place.
+**Checkpoint G done when:** YouTube jobs complete on the VM through Gemini and nothing of the download pipeline remains.
+
+---
+
+## Checkpoint H: Phase 10 (release checks, notes)
+**Plan:** ⬜ [`plans/checkpoint-h.md`](plans/checkpoint-h.md)
+
+| ID | Task | ADRs | Status |
+| --- | --- | --- | --- |
+| **Phase 10** | **Release** | | |
+| 10.1 | Release checks with Naresh (was 7.3/9.1): sign in on phone and Mac; one video, one article and one feed item to saved notes that appear in Obsidian on the Mac; a note written on the Mac reaches the VM (linker or Melete sees it); a Melete review on the phone; `docker stats` during a video job; a test restore into a scratch path from the bucket; the Mac can sleep | 0076, 0077 | ⬜ |
+| 10.2 | `docs/v0.10.0/release-notes.md` from TRD §10, linked from `docs/README.md` (v0.10.0 done); README status line; note in the log when Naresh shuts down the old GCP project | | ⬜ |
+
+**Checkpoint H done when:** the release checks pass on the VM and the release notes are in place.
 
 ---
 
