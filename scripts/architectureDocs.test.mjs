@@ -55,3 +55,12 @@ test( 'the Git section works on release branches and keeps the old rules (v1.1 o
     assert.ok( git.includes( kept ), `the Git section lost: ${ kept }` )
   }
 } )
+
+test( 'docs/README.md names architecture.md in the cleanup line and lists the user guides as they are', () => {
+  const readme = read( 'docs/README.md' )
+  const line = readme.split( '\n' ).find( ( text ) => text.includes( 'Docs cleanup (after 1.0)' ) )
+  assert.ok( line, 'no "Docs cleanup (after 1.0)" line' )
+  assert.match( line, /\(architecture\.md\)/ )
+  assert.doesNotMatch( readme, /\]\(backups\.md\)/ )
+  for( const guide of [ 'deploy.md', 'phone-access.md', 'google-cloud-setup.md', 'architecture.md' ] ) assert.match( readme, new RegExp( `\\]\\(${ guide.replace( '.', '\\.' ) }\\)` ) )
+} )
