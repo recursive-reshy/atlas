@@ -132,6 +132,9 @@ describe( 'enums', () => {
 describe( 'MeleteSubject', () => {
   it( 'parses a subject', () => {
     expect( MeleteSubject.parse( subject ) ).toEqual( subject )
+    expect( MeleteSubject.safeParse( { ...subject, due_today: -1 } ).success ).toBe( false )
+    expect( MeleteSubject.safeParse( { ...subject, seconds_this_week: 1.5 } ).success )
+      .toBe( false )
   } )
 
   it( 'limits new_per_day to 0..100', () => {
@@ -582,6 +585,8 @@ describe( 'the concept layer contracts (ADR 0089)', () => {
       coverage: null,
       mastery: null,
       concept_count: null,
+      due_today: 0,
+      seconds_this_week: 0,
     }
 
     expect( MeleteSubject.parse( subject ) ).toEqual( subject )
@@ -682,6 +687,8 @@ describe( 'the syllabus responses', () => {
       coverage: null,
       mastery: null,
       concept_count: null,
+      due_today: 0,
+      seconds_this_week: 0,
     }
 
     expect( ApproveMeleteSyllabusResponse.parse( { subject } ) ).toEqual( { subject } )
