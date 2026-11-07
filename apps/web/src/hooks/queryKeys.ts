@@ -71,3 +71,9 @@ export const adminKeys = {
   users: [ 'admin', 'users' ] as const,
   usage: ( month: string | null ) => [ 'admin', 'usage', month ?? 'current' ] as const,
 }
+
+export const themisKeys = {
+  all: [ 'themis' ] as const,
+  overview: ( period: string ) => [ 'themis', 'overview', period ] as const,
+  goal: ( id: string ) => [ 'themis', 'goals', id ] as const,
+}
