@@ -165,3 +165,8 @@ test( 'Upgrading explains the first upgrade from 0.10.0 (health without schema o
   assert.match( section, /schema unknown/ )
   assert.match( section, /unchanged/ )
 } )
+
+test( 'the runbook has no section left from the 0.10 move to Gemini', () => {
+  const headings = read( 'docs/deploy.md' ).split( '\n' ).filter( ( line ) => line.startsWith( '## ' ) ).join( '\n' )
+  assert.doesNotMatch( headings, /OpenAI|yt-dlp/i )
+} )
