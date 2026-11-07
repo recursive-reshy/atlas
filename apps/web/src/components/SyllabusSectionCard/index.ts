@@ -1,0 +1,1 @@
+export { SyllabusSectionCard } from './SyllabusSectionCard'

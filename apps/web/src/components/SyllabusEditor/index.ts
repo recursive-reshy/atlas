@@ -1,0 +1,1 @@
+export { SyllabusEditor } from './SyllabusEditor'

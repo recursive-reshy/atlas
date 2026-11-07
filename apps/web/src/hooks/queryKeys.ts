@@ -50,6 +50,8 @@ export const meleteKeys = {
   all: [ 'melete' ] as const,
   today: [ 'melete', 'today' ] as const,
   subject: ( id: string ) => [ 'melete', 'subjects', id ] as const,
+  // Under the subject key, so refreshing the subject refreshes its syllabus
+  syllabus: ( id: string ) => [ 'melete', 'subjects', id, 'syllabus' ] as const,
   note: ( id: string ) => [ 'melete', 'notes', id ] as const,
   review: ( subjectId: string | null ) => [ 'melete', 'review', subjectId ?? 'all' ] as const,
 }

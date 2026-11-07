@@ -1,0 +1,1 @@
+export { SyllabusSetup } from './SyllabusSetup'

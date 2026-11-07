@@ -17,6 +17,7 @@ import {
   useUpdateSubject,
 } from '#src/hooks/useMeleteMutations'
 import { useMeleteSubject } from '#src/hooks/useMeleteSubject'
+import { SyllabusPanel } from '#src/components/SyllabusPanel'
 import {
   meleteNoteFixture,
   meleteSubjectFixture,
@@ -29,6 +30,9 @@ import { MeleteSubject } from './MeleteSubject'
 
 vi.mock( '#src/hooks/useMeleteSubject' )
 vi.mock( '#src/hooks/useMeleteMutations' )
+vi.mock( '#src/components/SyllabusPanel', () => ( {
+  SyllabusPanel: vi.fn( () => <p>The syllabus panel</p> ),
+} ) )
 
 const mocks = {
   subject: vi.mocked( useMeleteSubject ),
@@ -48,13 +52,13 @@ const show = ( overrides = {} ): void => {
   } )
 }
 
-const renderPage = () => {
-  renderWithClient( <MeleteSubject />, {
-    route: `/melete/subjects/${ SUBJECT_ID }`,
+const renderPage = ( tab?: string ) => {
+  const view = renderWithClient( <MeleteSubject />, {
+    route: `/melete/subjects/${ SUBJECT_ID }${ tab === undefined ? '' : `?tab=${ tab }` }`,
     path: '/melete/subjects/:subjectId',
   } )
 
-  return userEvent.setup()
+  return Object.assign( userEvent.setup(), { location: view.location } )
 }
 
 beforeEach( () => {
@@ -77,7 +81,7 @@ describe( 'MeleteSubject', () => {
   } )
 
   it( 'enrolls and unenrolls every note', async () => {
-    const user = renderPage()
+    const user = renderPage( 'settings' )
 
     await user.click( screen.getByRole( 'button', { name: 'Enroll all' } ) )
     await user.click( screen.getByRole( 'button', { name: 'Unenroll all' } ) )
@@ -87,7 +91,7 @@ describe( 'MeleteSubject', () => {
   } )
 
   it( 'updates the subject settings', async () => {
-    const user = renderPage()
+    const user = renderPage( 'settings' )
 
     await user.click( screen.getByRole( 'switch', { name: 'Auto-enroll new notes' } ) )
 
@@ -96,7 +100,7 @@ describe( 'MeleteSubject', () => {
 
   it( 'enrolls one note and retries a failed one', async () => {
     show( { notes: [ meleteNoteFixture( { enrolled: false, generation: 'failed' } ) ] } )
-    const user = renderPage()
+    const user = renderPage( 'notes' )
 
     await user.click( screen.getByRole( 'switch', { name: 'Generics' } ) )
     await user.click( screen.getByRole( 'button', { name: 'Retry' } ) )
@@ -107,7 +111,7 @@ describe( 'MeleteSubject', () => {
 
   it( 'says so when the subject has no notes', () => {
     show( { notes: [] } )
-    renderPage()
+    renderPage( 'notes' )
 
     expect( screen.getByText( 'No notes in this folder yet.' ) ).toBeInTheDocument()
   } )
@@ -133,5 +137,97 @@ describe( 'MeleteSubject', () => {
     renderPage()
 
     expect( screen.getByRole( 'alert' ) ).toHaveTextContent( 'Subject not found' )
+  } )
+
+  describe( 'the tabs', () => {
+    it( 'lists Overview, Syllabus, Notes and Settings, and opens on Overview', () => {
+      renderPage()
+
+      expect( screen.getAllByRole( 'tab' ).map( ( tab ) => tab.textContent ) )
+        .toEqual( [ 'Overview', 'Syllabus', 'Notes', 'Settings' ] )
+      expect( screen.getByRole( 'tab', { name: 'Overview' } ) ).toHaveAttribute(
+        'aria-selected',
+        'true',
+      )
+    } )
+
+    it( 'keeps the heading and counts above every tab', () => {
+      renderPage( 'notes' )
+
+      expect( screen.getByRole( 'heading', { name: 'TypeScript' } ) ).toBeInTheDocument()
+      expect( screen.getByText( '8 notes · 3 enrolled · 4 due' ) ).toBeInTheDocument()
+    } )
+
+    it( 'opens a tab from the address', () => {
+      renderPage( 'settings' )
+
+      expect( screen.getByRole( 'tab', { name: 'Settings' } ) ).toHaveAttribute(
+        'aria-selected',
+        'true',
+      )
+    } )
+
+    it( 'falls back to Overview for a tab it does not know', () => {
+      renderPage( 'nonsense' )
+
+      expect( screen.getByRole( 'tab', { name: 'Overview' } ) ).toHaveAttribute(
+        'aria-selected',
+        'true',
+      )
+    } )
+
+    it( 'puts the chosen tab in the address, so it survives a reload', async () => {
+      const user = renderPage()
+
+      await user.click( screen.getByRole( 'tab', { name: 'Notes' } ) )
+
+      expect( user.location().search ).toBe( '?tab=notes' )
+      expect( screen.getByRole( 'tab', { name: 'Notes' } ) ).toHaveAttribute(
+        'aria-selected',
+        'true',
+      )
+    } )
+
+    it( 'shows only the open tab\'s content', async () => {
+      const user = renderPage( 'notes' )
+
+      expect( screen.getByRole( 'switch', { name: 'Generics' } ) ).toBeInTheDocument()
+      expect( screen.queryByRole( 'button', { name: 'Enroll all' } ) ).not.toBeInTheDocument()
+
+      await user.click( screen.getByRole( 'tab', { name: 'Settings' } ) )
+
+      expect( screen.getByRole( 'button', { name: 'Enroll all' } ) ).toBeInTheDocument()
+      expect( screen.queryByRole( 'switch', { name: 'Generics' } ) ).not.toBeInTheDocument()
+    } )
+
+    it( 'shows the syllabus panel for the subject on the Syllabus tab', () => {
+      renderPage( 'syllabus' )
+
+      expect( screen.getByText( 'The syllabus panel' ) ).toBeInTheDocument()
+      expect( vi.mocked( SyllabusPanel ).mock.calls[ 0 ][ 0 ].subject ).toEqual(
+        meleteSubjectFixture(),
+      )
+    } )
+  } )
+
+  describe( 'the Overview tab', () => {
+    it( 'asks for a syllabus to be set up, and opens the Syllabus tab to do it', async () => {
+      const user = renderPage()
+
+      expect( screen.getByText( /Set up a syllabus/ ) ).toBeInTheDocument()
+
+      await user.click( screen.getByRole( 'button', { name: 'Set up syllabus' } ) )
+
+      expect( user.location().search ).toBe( '?tab=syllabus' )
+    } )
+
+    it( 'says coverage and mastery will show here once the syllabus is approved', () => {
+      show( { subject: meleteSubjectFixture( { syllabus_status: 'approved' } ) } )
+      renderPage()
+
+      expect( screen.getByText( /Coverage and mastery will show here/ ) ).toBeInTheDocument()
+      expect( screen.queryByRole( 'button', { name: 'Set up syllabus' } ) )
+        .not.toBeInTheDocument()
+    } )
   } )
 } )

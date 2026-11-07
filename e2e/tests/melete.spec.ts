@@ -38,7 +38,9 @@ test( 'a note is enrolled, quizzed in typed and quick modes, and the app is inst
   await dialog.getByRole( 'button', { name: 'Save' } ).click()
 
   await page.getByRole( 'link', { name: 'E2E', exact: true } ).click()
+  await page.getByRole( 'tab', { name: 'Settings' } ).click()
   await page.getByRole( 'button', { name: 'Enroll all', exact: true } ).click()
+  await page.getByRole( 'tab', { name: 'Notes' } ).click()
   await expect( page.getByText( '2 questions' ) ).toBeVisible()
 
   await page.goto( '/melete' )
