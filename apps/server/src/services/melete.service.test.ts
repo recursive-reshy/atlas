@@ -393,6 +393,36 @@ describe( 'getToday', () => {
     expect( today.totals ).toEqual( { due: 1, new_remaining: 1, learning_soon: 0 } )
   } )
 
+  it( 'counts what is due before the study day ends as due today, and no time yet', async () => {
+    const generics = noteId( GENERICS )
+
+    await setSubjectEnrolled( userId, subjectId( 'TypeScript' ), true, at( 1 ) )
+    // 18:00 in Singapore: the study day ends at 04:00 tomorrow, 10 hours on
+    addQuestion( userId, generics, { fsrsState: 'review', due: at( -60 ).toISOString() } )
+    addQuestion( userId, generics, {
+      position: 2,
+      fsrsState: 'review',
+      due: at( 3600 ).toISOString(),
+    } )
+    addQuestion( userId, generics, {
+      position: 3,
+      fsrsState: 'review',
+      due: at( 10 * 3600 - 1 ).toISOString(),
+    } )
+    addQuestion( userId, generics, {
+      position: 4,
+      fsrsState: 'review',
+      due: at( 10 * 3600 ).toISOString(),
+    } )
+
+    const { subjects } = await getToday( userId, at( 2 ) )
+    const typescript = subjects.find( ( { name } ) => name === 'TypeScript' )
+    const rust = subjects.find( ( { name } ) => name === 'Rust' )
+
+    expect( typescript ).toMatchObject( { due_count: 1, due_today: 3, seconds_this_week: 0 } )
+    expect( rust ).toMatchObject( { due_count: 0, due_today: 0, seconds_this_week: 0 } )
+  } )
+
   it( 'takes the day\'s new questions already reviewed off what is remaining', async () => {
     const generics = noteId( GENERICS )
     await setSubjectEnrolled( userId, subjectId( 'TypeScript' ), true, at( 1 ) )

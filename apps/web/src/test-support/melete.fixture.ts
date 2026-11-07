@@ -33,6 +33,8 @@ export const meleteSubjectFixture = ( overrides: Partial< MeleteSubject > = {} )
     coverage: null,
     mastery: null,
     concept_count: null,
+    due_today: 6,
+    seconds_this_week: 0,
     ...overrides,
   }
 }

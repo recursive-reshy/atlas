@@ -70,6 +70,8 @@ const subject = {
   coverage: 0.5,
   mastery: 0.25,
   concept_count: 12,
+  due_today: 5,
+  seconds_this_week: 0,
 }
 
 const note = {

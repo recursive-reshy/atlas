@@ -52,6 +52,10 @@ export const MeleteSubject = z.object( {
   coverage: z.number().min( 0 ).max( 1 ).nullable(),
   mastery: z.number().min( 0 ).max( 1 ).nullable(),
   concept_count: z.int().min( 0 ).nullable(),
+  // Questions due before the study day ends, the ones due now included
+  due_today: z.int().min( 0 ),
+  // Study time in the current Monday to Sunday week; 0 until time is recorded (ADR 0091)
+  seconds_this_week: z.int().min( 0 ),
 } )
 export type MeleteSubject = z.infer< typeof MeleteSubject >
 

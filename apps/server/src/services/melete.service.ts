@@ -11,6 +11,7 @@ import {
 // Errors
 import { ConflictError, NotFoundError } from '../errors.js'
 // Melete
+import { dayStart } from '../melete/day.js'
 import { obsidianUrl } from '../melete/obsidian.js'
 import { newRemaining, reviewCounts } from '../melete/queue.js'
 import { listSubjectFolders } from '../melete/scan.js'
@@ -118,6 +119,15 @@ export const noteView = ( userId: string, note: NoteRecord ): GetMeleteNoteRespo
   }
 }
 
+// The study day ends where the next one starts: 36 hours on is always inside the next day
+const dueToday = ( userId: string, subjectId: string, now: Date ): number => {
+  const endOfDay = dayStart( new Date( dayStart( now ).getTime() + 36 * 3_600_000 ) )
+  const until = new Date( endOfDay.getTime() - 1 ).toISOString()
+
+  return countBySubject( userId, until ).find( ( counts ) => counts.subject_id === subjectId )
+    ?.due ?? 0
+}
+
 // Null until the syllabus is approved and has concepts (ADR 0090); computed on every read
 const subjectNumbers = (
   userId: string,
@@ -173,6 +183,9 @@ export const toMeleteSubject = (
     syllabus_status: subject.syllabus_status,
     syllabus_error: subject.syllabus_error,
     ...subjectNumbers( userId, subject ),
+    due_today: dueToday( userId, subject.id, now ),
+    // Measured and logged time arrive in 1.1 task 7.1
+    seconds_this_week: 0,
   }
 }
 

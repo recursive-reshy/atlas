@@ -54,7 +54,7 @@ describe( 'App', () => {
     renderWithRouter( '/melete' )
 
     expect( screen.getByRole( 'heading', { name: 'Today' } ) ).toBeInTheDocument()
-    expect( screen.getByRole( 'link', { name: 'Start review' } ) ).toBeInTheDocument()
+    expect( screen.getByRole( 'link', { name: 'Review all due' } ) ).toBeInTheDocument()
   } )
 
   it( 'shows the review screen on /melete/review', () => {
