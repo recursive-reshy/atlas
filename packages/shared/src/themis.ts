@@ -155,3 +155,104 @@ export type AnswerCheckinBody = z.infer< typeof AnswerCheckinBody >
 
 export const ThemisCheckinResponse = z.object( { checkin: ThemisCheckin } )
 export type ThemisCheckinResponse = z.infer< typeof ThemisCheckinResponse >
+
+export const ThemisPeriod = z.enum( [ 'week', 'month', 'quarter' ] )
+export type ThemisPeriod = z.infer< typeof ThemisPeriod >
+
+// Seconds of study and logged time; `seconds` is their sum (ADR 0091)
+export const ThemisTime = z.object( {
+  seconds: z.int().min( 0 ),
+  measured: z.int().min( 0 ),
+  logged: z.int().min( 0 ),
+} )
+export type ThemisTime = z.infer< typeof ThemisTime >
+
+export const ThemisLinkedSubject = z.object( { id: z.uuid(), name: z.string() } )
+export type ThemisLinkedSubject = z.infer< typeof ThemisLinkedSubject >
+
+const Roll = z.number().min( 0 ).max( 1 ).nullable()
+
+// What a goal shows as progress, by outcome type; the last 8 updates and ratings
+export const ThemisGoalOutcome = z.discriminatedUnion( 'type', [
+  z.object( {
+    type: z.literal( 'learning' ),
+    coverage: Roll,
+    mastery: Roll,
+    concept_count: z.int().min( 0 ),
+  } ),
+  z.object( {
+    type: z.literal( 'metric' ),
+    unit: z.string().nullable(),
+    target: z.number(),
+    latest: z.number().nullable(),
+    updates: z.array( ThemisMetricUpdate ),
+  } ),
+  z.object( {
+    type: z.literal( 'checkin' ),
+    cadence: ThemisCheckinCadence,
+    ratings: z.array( ThemisCheckin ),
+  } ),
+] )
+export type ThemisGoalOutcome = z.infer< typeof ThemisGoalOutcome >
+
+export const ThemisGoalCard = z.object( {
+  goal: ThemisGoal,
+  time: ThemisTime,
+  outcome: ThemisGoalOutcome,
+  subjects: z.array( ThemisLinkedSubject ),
+} )
+export type ThemisGoalCard = z.infer< typeof ThemisGoalCard >
+
+export const ThemisOverviewArea = z.object( {
+  id: z.uuid(),
+  name: z.string(),
+  position: z.int(),
+  time: ThemisTime,
+  goals: z.array( ThemisGoalCard ),
+} )
+export type ThemisOverviewArea = z.infer< typeof ThemisOverviewArea >
+
+export const ThemisCheckinDue = z.object( {
+  goal_id: z.uuid(),
+  goal_name: z.string(),
+  area_id: z.uuid(),
+  area_name: z.string(),
+  cadence: ThemisCheckinCadence,
+  period_start: z.string(),
+  period_end: z.string(),
+} )
+export type ThemisCheckinDue = z.infer< typeof ThemisCheckinDue >
+
+export const GetThemisOverviewResponse = z.object( {
+  period: ThemisPeriod,
+  from: z.string(),
+  to: z.string(),
+  checkins_due: z.array( ThemisCheckinDue ),
+  areas: z.array( ThemisOverviewArea ),
+} )
+export type GetThemisOverviewResponse = z.infer< typeof GetThemisOverviewResponse >
+
+export const ThemisWeekTime = z.object( {
+  week_start: z.string(),
+  measured: z.int().min( 0 ),
+  logged: z.int().min( 0 ),
+} )
+export type ThemisWeekTime = z.infer< typeof ThemisWeekTime >
+
+export const GetThemisGoalResponse = z.object( {
+  goal: ThemisGoal,
+  outcome: ThemisGoalOutcome,
+  subjects: z.array( ThemisLinkedSubject ),
+  metric_updates: z.array( ThemisMetricUpdate ),
+  checkins: z.array( ThemisCheckin ),
+  time_by_week: z.array( ThemisWeekTime ),
+} )
+export type GetThemisGoalResponse = z.infer< typeof GetThemisGoalResponse >
+
+export const SetGoalSubjectsBody = z.strictObject( {
+  subject_ids: z.array( z.uuid() ).max( 200 ),
+} )
+export type SetGoalSubjectsBody = z.infer< typeof SetGoalSubjectsBody >
+
+export const SetGoalSubjectsResponse = z.object( { subjects: z.array( ThemisLinkedSubject ) } )
+export type SetGoalSubjectsResponse = z.infer< typeof SetGoalSubjectsResponse >

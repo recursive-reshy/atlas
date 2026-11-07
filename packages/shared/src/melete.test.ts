@@ -72,6 +72,7 @@ const subject = {
   concept_count: 12,
   due_today: 5,
   seconds_this_week: 0,
+  goal_id: null,
 }
 
 const note = {
@@ -135,6 +136,12 @@ describe( 'MeleteSubject', () => {
     expect( MeleteSubject.safeParse( { ...subject, due_today: -1 } ).success ).toBe( false )
     expect( MeleteSubject.safeParse( { ...subject, seconds_this_week: 1.5 } ).success )
       .toBe( false )
+  } )
+
+  it( 'carries the id of the goal it is linked to, or null', () => {
+    expect( MeleteSubject.parse( { ...subject, goal_id: otherId } ).goal_id ).toBe( otherId )
+    expect( MeleteSubject.safeParse( { ...subject, goal_id: 'goal' } ).success ).toBe( false )
+    expect( MeleteSubject.safeParse( { ...subject, goal_id: undefined } ).success ).toBe( false )
   } )
 
   it( 'limits new_per_day to 0..100', () => {
@@ -456,6 +463,12 @@ describe( 'API bodies', () => {
     expect( accepts( UpdateMeleteSubjectBody, { new_per_day: 101 } ) ).toBe( false )
   } )
 
+  it( 'takes a goal id or null in UpdateMeleteSubjectBody', () => {
+    expect( accepts( UpdateMeleteSubjectBody, { goal_id: otherId } ) ).toBe( true )
+    expect( accepts( UpdateMeleteSubjectBody, { goal_id: null } ) ).toBe( true )
+    expect( accepts( UpdateMeleteSubjectBody, { goal_id: 'goal' } ) ).toBe( false )
+  } )
+
   it( 'parses the enrollment bodies', () => {
     expect( EnrollSubjectBody.parse( { enrolled: true } ) ).toEqual( { enrolled: true } )
     expect( UpdateMeleteNoteBody.parse( { enrolled: false } ) ).toEqual( { enrolled: false } )
@@ -587,6 +600,7 @@ describe( 'the concept layer contracts (ADR 0089)', () => {
       concept_count: null,
       due_today: 0,
       seconds_this_week: 0,
+      goal_id: null,
     }
 
     expect( MeleteSubject.parse( subject ) ).toEqual( subject )
@@ -689,6 +703,7 @@ describe( 'the syllabus responses', () => {
       concept_count: null,
       due_today: 0,
       seconds_this_week: 0,
+      goal_id: null,
     }
 
     expect( ApproveMeleteSyllabusResponse.parse( { subject } ) ).toEqual( { subject } )

@@ -62,7 +62,7 @@ const requireArea = ( userId: string, id: string ): ThemisArea => {
   return area
 }
 
-const requireGoal = ( userId: string, id: string ): GoalRecord => {
+export const requireGoal = ( userId: string, id: string ): GoalRecord => {
   const goal = findGoal( userId, id )
 
   if( goal === undefined ) {

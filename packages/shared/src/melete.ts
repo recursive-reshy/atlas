@@ -56,6 +56,8 @@ export const MeleteSubject = z.object( {
   due_today: z.int().min( 0 ),
   // Study time in the current Monday to Sunday week; 0 until time is recorded (ADR 0091)
   seconds_this_week: z.int().min( 0 ),
+  // The Themis goal this subject counts towards, if any (ADR 0092)
+  goal_id: z.uuid().nullable(),
 } )
 export type MeleteSubject = z.infer< typeof MeleteSubject >
 
@@ -180,9 +182,10 @@ export const UpdateMeleteSubjectBody = z.object( {
   new_per_day: z.int().min( 0 ).max( 100 ).optional(),
   target_level: MeleteTargetLevel.optional(),
   intent: z.string().max( 500 ).nullable().optional(),
+  goal_id: z.uuid().nullable().optional(),
 } ).refine(
   ( body ) => Object.values( body ).some( ( value ) => value !== undefined ),
-  { message: 'Provide auto_enroll, new_per_day, target_level or intent' },
+  { message: 'Provide auto_enroll, new_per_day, target_level, intent or goal_id' },
 )
 export type UpdateMeleteSubjectBody = z.infer< typeof UpdateMeleteSubjectBody >
 

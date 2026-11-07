@@ -50,6 +50,16 @@ const monthsLater = ( start: string, months: number ): string => {
   return format( new Date( Date.UTC( date.getUTCFullYear(), date.getUTCMonth() + months, 1 ) ) )
 }
 
+// The Mondays of the last `count` weeks, oldest first, the last being `day`'s own week
+export const recentWeekStarts = ( day: string, count: number ): string[] => {
+  const current = weekStart( day )
+
+  return Array.from(
+    { length: count },
+    ( _, index ) => addDays( current, -7 * ( count - 1 - index ) ),
+  )
+}
+
 export const periodRange = ( period: Period, day: string ): DayRange => {
   if( period === 'week' ) {
     const from = weekStart( day )

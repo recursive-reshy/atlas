@@ -9,7 +9,7 @@ import {
   UpdateMeleteSubjectBody,
 } from '@atlas/shared'
 // Errors
-import { ConflictError, NotFoundError } from '../errors.js'
+import { ConflictError, NotFoundError, ValidationError } from '../errors.js'
 // Melete
 import { dayStart } from '../melete/day.js'
 import { obsidianUrl } from '../melete/obsidian.js'
@@ -19,6 +19,7 @@ import { lastSkipped } from '../melete/scanOutcome.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
 import { listConceptUsage } from '../repositories/meleteConcepts.repository.js'
+import { findGoal } from '../repositories/themisGoals.repository.js'
 import { listNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
 import {
   NoteRecord,
@@ -43,6 +44,7 @@ import {
 } from '../repositories/meleteSubjects.repository.js'
 // Services
 import { computeConceptStats, rollUp } from '../melete/mastery.js'
+import type { ConceptStat } from '../melete/mastery.js'
 import { scanLearningRoot } from './meleteScan.service.js'
 import { getLearningRoot, getMasteryDays } from './settings.service.js'
 import { vaultDirFor, vaultRootFor } from './vault.service.js'
@@ -128,6 +130,23 @@ const dueToday = ( userId: string, subjectId: string, now: Date ): number => {
     ?.due ?? 0
 }
 
+// An approved syllabus's concepts with their numbers; nothing for any other status (ADR 0090)
+export const subjectConceptStats = ( userId: string, subject: SubjectRecord ): ConceptStat[] => {
+  if( subject.syllabus_status !== 'approved' ) {
+    return []
+  }
+
+  return computeConceptStats(
+    listConceptUsage( userId, subject.id ).map( ( usage ) => ( {
+      id: usage.id,
+      sectionId: usage.section_id,
+      noteCount: usage.note_count,
+      questions: usage.questions,
+    } ) ),
+    getMasteryDays( userId ),
+  )
+}
+
 // Null until the syllabus is approved and has concepts (ADR 0090); computed on every read
 const subjectNumbers = (
   userId: string,
@@ -139,15 +158,7 @@ const subjectNumbers = (
     return none
   }
 
-  const stats = computeConceptStats(
-    listConceptUsage( userId, subject.id ).map( ( usage ) => ( {
-      id: usage.id,
-      sectionId: usage.section_id,
-      noteCount: usage.note_count,
-      questions: usage.questions,
-    } ) ),
-    getMasteryDays( userId ),
-  )
+  const stats = subjectConceptStats( userId, subject )
   const totals = rollUp( stats )
 
   return totals === null ? none : { ...totals, concept_count: stats.length }
@@ -186,6 +197,7 @@ export const toMeleteSubject = (
     due_today: dueToday( userId, subject.id, now ),
     // Measured and logged time arrive in 1.1 task 7.1
     seconds_this_week: 0,
+    goal_id: subject.goal_id,
   }
 }
 
@@ -354,6 +366,18 @@ export const updateSubject = (
   now = new Date(),
 ): MeleteSubject => {
   requireSubject( userId, id )
+
+  if( changes.goal_id !== undefined && changes.goal_id !== null ) {
+    const goal = findGoal( userId, changes.goal_id )
+
+    if( goal === undefined ) {
+      throw new NotFoundError( 'Goal not found' )
+    }
+
+    if( goal.status !== 'active' ) {
+      throw new ValidationError( 'Only an active goal can be linked' )
+    }
+  }
 
   // A blank intent is no intent
   const intent = changes.intent === undefined || changes.intent === null

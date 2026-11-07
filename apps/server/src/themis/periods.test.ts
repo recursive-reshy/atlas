@@ -8,6 +8,7 @@ import {
   periodRange,
   previousPeriod,
   quarterStart,
+  recentWeekStarts,
   studyDay,
   weekStart,
 } from './periods.js'
@@ -138,5 +139,14 @@ describe( 'checkinDue', () => {
     expect( checkinDue( { ...weekly, status: 'achieved' }, '2026-11-11', [] ) ).toBeNull()
     expect( checkinDue( { ...weekly, status: 'dropped' }, '2026-11-11', [] ) ).toBeNull()
     expect( checkinDue( { ...weekly, checkin_cadence: null }, '2026-11-11', [] ) ).toBeNull()
+  } )
+} )
+
+describe( 'recentWeekStarts', () => {
+  it( 'lists the Mondays of the last weeks, oldest first, ending with this week', () => {
+    expect( recentWeekStarts( '2026-11-11', 3 ) )
+      .toEqual( [ '2026-10-26', '2026-11-02', '2026-11-09' ] )
+    expect( recentWeekStarts( '2026-11-09', 1 ) ).toEqual( [ '2026-11-09' ] )
+    expect( recentWeekStarts( '2027-01-01', 2 ) ).toEqual( [ '2026-12-21', '2026-12-28' ] )
   } )
 } )

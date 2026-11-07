@@ -7,11 +7,16 @@ import {
   AnswerCheckinBody,
   CreateAreaBody,
   CreateGoalBody,
+  GetThemisGoalResponse,
+  GetThemisOverviewResponse,
   LogMetricBody,
+  SetGoalSubjectsBody,
+  SetGoalSubjectsResponse,
   ThemisAreaResponse,
   ThemisCheckinResponse,
   ThemisGoalResponse,
   ThemisMetricUpdateResponse,
+  ThemisPeriod,
   UpdateAreaBody,
   UpdateGoalBody,
 } from '@atlas/shared'
@@ -28,6 +33,11 @@ import {
   removeGoal,
   updateArea,
 } from '../services/themis.service.js'
+import {
+  getGoalDetail,
+  getOverview,
+  setGoalSubjects,
+} from '../services/themisOverview.service.js'
 
 const Id = z.uuid()
 
@@ -109,4 +119,31 @@ export const postCheckin = (
   )
 
   res.status( 201 ).json( { checkin } )
+}
+
+export const getThemisOverview = (
+  req: Request,
+  res: Response< GetThemisOverviewResponse >,
+): void => {
+  const period = ThemisPeriod.default( 'week' ).parse( req.query.period )
+
+  res.status( 200 ).json( getOverview( currentUser( req ).id, period ) )
+}
+
+export const getThemisGoal = (
+  req: Request,
+  res: Response< GetThemisGoalResponse >,
+): void => {
+  res.status( 200 ).json( getGoalDetail( currentUser( req ).id, Id.parse( req.params.id ) ) )
+}
+
+export const putGoalSubjects = (
+  req: Request,
+  res: Response< SetGoalSubjectsResponse >,
+): void => {
+  const body = SetGoalSubjectsBody.parse( req.body )
+
+  const result = setGoalSubjects( currentUser( req ).id, Id.parse( req.params.id ), body )
+
+  res.status( 200 ).json( result )
 }
