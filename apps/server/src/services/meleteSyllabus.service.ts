@@ -1,0 +1,196 @@
+// Node
+import { readFile } from 'node:fs/promises'
+import { join } from 'node:path'
+// Shared
+import type { MeleteSubject } from '@atlas/shared'
+// Clients
+import { draftSyllabus } from '../clients/claude.client.js'
+// Errors
+import {
+  ConflictError,
+  MeleteError,
+  NotFoundError,
+  ValidationError,
+} from '../errors.js'
+// Melete
+import { LOCKED_INSTRUCTIONS_MELETE_SYLLABUS, buildMeleteSystemPrompt } from '../melete/prompts.js'
+import { recordMeleteRun } from '../melete/runs.js'
+import { splitFrontMatter } from '../melete/scan.js'
+import {
+  MAX_SYLLABUS_NOTES,
+  buildSyllabusUser,
+  noteOpening,
+  processSyllabus,
+} from '../melete/syllabus.js'
+// Repositories
+import { getDatabase } from '../repositories/database.js'
+import { replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
+import { listNotesBySubject } from '../repositories/meleteNotes.repository.js'
+import { findSubject, updateSubject } from '../repositories/meleteSubjects.repository.js'
+// Services
+import { subjectName, toMeleteSubject } from './melete.service.js'
+import { resolveMeletePrompt } from './prompts.service.js'
+import { resolveMeleteSyllabusModel } from './settings.service.js'
+import { vaultRootFor } from './vault.service.js'
+// Logging
+import { logger } from '../logger.js'
+
+const NEEDS_LEVEL = 'Choose a target level first'
+
+// Queues a draft for the Melete loop (ADR 0089); the call itself runs there
+export const requestSyllabusDraft = (
+  userId: string,
+  subjectId: string,
+  now = new Date(),
+): MeleteSubject => {
+  const subject = findSubject( userId, subjectId )
+
+  if( subject === undefined ) {
+    throw new NotFoundError( 'Subject not found' )
+  }
+
+  if( subject.target_level === null ) {
+    throw new ValidationError( NEEDS_LEVEL )
+  }
+
+  if( subject.syllabus_status === 'drafting' ) {
+    throw new ConflictError( 'A syllabus is already being drafted' )
+  }
+
+  const queued = updateSubject( userId, subjectId, {
+    syllabus_status: 'drafting',
+    syllabus_error: null,
+  } )
+
+  if( queued === undefined ) {
+    throw new NotFoundError( 'Subject not found' )
+  }
+
+  return toMeleteSubject( userId, queued, now )
+}
+
+type Run = {
+  subjectId: string
+  model: string
+  promptVersionId: number
+  usage: { input_tokens: number, output_tokens: number } | undefined
+  now: Date
+}
+
+const messageOf = ( error: unknown ): string => {
+  return error instanceof Error ? error.message : 'Unknown error'
+}
+
+// The old syllabus is left alone: only the status and the reason change
+const failDraft = ( userId: string, subjectId: string, message: string, run?: Run ): void => {
+  getDatabase().transaction( () => {
+    if( run !== undefined ) {
+      recordMeleteRun( userId, { ...run, kind: 'syllabus', error: message } )
+    }
+
+    updateSubject( userId, subjectId, {
+      syllabus_status: 'failed',
+      syllabus_error: message,
+    } )
+  } )()
+  logger.warn( { error: message }, 'Syllabus drafting failed' )
+}
+
+// Title and opening of each note still in the vault; one that can't be read is left out
+const readNotes = async (
+  userId: string,
+  subjectId: string,
+): Promise< { title: string, opening: string }[] > => {
+  const root = vaultRootFor( userId )
+  const notes = listNotesBySubject( userId, subjectId )
+    .filter( ( { missing_at } ) => missing_at === null )
+    .slice( 0, MAX_SYLLABUS_NOTES )
+
+  const read = await Promise.all( notes.map( async ( { path, title } ) => {
+    try {
+      const { body } = splitFrontMatter( await readFile( join( root, path ), 'utf8' ) )
+
+      return [ { title, opening: noteOpening( body ) } ]
+    } catch{
+      return []
+    }
+  } ) )
+
+  return read.flat()
+}
+
+// Drafts the syllabus of one subject the loop has taken; a failure is stored on the subject,
+// never thrown
+export const draftForSubject = async (
+  userId: string,
+  subjectId: string,
+  now = new Date(),
+): Promise< void > => {
+  const subject = findSubject( userId, subjectId )
+
+  if( subject === undefined ) {
+    logger.warn( 'Queued subject not found' )
+
+    return
+  }
+
+  if( subject.syllabus_status !== 'drafting' ) {
+    return
+  }
+
+  if( subject.target_level === null ) {
+    failDraft( userId, subjectId, NEEDS_LEVEL )
+
+    return
+  }
+
+  try {
+    const model = await resolveMeleteSyllabusModel( userId )
+    const { version } = resolveMeletePrompt( userId, 'melete_syllabus' )
+    const run = { subjectId, model, promptVersionId: version.id, now }
+    let outcome: Awaited< ReturnType< typeof draftSyllabus > >
+
+    try {
+      outcome = await draftSyllabus( {
+        model,
+        system: buildMeleteSystemPrompt( LOCKED_INSTRUCTIONS_MELETE_SYLLABUS, version.guidance ),
+        user: buildSyllabusUser( {
+          name: subjectName( subject.folder ),
+          level: subject.target_level,
+          intent: subject.intent,
+          notes: await readNotes( userId, subjectId ),
+        } ),
+      } )
+    } catch( error ) {
+      failDraft( userId, subjectId, messageOf( error ), {
+        ...run,
+        usage: error instanceof MeleteError ? error.usage : undefined,
+      } )
+
+      return
+    }
+
+    const { sections, capped } = processSyllabus( outcome.output )
+
+    if( sections.length === 0 ) {
+      failDraft( userId, subjectId, 'No usable syllabus came back', {
+        ...run,
+        usage: outcome.usage,
+      } )
+
+      return
+    }
+
+    getDatabase().transaction( () => {
+      recordMeleteRun( userId, { ...run, kind: 'syllabus', usage: outcome.usage } )
+      replaceSyllabus( userId, subjectId, sections )
+      updateSubject( userId, subjectId, { syllabus_status: 'draft', syllabus_error: null } )
+    } )()
+
+    if( capped > 0 ) {
+      logger.info( { capped }, 'Syllabus draft trimmed to the concept limit' )
+    }
+  } catch( error ) {
+    failDraft( userId, subjectId, messageOf( error ) )
+  }
+}

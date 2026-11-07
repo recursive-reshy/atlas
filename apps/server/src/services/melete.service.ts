@@ -107,7 +107,7 @@ const noteView = ( userId: string, note: NoteRecord ): GetMeleteNoteResponse => 
 
 export const subjectName = ( folder: string ): string => folder.split( '/' ).at( -1 ) ?? folder
 
-const toMeleteSubject = (
+export const toMeleteSubject = (
   userId: string,
   subject: SubjectRecord,
   now: Date,
@@ -303,7 +303,11 @@ export const updateSubject = (
 ): MeleteSubject => {
   requireSubject( userId, id )
 
-  const updated = updateStoredSubject( userId, id, changes )
+  // A blank intent is no intent
+  const intent = changes.intent === undefined || changes.intent === null
+    ? changes.intent
+    : changes.intent.trim() || null
+  const updated = updateStoredSubject( userId, id, { ...changes, intent } )
 
   if( updated === undefined ) {
     throw new NotFoundError( 'Subject not found' )

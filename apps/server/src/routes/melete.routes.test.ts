@@ -11,7 +11,7 @@ import {
   vi,
 } from 'vitest'
 // Clients
-import { gradeAnswer } from '../clients/claude.client.js'
+import { draftSyllabus, gradeAnswer } from '../clients/claude.client.js'
 // Shared
 import {
   GetMeleteNoteResponse,
@@ -52,6 +52,7 @@ beforeEach( () => {
 vi.mock( '../clients/claude.client.js' )
 
 const grade = vi.mocked( gradeAnswer )
+const draft = vi.mocked( draftSyllabus )
 
 let vault: MeleteVault
 let originalVaultsPath: string
@@ -213,6 +214,122 @@ describe( 'PATCH /api/melete/subjects/:id', () => {
     const response = await request( app )
       .patch( `/api/melete/subjects/${ crypto.randomUUID() }` )
       .send( { auto_enroll: true } )
+
+    expect( response.status ).toBe( 404 )
+  } )
+
+  it( 'sets the target level and the intent', async () => {
+    await scanned()
+    const { id } = subject( 'Rust' )
+
+    const response = await request( app )
+      .patch( `/api/melete/subjects/${ id }` )
+      .send( { target_level: 'proficient', intent: 'Ship a CLI' } )
+
+    expect( response.status ).toBe( 200 )
+    expect( response.body ).toMatchObject( {
+      subject: { id, target_level: 'proficient', intent: 'Ship a CLI', syllabus_status: 'none' },
+    } )
+  } )
+
+  it( 'clears the intent with null or a blank string, leaving the level', async () => {
+    await scanned()
+    const url = `/api/melete/subjects/${ subject( 'Rust' ).id }`
+
+    await request( app ).patch( url ).send( { target_level: 'expert', intent: 'Ship a CLI' } )
+
+    const blank = await request( app ).patch( url ).send( { intent: '   ' } )
+
+    expect( blank.body ).toMatchObject( { subject: { target_level: 'expert', intent: null } } )
+
+    await request( app ).patch( url ).send( { intent: 'Again' } )
+
+    const cleared = await request( app ).patch( url ).send( { intent: null } )
+
+    expect( cleared.body ).toMatchObject( { subject: { target_level: 'expert', intent: null } } )
+  } )
+
+  it.each( [
+    { target_level: 'guru' },
+    { target_level: null },
+    { intent: 'x'.repeat( 501 ) },
+    { intent: 5 },
+  ] )( 'returns 400 for the syllabus body %j', async ( body ) => {
+    await scanned()
+
+    const response = await request( app )
+      .patch( `/api/melete/subjects/${ subject( 'Rust' ).id }` )
+      .send( body )
+
+    expect( response.status ).toBe( 400 )
+  } )
+} )
+
+describe( 'POST /api/melete/subjects/:id/syllabus/draft', () => {
+  const url = ( id: string ): string => `/api/melete/subjects/${ id }/syllabus/draft`
+
+  it( 'queues a draft and answers 202 with the subject drafting', async () => {
+    await scanned()
+    const { id } = subject( 'Rust' )
+
+    await request( app ).patch( `/api/melete/subjects/${ id }` ).send( { target_level: 'working' } )
+
+    const response = await request( app ).post( url( id ) ).send( {} )
+
+    expect( response.status ).toBe( 202 )
+    expect( response.body ).toMatchObject( {
+      subject: { id, syllabus_status: 'drafting', syllabus_error: null, target_level: 'working' },
+    } )
+    expect( listSubjects( userId ).find( ( found ) => found.id === id )?.syllabus_status )
+      .toBe( 'drafting' )
+  } )
+
+  it( 'leaves the Claude call to the loop', async () => {
+    await scanned()
+    const { id } = subject( 'Rust' )
+
+    await request( app ).patch( `/api/melete/subjects/${ id }` ).send( { target_level: 'working' } )
+    await request( app ).post( url( id ) ).send( {} )
+
+    expect( draft ).not.toHaveBeenCalled()
+  } )
+
+  it( 'returns 400 until the subject has a target level', async () => {
+    await scanned()
+
+    const response = await request( app ).post( url( subject( 'Rust' ).id ) ).send( {} )
+
+    expect( response.status ).toBe( 400 )
+    expect( response.body ).toEqual( { error: 'Choose a target level first' } )
+  } )
+
+  it( 'returns 409 while a draft is already running', async () => {
+    await scanned()
+    const { id } = subject( 'Rust' )
+
+    await request( app ).patch( `/api/melete/subjects/${ id }` ).send( { target_level: 'working' } )
+    await request( app ).post( url( id ) ).send( {} )
+
+    const again = await request( app ).post( url( id ) ).send( {} )
+
+    expect( again.status ).toBe( 409 )
+  } )
+
+  it( 'returns 404 for an unknown subject and for another user\'s', async () => {
+    await scanned()
+    const other = createTestUser( { modules: [ 'melete' ] } )
+
+    expect( ( await request( app ).post( url( crypto.randomUUID() ) ).send( {} ) ).status )
+      .toBe( 404 )
+    expect( ( await request( app, other ).post( url( subject( 'Rust' ).id ) ).send( {} ) )
+      .status ).toBe( 404 )
+  } )
+
+  it( 'returns 404 for a user without the Melete module', async () => {
+    const transcriber = createTestUser( { modules: [ 'transcriber' ] } )
+    const response = await request( app, transcriber )
+      .post( url( crypto.randomUUID() ) )
+      .send( {} )
 
     expect( response.status ).toBe( 404 )
   } )

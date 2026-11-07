@@ -33,6 +33,7 @@ import {
   updateSubject,
 } from '../services/melete.service.js'
 import { getNextReview, gradeAnswer, recordReview } from '../services/meleteReview.service.js'
+import { requestSyllabusDraft } from '../services/meleteSyllabus.service.js'
 
 const Id = z.uuid()
 
@@ -61,6 +62,15 @@ export const patchMeleteSubject = (
   )
 
   res.status( 200 ).json( { subject } )
+}
+
+export const postDraftSyllabus = (
+  req: Request,
+  res: Response< { subject: MeleteSubject } >,
+): void => {
+  const subject = requestSyllabusDraft( currentUser( req ).id, Id.parse( req.params.id ) )
+
+  res.status( 202 ).json( { subject } )
 }
 
 export const postSubjectEnrollment = async (

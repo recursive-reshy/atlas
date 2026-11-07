@@ -10,8 +10,10 @@ import {
 // Repositories
 import { getDatabase } from '../repositories/database.js'
 import { findNote, updateNote } from '../repositories/meleteNotes.repository.js'
+import { findSubject, updateSubject } from '../repositories/meleteSubjects.repository.js'
 // Services
 import { generateForNote } from '../services/meleteGeneration.service.js'
+import { draftForSubject } from '../services/meleteSyllabus.service.js'
 // Worker
 import { startMeleteGenerator } from './meleteGenerator.js'
 // Logging
@@ -29,13 +31,16 @@ beforeEach( () => {
 } )
 
 vi.mock( '../services/meleteGeneration.service.js' )
+vi.mock( '../services/meleteSyllabus.service.js' )
 
 const generateMock = vi.mocked( generateForNote )
+const draftMock = vi.mocked( draftForSubject )
 
 let events: string[]
 let gates: Map< string, () => void >
 let hold: boolean
 let seenContexts: ( string | undefined )[]
+let seenSubjectContexts: ( string | undefined )[]
 let stopGenerator: () => Promise< void >
 let subjectId: string
 
@@ -50,8 +55,16 @@ beforeEach( () => {
   gates = new Map()
   hold = false
   seenContexts = []
+  seenSubjectContexts = []
   stopGenerator = () => Promise.resolve()
   subjectId = addSubject( userId )
+  draftMock.mockImplementation( ( _owner, id ) => {
+    events.push( `draft:${ id }` )
+    seenSubjectContexts.push( getLogContext()?.melete_subject_id )
+    updateSubject( userId, id, { syllabus_status: 'draft' } )
+
+    return Promise.resolve()
+  } )
   generateMock.mockImplementation( async ( _owner, id ) => {
     events.push( `start:${ id }` )
     seenContexts.push( getLogContext()?.melete_note_id )
@@ -269,5 +282,101 @@ describe( 'startMeleteGenerator for two users', () => {
 
     expect( generateMock.mock.calls.map( ( [ owner, id ] ) => `${ owner }:${ id }` ).sort() )
       .toEqual( [ `${ userId }:${ mine }`, `${ other }:${ theirs }` ].sort() )
+  } )
+} )
+
+describe( 'startMeleteGenerator, syllabus drafts (ADR 0089)', () => {
+  const drafting = ( folder = 'Learning/Data' ): string => {
+    const id = addSubject( userId, folder )
+
+    updateSubject( userId, id, { target_level: 'working', syllabus_status: 'drafting' } )
+
+    return id
+  }
+
+  it( 'drafts a subject whose syllabus is drafting, straight away', async () => {
+    const id = drafting()
+
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( draftMock ).toHaveBeenCalledWith( userId, id )
+    expect( findSubject( userId, id )?.syllabus_status ).toBe( 'draft' )
+  } )
+
+  it( 'drafts before it generates questions', async () => {
+    const note = queued( '2026-10-01T00:00:00.000Z' )
+    const id = drafting()
+
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( events ).toEqual( [ `draft:${ id }`, `start:${ note }`, `end:${ note }` ] )
+  } )
+
+  it( 'picks up a subject a restart left drafting, with nothing to requeue', async () => {
+    const id = drafting()
+
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 5000 )
+
+    expect( draftMock ).toHaveBeenCalledTimes( 1 )
+    expect( draftMock ).toHaveBeenCalledWith( userId, id )
+  } )
+
+  it( 'drafts a subject requested after the loop started, on the next poll', async () => {
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    const id = drafting()
+
+    expect( draftMock ).not.toHaveBeenCalled()
+
+    await vi.advanceTimersByTimeAsync( 1000 )
+
+    expect( draftMock ).toHaveBeenCalledWith( userId, id )
+  } )
+
+  it( 'tries a subject that stays drafting once per pass, not in a loop', async () => {
+    const id = drafting()
+
+    draftMock.mockImplementation( () => Promise.resolve() )
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( draftMock ).toHaveBeenCalledTimes( 1 )
+    expect( findSubject( userId, id )?.syllabus_status ).toBe( 'drafting' )
+  } )
+
+  it( 'leaves subjects that are not drafting alone', async () => {
+    updateSubject( userId, subjectId, { syllabus_status: 'approved' } )
+    addSubject( userId, 'Learning/Other' )
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( draftMock ).not.toHaveBeenCalled()
+  } )
+
+  it( 'runs each draft inside a log context carrying the subject id', async () => {
+    const id = drafting()
+
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( seenSubjectContexts ).toEqual( [ id ] )
+  } )
+
+  it( 'logs an error and carries on with the notes when a draft throws', async () => {
+    const error = vi.spyOn( logger, 'error' )
+    const note = queued( '2026-10-01T00:00:00.000Z' )
+
+    drafting()
+    draftMock.mockRejectedValueOnce( new Error( 'database is locked' ) )
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+    await vi.advanceTimersByTimeAsync( 1000 )
+
+    expect( error ).toHaveBeenCalledTimes( 1 )
+    expect( generateMock ).toHaveBeenCalledWith( userId, note )
   } )
 } )

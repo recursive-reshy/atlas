@@ -6,6 +6,7 @@ import { z } from 'zod'
 import {
   MeleteGradeOutput,
   MeleteQuestionsOutput,
+  MeleteSyllabusOutput,
   SourceDocument,
 } from '@atlas/shared'
 // Config
@@ -164,6 +165,60 @@ export const generateQuestions = async (
   } catch( error ) {
     if( error instanceof Anthropic.APIError ) {
       throw new MeleteError( `Question generation failed: ${ error.message }`, { cause: error } )
+    }
+
+    throw error
+  }
+}
+
+export interface SyllabusOutcome {
+  output: MeleteSyllabusOutput
+  usage: TokenUsage
+}
+
+// Room for 80 concepts with their descriptions
+const SYLLABUS_MAX_TOKENS = 8192
+
+export const draftSyllabus = async (
+  { model, system, user }: MeleteCall,
+): Promise< SyllabusOutcome > => {
+  const client = new Anthropic( {
+    apiKey: config.anthropicApiKey,
+    timeout: config.melete.generationTimeoutMs,
+    maxRetries: 1,
+  } )
+
+  try {
+    const response = await client.messages.parse( {
+      model,
+      max_tokens: SYLLABUS_MAX_TOKENS,
+      system,
+      messages: [ { role: 'user', content: user } ],
+      output_config: { effort: 'medium', format: zodOutputFormat( MeleteSyllabusOutput ) },
+    } )
+    const usage = {
+      input_tokens: response.usage.input_tokens,
+      output_tokens: response.usage.output_tokens,
+    }
+
+    if( response.stop_reason === 'max_tokens' ) {
+      throw new MeleteError( 'Syllabus drafting was cut off before it finished', { usage } )
+    }
+
+    if( response.stop_reason === 'refusal' ) {
+      throw new MeleteError( 'Syllabus drafting was declined by the model', { usage } )
+    }
+
+    const parsed = MeleteSyllabusOutput.safeParse( response.parsed_output )
+
+    if( !parsed.success ) {
+      throw new MeleteError( 'Syllabus response did not match the expected format', { usage } )
+    }
+
+    return { output: parsed.data, usage }
+  } catch( error ) {
+    if( error instanceof Anthropic.APIError ) {
+      throw new MeleteError( `Syllabus drafting failed: ${ error.message }`, { cause: error } )
     }
 
     throw error

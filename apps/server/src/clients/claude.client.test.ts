@@ -11,6 +11,7 @@ import {
 import {
   SummaryError,
   SummaryResult,
+  draftSyllabus,
   generateQuestions,
   gradeAnswer,
   summarizeSource,
@@ -429,5 +430,74 @@ describe( 'gradeAnswer', () => {
     parse.mockRejectedValue( new TypeError( 'boom' ) )
 
     await expect( gradeAnswer( request ) ).rejects.toThrow( TypeError )
+  } )
+} )
+
+describe( 'draftSyllabus', () => {
+  const syllabus = {
+    sections: [ { name: 'Basics', concepts: [ { name: 'SQL', description: 'Queries' } ] } ],
+  }
+  const request = { model: 'claude-sonnet-5-5', system: 'Draft.', user: 'Subject: Data' }
+
+  beforeEach( () => {
+    parse.mockResolvedValue( reply( { parsed_output: syllabus } ) )
+  } )
+
+  it( 'returns the parsed syllabus with the tokens it used', async () => {
+    expect( await draftSyllabus( request ) ).toEqual( {
+      output: syllabus,
+      usage: { input_tokens: 1234, output_tokens: 56 },
+    } )
+  } )
+
+  it( 'builds the client with the key, the generation timeout and one retry', async () => {
+    await draftSyllabus( request )
+
+    expect( constructed ).toEqual( [ { apiKey: 'sk-test', timeout: 54_321, maxRetries: 1 } ] )
+  } )
+
+  it( 'asks for structured output with room for 80 concepts', async () => {
+    await draftSyllabus( request )
+
+    const [ sent ] = parse.mock.calls[ 0 ] as [ Record< string, unknown > ]
+
+    expect( sent ).toMatchObject( {
+      model: 'claude-sonnet-5-5',
+      max_tokens: 8192,
+      system: 'Draft.',
+      messages: [ { role: 'user', content: 'Subject: Data' } ],
+      output_config: { effort: 'medium', format: expect.anything() as unknown },
+    } )
+  } )
+
+  it.each( [
+    [ { parsed_output: null }, 'Syllabus response did not match the expected format' ],
+    [ { parsed_output: { sections: [] } }, 'Syllabus response did not match' ],
+    [ { stop_reason: 'max_tokens' }, 'Syllabus drafting was cut off' ],
+    [ { stop_reason: 'refusal' }, 'Syllabus drafting was declined' ],
+  ] )( 'throws a MeleteError carrying the billed tokens (%j)', async ( overrides, message ) => {
+    parse.mockResolvedValue( reply( overrides ) )
+
+    const error: unknown = await draftSyllabus( request ).catch( ( caught: unknown ) => caught )
+
+    expect( error ).toBeInstanceOf( MeleteError )
+    expect( ( error as MeleteError ).message ).toContain( message )
+    expect( ( error as MeleteError ).usage ).toEqual( { input_tokens: 1234, output_tokens: 56 } )
+  } )
+
+  it( 'wraps API errors in a MeleteError without usage', async () => {
+    parse.mockRejectedValue( new Anthropic.APIError( 529, undefined, 'Overloaded', undefined ) )
+
+    const error: unknown = await draftSyllabus( request ).catch( ( caught: unknown ) => caught )
+
+    expect( error ).toBeInstanceOf( MeleteError )
+    expect( ( error as MeleteError ).message ).toBe( 'Syllabus drafting failed: Overloaded' )
+    expect( ( error as MeleteError ).usage ).toBeUndefined()
+  } )
+
+  it( 'lets other errors through unchanged', async () => {
+    parse.mockRejectedValue( new TypeError( 'boom' ) )
+
+    await expect( draftSyllabus( request ) ).rejects.toThrow( TypeError )
   } )
 } )

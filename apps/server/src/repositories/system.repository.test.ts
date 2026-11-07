@@ -15,10 +15,12 @@ import { saveAccount, setAccountStatus } from './gmailAccount.repository.js'
 import { insertSource } from './gmailSources.repository.js'
 import type { StoredGmailSource } from './gmailSources.repository.js'
 import { findNote } from './meleteNotes.repository.js'
+import { findSubject, updateSubject } from './meleteSubjects.repository.js'
 import { setModules } from './userModules.repository.js'
 import { findUserById, updateUser } from './users.repository.js'
 import { getDatabase } from './database.js'
 import {
+  claimNextDraft,
   claimNextGeneration,
   claimNextJob,
   deleteHealthExcept,
@@ -770,6 +772,110 @@ describe( 'claimNextGeneration', () => {
       const note = addNote( on, addSubject( on ), { generation: 'queued' } )
 
       expect( claimNextGeneration( at( 0 ) )?.id ).toBe( note )
+    } )
+  } )
+} )
+
+const drafting = ( userId: string, folder = 'Learning/Data' ): string => {
+  const id = addSubject( userId, folder )
+
+  updateSubject( userId, id, { target_level: 'working', syllabus_status: 'drafting' } )
+
+  return id
+}
+
+describe( 'claimNextDraft', () => {
+  it( 'returns undefined when no subject is drafting', () => {
+    const userId = melete()
+    const id = addSubject( userId )
+
+    updateSubject( userId, id, { syllabus_status: 'draft' } )
+    addSubject( userId, 'Learning/Other' )
+
+    expect( claimNextDraft( at( 0 ), [] ) ).toBeUndefined()
+  } )
+
+  it( 'claims a drafting subject and says whose it is, leaving it drafting', () => {
+    const userId = melete()
+    const id = drafting( userId )
+
+    expect( claimNextDraft( at( 0 ), [] ) ).toEqual( { id, user_id: userId } )
+    expect( findSubject( userId, id )?.syllabus_status ).toBe( 'drafting' )
+  } )
+
+  it( 'skips the subjects it is told it has already tried', () => {
+    const userId = melete()
+    const first = drafting( userId, 'Learning/A' )
+    const second = drafting( userId, 'Learning/B' )
+    const claimed = claimNextDraft( at( 0 ), [] )?.id
+
+    expect( [ first, second ] ).toContain( claimed )
+    expect( claimNextDraft( at( 1 ), [ claimed ?? '' ] )?.id )
+      .toBe( claimed === first ? second : first )
+    expect( claimNextDraft( at( 2 ), [ first, second ] ) ).toBeUndefined()
+  } )
+
+  it( 'stamps the owner with the time, as a claimed note does', () => {
+    const userId = melete()
+
+    drafting( userId )
+    claimNextDraft( at( 7 ), [] )
+
+    expect( stampOf( userId, 'last_generation_started_at' ) ).toBe( at( 7 ) )
+    expect( stampOf( userId, 'last_job_started_at' ) ).toBeNull()
+  } )
+
+  it( 'takes turns between users', () => {
+    const first = melete()
+    const second = melete()
+    const firstOne = drafting( first, 'Learning/A' )
+    const firstTwo = drafting( first, 'Learning/B' )
+    const theirs = drafting( second )
+    const tried: string[] = []
+    const order = [ 0, 1, 2 ].map( ( minute ) => {
+      const id = claimNextDraft( at( minute ), tried )?.id ?? ''
+
+      tried.push( id )
+
+      return id
+    } )
+
+    expect( order[ 1 ] ).toBe( theirs )
+    expect( new Set( [ order[ 0 ], order[ 2 ] ] ) ).toEqual( new Set( [ firstOne, firstTwo ] ) )
+  } )
+
+  describe( 'who is eligible', () => {
+    it( 'never claims for a user with no vault, and resumes once they choose one', () => {
+      const userId = melete( null )
+      const id = drafting( userId )
+
+      expect( claimNextDraft( at( 0 ), [] ) ).toBeUndefined()
+
+      getDatabase().prepare( 'UPDATE users SET vault_dir = \'chosen\' WHERE id = ?' ).run( userId )
+
+      expect( claimNextDraft( at( 1 ), [] )?.id ).toBe( id )
+    } )
+
+    it( 'never claims for a member without the Melete module', () => {
+      const userId = melete()
+
+      drafting( userId )
+      setModules( userId, [ 'transcriber' ] )
+
+      expect( claimNextDraft( at( 0 ), [] ) ).toBeUndefined()
+
+      setModules( userId, [ 'melete' ] )
+
+      expect( claimNextDraft( at( 1 ), [] ) ).toBeDefined()
+    } )
+
+    it( 'never claims for a removed user', () => {
+      const userId = melete()
+
+      drafting( userId )
+      updateUser( userId, { status: 'removed' } )
+
+      expect( claimNextDraft( at( 0 ), [] ) ).toBeUndefined()
     } )
   } )
 } )
