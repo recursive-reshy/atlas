@@ -40,7 +40,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
 | **Phase 1** | **Kick-off** | | |
-| 1.1 | Version 1.1.0 in every `package.json`, `apps/agent/pyproject.toml`, the agent's `uv.lock` entry and the README status line; root `CLAUDE.md` current version 1.1.0 and Workflow paths `docs/v1.1.0`; confirm `docs/README.md` lists v1.1.0 and ADRs 0089–0093 | | ⬜ |
+| 1.1 | Version 1.1.0 in every `package.json`, `apps/agent/pyproject.toml`, the agent's `uv.lock` entry and the README status line; root `CLAUDE.md` current version 1.1.0 and Workflow paths `docs/v1.1.0`; confirm `docs/README.md` lists v1.1.0 and ADRs 0089–0093 | | ✅ |
 | **Phase 2** | **Melete data (TRD §2.1)** | | |
 | 2.1 | Migration 15 test-first against `schema-14.sql` (upgrade test: subjects read back `none`, notes `idle`); not locked | 0085, 0089 | ⬜ |
 | 2.2 | Repositories: sections, concepts, note concepts; subject, note and question records gain the new columns; `MeleteRunKind` widened; shared `MeleteSubject` and new syllabus schemas | 0089 | ⬜ |
@@ -113,3 +113,4 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 ---
 
 ## Log
+- 1.1: version 1.1.0 everywhere. `scripts/version.test.mjs` changed: its docs check now requires a docs/README.md line for the current version and that CLAUDE.md's Workflow paths point at `docs/v<major>.<minor>.0` (it required the 1.0 readiness link and ADR 0084). `scripts/nameGuard.test.mjs` changed: its history list now includes `docs/v1.1.0/` and ADRs 0089+ (they name Mnemosyne and were failing the guard). ADRs 0089–0093 were already listed in docs/README.md.
