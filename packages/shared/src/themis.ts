@@ -119,3 +119,39 @@ export type ThemisAreaResponse = z.infer< typeof ThemisAreaResponse >
 
 export const ThemisGoalResponse = z.object( { goal: ThemisGoal } )
 export type ThemisGoalResponse = z.infer< typeof ThemisGoalResponse >
+
+export const ThemisMetricUpdate = z.object( {
+  id: z.int(),
+  value: z.number(),
+  note: z.string().nullable(),
+  at: z.string(),
+} )
+export type ThemisMetricUpdate = z.infer< typeof ThemisMetricUpdate >
+
+export const LogMetricBody = z.strictObject( {
+  value: z.number().finite(),
+  note: z.string().trim().min( 1 ).max( 500 ).optional(),
+} )
+export type LogMetricBody = z.infer< typeof LogMetricBody >
+
+export const ThemisMetricUpdateResponse = z.object( { update: ThemisMetricUpdate } )
+export type ThemisMetricUpdateResponse = z.infer< typeof ThemisMetricUpdateResponse >
+
+export const ThemisCheckin = z.object( {
+  id: z.int(),
+  period_start: z.string(),
+  rating: z.int().min( 1 ).max( 5 ),
+  note: z.string().nullable(),
+  created_at: z.string(),
+} )
+export type ThemisCheckin = z.infer< typeof ThemisCheckin >
+
+export const AnswerCheckinBody = z.strictObject( {
+  period_start: CalendarDate,
+  rating: z.int().min( 1 ).max( 5 ),
+  note: z.string().trim().min( 1 ).max( 500 ).optional(),
+} )
+export type AnswerCheckinBody = z.infer< typeof AnswerCheckinBody >
+
+export const ThemisCheckinResponse = z.object( { checkin: ThemisCheckin } )
+export type ThemisCheckinResponse = z.infer< typeof ThemisCheckinResponse >

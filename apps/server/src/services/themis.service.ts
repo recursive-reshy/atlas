@@ -1,14 +1,20 @@
 // Shared
 import { ThemisGoal } from '@atlas/shared'
 import type {
+  AnswerCheckinBody,
   CreateAreaBody,
   CreateGoalBody,
+  LogMetricBody,
   ThemisArea,
+  ThemisCheckin,
+  ThemisMetricUpdate,
   UpdateAreaBody,
   UpdateGoalBody,
 } from '@atlas/shared'
 // Errors
 import { ConflictError, NotFoundError, ValidationError } from '../errors.js'
+// Themis
+import { checkinDue, studyDay } from '../themis/periods.js'
 // Repositories
 import { inTransaction } from '../repositories/database.js'
 import {
@@ -20,6 +26,7 @@ import {
   renameArea,
   setAreaOrder,
 } from '../repositories/themisAreas.repository.js'
+import { insertCheckin, listPeriodStarts } from '../repositories/themisCheckins.repository.js'
 import {
   countGoalsInArea,
   deleteGoal,
@@ -29,6 +36,7 @@ import {
   setGoalOrder,
   updateGoal,
 } from '../repositories/themisGoals.repository.js'
+import { insertMetricUpdate } from '../repositories/themisMetrics.repository.js'
 import type { GoalChanges, GoalRecord } from '../repositories/themisGoals.repository.js'
 
 // Names are user content: nothing here logs them (ADR 0049)
@@ -178,4 +186,47 @@ export const changeGoal = (
 export const removeGoal = ( userId: string, id: string ): void => {
   requireGoal( userId, id )
   deleteGoal( userId, id )
+}
+
+export const logMetric = (
+  userId: string,
+  id: string,
+  body: LogMetricBody,
+  now = new Date(),
+): ThemisMetricUpdate => {
+  if( requireGoal( userId, id ).outcome !== 'metric' ) {
+    throw new ConflictError( 'Only a metric goal takes updates' )
+  }
+
+  return insertMetricUpdate( userId, id, { ...body, at: now.toISOString() } )
+}
+
+// Only the period just finished is open, and only for an active goal that existed in it
+export const answerCheckin = (
+  userId: string,
+  id: string,
+  body: AnswerCheckinBody,
+  now = new Date(),
+): ThemisCheckin => {
+  const goal = requireGoal( userId, id )
+
+  if( goal.outcome !== 'checkin' ) {
+    throw new ConflictError( 'Only a check-in goal takes check-ins' )
+  }
+
+  const due = checkinDue(
+    { ...goal, created_day: studyDay( new Date( goal.created_at ) ) },
+    studyDay( now ),
+    [],
+  )
+
+  if( due?.period_start !== body.period_start ) {
+    throw new ValidationError( 'That period is not open for a check-in' )
+  }
+
+  if( listPeriodStarts( userId, id ).includes( body.period_start ) ) {
+    throw new ConflictError( 'This period already has a check-in' )
+  }
+
+  return insertCheckin( userId, id, body )
 }

@@ -4,10 +4,14 @@ import { Request, Response } from 'express'
 import { z } from 'zod'
 // Shared
 import {
+  AnswerCheckinBody,
   CreateAreaBody,
   CreateGoalBody,
+  LogMetricBody,
   ThemisAreaResponse,
+  ThemisCheckinResponse,
   ThemisGoalResponse,
+  ThemisMetricUpdateResponse,
   UpdateAreaBody,
   UpdateGoalBody,
 } from '@atlas/shared'
@@ -15,9 +19,11 @@ import {
 import { currentUser } from '../middleware/auth.js'
 // Services
 import {
+  answerCheckin,
   changeGoal,
   createArea,
   createGoal,
+  logMetric,
   removeArea,
   removeGoal,
   updateArea,
@@ -77,4 +83,30 @@ export const patchGoal = (
 export const deleteGoalRoute = ( req: Request, res: Response ): void => {
   removeGoal( currentUser( req ).id, Id.parse( req.params.id ) )
   res.status( 204 ).end()
+}
+
+export const postMetric = (
+  req: Request,
+  res: Response< ThemisMetricUpdateResponse >,
+): void => {
+  const update = logMetric(
+    currentUser( req ).id,
+    Id.parse( req.params.id ),
+    LogMetricBody.parse( req.body ),
+  )
+
+  res.status( 201 ).json( { update } )
+}
+
+export const postCheckin = (
+  req: Request,
+  res: Response< ThemisCheckinResponse >,
+): void => {
+  const checkin = answerCheckin(
+    currentUser( req ).id,
+    Id.parse( req.params.id ),
+    AnswerCheckinBody.parse( req.body ),
+  )
+
+  res.status( 201 ).json( { checkin } )
 }

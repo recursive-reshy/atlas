@@ -2,10 +2,14 @@
 import { describe, expect, it } from 'vitest'
 // Local
 import {
+  AnswerCheckinBody,
   CreateAreaBody,
   CreateGoalBody,
+  LogMetricBody,
   ThemisArea,
+  ThemisCheckin,
   ThemisGoal,
+  ThemisMetricUpdate,
   UpdateAreaBody,
   UpdateGoalBody,
 } from './themis.js'
@@ -140,5 +144,50 @@ describe( 'UpdateGoalBody', () => {
     expect( UpdateGoalBody.safeParse( {} ).success ).toBe( false )
     expect( UpdateGoalBody.safeParse( { name: 'A', colour: 'red' } ).success ).toBe( false )
     expect( UpdateGoalBody.safeParse( { status: 'paused' } ).success ).toBe( false )
+  } )
+} )
+
+describe( 'LogMetricBody', () => {
+  it( 'takes a finite value and an optional note', () => {
+    expect( LogMetricBody.parse( { value: 12.5 } ) ).toEqual( { value: 12.5 } )
+    expect( LogMetricBody.parse( { value: 0, note: ' paid in ' } ) )
+      .toEqual( { value: 0, note: 'paid in' } )
+    expect( LogMetricBody.safeParse( { value: '12' } ).success ).toBe( false )
+    expect( LogMetricBody.safeParse( {} ).success ).toBe( false )
+    expect( LogMetricBody.safeParse( { value: 1, note: 'x'.repeat( 501 ) } ).success ).toBe( false )
+    expect( LogMetricBody.safeParse( { value: 1, at: 'now' } ).success ).toBe( false )
+  } )
+} )
+
+describe( 'AnswerCheckinBody', () => {
+  it( 'takes a period start, a rating from 1 to 5 and an optional note', () => {
+    expect( AnswerCheckinBody.parse( { period_start: '2026-11-02', rating: 4 } ) )
+      .toEqual( { period_start: '2026-11-02', rating: 4 } )
+    expect( AnswerCheckinBody.safeParse( { period_start: '2026-11-02', rating: 0 } ).success )
+      .toBe( false )
+    expect( AnswerCheckinBody.safeParse( { period_start: '2026-11-02', rating: 6 } ).success )
+      .toBe( false )
+    expect( AnswerCheckinBody.safeParse( { period_start: '2026-11-02', rating: 2.5 } ).success )
+      .toBe( false )
+    expect( AnswerCheckinBody.safeParse( { period_start: 'Monday', rating: 3 } ).success )
+      .toBe( false )
+  } )
+} )
+
+describe( 'ThemisMetricUpdate and ThemisCheckin', () => {
+  it( 'accept what the API stores', () => {
+    expect( ThemisMetricUpdate.parse( {
+      id: 1,
+      value: 3.5,
+      note: null,
+      at: '2026-11-07T00:00:00.000Z',
+    } ).value ).toBe( 3.5 )
+    expect( ThemisCheckin.parse( {
+      id: 1,
+      period_start: '2026-11-02',
+      rating: 5,
+      note: 'good week',
+      created_at: '2026-11-09T00:00:00.000Z',
+    } ).rating ).toBe( 5 )
   } )
 } )

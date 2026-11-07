@@ -28,7 +28,9 @@ import * as promptProfiles from './promptProfiles.repository.js'
 import * as settings from './settings.repository.js'
 import * as summaryRuns from './summaryRuns.repository.js'
 import * as themisAreas from './themisAreas.repository.js'
+import * as themisCheckins from './themisCheckins.repository.js'
 import * as themisGoals from './themisGoals.repository.js'
+import * as themisMetrics from './themisMetrics.repository.js'
 import * as transcriptionRuns from './transcriptionRuns.repository.js'
 import * as userModules from './userModules.repository.js'
 
@@ -64,7 +66,9 @@ const DATA_REPOSITORIES: Record< string, Record< string, unknown > > = {
   settings,
   summaryRuns,
   themisAreas,
+  themisCheckins,
   themisGoals,
+  themisMetrics,
   transcriptionRuns,
   userModules,
 }

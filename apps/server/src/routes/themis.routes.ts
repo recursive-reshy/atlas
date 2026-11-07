@@ -7,7 +7,9 @@ import {
   patchArea,
   patchGoal,
   postArea,
+  postCheckin,
   postGoal,
+  postMetric,
 } from '../controllers/themis.controller.js'
 
 export const themisRoutes: Router = Router()
@@ -18,3 +20,5 @@ themisRoutes.delete( '/themis/areas/:id', deleteAreaRoute )
 themisRoutes.post( '/themis/goals', postGoal )
 themisRoutes.patch( '/themis/goals/:id', patchGoal )
 themisRoutes.delete( '/themis/goals/:id', deleteGoalRoute )
+themisRoutes.post( '/themis/goals/:id/metric', postMetric )
+themisRoutes.post( '/themis/goals/:id/checkins', postCheckin )
