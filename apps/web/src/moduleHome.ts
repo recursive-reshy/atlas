@@ -5,6 +5,7 @@ import type { ModuleId } from '@atlas/shared'
 const MODULE_HOMES: Record< ModuleId, string > = {
   transcriber: '/',
   melete: '/melete',
+  themis: '/themis',
 }
 
 export const homeFor = ( modules: ModuleId[] ): string => {

@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 
-export const ModuleId = z.enum( [ 'transcriber', 'melete' ] )
+export const ModuleId = z.enum( [ 'transcriber', 'melete', 'themis' ] )
 export type ModuleId = z.infer< typeof ModuleId >
 
 export const Role = z.enum( [ 'admin', 'member' ] )

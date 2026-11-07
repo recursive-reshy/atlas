@@ -82,7 +82,7 @@ describe( 'POST /api/test/session', () => {
     expect( me.role ).toBe( 'admin' )
     expect( me.email ).toBe( config.adminEmail )
     expect( me.vault_dir ).toBe( 'admin' )
-    expect( me.modules ).toEqual( [ 'transcriber', 'melete' ] )
+    expect( me.modules ).toEqual( [ 'transcriber', 'melete', 'themis' ] )
   } )
 
   it( 'creates a member with the modules and vault in the body', async () => {

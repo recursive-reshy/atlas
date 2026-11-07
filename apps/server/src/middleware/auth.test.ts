@@ -151,7 +151,7 @@ describe( 'requireUser', () => {
       .set( 'Cookie', cookieFor( token ) )
 
     expect( response.body ).toMatchObject( {
-      user: { role: 'admin', modules: [ 'transcriber', 'melete' ] },
+      user: { role: 'admin', modules: [ 'transcriber', 'melete', 'themis' ] },
     } )
   } )
 

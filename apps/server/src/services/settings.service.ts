@@ -220,6 +220,7 @@ const MODULE_KEYS: Record< ModuleId, ( keyof UpdateSettingsBody )[] > = {
     'melete_suggest_model',
     'melete_mastery_days',
   ],
+  themis: [],
 }
 
 const CONCEPT_MODEL_KEYS = [

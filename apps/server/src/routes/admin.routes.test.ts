@@ -106,7 +106,7 @@ describe( 'GET /api/admin/users', () => {
 
     expect( response.status ).toBe( 200 )
     expect( users.map( ( user ) => user.name ) ).toEqual( [ 'Test admin', 'Amy', 'Zed' ] )
-    expect( users[ 0 ]?.modules ).toEqual( [ 'transcriber', 'melete' ] )
+    expect( users[ 0 ]?.modules ).toEqual( [ 'transcriber', 'melete', 'themis' ] )
     expect( users[ 2 ] ).toMatchObject( {
       role: 'member',
       status: 'active',
@@ -186,6 +186,18 @@ describe( 'POST /api/admin/users', () => {
 } )
 
 describe( 'PATCH /api/admin/users/:id', () => {
+  it( 'switches Themis on for a member, who starts without it', async () => {
+    const admin = createTestUser( { role: 'admin' } )
+    const member = createTestUser( { modules: [ 'transcriber' ] } )
+    const agent = signedInRequest( app, admin )
+
+    const response = await agent.patch( `/api/admin/users/${ member.id }` )
+      .send( { modules: [ 'transcriber', 'themis' ] } )
+
+    expect( response.status ).toBe( 200 )
+    expect( AdminUser.parse( response.body ).modules ).toEqual( [ 'transcriber', 'themis' ] )
+  } )
+
   it( 'changes name, modules and status', async () => {
     const admin = createTestUser( { role: 'admin' } )
     const member = createTestUser( { modules: [ 'transcriber' ] } )

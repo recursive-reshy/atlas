@@ -405,3 +405,204 @@ describe( 'migration 15 (stored schema 15, Melete concept layer, ADR 0089)', () 
     expect( tableCounts().melete_concepts ).toBe( 0 )
   } )
 } )
+
+describe( 'migration 16 (stored schema 16, Themis and time, ADRs 0085, 0091, 0092)', () => {
+  const ADMIN = '00000000-0000-4000-8000-000000000001'
+  const MEMBER = '00000000-0000-4000-8000-000000000002'
+  const SUBJECT = '50000000-0000-4000-8000-000000000001'
+  const NOW = '2026-11-07T00:00:00.000Z'
+
+  const migrated = (): void => {
+    openSeeded( 15 )
+    runMigrations( getDatabase(), migrations.slice( 0, 7 ) )
+  }
+
+  const addArea = ( id: string, name: string, user = MEMBER ): void => {
+    getDatabase().prepare( `INSERT INTO themis_areas ( id, user_id, name, position, created_at )
+      VALUES ( ?, ?, ?, 0, ? )` ).run( id, user, name, NOW )
+  }
+
+  const addGoal = ( id: string, area: string, extra = "'learning', NULL, NULL, NULL" ): void => {
+    getDatabase().prepare( `INSERT INTO themis_goals
+      ( id, user_id, area_id, name, position, outcome, metric_unit, metric_target,
+        checkin_cadence, created_at )
+      VALUES ( ?, ?, ?, 'Goal', 0, ${ extra }, ? )` ).run( id, MEMBER, area, NOW )
+  }
+
+  afterEach( () => {
+    closeDatabase()
+  } )
+
+  it( 'loads the schema 15 seed with every table filled', () => {
+    openSeeded( 15 )
+
+    expect( Object.entries( tableCounts() ).filter( ( [ , count ] ) => count === 0 ) )
+      .toEqual( [] )
+  } )
+
+  it( 'keeps both users\' modules and accepts themis', () => {
+    openSeeded( 15 )
+
+    const before = rows( 'SELECT user_id, module FROM user_modules ORDER BY rowid' )
+
+    runMigrations( getDatabase(), migrations.slice( 0, 7 ) )
+
+    expect( rows( 'SELECT user_id, module FROM user_modules ORDER BY rowid' ) ).toEqual( before )
+    expect( listModules( MEMBER ) ).toEqual( [ 'transcriber', 'melete' ] )
+    getDatabase().prepare( 'INSERT INTO user_modules ( user_id, module ) VALUES ( ?, ? )' )
+      .run( ADMIN, 'themis' )
+    expect( () => getDatabase()
+      .prepare( 'INSERT INTO user_modules ( user_id, module ) VALUES ( ?, ? )' )
+      .run( ADMIN, 'metis' ) ).toThrow( /CHECK/ )
+  } )
+
+  it( 'keeps the eligible_users view working', () => {
+    openSeeded( 15 )
+
+    const before = rows( 'SELECT user_id, module FROM eligible_users ORDER BY user_id, module' )
+
+    runMigrations( getDatabase(), migrations.slice( 0, 7 ) )
+
+    expect( rows( 'SELECT user_id, module FROM eligible_users ORDER BY user_id, module' ) )
+      .toEqual( before )
+    expect( before.length ).toBeGreaterThan( 0 )
+  } )
+
+  it( 'creates the new tables empty and gives existing subjects no goal', () => {
+    migrated()
+
+    for( const table of [
+      'themis_areas',
+      'themis_goals',
+      'themis_metric_updates',
+      'themis_checkins',
+      'time_entries',
+    ] ) {
+      expect( tableCounts()[ table ], table ).toBe( 0 )
+    }
+
+    expect( rows( 'SELECT DISTINCT goal_id FROM melete_subjects' ) )
+      .toEqual( [ { goal_id: null } ] )
+  } )
+
+  it( 'keeps area names unique per user, ignoring case', () => {
+    migrated()
+    addArea( 'a1', 'Career' )
+
+    expect( () => addArea( 'a2', 'career' ) ).toThrow( /UNIQUE/ )
+    addArea( 'a3', 'Career', ADMIN )
+  } )
+
+  it( 'ties each outcome type to its fields', () => {
+    migrated()
+    addArea( 'a1', 'Career' )
+
+    expect( () => addGoal( 'g1', 'a1', "'metric', 'kg', NULL, NULL" ) ).toThrow( /CHECK/ )
+    expect( () => addGoal( 'g2', 'a1', "'learning', NULL, 5, NULL" ) ).toThrow( /CHECK/ )
+    expect( () => addGoal( 'g3', 'a1', "'checkin', NULL, NULL, NULL" ) ).toThrow( /CHECK/ )
+    expect( () => addGoal( 'g4', 'a1', "'checkin', NULL, NULL, 'daily'" ) ).toThrow( /CHECK/ )
+    expect( () => addGoal( 'g5', 'a1', "'learning', NULL, NULL, 'weekly'" ) ).toThrow( /CHECK/ )
+    expect( () => addGoal( 'g6', 'a1', "'mood', NULL, NULL, NULL" ) ).toThrow( /CHECK/ )
+    addGoal( 'g7', 'a1', "'metric', 'kg', 70, NULL" )
+    addGoal( 'g8', 'a1', "'checkin', NULL, NULL, 'weekly'" )
+    addGoal( 'g9', 'a1' )
+    expect( () => getDatabase().prepare( 'UPDATE themis_goals SET status = ? WHERE id = ?' )
+      .run( 'paused', 'g9' ) ).toThrow( /CHECK/ )
+  } )
+
+  it( 'limits check-ins to one per period and a rating of 1 to 5', () => {
+    migrated()
+    addArea( 'a1', 'Family' )
+    addGoal( 'g1', 'a1', "'checkin', NULL, NULL, 'weekly'" )
+
+    const insert = ( period: string, rating: number ): unknown => getDatabase()
+      .prepare( `INSERT INTO themis_checkins ( user_id, goal_id, period_start, rating, created_at )
+        VALUES ( ?, 'g1', ?, ?, ? )` ).run( MEMBER, period, rating, NOW )
+
+    insert( '2026-11-02', 4 )
+    expect( () => insert( '2026-11-02', 3 ) ).toThrow( /UNIQUE/ )
+    expect( () => insert( '2026-11-09', 0 ) ).toThrow( /CHECK/ )
+    expect( () => insert( '2026-11-09', 6 ) ).toThrow( /CHECK/ )
+  } )
+
+  it( 'checks the shape of a time entry', () => {
+    migrated()
+    addArea( 'a1', 'Career' )
+    addGoal( 'g1', 'a1' )
+
+    const insert = (
+      source: string,
+      subject: string | null,
+      goal: string | null,
+      seconds: number,
+    ): unknown =>
+      getDatabase().prepare( `INSERT INTO time_entries
+        ( id, user_id, source, subject_id, goal_id, day, seconds, created_at, updated_at )
+        VALUES ( ?, ?, ?, ?, ?, '2026-11-07', ?, ?, ? )` )
+        .run( crypto.randomUUID(), MEMBER, source, subject, goal, seconds, NOW, NOW )
+
+    insert( 'measured', SUBJECT, null, 30 )
+    insert( 'logged', SUBJECT, null, 600 )
+    insert( 'logged', null, 'g1', 600 )
+    expect( () => insert( 'logged', SUBJECT, 'g1', 600 ) ).toThrow( /CHECK/ )
+    expect( () => insert( 'logged', null, null, 600 ) ).toThrow( /CHECK/ )
+    expect( () => insert( 'measured', null, 'g1', 600 ) ).toThrow( /CHECK/ )
+    expect( () => insert( 'logged', SUBJECT, null, 0 ) ).toThrow( /CHECK/ )
+    expect( () => insert( 'guess', SUBJECT, null, 60 ) ).toThrow( /CHECK/ )
+  } )
+
+  it( 'cascades a goal to its updates, check-ins and time, and unlinks its subjects', () => {
+    migrated()
+    addArea( 'a1', 'Career' )
+    addGoal( 'g1', 'a1', "'metric', 'kg', 70, NULL" )
+
+    const db = getDatabase()
+
+    db.prepare( 'UPDATE melete_subjects SET goal_id = ? WHERE id = ?' ).run( 'g1', SUBJECT )
+    db.prepare( `INSERT INTO themis_metric_updates ( user_id, goal_id, value, at )
+      VALUES ( ?, 'g1', 71.5, ? )` ).run( MEMBER, NOW )
+    db.prepare( `INSERT INTO time_entries
+      ( id, user_id, source, goal_id, day, seconds, created_at, updated_at )
+      VALUES ( 't1', ?, 'logged', 'g1', '2026-11-07', 600, ?, ? )` ).run( MEMBER, NOW, NOW )
+    db.prepare( 'DELETE FROM themis_goals WHERE id = ?' ).run( 'g1' )
+
+    expect( tableCounts().themis_metric_updates ).toBe( 0 )
+    expect( tableCounts().time_entries ).toBe( 0 )
+    expect( rows( `SELECT goal_id FROM melete_subjects WHERE id = '${ SUBJECT }'` ) )
+      .toEqual( [ { goal_id: null } ] )
+  } )
+
+  it( 'removes a subject\'s time with the subject', () => {
+    migrated()
+
+    const db = getDatabase()
+
+    db.prepare( `INSERT INTO time_entries
+      ( id, user_id, source, subject_id, day, seconds, created_at, updated_at )
+      VALUES ( 't1', ?, 'measured', ?, '2026-11-07', 30, ?, ? )` ).run( MEMBER, SUBJECT, NOW, NOW )
+    db.prepare( 'DELETE FROM melete_reviews' ).run()
+    db.prepare( 'DELETE FROM melete_questions' ).run()
+    db.prepare( 'DELETE FROM melete_notes' ).run()
+    db.prepare( 'DELETE FROM melete_subjects' ).run()
+
+    expect( tableCounts().time_entries ).toBe( 0 )
+  } )
+
+  it( 'refuses to delete an area that has goals, but a removed user takes everything', () => {
+    migrated()
+    addArea( 'a1', 'Career' )
+    addGoal( 'g1', 'a1' )
+
+    const db = getDatabase()
+
+    expect( () => db.prepare( 'DELETE FROM themis_areas WHERE id = ?' ).run( 'a1' ) )
+      .toThrow( /FOREIGN KEY/ )
+
+    db.prepare( 'DELETE FROM users WHERE id = ?' ).run( MEMBER )
+
+    expect( tableCounts().themis_areas ).toBe( 0 )
+    expect( tableCounts().themis_goals ).toBe( 0 )
+    expect( db.pragma( 'foreign_key_check' ) ).toEqual( [] )
+    expect( db.pragma( 'integrity_check', { simple: true } ) ).toBe( 'ok' )
+  } )
+} )

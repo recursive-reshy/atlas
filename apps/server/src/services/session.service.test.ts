@@ -101,7 +101,7 @@ describe( 'resolveSession', () => {
     const { token } = createSession( addUser( 'boss', 'admin' ), START )
 
     expect( resolveSession( token, after( 1000 ) )?.user.modules )
-      .toEqual( [ 'transcriber', 'melete' ] )
+      .toEqual( [ 'transcriber', 'melete', 'themis' ] )
   } )
 
   it( 'is null for an unknown token, a missing token and an expired session', () => {
