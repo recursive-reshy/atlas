@@ -15,6 +15,7 @@ import {
   generateApprovedQuestions,
   generateQuestions,
   gradeAnswer,
+  mapNote,
   summarizeSource,
 } from './claude.client.js'
 // Errors
@@ -548,5 +549,59 @@ describe( 'generateApprovedQuestions', () => {
     } ) )
 
     await expect( generateApprovedQuestions( request ) ).rejects.toThrow( MeleteError )
+  } )
+} )
+
+describe( 'mapNote', () => {
+  const mapped = {
+    concepts: [ 'c1' ],
+    off_syllabus: null,
+    labels: [ { question: 1, concept: 'c1' } ],
+  }
+  const request = { model: 'claude-haiku-5-5', system: 'Map it.', user: '## Concepts' }
+
+  beforeEach( () => {
+    parse.mockResolvedValue( reply( { parsed_output: mapped } ) )
+  } )
+
+  it( 'returns the parsed mapping with the tokens it used', async () => {
+    expect( await mapNote( request ) ).toEqual( {
+      output: mapped,
+      usage: { input_tokens: 1234, output_tokens: 56 },
+    } )
+  } )
+
+  it( 'uses the generation timeout, 2048 tokens and structured output', async () => {
+    await mapNote( request )
+
+    const [ sent ] = parse.mock.calls[ 0 ] as [ Record< string, unknown > ]
+
+    expect( constructed ).toEqual( [ { apiKey: 'sk-test', timeout: 54_321, maxRetries: 1 } ] )
+    expect( sent ).toMatchObject( {
+      model: 'claude-haiku-5-5',
+      max_tokens: 2048,
+      system: 'Map it.',
+      messages: [ { role: 'user', content: '## Concepts' } ],
+      output_config: { effort: 'medium', format: expect.anything() as unknown },
+    } )
+  } )
+
+  it.each( [
+    [ 'max_tokens', 'Mapping was cut off before it finished' ],
+    [ 'refusal', 'Mapping was declined by the model' ],
+  ] )( 'throws a MeleteError carrying the tokens on %s', async ( stopReason, message ) => {
+    parse.mockResolvedValue( reply( { stop_reason: stopReason, parsed_output: null } ) )
+
+    await expect( mapNote( request ) ).rejects.toMatchObject( {
+      message,
+      usage: { input_tokens: 1234, output_tokens: 56 },
+    } )
+  } )
+
+  it( 'throws when the answer does not match the format', async () => {
+    parse.mockResolvedValue( reply( { parsed_output: { concepts: 'c1' } } ) )
+
+    await expect( mapNote( request ) )
+      .rejects.toThrow( 'Mapping response did not match the expected format' )
   } )
 } )

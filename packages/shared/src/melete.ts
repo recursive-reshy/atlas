@@ -141,6 +141,15 @@ export const MeleteApprovedQuestionsOutput = z.object( {
 } )
 export type MeleteApprovedQuestionsOutput = z.infer< typeof MeleteApprovedQuestionsOutput >
 
+// Map: where the note belongs in the syllabus and which concept each of its questions tests;
+// questions are numbered from 1 in the order they were sent (ADR 0089)
+export const MeleteMapOutput = z.object( {
+  concepts: z.array( z.string() ).max( 5 ),
+  off_syllabus: z.object( { suggested_concept: z.string().max( 200 ) } ).nullable(),
+  labels: z.array( z.object( { question: z.int().min( 1 ), concept: z.string() } ) ).max( 50 ),
+} )
+export type MeleteMapOutput = z.infer< typeof MeleteMapOutput >
+
 export const MeleteGradeOutput = MeleteGrade
 export type MeleteGradeOutput = MeleteGrade
 

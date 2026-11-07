@@ -20,6 +20,7 @@ import {
   MeleteQuestion,
   MeleteQuestionState,
   MeleteApprovedQuestionsOutput,
+  MeleteMapOutput,
   MeleteQuestionsOutput,
   MeleteRating,
   MeleteReviewCounts,
@@ -292,6 +293,34 @@ describe( 'MeleteApprovedQuestionsOutput', () => {
     expect( accepts( MeleteApprovedQuestionsOutput, {
       ...reply,
       questions: [ { prompt: 'Why?', answer: 'Because.', passage: '' } ],
+    } ) ).toBe( false )
+  } )
+} )
+
+describe( 'MeleteMapOutput', () => {
+  const reply = {
+    concepts: [ 'c1' ],
+    off_syllabus: null,
+    labels: [ { question: 1, concept: 'c1' } ],
+  }
+
+  it( 'accepts concepts, an off-syllabus suggestion and numbered labels', () => {
+    expect( MeleteMapOutput.parse( reply ) ).toEqual( reply )
+    expect( accepts( MeleteMapOutput, {
+      concepts: [],
+      off_syllabus: { suggested_concept: 'Decorators' },
+      labels: [],
+    } ) ).toBe( true )
+  } )
+
+  it( 'allows at most 5 concepts and rejects a question number below 1', () => {
+    expect( accepts( MeleteMapOutput, {
+      ...reply,
+      concepts: [ 'c1', 'c2', 'c3', 'c4', 'c5', 'c6' ],
+    } ) ).toBe( false )
+    expect( accepts( MeleteMapOutput, {
+      ...reply,
+      labels: [ { question: 0, concept: 'c1' } ],
     } ) ).toBe( false )
   } )
 } )

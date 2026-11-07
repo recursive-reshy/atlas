@@ -6,6 +6,7 @@ import { z } from 'zod'
 import {
   MeleteApprovedQuestionsOutput,
   MeleteGradeOutput,
+  MeleteMapOutput,
   MeleteQuestionsOutput,
   MeleteSyllabusOutput,
   SourceDocument,
@@ -131,9 +132,14 @@ export interface ApprovedQuestionsOutcome {
 
 const QUESTIONS_MAX_TOKENS = 4096
 
-// Plain and approved-syllabus generation differ only in the output they ask for
-const callQuestions = async < Schema extends z.ZodType >(
+type Wording = { action: string, response: string }
+
+// One structured Melete call: the plain and approved Generate and Map differ only in the output
+// they ask for, the room they get and how their errors read
+const callStructured = async < Schema extends z.ZodType >(
   schema: Schema,
+  { action, response: noun }: Wording,
+  maxTokens: number,
   { model, system, user }: MeleteCall,
 ): Promise< { output: z.infer< Schema >, usage: TokenUsage } > => {
   const client = new Anthropic( {
@@ -145,7 +151,7 @@ const callQuestions = async < Schema extends z.ZodType >(
   try {
     const response = await client.messages.parse( {
       model,
-      max_tokens: QUESTIONS_MAX_TOKENS,
+      max_tokens: maxTokens,
       system,
       messages: [ { role: 'user', content: user } ],
       output_config: { effort: 'medium', format: zodOutputFormat( schema ) },
@@ -156,37 +162,61 @@ const callQuestions = async < Schema extends z.ZodType >(
     }
 
     if( response.stop_reason === 'max_tokens' ) {
-      throw new MeleteError( 'Question generation was cut off before it finished', { usage } )
+      throw new MeleteError( `${ action } was cut off before it finished`, { usage } )
     }
 
     if( response.stop_reason === 'refusal' ) {
-      throw new MeleteError( 'Question generation was declined by the model', { usage } )
+      throw new MeleteError( `${ action } was declined by the model`, { usage } )
     }
 
     const parsed = schema.safeParse( response.parsed_output )
 
     if( !parsed.success ) {
-      throw new MeleteError( 'Question response did not match the expected format', { usage } )
+      throw new MeleteError( `${ noun } did not match the expected format`, { usage } )
     }
 
     return { output: parsed.data, usage }
   } catch( error ) {
     if( error instanceof Anthropic.APIError ) {
-      throw new MeleteError( `Question generation failed: ${ error.message }`, { cause: error } )
+      throw new MeleteError( `${ action } failed: ${ error.message }`, { cause: error } )
     }
 
     throw error
   }
 }
 
+const QUESTIONS_WORDING: Wording = { action: 'Question generation', response: 'Question response' }
+
 export const generateQuestions = async ( call: MeleteCall ): Promise< QuestionsOutcome > => {
-  return callQuestions( MeleteQuestionsOutput, call )
+  return callStructured( MeleteQuestionsOutput, QUESTIONS_WORDING, QUESTIONS_MAX_TOKENS, call )
 }
 
 export const generateApprovedQuestions = async (
   call: MeleteCall,
 ): Promise< ApprovedQuestionsOutcome > => {
-  return callQuestions( MeleteApprovedQuestionsOutput, call )
+  return callStructured(
+    MeleteApprovedQuestionsOutput,
+    QUESTIONS_WORDING,
+    QUESTIONS_MAX_TOKENS,
+    call,
+  )
+}
+
+export interface MapOutcome {
+  output: MeleteMapOutput
+  usage: TokenUsage
+}
+
+// A note's concepts plus a label for each of up to 10 questions
+const MAP_MAX_TOKENS = 2048
+
+export const mapNote = async ( call: MeleteCall ): Promise< MapOutcome > => {
+  return callStructured(
+    MeleteMapOutput,
+    { action: 'Mapping', response: 'Mapping response' },
+    MAP_MAX_TOKENS,
+    call,
+  )
 }
 
 export interface SyllabusOutcome {

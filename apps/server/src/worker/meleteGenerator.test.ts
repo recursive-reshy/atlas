@@ -13,6 +13,7 @@ import { findNote, updateNote } from '../repositories/meleteNotes.repository.js'
 import { findSubject, updateSubject } from '../repositories/meleteSubjects.repository.js'
 // Services
 import { generateForNote } from '../services/meleteGeneration.service.js'
+import { mapForNote } from '../services/meleteMapping.service.js'
 import { draftForSubject } from '../services/meleteSyllabus.service.js'
 // Worker
 import { startMeleteGenerator } from './meleteGenerator.js'
@@ -31,10 +32,12 @@ beforeEach( () => {
 } )
 
 vi.mock( '../services/meleteGeneration.service.js' )
+vi.mock( '../services/meleteMapping.service.js' )
 vi.mock( '../services/meleteSyllabus.service.js' )
 
 const generateMock = vi.mocked( generateForNote )
 const draftMock = vi.mocked( draftForSubject )
+const mapMock = vi.mocked( mapForNote )
 
 let events: string[]
 let gates: Map< string, () => void >
@@ -62,6 +65,12 @@ beforeEach( () => {
     events.push( `draft:${ id }` )
     seenSubjectContexts.push( getLogContext()?.melete_subject_id )
     updateSubject( userId, id, { syllabus_status: 'draft' } )
+
+    return Promise.resolve()
+  } )
+  mapMock.mockImplementation( ( _owner, id ) => {
+    events.push( `map:${ id }` )
+    updateNote( userId, id, { mapping: 'idle' } )
 
     return Promise.resolve()
   } )
@@ -380,3 +389,87 @@ describe( 'startMeleteGenerator, syllabus drafts (ADR 0089)', () => {
     expect( generateMock ).toHaveBeenCalledWith( userId, note )
   } )
 } )
+
+describe( 'mapping in the Melete loop', () => {
+  const queuedMapping = ( enrolledAt: string ): string => {
+    return addNote( userId, subjectId, { mapping: 'queued', enrolledAt } )
+  }
+
+  it( 'maps a note queued for mapping, inside a log context carrying its id', async () => {
+    const id = queuedMapping( '2026-10-01T00:00:00.000Z' )
+
+    mapMock.mockImplementation( ( _owner, noteId ) => {
+      seenContexts.push( getLogContext()?.melete_note_id )
+      updateNote( userId, noteId, { mapping: 'idle' } )
+
+      return Promise.resolve()
+    } )
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( mapMock ).toHaveBeenCalledWith( userId, id )
+    expect( seenContexts ).toEqual( [ id ] )
+    expect( findNote( userId, id )?.mapping ).toBe( 'idle' )
+  } )
+
+  it( 'drafts first, then generates, then maps', async () => {
+    const mapping = queuedMapping( '2026-10-01T00:00:00.000Z' )
+    const generating = queued( '2026-10-02T00:00:00.000Z' )
+    const drafting = addSubject( userId, 'Learning/Other' )
+
+    updateSubject( userId, drafting, { syllabus_status: 'drafting' } )
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( events ).toEqual( [
+      `draft:${ drafting }`,
+      `start:${ generating }`,
+      `end:${ generating }`,
+      `map:${ mapping }`,
+    ] )
+  } )
+
+  it( 'waits to map a note that is still queued for its questions', async () => {
+    const id = addNote( userId, subjectId, { generation: 'queued', mapping: 'queued' } )
+
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( events ).toEqual( [ `start:${ id }`, `end:${ id }`, `map:${ id }` ] )
+  } )
+
+  it( 'puts notes left mapping by a restart back in the queue and maps them', async () => {
+    const id = addNote( userId, subjectId, { mapping: 'mapping' } )
+
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( mapMock ).toHaveBeenCalledWith( userId, id )
+  } )
+
+  it( 'logs an error from mapping and carries on with the next note', async () => {
+    const error = vi.spyOn( logger, 'error' )
+    const first = queuedMapping( '2026-10-01T00:00:00.000Z' )
+    const second = queuedMapping( '2026-10-02T00:00:00.000Z' )
+
+    mapMock.mockRejectedValueOnce( new Error( 'database is locked' ) )
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+    await vi.advanceTimersByTimeAsync( 1000 )
+
+    expect( error ).toHaveBeenCalledTimes( 1 )
+    expect( mapMock ).toHaveBeenNthCalledWith( 1, userId, first )
+    expect( mapMock ).toHaveBeenNthCalledWith( 2, userId, second )
+  } )
+
+  it( 'leaves idle and failed mapping alone', async () => {
+    addNote( userId, subjectId, { mapping: 'idle' } )
+    addNote( userId, subjectId, { mapping: 'failed' } )
+
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( mapMock ).not.toHaveBeenCalled()
+  } )
+} )
+

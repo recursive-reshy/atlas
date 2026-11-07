@@ -1,11 +1,14 @@
 // Services
 import { generateForNote } from '../services/meleteGeneration.service.js'
+import { mapForNote } from '../services/meleteMapping.service.js'
 import { draftForSubject } from '../services/meleteSyllabus.service.js'
 // Repositories
 import {
   claimNextDraft,
   claimNextGeneration,
+  claimNextMapping,
   requeueGenerating,
+  requeueMapping,
 } from '../repositories/system.repository.js'
 // Logging
 import { logger } from '../logger.js'
@@ -13,8 +16,9 @@ import { withLogContext } from '../logContext.js'
 
 const POLL_INTERVAL_MS = 1000
 
-// Drafts syllabi and makes questions for queued notes, one at a time, beside the job worker
-// (ADRs 0058, 0089). Drafts go first: someone asked for one and is waiting on the page.
+// Drafts syllabi, makes questions for queued notes and maps notes onto an approved syllabus, one
+// at a time, beside the job worker (ADRs 0058, 0089). Drafts go first, someone is waiting on the
+// page for one; mapping goes last, because Generate maps the notes it makes questions for.
 export const startMeleteGenerator = (): ( () => Promise< void > ) => {
   let busy = false
   let stopped = false
@@ -25,6 +29,15 @@ export const startMeleteGenerator = (): ( () => Promise< void > ) => {
 
   if( requeued > 0 ) {
     logger.info( { requeued }, 'Requeued Melete notes interrupted by a restart' )
+  }
+
+  const requeuedMapping = requeueMapping()
+
+  if( requeuedMapping > 0 ) {
+    logger.info(
+      { requeued: requeuedMapping },
+      'Requeued Melete mappings interrupted by a restart',
+    )
   }
 
   const runPass = async (): Promise< void > => {
@@ -49,15 +62,26 @@ export const startMeleteGenerator = (): ( () => Promise< void > ) => {
 
         const note = claimNextGeneration( new Date().toISOString() )
 
-        if( note === undefined ) {
+        if( note !== undefined ) {
+          const { id, user_id: userId } = note
+
+          await withLogContext(
+            { melete_note_id: id, user_id: userId },
+            () => generateForNote( userId, id ),
+          )
+
+          continue
+        }
+
+        const mapping = claimNextMapping( new Date().toISOString() )
+
+        if( mapping === undefined ) {
           break
         }
 
-        const { id, user_id: userId } = note
-
         await withLogContext(
-          { melete_note_id: id, user_id: userId },
-          () => generateForNote( userId, id ),
+          { melete_note_id: mapping.id, user_id: mapping.user_id },
+          () => mapForNote( mapping.user_id, mapping.id ),
         )
       }
     } catch( error ) {

@@ -455,6 +455,24 @@ describe( 'the note routes', () => {
       .toMatchObject( { generation: 'queued', generation_error: null } )
   } )
 
+  it( 'POST retry queues a failed mapping, and refuses a note with nothing failed', async () => {
+    await scanned()
+    const { id } = note( GENERICS )
+
+    updateNote( userId, id, { mapping: 'failed', mapping_error: 'Overloaded' } )
+
+    const retried = await request( app ).post( `/api/melete/notes/${ id }/retry` )
+    const again = await request( app ).post( `/api/melete/notes/${ id }/retry` )
+
+    expect( retried.status ).toBe( 202 )
+    expect( GetMeleteNoteResponse.parse( retried.body ).note ).toMatchObject( {
+      generation: 'idle',
+      mapping: 'queued',
+      mapping_error: null,
+    } )
+    expect( again.status ).toBe( 409 )
+  } )
+
   it.each( [ 'get', 'patch', 'post' ] as const )(
     'returns 404 for an unknown note (%s)',
     async ( method ) => {

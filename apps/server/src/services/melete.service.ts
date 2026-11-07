@@ -281,11 +281,15 @@ export const regenerateNote = ( userId: string, id: string ): GetMeleteNoteRespo
 }
 
 export const retryGeneration = ( userId: string, id: string ): GetMeleteNoteResponse => {
-  if( requireNote( userId, id ).generation !== 'failed' ) {
-    throw new ConflictError( 'Only a note whose generation failed can be retried' )
-  }
+  const note = requireNote( userId, id )
 
-  queueGeneration( userId, id )
+  if( note.generation === 'failed' ) {
+    queueGeneration( userId, id )
+  } else if( note.mapping === 'failed' ) {
+    updateNote( userId, id, { mapping: 'queued', mapping_error: null } )
+  } else {
+    throw new ConflictError( 'Only a note whose generation or mapping failed can be retried' )
+  }
 
   return noteView( userId, requireNote( userId, id ) )
 }
