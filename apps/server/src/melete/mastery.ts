@@ -1,5 +1,5 @@
 // Shared
-import type { MeleteConceptBucket } from '@atlas/shared'
+import type { MeleteConceptBucket, MeleteNextStep } from '@atlas/shared'
 
 // Coverage and mastery (ADR 0090): pure functions over plain rows, computed on read
 
@@ -69,4 +69,20 @@ export const rollUp = (
     coverage: stats.filter( ( { bucket } ) => bucket !== 'uncovered' ).length / stats.length,
     mastery: stats.reduce( ( sum, { mastery } ) => sum + mastery, 0 ) / stats.length,
   }
+}
+
+// The first concept no note reaches; else the weakest covered one (the first on a tie)
+export const nextStep = ( stats: ConceptStat[] ): MeleteNextStep => {
+  const uncovered = stats.find( ( { bucket } ) => bucket === 'uncovered' )
+
+  if( uncovered !== undefined ) {
+    return { kind: 'cover', concept_id: uncovered.id }
+  }
+
+  const weak = stats.filter( ( { bucket } ) => bucket === 'weak' )
+  const weakest = weak.reduce< ConceptStat | undefined >( ( lowest, stat ) => {
+    return lowest === undefined || stat.mastery < lowest.mastery ? stat : lowest
+  }, undefined )
+
+  return weakest === undefined ? { kind: 'none' } : { kind: 'review', concept_id: weakest.id }
 }

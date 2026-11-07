@@ -4,6 +4,7 @@ import { describe, it, expect } from 'vitest'
 import {
   MASTERY_THRESHOLD,
   computeConceptStats,
+  nextStep,
   questionScore,
   rollUp,
 } from './mastery.js'
@@ -118,5 +119,39 @@ describe( 'rollUp', () => {
 
   it( 'is null when there are no concepts', () => {
     expect( rollUp( [] ) ).toBeNull()
+  } )
+} )
+
+describe( 'nextStep', () => {
+  const stepOf = ( inputs: ReturnType< typeof concept >[] ) => {
+    return nextStep( computeConceptStats( inputs, 21 ) )
+  }
+  const solid = { reps: 5, stability: 40 }
+
+  it( 'covers the first uncovered concept in syllabus order', () => {
+    expect( stepOf( [
+      concept( 'a', { questions: [ solid ] } ),
+      concept( 'b', { noteCount: 0 } ),
+      concept( 'c', { noteCount: 0 } ),
+    ] ) ).toEqual( { kind: 'cover', concept_id: 'b' } )
+  } )
+
+  it( 'covers before it reviews, even when a weak concept comes first', () => {
+    expect( stepOf( [ concept( 'a' ), concept( 'b', { noteCount: 0 } ) ] ) )
+      .toEqual( { kind: 'cover', concept_id: 'b' } )
+  } )
+
+  it( 'reviews the weakest covered concept once everything is covered, the first on a tie', () => {
+    expect( stepOf( [
+      concept( 'a', { questions: [ { reps: 1, stability: 10 } ] } ),
+      concept( 'b', { questions: [ { reps: 1, stability: 4 } ] } ),
+      concept( 'c', { questions: [ { reps: 1, stability: 4 } ] } ),
+      concept( 'd', { questions: [ solid ] } ),
+    ] ) ).toEqual( { kind: 'review', concept_id: 'b' } )
+  } )
+
+  it( 'has nothing to suggest when every concept is solid, or there are none', () => {
+    expect( stepOf( [ concept( 'a', { questions: [ solid ] } ) ] ) ).toEqual( { kind: 'none' } )
+    expect( stepOf( [] ) ).toEqual( { kind: 'none' } )
   } )
 } )

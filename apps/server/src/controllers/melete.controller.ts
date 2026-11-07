@@ -5,6 +5,7 @@ import { z } from 'zod'
 // Shared
 import {
   ApproveMeleteSyllabusResponse,
+  GetMeleteGapsResponse,
   OffSyllabusActionBody,
   RemapMeleteSyllabusResponse,
   UpdateNoteConceptsBody,
@@ -39,6 +40,7 @@ import {
   setSubjectEnrolled,
   updateSubject,
 } from '../services/melete.service.js'
+import { getGaps } from '../services/meleteGaps.service.js'
 import {
   applyOffSyllabusAction,
   setNoteConceptsByHand,
@@ -139,6 +141,13 @@ export const postOffSyllabus = (
   ) )
 }
 
+export const getMeleteGaps = (
+  req: Request,
+  res: Response< GetMeleteGapsResponse >,
+): void => {
+  res.status( 200 ).json( getGaps( currentUser( req ).id, Id.parse( req.params.id ) ) )
+}
+
 export const postRemapSyllabus = (
   req: Request,
   res: Response< RemapMeleteSyllabusResponse >,
@@ -202,9 +211,12 @@ export const getReviewNext = async (
   req: Request,
   res: Response< GetNextReviewResponse >,
 ): Promise< void > => {
-  const { subject } = z.object( { subject: Id.optional() } ).parse( req.query )
+  const { subject, concept } = z.object( { subject: Id.optional(), concept: Id.optional() } )
+    .parse( req.query )
 
-  res.status( 200 ).json( await getNextReview( currentUser( req ).id, { subjectId: subject } ) )
+  res.status( 200 ).json(
+    await getNextReview( currentUser( req ).id, { subjectId: subject, conceptId: concept } ),
+  )
 }
 
 export const postGradeAnswer = async (

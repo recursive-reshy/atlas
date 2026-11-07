@@ -84,6 +84,7 @@ describe( 'the Melete routes are per user', () => {
     type Call = [ string, string, object? ]
     const calls = ( s: string, n: string, q: string ): Call[] => [
       [ 'get', `/api/melete/subjects/${ s }` ],
+      [ 'get', `/api/melete/subjects/${ s }/gaps` ],
       [ 'patch', `/api/melete/subjects/${ s }`, { new_per_day: 1 } ],
       [ 'post', `/api/melete/subjects/${ s }/enrollment`, { enrolled: true } ],
       [ 'get', `/api/melete/notes/${ n }` ],
@@ -116,7 +117,7 @@ describe( 'the Melete routes are per user', () => {
 
     expect( refused.map( ( { status } ) => status ) )
       .toEqual( missing.map( ( { status } ) => status ) )
-    expect( refused.map( ( { status } ) => status ) ).toEqual( Array( 14 ).fill( 404 ) )
+    expect( refused.map( ( { status } ) => status ) ).toEqual( Array( 15 ).fill( 404 ) )
     expect( refused.map( ( { body } ) => body ) ).toEqual( missing.map( ( { body } ) => body ) )
     expect( findQuestion( owner.id, question )?.state ).toBe( 'active' )
   } )

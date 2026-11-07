@@ -14,6 +14,7 @@ import {
 import { draftSyllabus, gradeAnswer } from '../clients/claude.client.js'
 // Shared
 import {
+  GetMeleteGapsResponse,
   GetMeleteNoteResponse,
   GetMeleteSubjectResponse,
   GetMeleteTodayResponse,
@@ -594,6 +595,43 @@ describe( 'GET /api/melete/review/next', () => {
     expect( GetNextReviewResponse.parse( typescript.body ).item ).not.toBeNull()
   } )
 
+  it( 'limits the queue to one concept, whether or not anything is due', async () => {
+    await scanned()
+
+    const { id: subjectId } = subject( 'TypeScript' )
+
+    replaceSyllabus( userId, subjectId, [
+      { name: 'S', concepts: [ { name: 'A', description: '' } ] },
+    ] )
+
+    const [ concept ] = listConcepts( userId, subjectId )
+
+    getDatabase().prepare( 'UPDATE melete_notes SET enrolled = 1' ).run()
+
+    const question = addQuestion( userId, note( GENERICS ).id, {
+      conceptId: concept?.id,
+      fsrsState: 'review',
+      due: '2099-01-01T00:00:00.000Z',
+      lastReview: '2020-01-01T00:00:00.000Z',
+    } )
+    const response = await request( app ).get( `/api/melete/review/next?concept=${ concept?.id }` )
+
+    expect( response.status ).toBe( 200 )
+    expect( GetNextReviewResponse.parse( response.body ).item?.question.id ).toBe( question )
+  } )
+
+  it( 'answers 404 for an unknown concept and 400 for one that is not a uuid', async () => {
+    await scanned()
+
+    const unknownId = crypto.randomUUID()
+
+    const unknown = await request( app ).get( `/api/melete/review/next?concept=${ unknownId }` )
+
+    expect( unknown.status ).toBe( 404 )
+    expect( ( await request( app ).get( '/api/melete/review/next?concept=nope' ) ).status )
+      .toBe( 400 )
+  } )
+
   it( 'links to the note in the user\'s own Obsidian vault', async () => {
     await dueQuestion()
 
@@ -1007,5 +1045,46 @@ describe( 'the note mapping routes', () => {
 
     expect( dismiss.status ).toBe( 404 )
     expect( ( await put( '/api/melete/notes/nope/concepts' ) ).status ).toBe( 400 )
+  } )
+} )
+
+describe( 'GET /api/melete/subjects/:id/gaps', () => {
+  const withSyllabus = async ( status: 'approved' | 'draft' ): Promise< string > => {
+    await scanned()
+
+    const { id } = subject( 'Rust' )
+
+    replaceSyllabus( userId, id, [
+      { name: 'Basics', concepts: [ { name: 'Ownership', description: '' } ] },
+    ] )
+    updateSubject( userId, id, { target_level: 'working', syllabus_status: status } )
+
+    return id
+  }
+
+  it( 'returns the sections with their numbers and the next step', async () => {
+    const id = await withSyllabus( 'approved' )
+    const response = await request( app ).get( `/api/melete/subjects/${ id }/gaps` )
+    const gaps = GetMeleteGapsResponse.parse( response.body )
+
+    expect( response.status ).toBe( 200 )
+    expect( gaps.sections[ 0 ]?.concepts[ 0 ] )
+      .toMatchObject( { name: 'Ownership', bucket: 'uncovered' } )
+    expect( gaps.next_step.kind ).toBe( 'cover' )
+    expect( gaps.coverage ).toBe( 0 )
+  } )
+
+  it( 'answers 409 until approved, and 404 for a stranger or an unknown id', async () => {
+    const id = await withSyllabus( 'draft' )
+    const other = createTestUser( { modules: [ 'melete' ] } )
+
+    expect( ( await request( app ).get( `/api/melete/subjects/${ id }/gaps` ) ).status ).toBe( 409 )
+    expect( ( await request( app, other ).get( `/api/melete/subjects/${ id }/gaps` ) ).status )
+      .toBe( 404 )
+    const unknownId = crypto.randomUUID()
+
+    expect( ( await request( app ).get( `/api/melete/subjects/${ unknownId }/gaps` ) ).status )
+      .toBe( 404 )
+    expect( ( await request( app ).get( '/api/melete/subjects/nope/gaps' ) ).status ).toBe( 400 )
   } )
 } )

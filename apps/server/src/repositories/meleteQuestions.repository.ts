@@ -195,6 +195,22 @@ export const listLearningSoon = (
     .all( userId, ...subjectIds, until ) )
 }
 
+// A concept review (TRD §5.2): what is overdue, then what is not due yet, then questions never
+// asked. A question already reviewed today is left for another day unless it is due again, so a
+// review of the concept ends after one pass.
+export const listForConcept = (
+  userId: string,
+  { conceptId, now, dayStart }: { conceptId: string, now: string, dayStart: string },
+): QueuedQuestion[] => {
+  return parseQueued( getDatabase()
+    .prepare( `SELECT ${ QUEUED_COLUMNS } ${ REVIEWABLE }
+      AND q.concept_id = ?
+      AND ( q.due IS NULL OR q.due <= ? OR q.last_review IS NULL OR q.last_review < ? )
+      ORDER BY CASE WHEN q.due IS NULL THEN 2 WHEN q.due <= ? THEN 0 ELSE 1 END,
+        q.due, n.enrolled_at, n.path, q.position` )
+    .all( userId, conceptId, now, dayStart, now ) )
+}
+
 export const countBySubject = ( userId: string, now: string ): SubjectCounts[] => {
   return z.array( SubjectCounts ).parse( getDatabase()
     .prepare( `SELECT s.id AS subject_id,

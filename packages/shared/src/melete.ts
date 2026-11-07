@@ -188,6 +188,45 @@ export type EnrollSubjectBody = z.infer< typeof EnrollSubjectBody >
 export const UpdateMeleteNoteBody = z.object( { enrolled: z.boolean() } )
 export type UpdateMeleteNoteBody = z.infer< typeof UpdateMeleteNoteBody >
 
+export const MeleteGapConcept = z.object( {
+  id: z.uuid(),
+  name: z.string(),
+  description: z.string(),
+  bucket: MeleteConceptBucket,
+  mastery: z.number().min( 0 ).max( 1 ),
+  note_count: z.int().min( 0 ),
+  question_count: z.int().min( 0 ),
+} )
+export type MeleteGapConcept = z.infer< typeof MeleteGapConcept >
+
+// Coverage and mastery are null when there is nothing to average (ADR 0090)
+const Roll = z.number().min( 0 ).max( 1 ).nullable()
+
+export const MeleteGapSection = z.object( {
+  id: z.uuid(),
+  name: z.string(),
+  coverage: Roll,
+  mastery: Roll,
+  concepts: z.array( MeleteGapConcept ),
+} )
+export type MeleteGapSection = z.infer< typeof MeleteGapSection >
+
+// What to do next: cover the first concept no note reaches, else review the weakest
+export const MeleteNextStep = z.discriminatedUnion( 'kind', [
+  z.object( { kind: z.literal( 'cover' ), concept_id: z.uuid() } ),
+  z.object( { kind: z.literal( 'review' ), concept_id: z.uuid() } ),
+  z.object( { kind: z.literal( 'none' ) } ),
+] )
+export type MeleteNextStep = z.infer< typeof MeleteNextStep >
+
+export const GetMeleteGapsResponse = z.object( {
+  coverage: Roll,
+  mastery: Roll,
+  sections: z.array( MeleteGapSection ),
+  next_step: MeleteNextStep,
+} )
+export type GetMeleteGapsResponse = z.infer< typeof GetMeleteGapsResponse >
+
 // A hand mapping (ADR 0089): the note is pinned to exactly these concepts
 export const UpdateNoteConceptsBody = z.object( { concept_ids: z.array( z.uuid() ).max( 10 ) } )
 export type UpdateNoteConceptsBody = z.infer< typeof UpdateNoteConceptsBody >

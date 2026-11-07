@@ -20,7 +20,9 @@ import {
   MeleteQuestion,
   MeleteQuestionState,
   MeleteApprovedQuestionsOutput,
+  GetMeleteGapsResponse,
   MeleteMapOutput,
+  MeleteNextStep,
   OffSyllabusActionBody,
   UpdateNoteConceptsBody,
   MeleteQuestionsOutput,
@@ -348,6 +350,61 @@ describe( 'the note mapping bodies', () => {
     expect( accepts( OffSyllabusActionBody, { action: 'add_concept', section_id: id, name: '' } ) )
       .toBe( false )
     expect( accepts( OffSyllabusActionBody, { action: 'delete' } ) ).toBe( false )
+  } )
+} )
+
+describe( 'the gap view', () => {
+  const concept = {
+    id,
+    name: 'Generics',
+    description: '',
+    bucket: 'weak',
+    mastery: 0.25,
+    note_count: 1,
+    question_count: 4,
+  }
+  const gaps = {
+    coverage: 0.5,
+    mastery: 0.25,
+    sections: [ {
+      id: otherId,
+      name: 'Basics',
+      coverage: 0.5,
+      mastery: 0.25,
+      concepts: [ concept ],
+    } ],
+    next_step: { kind: 'review', concept_id: id },
+  }
+
+  it( 'parses sections of concepts with their buckets and a next step', () => {
+    expect( GetMeleteGapsResponse.parse( gaps ) ).toEqual( gaps )
+  } )
+
+  it( 'allows no numbers for a syllabus or a section without concepts', () => {
+    expect( accepts( GetMeleteGapsResponse, {
+      coverage: null,
+      mastery: null,
+      sections: [ { id: otherId, name: 'Empty', coverage: null, mastery: null, concepts: [] } ],
+      next_step: { kind: 'none' },
+    } ) ).toBe( true )
+  } )
+
+  it( 'rejects an unknown bucket and a mastery outside 0 to 1', () => {
+    const withConcept = ( changes: object ) => ( {
+      ...gaps,
+      sections: [ { ...gaps.sections[ 0 ], concepts: [ { ...concept, ...changes } ] } ],
+    } )
+
+    expect( accepts( GetMeleteGapsResponse, withConcept( { bucket: 'ok' } ) ) ).toBe( false )
+    expect( accepts( GetMeleteGapsResponse, withConcept( { mastery: 1.5 } ) ) ).toBe( false )
+  } )
+
+  it( 'has three kinds of next step, two of them naming a concept', () => {
+    expect( accepts( MeleteNextStep, { kind: 'cover', concept_id: id } ) ).toBe( true )
+    expect( accepts( MeleteNextStep, { kind: 'review', concept_id: id } ) ).toBe( true )
+    expect( accepts( MeleteNextStep, { kind: 'none' } ) ).toBe( true )
+    expect( accepts( MeleteNextStep, { kind: 'cover' } ) ).toBe( false )
+    expect( accepts( MeleteNextStep, { kind: 'rest' } ) ).toBe( false )
   } )
 } )
 

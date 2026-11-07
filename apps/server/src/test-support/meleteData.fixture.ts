@@ -79,6 +79,7 @@ type QuestionOptions = {
   reps?: number
   stability?: number
   conceptId?: string | null
+  lastReview?: string | null
 }
 
 export const addQuestion = (
@@ -96,14 +97,15 @@ export const addQuestion = (
     reps = 0,
     stability = 0,
     conceptId = null,
+    lastReview = null,
   } = options
 
   getDatabase()
     .prepare( `INSERT INTO melete_questions (
         id, user_id, note_id, position, prompt, answer, passage, body_hash, state, run_id,
-        due, fsrs_state, reps, stability, concept_id, created_at
+        due, fsrs_state, reps, stability, concept_id, last_review, created_at
       ) VALUES (
-        ?, ?, ?, ?, 'Prompt', 'Answer', '', ?, ?, 1, ?, ?, ?, ?, ?, '2026-10-01T00:00:00.000Z'
+        ?, ?, ?, ?, 'Prompt', 'Answer', '', ?, ?, 1, ?, ?, ?, ?, ?, ?, '2026-10-01T00:00:00.000Z'
       )` )
     .run(
       id,
@@ -117,6 +119,7 @@ export const addQuestion = (
       reps,
       stability,
       conceptId,
+      lastReview,
     )
 
   return id
