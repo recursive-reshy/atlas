@@ -82,7 +82,7 @@ const stale = ( file ) => read( file ).split( '\n' )
 
 test( 'the README and the CLAUDE.md files no longer describe downloading, ffmpeg or OpenAI', () => {
   assert.deepEqual(
-    [ 'README.md', 'CLAUDE.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md' ].flatMap( stale ),
+    [ 'README.md', 'CLAUDE.md', 'docs/architecture.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md' ].flatMap( stale ),
     [],
   )
 } )
@@ -104,11 +104,11 @@ test( 'the README documents the Gemini settings and YouTube-only video', () => {
 // Gemini goes through the Developer API with a key (ADR 0083): Vertex AI, Application Default
 // Credentials and the settings that went with them survive only in lines that say they are gone
 const VERTEX_WORDS = /vertex|aiplatform|application-default|application default|GOOGLE_CLOUD_PROJECT|GEMINI_LOCATION|GOOGLE_ADC_HOST_PATH|GEMINI_ACCESS_TOKEN|GOOGLE_APPLICATION_CREDENTIALS/i
-const SAYS_NOT_VERTEX = /no longer|removed|remove |disable|ignored|instead of|not Vertex|ADR 0083|upgrad|\bwere\b|refuses/i
+const SAYS_NOT_VERTEX = /no longer|removed|remove |disable|ignored|instead of|not Vertex|ADR 0083|upgrad|\bwere\b|refuses|refused/i
 
 test( 'no doc describes Vertex AI or Application Default Credentials as how Gemini works', () => {
   const offenders = [
-    'README.md', 'CLAUDE.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md',
+    'README.md', 'CLAUDE.md', 'docs/architecture.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md',
     'docs/deploy.md', 'docs/google-cloud-setup.md', '.env.example', 'apps/server/.env.example',
   ].flatMap( ( file ) => read( file ).split( '\n' )
     .map( ( line, index ) => ( { line, number: index + 1 } ) )
@@ -137,9 +137,9 @@ test( 'the Google Cloud guide covers the AI Studio key and the YouTube Data API 
   assert.match( text, /Generative Language API/ )
 } )
 
-test( 'the root CLAUDE.md describes Gemini and has no ops folder row', () => {
-  const text = read( 'CLAUDE.md' )
+test( 'docs/architecture.md describes Gemini and the root CLAUDE.md has no ops folder row', () => {
+  const text = read( 'docs/architecture.md' )
   assert.match( text, /Gemini/ )
   assert.match( text, /Only YouTube|YouTube-only|YouTube only/i )
-  assert.doesNotMatch( text, /^\| `ops\/` \|/m )
+  assert.doesNotMatch( read( 'CLAUDE.md' ), /^\| `ops\/` \|/m )
 } )
