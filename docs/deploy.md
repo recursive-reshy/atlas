@@ -286,6 +286,12 @@ sudo /opt/atlas/deploy.sh 0.11.0 --files ~/atlas-src
 
 If only the app changed, `sudo /opt/atlas/deploy.sh 0.11.0` is enough and keeps the installed files. `--dry-run` prints the steps and changes nothing.
 
+**The first upgrade from 0.10.0.** The installed 0.10.0 `deploy.sh` doesn't know `--force`, and the 0.10.0 app's health body has no `schema` or `replication` fields, so the new preflight can't read it. For that one upgrade:
+
+- send the 0.11.0 files and run the new script from them, not the installed one: `sudo ~/atlas-src/deploy/vm/deploy.sh 0.11.0 --files ~/atlas-src --force`;
+- `/var/lib/atlas/deploys.log` doesn't exist yet and the script can't learn the running schema from the old health body, so seed it by hand first: `echo "$(date -u +%FT%TZ) 0.10.0 13" | sudo tee /var/lib/atlas/deploys.log`;
+- a deploy over 0.10.0 needs `--force` in both directions, and the report is unreliable while 0.10.0 is involved: after a rollback to 0.10.0 it says `schema unknown`, and redeploying 0.11.0 can say `schema 14, unchanged` though it migrated 13 → 14. Check `GET /api/health` instead. All of this happens only because 0.10.0's health has no schema or replication fields; from 0.11.0 on it doesn't.
+
 **After**
 
 - The last lines read `Atlas 0.11.0 is up, schema 13 → 14` (or `schema 14, unchanged`) and name the command to go back. The same facts are in `GET http://127.0.0.1:3100/api/health` (`version`, `schema`, `replication`), and every healthy deploy adds a line `<UTC time> <version> <schema>` to `/var/lib/atlas/deploys.log`. A deploy that never became healthy is recorded with schema `unknown`.
@@ -384,16 +390,18 @@ Compare with the live database (`user_version` equals `schema` in `GET /api/heal
 
 | Date | Time taken | Restore point against last write | Result |
 | --- | --- | --- | --- |
-|  |  |  |  |
+| 2026-11-07 (0.11 rehearsal, after the rollback to 0.10.0) | not recorded | not recorded | Passed: `user_version` 13, integrity ok |
 
 ### A new VM
-The disaster case: the VM or its disk is gone. Do this on a throwaway VM to prove it, and delete that VM afterwards.
-1. Create the VM as in [step 1](#1-google-cloud-resources) (same service account, so it can read the bucket) and run `bootstrap.sh` ([step 2](#2-bootstrap-the-vm)). Give a rehearsal VM its own Tailscale name so it doesn't replace the real one ([step 3](#3-tailscale)).
+**Warning: this procedure is for when the old VM is gone.** Run while production is up, it starts a second Litestream writer on the same replica (`gs://<bucket>/atlas.db`), and a logged-in Obsidian Sync client would push into the real vault. It has not been rehearsed (the 0.11 drill was the scratch check only, ADR 0088). A future rehearsal must use a separate replica path (its own `litestream.yml`, with a copy of the replica restored there) and skip the Obsidian login in step 4.
+
+The disaster case: the VM or its disk is gone.
+1. Create the VM as in [step 1](#1-google-cloud-resources) (same service account, so it can read the bucket) and run `bootstrap.sh` ([step 2](#2-bootstrap-the-vm)). Tailscale is [step 3](#3-tailscale).
 2. Secrets come from Secret Manager when the `atlas` service starts, as always; there is nothing to copy. Fill `/etc/atlas/atlas.env` as in step 5.
 3. Deploy the version that was running, with `--force` (there is no app to ask about replication) as in [step 5](#5-first-deploy). The `restore` service sees an empty data volume and a replica in the bucket, restores the latest state, and only then starts the app. Watch it with `dc logs restore`.
 4. Redo the Obsidian Sync login for each person ([step 6](#6-obsidian-sync-login-per-person)); the vault files come from Obsidian Sync, not the bucket.
 5. Check `GET http://127.0.0.1:3100/api/health` (`schema` is what you expect), sign in, run one job, do a Melete review, and see Replication go green in Settings → Sources.
-6. For a rehearsal, delete the VM (and its Tailscale node). For the real thing, repoint Tailscale and carry on.
+6. Repoint Tailscale to the new VM and carry on. (A rehearsal VM, once there is a safe way to run one, is deleted along with its Tailscale node.)
 
 | Date | Time taken | Restore point against last write | Result |
 | --- | --- | --- | --- |
