@@ -235,10 +235,10 @@ On the VM (or `ssh <name>` through Tailscale):
 
 ```sh
 rm -rf ~/atlas-src && mkdir ~/atlas-src && tar xzf ~/atlas-src.tar.gz -C ~/atlas-src
-sudo /opt/atlas/deploy.sh 0.10.0 --files ~/atlas-src
+sudo /opt/atlas/deploy.sh 0.10.0 --files ~/atlas-src --force
 ```
 
-`deploy.sh` installs the files, reads the secrets, pulls the images (a bad tag changes nothing), sets `ATLAS_VERSION`, restarts the `atlas` service and waits up to three minutes for `http://127.0.0.1:3100/api/health`. On the first start the `restore` service finds no database and no replica and exits; the app creates `atlas.db`, and Litestream starts replicating it. The vault sync client fails until the next step, which is expected.
+There is no app yet to ask about replication, so the first deploy on a new VM needs `--force` (it prints that the check would have stopped). `deploy.sh` installs the files, reads the secrets, pulls the images (a bad tag changes nothing), sets `ATLAS_VERSION`, restarts the `atlas` service and waits up to three minutes for `http://127.0.0.1:3100/api/health`. On the first start the `restore` service finds no database and no replica and exits; the app creates `atlas.db`, and Litestream starts replicating it. The vault sync client fails until the next step, which is expected.
 
 Open the Tailscale address and sign in with the admin account. Settings → Sources shows the Agent, Transcription (Gemini) and Replication rows; Vault sync is failing until step 6.
 
@@ -261,29 +261,62 @@ dc restart sync-naresh
 
 Within a minute or two Settings → Sources shows **Vault sync** as OK. Then, in the app, choose the vault (**Choose vault** lists the folder) and the first module works on your real notes. Release check: write a note on the Mac and see it in the VM's folder, and the reverse.
 
-## Deploying a release
+## Upgrading
+
+An upgrade is one command and a short checklist. Every version from 1.0 on keeps your data: the app migrates its own database when it starts, and the pre-migration copy it writes first is what a rollback uses (ADR 0084).
+
+**Before**
+
+- Settings → Sources → Status is all green, and the **Replication** row in particular. `deploy.sh` checks this itself and refuses to start while replication is failing, hasn't been checked for twice `STATUS_CHECK_INTERVAL_MINUTES` (default 2), or the app doesn't answer. `--force` skips the check and prints what it would have stopped on; use it only when you know why.
+- Nothing is mid-job that you care about: the stack restarts, and a job that was running is put back and run again.
+
+**The command**
 
 On the Mac:
 
 ```sh
-deploy/release.sh 0.10.1
+deploy/release.sh 0.11.0
 ```
 
-Then, if the Compose files, scripts or unit changed, send the files as in step 5 and run on the VM:
+`release.sh` refuses to build while a migration is unlocked. Then, if the Compose files, scripts or unit changed, send the files as in step 5 and run on the VM:
 
 ```sh
-sudo /opt/atlas/deploy.sh 0.10.1 --files ~/atlas-src
+sudo /opt/atlas/deploy.sh 0.11.0 --files ~/atlas-src
 ```
 
-If only the app changed, `sudo /opt/atlas/deploy.sh 0.10.1` is enough and keeps the installed files. Both print the previous version when they finish. The app applies its own database migrations at start, after copying the database to `/srv/atlas/data/pre-migration/`.
+If only the app changed, `sudo /opt/atlas/deploy.sh 0.11.0` is enough and keeps the installed files. `--dry-run` prints the steps and changes nothing.
+
+**After**
+
+- The last lines read `Atlas 0.11.0 is up, schema 13 → 14` (or `schema 14, unchanged`) and name the command to go back. The same facts are in `GET http://127.0.0.1:3100/api/health` (`version`, `schema`, `replication`), and every healthy deploy adds a line `<UTC time> <version> <schema>` to `/var/lib/atlas/deploys.log`. A deploy that never became healthy is recorded with schema `unknown`.
+- Settings → Sources → Status is green again within a couple of minutes (Replication included).
+- Put one job through: summarize a short video or article, and save it.
+
+If the app doesn't become healthy within three minutes, `deploy.sh` prints the container status, the app's last log lines and the rollback command. Go to [Rolling back](#rolling-back).
 
 ## Rolling back
+
+First see whether the release changed the database: `deploy.sh` printed `schema 13 → 14` when it did, and `/var/lib/atlas/deploys.log` has the schema of every version.
+
+**No migration (same schema).** Deploy the previous version:
 
 ```sh
 sudo /opt/atlas/deploy.sh <previous version>
 ```
 
-This works as long as the release didn't change the database schema. The server **refuses to start on a database from a newer version**, so after a release that migrated the database, rolling back means restoring the database from before the migration: use [Restoring the database](#restoring-the-database) with a time just before the deploy (or copy the matching file from `/srv/atlas/data/pre-migration/` over `atlas.db` with the app and Litestream stopped).
+**After a migration.** The previous version **refuses to start on a database from a newer version**, so a plain redeploy fails its health check. Put back the copy the app made before it migrated:
+
+```sh
+sudo /opt/atlas/deploy.sh <previous version> --restore-pre-migration
+```
+
+It reads both schemas from `deploys.log` (and refuses if there is no migration to undo), finds the newest `pre-migration-v<from>-to-v<to>-*.db` in `/srv/atlas/data/pre-migration/` (and stops, changing nothing, if there is none), stops the `atlas` service, moves the live database aside as `pre-migration/rolled-back-v<to>-<time>.db` (with its `-wal` and `-shm`), puts the copy in place, and deploys the previous version without the replication check. `--dry-run` shows the sequence.
+
+**Writes made since the upgrade are not in the restored database.** Summaries, reviews and settings changed after the upgrade stay in the `rolled-back-…` file; nothing is deleted. To get something back, open that file with `sqlite3` read-only.
+
+After it finishes, check that Replication goes green within a check or two. Litestream sees a replaced file and starts a new generation; a scratch restore (below) should return the old schema. To go forward again, deploy the new version normally: it migrates the restored database again.
+
+If there is no pre-migration copy, or you need a state from an exact moment, use the point-in-time restore in [Restoring the database](#restoring-the-database).
 
 ## Rotating a secret
 

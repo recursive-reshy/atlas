@@ -22,8 +22,8 @@ test( 'the runbook exists and has a section for every step', () => {
     'Tailscale': /tailscale/i,
     'Obsidian login': /obsidian/i,
     'first deploy': /first deploy/i,
-    'deploy': /deploying/i,
-    'rollback': /roll(ing)? back|rollback/i,
+    'upgrading': /^## Upgrading/im,
+    'rolling back': /^## Rolling back/im,
     'secret rotation': /rotat/i,
     'restore': /restor/i,
     'resize': /resiz/i,
@@ -33,6 +33,21 @@ test( 'the runbook exists and has a section for every step', () => {
   } ) ) {
     assert.match( headings, pattern, `no section about: ${ topic }` )
   }
+} )
+
+test( 'the runbook names the flags a deploy and a rollback need (ADR 0086)', () => {
+  const text = read( 'docs/deploy.md' )
+  const section = ( heading ) => {
+    const found = new RegExp( `\\n## (\\d+\\. )?${ heading }\\b` ).exec( text )
+    assert.ok( found, `no section ${ heading }` )
+    const end = text.indexOf( '\n## ', found.index + 1 )
+    return text.slice( found.index, end === -1 ? undefined : end )
+  }
+  assert.match( section( 'Rolling back' ), /--restore-pre-migration/ )
+  assert.match( section( 'Rolling back' ), /rolled-back/, 'says where the lost writes are kept' )
+  assert.match( section( 'Upgrading' ), /--force/, 'says when --force is needed' )
+  assert.match( section( 'First deploy' ), /--force/, 'the first deploy has no app to ask' )
+  assert.match( section( 'Upgrading' ), /deploys\.log|schema/, 'says what the report shows' )
 } )
 
 test( 'the runbook only names files that exist', () => {

@@ -86,7 +86,7 @@ The order is routes → controllers → services → repositories, and every req
 - **Formatters** are pure functions with no I/O. Only services call them.
 - Nothing imports `routes/` or `controllers/` except `app.ts`.
 - The worker deletes a job's audio files when the job finishes, whether it succeeded or failed.
-- The exceptions are `GET /api/health`, whose controller responds directly with no service or repository because it has no rules or data, and `web.routes.ts`, which serves the built web app from `WEB_DIR` with no controller.
+- The one exception is `web.routes.ts`, which serves the built web app from `WEB_DIR` with no controller. `GET /api/health` (unauthenticated, localhost only) answers `HealthResponse` from `healthReport.service.ts`: `ok`, the `version`, the stored `schema` and the `replication` state, which `deploy.sh` reads (ADR 0086). `src/scripts/preMigration.ts` is run by `deploy.sh` in the app image to find and swap the pre-migration copy; it reads `DATA_DIR` and imports no config.
 
 ## Logging
 
