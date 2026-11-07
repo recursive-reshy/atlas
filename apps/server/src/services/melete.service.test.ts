@@ -22,6 +22,8 @@ import {
   updateNote,
 } from '../repositories/meleteNotes.repository.js'
 import { findQuestion } from '../repositories/meleteQuestions.repository.js'
+import { replaceSyllabus, listConcepts } from '../repositories/meleteConcepts.repository.js'
+import { setNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
 import { insertReview } from '../repositories/meleteReviews.repository.js'
 import { listSubjects } from '../repositories/meleteSubjects.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'
@@ -472,6 +474,39 @@ describe( 'getSubject', () => {
       stale: false,
       missing: false,
     } )
+  } )
+
+  it( 'carries each note\'s mapping state and mapped concepts', async () => {
+    const id = noteId( GENERICS )
+    const subject = subjectId( 'TypeScript' )
+
+    replaceSyllabus( userId, subject, [ {
+      name: 'Basics',
+      concepts: [ { name: 'Generics', description: '' } ],
+    } ] )
+
+    const [ concept ] = listConcepts( userId, subject )
+
+    setNoteConcepts( userId, id, [ concept?.id ?? '' ], 'hand' )
+    updateNote( userId, id, {
+      mapping: 'failed',
+      mapping_error: 'Boom',
+      mapping_pinned: true,
+      off_syllabus: 'flagged',
+      off_syllabus_suggestion: 'Decorators',
+    } )
+
+    const { notes } = await getSubject( userId, subject )
+
+    expect( notes.find( ( note ) => note.id === id ) ).toMatchObject( {
+      mapping: 'failed',
+      mapping_error: 'Boom',
+      mapping_pinned: true,
+      off_syllabus: 'flagged',
+      off_syllabus_suggestion: 'Decorators',
+      concept_ids: [ concept?.id ],
+    } )
+    expect( notes.find( ( note ) => note.id !== id )?.concept_ids ).toEqual( [] )
   } )
 
   it( 'marks a note stale when its questions were made from an older body', async () => {

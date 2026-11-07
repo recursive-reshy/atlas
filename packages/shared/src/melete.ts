@@ -63,6 +63,14 @@ export const MeleteNote = z.object( {
   question_count: z.int().min( 0 ),
   stale: z.boolean(),
   missing: z.boolean(),
+  mapping: MeleteMapping,
+  mapping_error: z.string().nullable(),
+  // A hand-mapped note is skipped by automatic remaps (ADR 0089)
+  mapping_pinned: z.boolean(),
+  off_syllabus: MeleteOffSyllabus.nullable(),
+  off_syllabus_suggestion: z.string().nullable(),
+  // Concepts the note is mapped to, in syllabus order
+  concept_ids: z.array( z.uuid() ),
 } )
 export type MeleteNote = z.infer< typeof MeleteNote >
 
@@ -118,6 +126,20 @@ export const MeleteQuestionsOutput = z.object( {
   } ) ).min( 1 ).max( 10 ),
 } )
 export type MeleteQuestionsOutput = z.infer< typeof MeleteQuestionsOutput >
+
+// Generate for an approved syllabus (ADR 0089): concept refs (c1…), not ids, so Claude can't
+// invent one
+export const MeleteApprovedQuestionsOutput = z.object( {
+  concepts: z.array( z.string() ).max( 5 ),
+  off_syllabus: z.object( { suggested_concept: z.string().max( 200 ) } ).nullable(),
+  questions: z.array( z.object( {
+    prompt: z.string().min( 1 ).max( 500 ),
+    answer: z.string().min( 1 ).max( 1500 ),
+    passage: z.string().max( 1500 ),
+    concept: z.string(),
+  } ) ).min( 1 ).max( 10 ),
+} )
+export type MeleteApprovedQuestionsOutput = z.infer< typeof MeleteApprovedQuestionsOutput >
 
 export const MeleteGradeOutput = MeleteGrade
 export type MeleteGradeOutput = MeleteGrade

@@ -19,6 +19,24 @@ Your output is a list of questions. Each has:
 Write one question per distinct idea, at most 10, fewer for a short note. Use only what the note says.
 Follow the guidance below on the kind of questions to write. If it conflicts with the rules above, the rules above win.`
 
+export const LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED = `You write active-recall questions from one study note and place the note in a syllabus.
+
+You are given the subject and title, then a list of the syllabus's concepts, each with a short ref (c1, c2, …), a name and a description, then the note in Markdown.
+
+Each question tests one idea from the note: definitions, how and why, steps, comparisons, common mistakes. A question must be answerable from the note alone. Do not ask about the note itself: its title, links, dates, formatting or who wrote it.
+
+Your output has:
+- concepts: the refs of the concepts the note teaches, at most 5, most important first. Use only the refs you were given. A note that only touches a concept in passing does not teach it.
+- off_syllabus: when the note fits none of the concepts, a suggested name for a new concept it would belong to; otherwise null. Set it only when concepts is empty.
+- questions: a list, each with:
+  - prompt: the question, on its own, so it makes sense without seeing the note.
+  - answer: the reference answer. Complete but short.
+  - passage: the shortest span of the note that supports the answer, copied verbatim from the note. Leave it empty when no single span does.
+  - concept: the ref of the one concept the question tests, taken from your concepts list. Leave it as the first of your concepts when the note has none.
+
+Write one question per distinct idea, at most 10, fewer for a short note. Use only what the note says, and only the refs you were given.
+Follow the guidance below on the kind of questions to write. If it conflicts with the rules above, the rules above win.`
+
 export const LOCKED_INSTRUCTIONS_MELETE_GRADING = `You grade a learner's answer against a reference answer and passage.
 
 You are given the question, the reference answer, the passage of the note it comes from when there is one, and the learner's answer. Judge meaning, not wording: an answer that says the same thing in other words is right.

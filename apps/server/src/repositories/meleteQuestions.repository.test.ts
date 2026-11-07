@@ -48,6 +48,28 @@ const generated = ( count: number ): { prompt: string, answer: string, passage: 
   } ) )
 }
 
+describe( 'insertQuestions with concepts', () => {
+  it( 'stores the concept a question is labelled with, and null when it has none', () => {
+    const subjectId = addSubject( userId )
+    const noteId = addNote( userId, subjectId )
+    const section = insertSection( userId, { subject_id: subjectId, name: 'S', position: 0 } )
+    const concept = insertConcept( userId, {
+      subject_id: subjectId,
+      section_id: section.id,
+      name: 'C',
+      description: '',
+      position: 0,
+    } )
+    const [ first, second ] = insertQuestions( userId, noteId, 1, 'h', [
+      { prompt: 'A?', answer: 'A', passage: '', concept_id: concept.id },
+      { prompt: 'B?', answer: 'B', passage: '' },
+    ] )
+
+    expect( first?.concept_id ).toBe( concept.id )
+    expect( second?.concept_id ).toBeNull()
+  } )
+} )
+
 describe( 'insertQuestions', () => {
   it( 'stores questions in order as new, active cards with the hash and run', () => {
     const noteId = addNote( userId, addSubject( userId ) )

@@ -12,6 +12,7 @@ import {
   SummaryError,
   SummaryResult,
   draftSyllabus,
+  generateApprovedQuestions,
   generateQuestions,
   gradeAnswer,
   summarizeSource,
@@ -499,5 +500,53 @@ describe( 'draftSyllabus', () => {
     parse.mockRejectedValue( new TypeError( 'boom' ) )
 
     await expect( draftSyllabus( request ) ).rejects.toThrow( TypeError )
+  } )
+} )
+
+describe( 'generateApprovedQuestions', () => {
+  const approved = {
+    concepts: [ 'c1' ],
+    off_syllabus: null,
+    questions: [ {
+      prompt: 'What is a pure function?',
+      answer: 'One without side effects.',
+      passage: 'No I/O.',
+      concept: 'c1',
+    } ],
+  }
+  const request = { model: 'claude-haiku-5-5', system: 'Write questions.', user: 'Subject: TS' }
+
+  beforeEach( () => {
+    constructed.length = 0
+    parse.mockReset()
+    parse.mockResolvedValue( reply( { parsed_output: approved } ) )
+  } )
+
+  it( 'returns the parsed output with the tokens it used', async () => {
+    expect( await generateApprovedQuestions( request ) ).toEqual( {
+      output: approved,
+      usage: { input_tokens: 1234, output_tokens: 56 },
+    } )
+  } )
+
+  it( 'uses the generation timeout and structured output', async () => {
+    await generateApprovedQuestions( request )
+
+    const [ sent ] = parse.mock.calls[ 0 ] as [ Record< string, unknown > ]
+
+    expect( constructed ).toEqual( [ { apiKey: 'sk-test', timeout: 54_321, maxRetries: 1 } ] )
+    expect( sent ).toMatchObject( {
+      model: 'claude-haiku-5-5',
+      system: 'Write questions.',
+      output_config: { effort: 'medium', format: expect.anything() as unknown },
+    } )
+  } )
+
+  it( 'refuses output without a concept on a question', async () => {
+    parse.mockResolvedValue( reply( {
+      parsed_output: { ...approved, questions: [ { prompt: 'P', answer: 'A', passage: '' } ] },
+    } ) )
+
+    await expect( generateApprovedQuestions( request ) ).rejects.toThrow( MeleteError )
   } )
 } )

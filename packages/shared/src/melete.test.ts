@@ -19,6 +19,7 @@ import {
   MeleteNote,
   MeleteQuestion,
   MeleteQuestionState,
+  MeleteApprovedQuestionsOutput,
   MeleteQuestionsOutput,
   MeleteRating,
   MeleteReviewCounts,
@@ -76,6 +77,12 @@ const note = {
   question_count: 4,
   stale: false,
   missing: false,
+  mapping: 'idle',
+  mapping_error: null,
+  mapping_pinned: false,
+  off_syllabus: null,
+  off_syllabus_suggestion: null,
+  concept_ids: [],
 }
 
 const question = {
@@ -142,6 +149,22 @@ describe( 'MeleteNote', () => {
 
   it( 'rejects an unknown generation', () => {
     expect( accepts( MeleteNote, { ...note, generation: 'running' } ) ).toBe( false )
+  } )
+
+  it( 'carries the mapping state, the off-syllabus flag and the mapped concepts', () => {
+    const mapped = {
+      ...note,
+      mapping: 'failed',
+      mapping_error: 'Boom',
+      mapping_pinned: true,
+      off_syllabus: 'flagged',
+      off_syllabus_suggestion: 'Decorators',
+      concept_ids: [ otherId ],
+    }
+
+    expect( MeleteNote.parse( mapped ) ).toEqual( mapped )
+    expect( accepts( MeleteNote, { ...note, mapping: 'running' } ) ).toBe( false )
+    expect( accepts( MeleteNote, { ...note, off_syllabus: 'maybe' } ) ).toBe( false )
   } )
 } )
 
@@ -240,6 +263,36 @@ describe( 'MeleteQuestionsOutput', () => {
     expect( parse( { answer: 'a'.repeat( 1501 ) } ) ).toBe( false )
     expect( parse( { passage: 'a'.repeat( 1501 ) } ) ).toBe( false )
     expect( parse( { prompt: 'a'.repeat( 500 ), answer: 'a'.repeat( 1500 ) } ) ).toBe( true )
+  } )
+} )
+
+describe( 'MeleteApprovedQuestionsOutput', () => {
+  const generated = { prompt: 'Why?', answer: 'Because.', passage: '', concept: 'c1' }
+  const reply = { concepts: [ 'c1' ], off_syllabus: null, questions: [ generated ] }
+
+  it( 'accepts concepts, an off-syllabus suggestion and labelled questions', () => {
+    expect( MeleteApprovedQuestionsOutput.parse( reply ) ).toEqual( reply )
+    expect( accepts( MeleteApprovedQuestionsOutput, {
+      ...reply,
+      concepts: [],
+      off_syllabus: { suggested_concept: 'Decorators' },
+    } ) ).toBe( true )
+  } )
+
+  it( 'allows at most 5 concepts and 10 questions, and needs a concept on each question', () => {
+    expect( accepts( MeleteApprovedQuestionsOutput, {
+      ...reply,
+      concepts: [ 'c1', 'c2', 'c3', 'c4', 'c5', 'c6' ],
+    } ) ).toBe( false )
+    expect( accepts( MeleteApprovedQuestionsOutput, {
+      ...reply,
+      questions: Array( 11 ).fill( generated ),
+    } ) ).toBe( false )
+    expect( accepts( MeleteApprovedQuestionsOutput, { ...reply, questions: [] } ) ).toBe( false )
+    expect( accepts( MeleteApprovedQuestionsOutput, {
+      ...reply,
+      questions: [ { prompt: 'Why?', answer: 'Because.', passage: '' } ],
+    } ) ).toBe( false )
   } )
 } )
 

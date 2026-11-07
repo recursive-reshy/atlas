@@ -36,7 +36,13 @@ export type QuestionRecord = z.infer< typeof QuestionRecord >
 export const QueuedQuestion = QuestionRecord.extend( { subject_id: z.string() } )
 export type QueuedQuestion = z.infer< typeof QueuedQuestion >
 
-export type GeneratedQuestion = { prompt: string, answer: string, passage: string }
+export type GeneratedQuestion = {
+  prompt: string
+  answer: string
+  passage: string
+  // Set only for an approved syllabus (ADR 0089)
+  concept_id?: string | null
+}
 
 const SubjectCounts = z.object( {
   subject_id: z.string(),
@@ -75,8 +81,8 @@ export const insertQuestions = (
   return db.transaction( () => {
     const insert = db.prepare( `INSERT INTO melete_questions (
         id, user_id, note_id, position, prompt, answer, passage, body_hash, state, run_id,
-        created_at
-      ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ? )` )
+        concept_id, created_at
+      ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ? )` )
     const createdAt = new Date().toISOString()
     const ids = questions.map( ( question, index ) => {
       const id = crypto.randomUUID()
@@ -91,6 +97,7 @@ export const insertQuestions = (
         question.passage,
         bodyHash,
         runId,
+        question.concept_id ?? null,
         createdAt,
       )
 

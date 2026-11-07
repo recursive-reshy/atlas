@@ -13,6 +13,7 @@ import {
   LOCKED_INSTRUCTIONS_MELETE_GRADING,
   LOCKED_INSTRUCTIONS_MELETE_MAP,
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
+  LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED,
   LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
   LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
   MELETE_GRADING_SEED_KEY,
@@ -48,6 +49,30 @@ describe( 'LOCKED_INSTRUCTIONS_MELETE_QUESTIONS', () => {
     'at most 10',
   ] )( 'says %s', ( phrase ) => {
     expect( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS.toLowerCase() ).toContain( phrase.toLowerCase() )
+  } )
+} )
+
+describe( 'LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED', () => {
+  it( 'starts with a first line that tells it apart from the plain form', () => {
+    expect( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED.split( '\n' )[ 0 ] )
+      .toBe( 'You write active-recall questions from one study note and place the note in a syllabus.' )
+  } )
+
+  it( 'keeps the question rules of the plain form', () => {
+    expect( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED.toLowerCase() )
+      .toContain( 'copied verbatim from the note' )
+    expect( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED.toLowerCase() ).toContain( 'at most 10' )
+  } )
+
+  it.each( [
+    'concepts: the refs',
+    'at most 5',
+    'off_syllabus',
+    'concept: the ref',
+    'only the refs you were given',
+  ] )( 'says %s', ( phrase ) => {
+    expect( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED.toLowerCase() )
+      .toContain( phrase.toLowerCase() )
   } )
 } )
 

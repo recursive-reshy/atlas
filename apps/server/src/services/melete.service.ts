@@ -17,6 +17,7 @@ import { listSubjectFolders } from '../melete/scan.js'
 import { lastSkipped } from '../melete/scanOutcome.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
+import { listNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
 import {
   NoteRecord,
   findNote,
@@ -78,7 +79,11 @@ export const toMeleteQuestion = ( question: QuestionRecord ): MeleteQuestion => 
   last_review: question.last_review,
 } )
 
-const toMeleteNote = ( note: NoteRecord, questions: QuestionRecord[] ): MeleteNote => {
+const toMeleteNote = (
+  userId: string,
+  note: NoteRecord,
+  questions: QuestionRecord[],
+): MeleteNote => {
   const active = questions.filter( ( { state } ) => state === 'active' )
 
   return {
@@ -92,6 +97,12 @@ const toMeleteNote = ( note: NoteRecord, questions: QuestionRecord[] ): MeleteNo
     question_count: active.length,
     stale: active.some( ( { body_hash } ) => body_hash !== note.body_hash ),
     missing: note.missing_at !== null,
+    mapping: note.mapping,
+    mapping_error: note.mapping_error,
+    mapping_pinned: note.mapping_pinned,
+    off_syllabus: note.off_syllabus,
+    off_syllabus_suggestion: note.off_syllabus_suggestion,
+    concept_ids: listNoteConcepts( userId, note.id ).map( ( { concept_id: id } ) => id ),
   }
 }
 
@@ -99,7 +110,7 @@ const noteView = ( userId: string, note: NoteRecord ): GetMeleteNoteResponse => 
   const questions = listForNote( userId, note.id )
 
   return {
-    note: toMeleteNote( note, questions ),
+    note: toMeleteNote( userId, note, questions ),
     questions: questions.map( toMeleteQuestion ),
     obsidian_url: obsidianUrl( vaultDirFor( userId ), note.path ),
   }
@@ -148,7 +159,7 @@ const subjectView = (
 ): GetMeleteSubjectResponse => ( {
   subject: toMeleteSubject( userId, subject, now ),
   notes: listNotesBySubject( userId, subject.id ).map( ( note ) => {
-    return toMeleteNote( note, listForNote( userId, note.id ) )
+    return toMeleteNote( userId, note, listForNote( userId, note.id ) )
   } ),
 } )
 

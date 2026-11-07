@@ -49,6 +49,12 @@ export const meleteNoteFixture = ( overrides: Partial< MeleteNote > = {} ): Mele
     question_count: 4,
     stale: false,
     missing: false,
+    mapping: 'idle',
+    mapping_error: null,
+    mapping_pinned: false,
+    off_syllabus: null,
+    off_syllabus_suggestion: null,
+    concept_ids: [],
     ...overrides,
   }
 }

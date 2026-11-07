@@ -4,6 +4,7 @@ import { zodOutputFormat } from '@anthropic-ai/sdk/helpers/zod'
 import { z } from 'zod'
 // Shared
 import {
+  MeleteApprovedQuestionsOutput,
   MeleteGradeOutput,
   MeleteQuestionsOutput,
   MeleteSyllabusOutput,
@@ -123,11 +124,18 @@ export interface QuestionsOutcome {
   usage: TokenUsage
 }
 
+export interface ApprovedQuestionsOutcome {
+  output: MeleteApprovedQuestionsOutput
+  usage: TokenUsage
+}
+
 const QUESTIONS_MAX_TOKENS = 4096
 
-export const generateQuestions = async (
+// Plain and approved-syllabus generation differ only in the output they ask for
+const callQuestions = async < Schema extends z.ZodType >(
+  schema: Schema,
   { model, system, user }: MeleteCall,
-): Promise< QuestionsOutcome > => {
+): Promise< { output: z.infer< Schema >, usage: TokenUsage } > => {
   const client = new Anthropic( {
     apiKey: config.anthropicApiKey,
     timeout: config.melete.generationTimeoutMs,
@@ -140,7 +148,7 @@ export const generateQuestions = async (
       max_tokens: QUESTIONS_MAX_TOKENS,
       system,
       messages: [ { role: 'user', content: user } ],
-      output_config: { effort: 'medium', format: zodOutputFormat( MeleteQuestionsOutput ) },
+      output_config: { effort: 'medium', format: zodOutputFormat( schema ) },
     } )
     const usage = {
       input_tokens: response.usage.input_tokens,
@@ -155,7 +163,7 @@ export const generateQuestions = async (
       throw new MeleteError( 'Question generation was declined by the model', { usage } )
     }
 
-    const parsed = MeleteQuestionsOutput.safeParse( response.parsed_output )
+    const parsed = schema.safeParse( response.parsed_output )
 
     if( !parsed.success ) {
       throw new MeleteError( 'Question response did not match the expected format', { usage } )
@@ -169,6 +177,16 @@ export const generateQuestions = async (
 
     throw error
   }
+}
+
+export const generateQuestions = async ( call: MeleteCall ): Promise< QuestionsOutcome > => {
+  return callQuestions( MeleteQuestionsOutput, call )
+}
+
+export const generateApprovedQuestions = async (
+  call: MeleteCall,
+): Promise< ApprovedQuestionsOutcome > => {
+  return callQuestions( MeleteApprovedQuestionsOutput, call )
 }
 
 export interface SyllabusOutcome {
