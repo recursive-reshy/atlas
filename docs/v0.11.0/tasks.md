@@ -32,7 +32,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 ---
 
 ## Checkpoint A: Phases 1–2 (kick-off, migrations)
-**Plan:** ⬜ [`plans/checkpoint-a.md`](plans/checkpoint-a.md)
+**Plan:** ✅ [`plans/checkpoint-a.md`](plans/checkpoint-a.md)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
