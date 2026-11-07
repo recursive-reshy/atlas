@@ -47,6 +47,7 @@ import {
   getDefaultModel,
   getFeedCheckInterval,
   getLearningRoot,
+  getMasteryDays,
   getLockedInstructions,
   getSettings,
   getSettingsResponse,
@@ -113,6 +114,7 @@ describe( 'getSettings', () => {
       melete_syllabus_model: 'claude-sonnet-5-5',
       melete_map_model: 'claude-sonnet-5-5',
       melete_suggest_model: 'claude-sonnet-5-5',
+      melete_mastery_days: 21,
       melete_question_profile_id: profileIdOf( 'melete_questions' ),
       melete_grading_profile_id: profileIdOf( 'melete_grading' ),
     } )
@@ -524,6 +526,7 @@ describe( 'updateSettings', () => {
       melete_syllabus_model: 'claude-sonnet-5-5',
       melete_map_model: 'claude-sonnet-5-5',
       melete_suggest_model: 'claude-sonnet-5-5',
+      melete_mastery_days: 21,
       melete_question_profile_id: profileIdOf( 'melete_questions' ),
       melete_grading_profile_id: profileIdOf( 'melete_grading' ),
     } )
@@ -663,3 +666,42 @@ describe( 'the syllabus, map and suggest models (ADR 0089)', () => {
     expect( getSetting( transcriber, 'melete_map_model' ) ).toBeUndefined()
   } )
 } )
+
+describe( 'the mastery days', () => {
+  it( 'default to 21', async () => {
+    expect( ( await getSettings( userId ) ).melete_mastery_days ).toBe( 21 )
+  } )
+
+  it( 'read the stored value, and fall back to 21 for a bad one', async () => {
+    setSetting( userId, 'melete_mastery_days', 30 )
+    expect( ( await getSettings( userId ) ).melete_mastery_days ).toBe( 30 )
+
+    setSetting( userId, 'melete_mastery_days', 3 )
+    expect( ( await getSettings( userId ) ).melete_mastery_days ).toBe( 21 )
+  } )
+
+  it( 'are saved, and read back by getMasteryDays', async () => {
+    const settings = await updateSettings( userId, true, { melete_mastery_days: 45 } )
+
+    expect( settings.melete_mastery_days ).toBe( 45 )
+    expect( getSetting( userId, 'melete_mastery_days' ) ).toBe( 45 )
+    expect( getMasteryDays( userId ) ).toBe( 45 )
+  } )
+
+  it( 'are one user\'s own', async () => {
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+    await updateSettings( userId, true, { melete_mastery_days: 45 } )
+
+    expect( getMasteryDays( other ) ).toBe( 21 )
+  } )
+
+  it( 'are refused whole, as a 404, for a user without Melete', async () => {
+    const transcriber = createTestUser( { modules: [ 'transcriber' ] } ).id
+
+    await expect( updateSettings( transcriber, false, { melete_mastery_days: 45 } ) )
+      .rejects.toThrow( NotFoundError )
+    expect( getSetting( transcriber, 'melete_mastery_days' ) ).toBeUndefined()
+  } )
+} )
+

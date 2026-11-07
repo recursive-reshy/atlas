@@ -111,6 +111,7 @@ export const settingsFixture = (
       melete_syllabus_model: 'claude-sonnet-5-5',
       melete_map_model: 'claude-haiku-5-5',
       melete_suggest_model: 'claude-sonnet-5-5',
+      melete_mastery_days: 21,
       melete_question_profile_id: MELETE_QUESTIONS_ID,
       melete_grading_profile_id: MELETE_GRADING_ID,
       ...overrides,

@@ -22,10 +22,14 @@ import {
   updateNote,
 } from '../repositories/meleteNotes.repository.js'
 import { findQuestion } from '../repositories/meleteQuestions.repository.js'
-import { replaceSyllabus, listConcepts } from '../repositories/meleteConcepts.repository.js'
+import { getDatabase } from '../repositories/database.js'
+import { listConcepts, replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
 import { setNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
 import { insertReview } from '../repositories/meleteReviews.repository.js'
-import { listSubjects } from '../repositories/meleteSubjects.repository.js'
+import {
+  listSubjects,
+  updateSubject as updateStoredSubject,
+} from '../repositories/meleteSubjects.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'
 import { clearVaultDir } from '../repositories/users.repository.js'
 // Services
@@ -507,6 +511,69 @@ describe( 'getSubject', () => {
       concept_ids: [ concept?.id ],
     } )
     expect( notes.find( ( note ) => note.id !== id )?.concept_ids ).toEqual( [] )
+  } )
+
+  describe( 'coverage and mastery', () => {
+    // Two concepts; the Generics note, enrolled, is mapped to the first, whose one question has
+    // been reviewed with a stability of 10.5 days
+    const mapped = () => {
+      const id = subjectId( 'TypeScript' )
+      const note = noteId( GENERICS )
+
+      replaceSyllabus( userId, id, [ {
+        name: 'Basics',
+        concepts: [ { name: 'A', description: '' }, { name: 'B', description: '' } ],
+      } ] )
+      getDatabase().prepare( 'UPDATE melete_notes SET enrolled = 1 WHERE id = ?' ).run( note )
+
+      const [ first ] = listConcepts( userId, id )
+
+      setNoteConcepts( userId, note, [ first?.id ?? '' ], 'claude' )
+      addQuestion( userId, note, { conceptId: first?.id, reps: 3, stability: 10.5 } )
+
+      return id
+    }
+    it( 'is null while the syllabus is not approved', async () => {
+      const id = mapped()
+      const { subject } = await getSubject( userId, id )
+
+      expect( subject ).toMatchObject( { coverage: null, mastery: null, concept_count: null } )
+    } )
+
+    it( 'is computed from the mapped notes and their questions once approved', async () => {
+      const id = mapped()
+
+      updateStoredSubject( userId, id, { syllabus_status: 'approved' } )
+
+      const { subject } = await getSubject( userId, id )
+
+      expect( subject.concept_count ).toBe( 2 )
+      expect( subject.coverage ).toBeCloseTo( 0.5 )
+      // (10.5 / 21 + 0) / 2
+      expect( subject.mastery ).toBeCloseTo( 0.25 )
+    } )
+
+    it( 'follows the user\'s mastery days', async () => {
+      const id = mapped()
+
+      updateStoredSubject( userId, id, { syllabus_status: 'approved' } )
+      setSetting( userId, 'melete_mastery_days', 14 )
+
+      expect( ( await getSubject( userId, id ) ).subject.mastery ).toBeCloseTo( 0.375 )
+    } )
+
+    it( 'is null for an approved syllabus with no concepts, and shown on Today too', async () => {
+      const id = subjectId( 'TypeScript' )
+
+      updateStoredSubject( userId, id, { syllabus_status: 'approved' } )
+
+      expect( ( await getSubject( userId, id ) ).subject )
+        .toMatchObject( { coverage: null, mastery: null, concept_count: null } )
+
+      const found = ( await getToday( userId ) ).subjects.find( ( { id: other } ) => other === id )
+
+      expect( found ).toMatchObject( { coverage: null, mastery: null, concept_count: null } )
+    } )
   } )
 
   it( 'marks a note stale when its questions were made from an older body', async () => {

@@ -27,6 +27,9 @@ export const FeedCheckInterval = z.union( [
 ] )
 export type FeedCheckInterval = z.infer< typeof FeedCheckInterval >
 
+export const DEFAULT_MELETE_MASTERY_DAYS = 21
+const MasteryDays = z.int().min( 7 ).max( 90 )
+
 const LearningRoot = z.string().refine(
   ( path ) => path.split( '/' ).every( isValidFolderName ),
   { message: 'Invalid folder path' },
@@ -45,6 +48,7 @@ export const UserSettingKey = z.enum( [
   'melete_syllabus_model',
   'melete_map_model',
   'melete_suggest_model',
+  'melete_mastery_days',
 ] )
 export type UserSettingKey = z.infer< typeof UserSettingKey >
 
@@ -66,6 +70,8 @@ export const Settings = z.object( {
   melete_syllabus_model: z.string().min( 1 ),
   melete_map_model: z.string().min( 1 ),
   melete_suggest_model: z.string().min( 1 ),
+  // Days of FSRS stability that count a question as known (ADR 0090)
+  melete_mastery_days: MasteryDays,
   melete_question_profile_id: z.uuid(),
   melete_grading_profile_id: z.uuid(),
 } )
@@ -104,6 +110,7 @@ export const UpdateSettingsBody = z.object( {
   melete_syllabus_model: z.string().min( 1 ).optional(),
   melete_map_model: z.string().min( 1 ).optional(),
   melete_suggest_model: z.string().min( 1 ).optional(),
+  melete_mastery_days: MasteryDays.optional(),
 } ).refine(
   ( body ) => Object.values( body ).some( ( value ) => value !== undefined ),
   {
@@ -112,7 +119,7 @@ export const UpdateSettingsBody = z.object( {
       'feed_check_interval_minutes, linking_enabled, linking_model,',
       'melete_learning_root, melete_question_model, melete_grading_model,',
       'melete_review_mode, melete_syllabus_model, melete_map_model',
-      'or melete_suggest_model',
+      'melete_suggest_model or melete_mastery_days',
     ].join( ' ' ),
   },
 )

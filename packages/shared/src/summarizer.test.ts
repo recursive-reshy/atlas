@@ -89,6 +89,7 @@ describe( 'UserSettingKey and AppSettingKey', () => {
       'melete_syllabus_model',
       'melete_map_model',
       'melete_suggest_model',
+      'melete_mastery_days',
     ] )
     expect( AppSettingKey.options ).toEqual( [ 'feed_check_interval_minutes' ] )
   } )
@@ -115,6 +116,7 @@ describe( 'Settings', () => {
     melete_syllabus_model: 's',
     melete_map_model: 'h',
     melete_suggest_model: 's',
+    melete_mastery_days: 21,
     melete_question_profile_id: profileId,
     melete_grading_profile_id: profileId,
   }
@@ -168,6 +170,7 @@ describe( 'Settings', () => {
     'melete_syllabus_model',
     'melete_map_model',
     'melete_suggest_model',
+    'melete_mastery_days',
     'melete_question_profile_id',
     'melete_grading_profile_id',
   ] )( 'rejects a missing %s', ( key ) => {
@@ -192,6 +195,9 @@ describe( 'Settings', () => {
     expect( Settings.safeParse( { ...settings, melete_syllabus_model: '' } ).success ).toBe( false )
     expect( Settings.safeParse( { ...settings, melete_map_model: '' } ).success ).toBe( false )
     expect( Settings.safeParse( { ...settings, melete_suggest_model: '' } ).success ).toBe( false )
+    expect( Settings.safeParse( { ...settings, melete_mastery_days: 6 } ).success ).toBe( false )
+    expect( Settings.safeParse( { ...settings, melete_mastery_days: 91 } ).success ).toBe( false )
+    expect( Settings.safeParse( { ...settings, melete_mastery_days: 20.5 } ).success ).toBe( false )
     expect( Settings.safeParse( { ...settings, melete_question_profile_id: 'x' } ).success )
       .toBe( false )
     expect( Settings.safeParse( { ...settings, melete_grading_profile_id: 'x' } ).success )
@@ -288,6 +294,8 @@ describe( 'UpdateSettingsBody', () => {
     expect( UpdateSettingsBody.safeParse( { melete_map_model: 'h' } ).success ).toBe( true )
     expect( UpdateSettingsBody.safeParse( { melete_suggest_model: 's' } ).success ).toBe( true )
     expect( UpdateSettingsBody.safeParse( { melete_review_mode: 'quick' } ).success ).toBe( true )
+    expect( UpdateSettingsBody.safeParse( { melete_mastery_days: 7 } ).success ).toBe( true )
+    expect( UpdateSettingsBody.safeParse( { melete_mastery_days: 90 } ).success ).toBe( true )
   } )
 
   it( 'rejects a bad learning root, empty Melete models and an unknown review mode', () => {
@@ -302,6 +310,9 @@ describe( 'UpdateSettingsBody', () => {
     expect( UpdateSettingsBody.safeParse( { melete_map_model: '' } ).success ).toBe( false )
     expect( UpdateSettingsBody.safeParse( { melete_suggest_model: '' } ).success ).toBe( false )
     expect( UpdateSettingsBody.safeParse( { melete_review_mode: 'fast' } ).success ).toBe( false )
+    expect( UpdateSettingsBody.safeParse( { melete_mastery_days: 6 } ).success ).toBe( false )
+    expect( UpdateSettingsBody.safeParse( { melete_mastery_days: 91 } ).success ).toBe( false )
+    expect( UpdateSettingsBody.safeParse( { melete_mastery_days: 21.5 } ).success ).toBe( false )
   } )
 
   it( 'does not accept the Melete profile ids', () => {

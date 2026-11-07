@@ -25,6 +25,9 @@ export type MeleteSyllabusStatus = z.infer< typeof MeleteSyllabusStatus >
 export const MeleteMapping = z.enum( [ 'idle', 'queued', 'mapping', 'failed' ] )
 export type MeleteMapping = z.infer< typeof MeleteMapping >
 
+export const MeleteConceptBucket = z.enum( [ 'uncovered', 'weak', 'solid' ] )
+export type MeleteConceptBucket = z.infer< typeof MeleteConceptBucket >
+
 export const MeleteOffSyllabus = z.enum( [ 'flagged', 'dismissed' ] )
 export type MeleteOffSyllabus = z.infer< typeof MeleteOffSyllabus >
 

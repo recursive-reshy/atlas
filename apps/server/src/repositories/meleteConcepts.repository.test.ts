@@ -10,6 +10,7 @@ import {
   deleteConcept,
   findConcept,
   insertConcept,
+  listConceptUsage,
   listConcepts,
   replaceSyllabus,
   updateConcept,
@@ -162,5 +163,71 @@ describe( 'ownership', () => {
     ] )
 
     expect( listConcepts( userId, subjectId ).map( ( { name } ) => name ) ).toEqual( [ 'Mine' ] )
+  } )
+} )
+
+describe( 'listConceptUsage', () => {
+  const addConcept = ( name: string, position: number ): string => {
+    return insertConcept( userId, concept( name, position ) ).id
+  }
+
+  it( 'lists the concepts in syllabus order with their live notes and active questions', () => {
+    const first = addConcept( 'First', 0 )
+    const second = addConcept( 'Second', 1 )
+    const noteId = addNote( userId, subjectId )
+    const otherNote = addNote( userId, subjectId )
+
+    setNoteConcepts( userId, noteId, [ first, second ], 'claude' )
+    setNoteConcepts( userId, otherNote, [ first ], 'hand' )
+    addQuestion( userId, noteId, { conceptId: first, reps: 3, stability: 12.5 } )
+    addQuestion( userId, noteId, { conceptId: first, position: 2 } )
+
+    expect( listConceptUsage( userId, subjectId ) ).toEqual( [
+      {
+        id: first,
+        section_id: sectionId,
+        note_count: 2,
+        questions: [ { reps: 3, stability: 12.5 }, { reps: 0, stability: 0 } ],
+      },
+      { id: second, section_id: sectionId, note_count: 1, questions: [] },
+    ] )
+  } )
+
+  it( 'leaves out notes that are not enrolled or are missing, and their questions', () => {
+    const id = addConcept( 'Only', 0 )
+    const unenrolled = addNote( userId, subjectId, { enrolled: false } )
+    const missing = addNote( userId, subjectId, { missingAt: '2026-10-02T00:00:00.000Z' } )
+
+    for( const noteId of [ unenrolled, missing ] ) {
+      setNoteConcepts( userId, noteId, [ id ], 'claude' )
+      addQuestion( userId, noteId, { conceptId: id, reps: 2, stability: 9 } )
+    }
+
+    expect( listConceptUsage( userId, subjectId ) )
+      .toEqual( [ { id, section_id: sectionId, note_count: 0, questions: [] } ] )
+  } )
+
+  it( 'counts only active questions, and only those labelled with the concept', () => {
+    const id = addConcept( 'Only', 0 )
+    const other = addConcept( 'Other', 1 )
+    const noteId = addNote( userId, subjectId )
+
+    setNoteConcepts( userId, noteId, [ id ], 'claude' )
+    addQuestion( userId, noteId, { conceptId: id, state: 'dropped', reps: 1, stability: 3 } )
+    addQuestion( userId, noteId, { conceptId: id, state: 'retired', position: 2, reps: 1 } )
+    addQuestion( userId, noteId, { conceptId: other, position: 3, reps: 4, stability: 8 } )
+    addQuestion( userId, noteId, { conceptId: null, position: 4 } )
+
+    expect( listConceptUsage( userId, subjectId ).map( ( { questions } ) => questions ) )
+      .toEqual( [ [], [ { reps: 4, stability: 8 } ] ] )
+  } )
+
+  it( 'does not see another user\'s concepts or another subject\'s', () => {
+    addConcept( 'Mine', 0 )
+
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+    expect( listConceptUsage( other, subjectId ) ).toEqual( [] )
+    expect( listConceptUsage( userId, addSubject( userId, 'Learning/Other' ) ) ).toEqual( [] )
   } )
 } )

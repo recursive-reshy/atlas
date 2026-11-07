@@ -134,3 +134,47 @@ export const replaceSyllabus = (
     } )
   } )()
 }
+
+export type ConceptUsage = {
+  id: string
+  section_id: string
+  // Enrolled notes still in the vault that are mapped to the concept
+  note_count: number
+  questions: { reps: number, stability: number }[]
+}
+
+const UsageRow = z.object( { id: z.string(), section_id: z.string(), note_count: z.int() } )
+const QuestionUsageRow = z.object( {
+  concept_id: z.string(),
+  reps: z.int(),
+  stability: z.number(),
+} )
+
+// What coverage and mastery are computed from (ADR 0090): two queries per subject. Only
+// enrolled notes still in the vault count, for the notes and for their questions alike.
+export const listConceptUsage = ( userId: string, subjectId: string ): ConceptUsage[] => {
+  const db = getDatabase()
+  const concepts = z.array( UsageRow ).parse( db
+    .prepare( `SELECT c.id, c.section_id, COUNT( n.id ) AS note_count
+      FROM melete_concepts c JOIN melete_sections s ON s.id = c.section_id
+        LEFT JOIN melete_note_concepts nc ON nc.concept_id = c.id
+        LEFT JOIN melete_notes n ON n.id = nc.note_id AND n.enrolled = 1 AND n.missing_at IS NULL
+      WHERE c.user_id = ? AND c.subject_id = ?
+      GROUP BY c.id
+      ORDER BY s.position, s.created_at, c.position, c.created_at` )
+    .all( userId, subjectId ) )
+  const questions = z.array( QuestionUsageRow ).parse( db
+    .prepare( `SELECT q.concept_id, q.reps, q.stability
+      FROM melete_questions q JOIN melete_concepts c ON c.id = q.concept_id
+        JOIN melete_notes n ON n.id = q.note_id AND n.enrolled = 1 AND n.missing_at IS NULL
+      WHERE q.user_id = ? AND c.subject_id = ? AND q.state = 'active'
+      ORDER BY q.note_id, q.position` )
+    .all( userId, subjectId ) )
+
+  return concepts.map( ( concept ) => ( {
+    ...concept,
+    questions: questions
+      .filter( ( { concept_id: id } ) => id === concept.id )
+      .map( ( { reps, stability } ) => ( { reps, stability } ) ),
+  } ) )
+}

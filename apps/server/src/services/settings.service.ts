@@ -2,6 +2,7 @@
 import { z } from 'zod'
 // Shared
 import {
+  DEFAULT_MELETE_MASTERY_DAYS,
   FeedCheckInterval,
   GetSettingsResponse,
   MeleteReviewMode,
@@ -113,6 +114,13 @@ export const resolveMeleteSuggestModel = ( userId: string ): Promise< string > =
   return Promise.resolve( storedModel( userId, 'melete_suggest_model' ) ?? SHIPPED_DEFAULT_MODEL )
 }
 
+const MASTERY_DAYS_RANGE = z.int().min( 7 ).max( 90 )
+
+export const getMasteryDays = ( userId: string ): number => {
+  return MASTERY_DAYS_RANGE.catch( DEFAULT_MELETE_MASTERY_DAYS )
+    .parse( getSetting( userId, 'melete_mastery_days' ) )
+}
+
 export const getLearningRoot = ( userId: string ): string | null => {
   return z.string().min( 1 ).nullable().catch( null )
     .parse( getSetting( userId, 'melete_learning_root' ) )
@@ -145,6 +153,7 @@ export const getSettings = async ( userId: string ): Promise< Settings > => {
     melete_syllabus_model: await resolveMeleteSyllabusModel( userId ),
     melete_map_model: await resolveMeleteMapModel( userId ),
     melete_suggest_model: await resolveMeleteSuggestModel( userId ),
+    melete_mastery_days: getMasteryDays( userId ),
     melete_question_profile_id: meleteProfileId( userId, MELETE_QUESTIONS_SEED_KEY ),
     melete_grading_profile_id: meleteProfileId( userId, MELETE_GRADING_SEED_KEY ),
   }
@@ -209,6 +218,7 @@ const MODULE_KEYS: Record< ModuleId, ( keyof UpdateSettingsBody )[] > = {
     'melete_syllabus_model',
     'melete_map_model',
     'melete_suggest_model',
+    'melete_mastery_days',
   ],
 }
 
@@ -313,6 +323,10 @@ export const updateSettings = async (
 
   if( body.melete_review_mode !== undefined ) {
     setSetting( userId, 'melete_review_mode', body.melete_review_mode )
+  }
+
+  if( body.melete_mastery_days !== undefined ) {
+    setSetting( userId, 'melete_mastery_days', body.melete_mastery_days )
   }
 
   if( body.melete_learning_root !== undefined ) {

@@ -1,4 +1,5 @@
 // React
+import { useState } from 'react'
 import type { ReactElement } from 'react'
 // Packages
 import Alert from '@mui/material/Alert'
@@ -48,6 +49,44 @@ function ModelSelect( { label, settingKey }: ModelSelectProps ): ReactElement {
   )
 }
 
+const MASTERY_DAYS_RANGE = { min: 7, max: 90 } as const
+
+// How long a question's memory must last to count as known (ADR 0090); one setting moves every
+// number at once
+function MasteryDaysField(): ReactElement {
+  const { settings, updateSettings } = useSettings()
+  const saved = settings?.melete_mastery_days ?? 21
+  const [ draft, setDraft ] = useState< string | null >( null )
+
+  const handleBlur = (): void => {
+    const days = Number( draft )
+    const isValid = draft !== null && draft.trim() !== ''
+      && Number.isInteger( days )
+      && days >= MASTERY_DAYS_RANGE.min
+      && days <= MASTERY_DAYS_RANGE.max
+
+    if( isValid && days !== saved ) {
+      updateSettings.mutate( { melete_mastery_days: days } )
+    }
+
+    setDraft( null )
+  }
+
+  return (
+    <TextField
+      type="number"
+      size="small"
+      label="Days until a question counts as known"
+      helperText={ `${ MASTERY_DAYS_RANGE.min } to ${ MASTERY_DAYS_RANGE.max }` }
+      disabled={ settings === null }
+      value={ draft ?? saved }
+      onChange={ ( event ) => setDraft( event.target.value ) }
+      onBlur={ handleBlur }
+      slotProps={ { htmlInput: MASTERY_DAYS_RANGE } }
+    />
+  )
+}
+
 export function MeleteSettings(): ReactElement {
   const { updateSettings } = useSettings()
   const { source } = useModels()
@@ -64,6 +103,7 @@ export function MeleteSettings(): ReactElement {
       <ModelSelect label="Syllabus model" settingKey="melete_syllabus_model" />
       <ModelSelect label="Mapping model" settingKey="melete_map_model" />
       <ModelSelect label="Suggestion model" settingKey="melete_suggest_model" />
+      <MasteryDaysField />
       <Typography role="status" variant="body2" color="text.secondary">
         { updateSettings.isSuccess ? 'Saved' : '' }
       </Typography>

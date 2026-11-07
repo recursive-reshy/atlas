@@ -133,4 +133,56 @@ describe( 'MeleteSettings', () => {
 
     expect( screen.getByRole( 'alert' ) ).toHaveTextContent( 'Unknown model' )
   } )
+
+  describe( 'the mastery days', () => {
+    const field = () => {
+      return screen.getByRole( 'spinbutton', { name: 'Days until a question counts as known' } )
+    }
+
+    it( 'shows the saved number', () => {
+      vi.mocked( useSettings ).mockReturnValue( settingsState( {
+        settings: { ...settingsFixture().settings, melete_mastery_days: 30 },
+      } ) )
+      renderWithClient( <MeleteSettings /> )
+
+      expect( field() ).toHaveValue( 30 )
+    } )
+
+    it( 'saves a new number when the field loses focus', async () => {
+      const user = userEvent.setup()
+
+      renderWithClient( <MeleteSettings /> )
+      await user.clear( field() )
+      await user.type( field(), '45' )
+      await user.tab()
+
+      expect( mutate ).toHaveBeenCalledWith( { melete_mastery_days: 45 } )
+    } )
+
+    it.each( [ '6', '91', '', '20.5' ] )( 'does not save "%s", and restores it', async ( text ) => {
+      const user = userEvent.setup()
+
+      renderWithClient( <MeleteSettings /> )
+      await user.clear( field() )
+
+      if( text !== '' ) {
+        await user.type( field(), text )
+      }
+
+      await user.tab()
+
+      expect( mutate ).not.toHaveBeenCalled()
+      expect( field() ).toHaveValue( 21 )
+    } )
+
+    it( 'does not save an unchanged number', async () => {
+      const user = userEvent.setup()
+
+      renderWithClient( <MeleteSettings /> )
+      await user.click( field() )
+      await user.tab()
+
+      expect( mutate ).not.toHaveBeenCalled()
+    } )
+  } )
 } )

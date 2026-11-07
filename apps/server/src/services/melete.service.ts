@@ -17,6 +17,7 @@ import { listSubjectFolders } from '../melete/scan.js'
 import { lastSkipped } from '../melete/scanOutcome.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
+import { listConceptUsage } from '../repositories/meleteConcepts.repository.js'
 import { listNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
 import {
   NoteRecord,
@@ -40,8 +41,9 @@ import {
   updateSubject as updateStoredSubject,
 } from '../repositories/meleteSubjects.repository.js'
 // Services
+import { computeConceptStats, rollUp } from '../melete/mastery.js'
 import { scanLearningRoot } from './meleteScan.service.js'
-import { getLearningRoot } from './settings.service.js'
+import { getLearningRoot, getMasteryDays } from './settings.service.js'
 import { vaultDirFor, vaultRootFor } from './vault.service.js'
 
 const requireNote = ( userId: string, id: string ): NoteRecord => {
@@ -116,6 +118,31 @@ export const noteView = ( userId: string, note: NoteRecord ): GetMeleteNoteRespo
   }
 }
 
+// Null until the syllabus is approved and has concepts (ADR 0090); computed on every read
+const subjectNumbers = (
+  userId: string,
+  subject: SubjectRecord,
+): Pick< MeleteSubject, 'coverage' | 'mastery' | 'concept_count' > => {
+  const none = { coverage: null, mastery: null, concept_count: null }
+
+  if( subject.syllabus_status !== 'approved' ) {
+    return none
+  }
+
+  const stats = computeConceptStats(
+    listConceptUsage( userId, subject.id ).map( ( usage ) => ( {
+      id: usage.id,
+      sectionId: usage.section_id,
+      noteCount: usage.note_count,
+      questions: usage.questions,
+    } ) ),
+    getMasteryDays( userId ),
+  )
+  const totals = rollUp( stats )
+
+  return totals === null ? none : { ...totals, concept_count: stats.length }
+}
+
 export const subjectName = ( folder: string ): string => folder.split( '/' ).at( -1 ) ?? folder
 
 export const toMeleteSubject = (
@@ -145,10 +172,7 @@ export const toMeleteSubject = (
     intent: subject.intent,
     syllabus_status: subject.syllabus_status,
     syllabus_error: subject.syllabus_error,
-    // Computed from the mapped notes once a syllabus is approved (Checkpoint B)
-    coverage: null,
-    mastery: null,
-    concept_count: null,
+    ...subjectNumbers( userId, subject ),
   }
 }
 
