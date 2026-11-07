@@ -350,15 +350,63 @@ Rotating `token-encryption-key` signs everyone out and breaks every stored Gmail
 
 ## Restoring the database
 
-**A new VM, or a lost disk** (automatic): bootstrap it (step 2), edit `atlas.env`, and deploy (step 5). The `restore` service sees there is no `atlas.db` and a replica in the bucket, restores the latest state, and only then starts the app. A VM that still has a database is left alone.
+Litestream keeps the database in the bucket, a second at a time, with a week of history. A restore loses what had not reached the bucket yet, so expect to lose **seconds to a minute** of writes. There are three procedures: a check that costs nothing and touches nothing, the disaster case, and a restore to an earlier moment. Each of the first two ends in a record table; fill in a row every time you run it.
 
-**An earlier point in time** (any moment in the last 7 days; manual). On the VM:
+### Scratch check
+Any time. Production is untouched: the copy goes to a temporary folder, is read, and is deleted. On the VM:
+
+```sh
+set -a; . /etc/atlas/atlas.env; set +a
+mkdir -p /tmp/atlas-restore && sudo chown 1000:1000 /tmp/atlas-restore
+date -u +%FT%TZ                      # note the time: the restore point is compared with it
+time sudo docker run --rm --user 1000:1000 -e LITESTREAM_BUCKET="$LITESTREAM_BUCKET" \
+  -v /tmp/atlas-restore:/restore -v /opt/atlas/litestream.yml:/etc/litestream.yml:ro \
+  litestream/litestream:0.5.17@sha256:4b02b9859a6b6b4087d8b8944e15f7e984bd7957cba322bbeee38b0e27b9656a restore -o /restore/atlas.db /data/atlas.db
+```
+
+Then read the copy with the app image's `node` (read-only), printing the schema, the newest write and the rows per table:
+
+```sh
+sudo docker run --rm --user 1000:1000 --entrypoint node -v /tmp/atlas-restore:/restore:ro \
+  "$REGISTRY/app:$ATLAS_VERSION" -e '
+const Database = require( "better-sqlite3" )
+const db = new Database( "/restore/atlas.db", { readonly: true } )
+console.log( "user_version", db.pragma( "user_version", { simple: true } ) )
+console.log( "integrity", db.pragma( "integrity_check", { simple: true } ) )
+for( const { name } of db.prepare( `select name from sqlite_master where type = 'table' and name not like 'sqlite_%' order by name` ).all() ) {
+  console.log( name.padEnd( 32 ), db.prepare( `select count(*) as n from "${name}"` ).get().n )
+}
+console.log( "newest job", db.prepare( "select max(created_at) as t from jobs" ).get().t )
+'
+```
+
+Compare with the live database (`user_version` equals `schema` in `GET /api/health`; the newest job time is within a minute or so of your last write), then clean up: `sudo rm -rf /tmp/atlas-restore`.
+
+| Date | Time taken | Restore point against last write | Result |
+| --- | --- | --- | --- |
+|  |  |  |  |
+
+### A new VM
+The disaster case: the VM or its disk is gone. Do this on a throwaway VM to prove it, and delete that VM afterwards.
+1. Create the VM as in [step 1](#1-google-cloud-resources) (same service account, so it can read the bucket) and run `bootstrap.sh` ([step 2](#2-bootstrap-the-vm)). Give a rehearsal VM its own Tailscale name so it doesn't replace the real one ([step 3](#3-tailscale)).
+2. Secrets come from Secret Manager when the `atlas` service starts, as always; there is nothing to copy. Fill `/etc/atlas/atlas.env` as in step 5.
+3. Deploy the version that was running, with `--force` (there is no app to ask about replication) as in [step 5](#5-first-deploy). The `restore` service sees an empty data volume and a replica in the bucket, restores the latest state, and only then starts the app. Watch it with `dc logs restore`.
+4. Redo the Obsidian Sync login for each person ([step 6](#6-obsidian-sync-login-per-person)); the vault files come from Obsidian Sync, not the bucket.
+5. Check `GET http://127.0.0.1:3100/api/health` (`schema` is what you expect), sign in, run one job, do a Melete review, and see Replication go green in Settings → Sources.
+6. For a rehearsal, delete the VM (and its Tailscale node). For the real thing, repoint Tailscale and carry on.
+
+| Date | Time taken | Restore point against last write | Result |
+| --- | --- | --- | --- |
+|  |  |  |  |
+
+### An earlier point in time
+Any moment in the last 7 days; manual, with production stopped. On the VM:
 
 ```sh
 dc stop app litestream
 sudo docker run --rm --user 1000:1000 -e LITESTREAM_BUCKET=<bucket> \
   -v /srv/atlas/data:/data -v /opt/atlas/litestream.yml:/etc/litestream.yml:ro \
-  litestream/litestream:0.5.17 restore -timestamp 2026-11-20T10:00:00Z -o /data/restored.db /data/atlas.db
+  litestream/litestream:0.5.17@sha256:4b02b9859a6b6b4087d8b8944e15f7e984bd7957cba322bbeee38b0e27b9656a restore -timestamp 2026-11-20T10:00:00Z -o /data/restored.db /data/atlas.db
 cd /srv/atlas/data
 sudo mv atlas.db atlas.db.before-restore
 sudo rm -f atlas.db-wal atlas.db-shm
@@ -366,7 +414,7 @@ sudo mv restored.db atlas.db
 dc start app litestream
 ```
 
-(The timestamp is UTC.) Then check Settings → Sources: Replication should return to OK after a minute. **This procedure has not been tried yet; release check 7.3 restores into a scratch path from the bucket.** If Litestream needs its local state removed after the swap (`/srv/atlas/data/.atlas.db-litestream`), fix this page.
+(The timestamp is UTC.) Then check Settings → Sources: Replication should return to OK after a minute. Not rehearsed yet. If Litestream needs its local state removed after the swap (`/srv/atlas/data/.atlas.db-litestream`), fix this page.
 
 ## Resizing the VM
 
@@ -398,7 +446,7 @@ sudo docker stats --no-stream      # memory of app, agent, litestream, the sync 
 free -m                            # swap use
 ```
 
-If a container is OOM-killed (`sudo docker inspect <container> --format '{{.State.OOMKilled}}'`) or swap stays high, resize ([above](#resizing-the-vm)); that is the fix, not a code change. The other checks are in the task list: a note written on the Mac reaches the VM and the reverse, a Melete review from the phone, a restore into a scratch path, and the Mac can sleep with everything still working.
+If a container is OOM-killed (`sudo docker inspect <container> --format '{{.State.OOMKilled}}'`) or swap stays high, resize ([above](#resizing-the-vm)); that is the fix, not a code change. The other checks are in the task list: a note written on the Mac reaches the VM and the reverse, a Melete review from the phone, a [scratch check](#scratch-check) of the restore, and the Mac can sleep with everything still working.
 
 ## Day to day
 

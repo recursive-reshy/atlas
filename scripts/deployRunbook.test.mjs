@@ -100,3 +100,41 @@ test( 'the dc helper names the Compose files by absolute path, and secrets are p
     assert.ok( line.includes( "tr -d '\\000-\\037\\177'" ), `no control-character filter: ${ line }` )
   }
 } )
+
+test( 'the restore section has the scratch check and the new-VM procedure, each with a record (TRD 5)', () => {
+  const text = read( 'docs/deploy.md' )
+  const start = text.indexOf( '\n## Restoring the database' )
+  assert.ok( start !== -1, 'no section Restoring the database' )
+  const end = text.indexOf( '\n## ', start + 1 )
+  const restore = text.slice( start, end === -1 ? undefined : end )
+  const sub = ( heading ) => {
+    const found = new RegExp( `\\n### ${ heading }[^\\n]*` ).exec( restore )
+    assert.ok( found, `no subsection "${ heading }" under Restoring the database` )
+    const next = restore.indexOf( '\n### ', found.index + 1 )
+    return restore.slice( found.index, next === -1 ? undefined : next )
+  }
+  const scratch = sub( 'Scratch check' )
+  const newVm = sub( 'A new VM' )
+  sub( 'An earlier point in time' )
+  for( const [ name, body ] of [ [ 'Scratch check', scratch ], [ 'A new VM', newVm ] ] ) {
+    assert.match( body, /\| Date \| Time taken \| Restore point against last write \| Result \|/, `${ name } has no record table` )
+  }
+  assert.match( scratch, /litestream\/litestream:.* restore -o / )
+  assert.match( scratch, /user_version/, 'the scratch check prints the schema' )
+  assert.match( newVm, /bootstrap/ )
+  assert.match( newVm, /restore. service|`restore`/ )
+  assert.match( newVm, /delete the VM/i )
+  assert.match( restore, /seconds to a minute/ )
+  assert.doesNotMatch( text, /has not been tried yet/ )
+  assert.doesNotMatch( text, /restore into a scratch path\./, 'Release checks should point at the scratch check, not the task list' )
+} )
+
+test( 'the restore commands use the same pinned Litestream image as Compose', () => {
+  const pinned = /litestream\/litestream:[\d.]+@sha256:[0-9a-f]{64}/
+  const fromCompose = pinned.exec( read( 'compose.prod.yml' ) )?.[ 0 ]
+  assert.ok( fromCompose, 'compose.prod.yml pins Litestream' )
+  const text = read( 'docs/deploy.md' )
+  const named = [ ...text.matchAll( /litestream\/litestream:[\d.]+(@sha256:[0-9a-f]+)?/g ) ].map( ( match ) => match[ 0 ] )
+  assert.ok( named.length >= 2, 'the runbook names the image' )
+  for( const image of named ) assert.equal( image, fromCompose, 'the runbook names a different Litestream image than compose.prod.yml' )
+} )
