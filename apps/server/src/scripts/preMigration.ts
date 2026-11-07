@@ -19,8 +19,13 @@ const SUFFIXES = [ '', '-wal', '-shm' ]
 
 const copiesIn = ( dataDir: string ): string => join( dataDir, 'pre-migration' )
 
-// The newest copy for `from` → `to`; the stamp in the name sorts as text.
-export const findPreMigration = ( dataDir: string, from: number, to: number ): string | null => {
+// The newest copy from `from` to `to`, or to any later schema when `to` is left out (a deploy that
+// failed after migrating leaves the running schema unknown). Newest by the stamp in the name.
+export const findPreMigration = (
+  dataDir: string,
+  from: number,
+  to?: number,
+): string | null => {
   const directory = copiesIn( dataDir )
 
   if( !existsSync( directory ) ) {
@@ -28,15 +33,19 @@ export const findPreMigration = ( dataDir: string, from: number, to: number ): s
   }
 
   const newest = readdirSync( directory )
-    .filter( ( name ) => {
+    .flatMap( ( name ) => {
       const match = COPY_NAME.exec( name )
 
-      return match !== null && Number( match[ 1 ] ) === from && Number( match[ 2 ] ) === to
+      return match !== null
+        && Number( match[ 1 ] ) === from
+        && ( to === undefined || Number( match[ 2 ] ) === to )
+        ? [ { name, stamp: match[ 3 ] ?? '' } ]
+        : []
     } )
-    .sort()
+    .sort( ( left, right ) => left.stamp.localeCompare( right.stamp ) )
     .at( -1 )
 
-  return newest === undefined ? null : join( directory, newest )
+  return newest === undefined ? null : join( directory, newest.name )
 }
 
 export type SwapResult = { rolledBack: string | null }
@@ -84,7 +93,7 @@ export const swapPreMigration = (
   return { rolledBack: moved.length > 0 ? rolledBack : null }
 }
 
-const usage = 'usage: preMigration.js find <from> <to> | swap <file> (DATA_DIR is the data folder)'
+const usage = 'usage: preMigration.js find <from> [<to>] | swap <file> (DATA_DIR: data folder)'
 
 export type CliResult = { code: number, stdout: string, stderr: string }
 
@@ -97,8 +106,14 @@ export const runCli = ( argv: string[], dataDir: string | undefined ): CliResult
     return { code: 2, stdout: '', stderr: 'DATA_DIR is not set\n' }
   }
 
-  if( command === 'find' && args.length === 2 && args.every( ( arg ) => /^\d+$/.test( arg ) ) ) {
-    const found = findPreMigration( dataDir, Number( first ), Number( second ) )
+  const numbers = args.every( ( arg ) => /^\d+$/.test( arg ) )
+
+  if( command === 'find' && ( args.length === 1 || args.length === 2 ) && numbers ) {
+    const found = findPreMigration(
+      dataDir,
+      Number( first ),
+      second === undefined ? undefined : Number( second ),
+    )
 
     return found === null
       ? { code: 1, stdout: '', stderr: '' }

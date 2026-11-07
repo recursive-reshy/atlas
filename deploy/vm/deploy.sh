@@ -6,12 +6,21 @@
 #                                                         scripts and unit first
 #   sudo /opt/atlas/deploy.sh 0.10.1 --dry-run           print what it would do, change nothing
 #   sudo /opt/atlas/deploy.sh 0.10.1 --force             skip the replication check (ADR 0086)
+#   sudo /opt/atlas/deploy.sh 0.10.0 --restore-pre-migration
+#                                                         roll back past a migration (below)
 #
 # First reads /api/health and refuses to go on when replication is failing, has not been checked
 # for twice STATUS_CHECK_INTERVAL_MINUTES (atlas.env, default 2), or the app does not answer; the
 # very first deploy on a new VM has no app to ask, so it needs --force. Then reads the secrets, pulls the images for the version (nothing is changed if a pull fails), sets
 # ATLAS_VERSION in /etc/atlas/atlas.env, restarts the atlas unit, and waits up to three minutes for
 # the app's health check. Rollback is the same command with the previous version, which is printed.
+#
+# --restore-pre-migration is for going back to a version whose schema is older than the running one,
+# which would refuse the migrated database. It reads both schemas from the history, finds the copy
+# the server made before the migration, stops the stack, moves the live database aside as
+# pre-migration/rolled-back-… (writes since the upgrade stay there) and puts the copy back, then
+# deploys the version as usual, with no replication check because the app is stopped. Without a
+# migration in between, a plain deploy of the previous version is enough.
 #
 # After a healthy start it prints the version and the schema change, and appends
 # "<UTC time> <version> <schema>" to /var/lib/atlas/deploys.log (ADR 0086); the last line of that
@@ -40,10 +49,12 @@ version=
 files=
 dry_run=0
 force=0
+restore=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) dry_run=1 ;;
     --force) force=1 ;;
+    --restore-pre-migration) restore=1 ;;
     --files)
       [ $# -ge 2 ] || fail "--files needs a folder"
       files=$2
@@ -56,7 +67,7 @@ while [ $# -gt 0 ]; do
 done
 
 [ "$(id -u)" = "0" ] || fail "run this as root (sudo)"
-[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$ ]] || fail "usage: deploy.sh <version, like 0.10.1> [--files <checkout>] [--dry-run] [--force]"
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$ ]] || fail "usage: deploy.sh <version, like 0.10.1> [--files <checkout>] [--dry-run] [--force] [--restore-pre-migration]"
 [ -f "$ETC/atlas.env" ] || fail "$ETC/atlas.env not found; run bootstrap.sh first"
 [ -z "$files" ] || [ -d "$files" ] || fail "$files is not a folder"
 
@@ -177,7 +188,26 @@ wait_for_health() {
   return 1
 }
 
-if [ "$dry_run" = 1 ]; then
+# The history says which schema each version ran. A deploy that never became healthy is recorded
+# with an unknown schema, and then the copy is found from the target's schema alone.
+restore_from=
+restore_to=
+restore_lookup() {
+  [ -s "$DEPLOYS_LOG" ] || fail "no deploy history at $DEPLOYS_LOG, so the schema of $version is unknown; see 'Restoring the database' in docs/deploy.md"
+  restore_from=$(awk -v v="$version" '$2 == v && $3 ~ /^[0-9]+$/ { s = $3 } END { print s }' "$DEPLOYS_LOG")
+  [ -n "$restore_from" ] || fail "$version is not in the deploy history ($DEPLOYS_LOG) with a schema; see 'Restoring the database' in docs/deploy.md"
+  local running
+  running=$(tail -n 1 "$DEPLOYS_LOG" | awk '{ print $3 }')
+  if [[ "$running" =~ ^[0-9]+$ ]]; then
+    [ "$running" != "$restore_from" ] || fail "$version and the running version use the same schema ($running), so there is no migration to undo; $OPT/deploy.sh $version is enough"
+    [ "$restore_from" -lt "$running" ] || fail "$version has a newer schema ($restore_from) than the running one ($running); nothing to restore"
+    restore_to=$running
+  fi
+}
+
+if [ "$restore" = 1 ]; then
+  restore_lookup
+elif [ "$dry_run" = 1 ]; then
   echo "+ check replication through $HEALTH_URL (--force prints a failure and goes on)"
 else
   health_body=$(curl -s --max-time 5 "$HEALTH_URL" || true)
@@ -193,6 +223,31 @@ fi
 
 [ -z "$files" ] || step "install files from $files into $OPT" install_files
 step "read the secrets" env "SECRETS_ENV_FILE=$RUN/secrets.env" "$OPT/fetch-secrets.sh"
+
+# preMigration runs in the app image against the data volume; -T keeps its output free of a terminal
+pre_migration() {
+  "${compose[@]}" run --rm -T --no-deps app node dist/src/scripts/preMigration.js "$@"
+}
+
+if [ "$restore" = 1 ]; then
+  step_name="find the pre-migration copy for schema $restore_from → ${restore_to:-any later schema}"
+  if [ "$dry_run" = 1 ]; then
+    echo "+ $step_name"
+    echo "+ systemctl stop atlas"
+    echo "+ swap: move atlas.db aside as pre-migration/rolled-back-…, put the copy in its place"
+  else
+    echo "+ $step_name"
+    copy=$(pre_migration find "$restore_from" ${restore_to:+"$restore_to"} || true)
+    [ -n "$copy" ] || fail "no pre-migration copy for schema $restore_from → ${restore_to:-any later schema} in the data volume; nothing was changed. Use the point-in-time restore in 'Restoring the database' in docs/deploy.md"
+    echo "deploy: using $copy"
+    echo "+ systemctl stop atlas"
+    systemctl stop atlas
+    echo "+ swap: move atlas.db aside as pre-migration/rolled-back-…, put the copy in its place"
+    rolled_back=$(pre_migration swap "$copy") || fail "swapping the database failed; the stack is stopped, see the message above and 'Restoring the database' in docs/deploy.md"
+    echo "deploy: the database from before the upgrade is back; the newer one is kept as ${rolled_back:-(none)}"
+  fi
+fi
+
 step "pull the $version images" env "ATLAS_VERSION=$version" "${compose[@]}" pull
 step "set ATLAS_VERSION=$version in $ETC/atlas.env" set_version
 step "systemctl restart atlas" systemctl restart atlas
@@ -209,6 +264,7 @@ if [ -n "$last" ]; then
   read -r _ last_version last_schema <<<"$last"
   previous=$last_version
   schema_before=$last_schema
+  [[ "$schema_before" =~ ^[0-9]+$ ]] || schema_before=
 else
   schema_before=$(json_field "$health_body" schema)
   if [ -n "$previous" ] && [[ "$schema_before" =~ ^[0-9]+$ ]]; then
@@ -232,7 +288,7 @@ if wait_for_health; then
   fi
   [ -z "$schema_after" ] || record_deploy "$version" "$schema_after"
   back="$OPT/deploy.sh $previous"
-  if [ -n "$schema_before" ] && [ -n "$schema_after" ] && [ "$schema_before" != "$schema_after" ]; then
+  if [ -n "$schema_before" ] && [ -n "$schema_after" ] && [ "$schema_after" -gt "$schema_before" ]; then
     back="$back --restore-pre-migration"
   fi
   if [ -n "$previous" ]; then
@@ -243,6 +299,13 @@ if wait_for_health; then
 else
   "${compose[@]}" ps >&2 || true
   "${compose[@]}" logs --tail 40 app >&2 || true
-  echo "deploy: Atlas $version did not become healthy within ${HEALTH_TIMEOUT}s${previous:+; to go back: $OPT/deploy.sh $previous}" >&2
+  record_deploy "$version" unknown
+  echo "deploy: Atlas $version did not become healthy within ${HEALTH_TIMEOUT}s" >&2
+  if [ -n "$previous" ] && [ "$restore" = 0 ]; then
+    echo "deploy: to go back: $OPT/deploy.sh $previous" >&2
+    echo "deploy: if the new version migrated the database, the previous one refuses a database from a newer version; then use: $OPT/deploy.sh $previous --restore-pre-migration" >&2
+  elif [ -n "$previous" ]; then
+    echo "deploy: the database was restored but $version did not start; see the logs above" >&2
+  fi
   exit 1
 fi

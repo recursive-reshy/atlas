@@ -19,9 +19,19 @@ const write = ( path, text ) => {
 
 // Fakes are written once; they find their folder in FAKE_DIR
 const bin = mkdtempSync( join( tmpdir(), 'atlas-deploy-bin-' ) )
-for( const name of [ 'docker', 'systemctl', 'sleep' ] ) {
+for( const name of [ 'systemctl', 'sleep' ] ) {
   write( join( bin, name ), `#!/bin/sh\necho "${ name } $*" >> "$FAKE_DIR/calls"\n` )
 }
+// docker: `... find ...` prints FIND_RESULT (default a v13 → v14 copy; "none" prints nothing, exit 1)
+write( join( bin, 'docker' ), `#!/bin/sh
+echo "docker $*" >> "$FAKE_DIR/calls"
+case "$*" in
+  *" find "*)
+    [ "\${FIND_RESULT:-}" = "none" ] && exit 1
+    echo "\${FIND_RESULT:-/data/pre-migration/pre-migration-v13-to-v14-20261107-181500.db}"
+    ;;
+esac
+` )
 write( join( bin, 'id' ), '#!/bin/sh\necho "$FAKE_UID"\n' )
 // Health: with -w (the wait) answers 503 until the HEALTH_OK_AFTER-th call (0 = never); without
 // it (the preflight and the report) prints the body in HEALTH_BODY, or fails when it is "none"
@@ -349,15 +359,106 @@ test( 'with no history, the running app is recorded first so a later rollback ca
   assert.match( result.stdout, /schema 13 → 14/ )
 } )
 
-test( 'a failed health wait records nothing', () => {
+test( 'a failed health wait records the version with an unknown schema, and names --restore-pre-migration', () => {
   const box = sandbox()
   box.seedHistory( '2026-11-01T09:00:00Z 0.10.0 13\n' )
-  assert.notEqual( box.run( [ '0.11.0' ], { HEALTH_OK_AFTER: '0' } ).status, 0 )
-  assert.equal( box.history().length, 1 )
+  const result = box.run( [ '0.11.0' ], { HEALTH_OK_AFTER: '0' } )
+  assert.notEqual( result.status, 0 )
+  assert.match( box.history().at( -1 ), / 0\.11\.0 unknown$/ )
+  assert.match( result.stderr, /deploy\.sh 0\.10\.0 --restore-pre-migration/ )
+  assert.match( result.stderr, /refuses a database from a newer version/ )
 } )
 
 test( '--dry-run writes no history', () => {
   const box = sandbox()
   assert.equal( box.run( [ '0.11.0', '--dry-run' ] ).status, 0 )
   assert.deepEqual( box.history(), [] )
+} )
+
+const RUNNING = '2026-11-07T09:00:00Z 0.10.0 13\n2026-11-07T10:00:00Z 0.11.0 14\n'
+const copy = '/data/pre-migration/pre-migration-v13-to-v14-20261107-181500.db'
+const cli = 'app node dist/src/scripts/preMigration.js'
+
+test( '--restore-pre-migration: finds the copy, stops, swaps, then deploys the previous version', () => {
+  const box = sandbox( { current: 'ATLAS_VERSION=0.11.0\nREGISTRY=r.example/atlas\n' } )
+  box.seedHistory( RUNNING )
+  const result = box.run( [ '0.10.0', '--restore-pre-migration' ], { HEALTH_BODY: body( { schema: 13 } ) } )
+  assert.equal( result.status, 0, result.stderr )
+
+  const calls = box.calls()
+  const at = ( text ) => calls.findIndex( ( call ) => call.includes( text ) )
+  const order = [
+    at( 'fetch-secrets' ),
+    at( `${ cli } find 13 14` ),
+    at( 'systemctl stop atlas' ),
+    at( `${ cli } swap ${ copy }` ),
+    calls.findIndex( ( call ) => call.endsWith( ' pull' ) ),
+    at( 'systemctl restart atlas' ),
+  ]
+  assert.ok( order.every( ( index ) => index >= 0 ), `every step ran: ${ order }` )
+  assert.deepEqual( order, [ ...order ].sort( ( a, b ) => a - b ), 'in this order' )
+  assert.match( calls[ order[ 1 ] ], /run --rm -T --no-deps app node/ )
+  assert.match( box.env(), /^ATLAS_VERSION=0\.10\.0$/m )
+  assert.ok( !calls.some( ( call ) => call.startsWith( 'curl ' ) && !call.includes( ' -w ' ) && calls.indexOf( call ) < order[ 4 ] ), 'no preflight: the app is stopped' )
+  assert.match( result.stdout, /Atlas 0\.10\.0 is up, schema 14 → 13/ )
+  assert.match( box.history().at( -1 ), / 0\.10\.0 13$/ )
+  assert.doesNotMatch( result.stdout, /to go back: [^\n]*restore-pre-migration/, 'going forward again is a plain deploy' )
+} )
+
+test( '--restore-pre-migration refuses without a history entry for the target', () => {
+  const noLog = sandbox()
+  const first = noLog.run( [ '0.10.0', '--restore-pre-migration' ] )
+  assert.notEqual( first.status, 0 )
+  assert.match( first.stderr, /no deploy history/ )
+
+  const box = sandbox()
+  box.seedHistory( RUNNING )
+  const unknown = box.run( [ '0.9.0', '--restore-pre-migration' ] )
+  assert.notEqual( unknown.status, 0 )
+  assert.match( unknown.stderr, /0\.9\.0 is not in the deploy history/ )
+  for( const b of [ noLog, box ] ) assert.deepEqual( b.calls(), [] )
+} )
+
+test( '--restore-pre-migration refuses when the schema is the same, and points at a plain deploy', () => {
+  const box = sandbox()
+  box.seedHistory( '2026-11-01T09:00:00Z 0.10.0 13\n2026-11-02T09:00:00Z 0.10.1 13\n' )
+  const result = box.run( [ '0.10.0', '--restore-pre-migration' ] )
+  assert.notEqual( result.status, 0 )
+  assert.match( result.stderr, /same schema \(13\)/ )
+  assert.match( result.stderr, /deploy\.sh 0\.10\.0` is enough|deploy\.sh 0\.10\.0 is enough/ )
+  assert.deepEqual( box.calls(), [] )
+} )
+
+test( '--restore-pre-migration refuses when no copy exists, before stopping anything', () => {
+  const box = sandbox()
+  box.seedHistory( RUNNING )
+  const result = box.run( [ '0.10.0', '--restore-pre-migration' ], { FIND_RESULT: 'none' } )
+  assert.notEqual( result.status, 0 )
+  assert.match( result.stderr, /no pre-migration copy for schema 13 → 14/ )
+  assert.match( result.stderr, /Restoring the database/ )
+  assert.ok( !box.calls().some( ( call ) => call.startsWith( 'systemctl' ) || call.includes( ' swap ' ) ) )
+  assert.match( box.env(), /^ATLAS_VERSION=0\.10\.0$/m, 'atlas.env untouched' )
+} )
+
+test( 'after a failed deploy the running schema is unknown, and the copy is found from the target schema alone', () => {
+  const box = sandbox( { current: 'ATLAS_VERSION=0.11.0\n' } )
+  box.seedHistory( '2026-11-07T09:00:00Z 0.10.0 13\n2026-11-07T10:00:00Z 0.11.0 unknown\n' )
+  const result = box.run( [ '0.10.0', '--restore-pre-migration' ], { HEALTH_BODY: body( { schema: 13 } ) } )
+  assert.equal( result.status, 0, result.stderr )
+  assert.ok( box.calls().some( ( call ) => call.endsWith( `${ cli } find 13` ) ) )
+  assert.ok( box.calls().some( ( call ) => call.includes( `${ cli } swap ${ copy }` ) ) )
+} )
+
+test( '--restore-pre-migration --dry-run prints the whole sequence and runs nothing', () => {
+  const box = sandbox()
+  box.seedHistory( RUNNING )
+  const result = box.run( [ '0.10.0', '--restore-pre-migration', '--dry-run' ] )
+  assert.equal( result.status, 0, result.stderr )
+  assert.deepEqual( box.calls(), [] )
+  const lines = result.stdout.split( '\n' )
+  const at = ( pattern ) => lines.findIndex( ( line ) => pattern.test( line ) )
+  const order = [ /read the secrets/, /find the pre-migration copy.*13 → 14/, /systemctl stop atlas/, /swap/, /pull the 0\.10\.0 images/, /ATLAS_VERSION=0\.10\.0/, /systemctl restart atlas/ ].map( at )
+  assert.ok( order.every( ( index ) => index >= 0 ), `every step is listed: ${ order }` )
+  assert.deepEqual( order, [ ...order ].sort( ( a, b ) => a - b ) )
+  assert.doesNotMatch( result.stdout, /check replication/, 'no preflight' )
 } )

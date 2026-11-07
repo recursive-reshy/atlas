@@ -76,6 +76,15 @@ describe( 'findPreMigration', () => {
     expect( findPreMigration( dataDir, 13, 14 ) ).toBeNull()
   } )
 
+  it( 'without a target schema, returns the newest copy from that schema to any later one', () => {
+    put( copies, 'pre-migration-v13-to-v14-20261101-090000.db', 'x' )
+    put( copies, 'pre-migration-v12-to-v13-20261107-090000.db', 'x' )
+
+    const newest = put( copies, 'pre-migration-v13-to-v15-20261107-181500.db', 'x' )
+
+    expect( findPreMigration( dataDir, 13 ) ).toBe( newest )
+  } )
+
   it( 'returns null when the folder does not exist', () => {
     expect( findPreMigration( dataDir, 13, 14 ) ).toBeNull()
   } )
@@ -199,6 +208,13 @@ describe( 'runCli', () => {
 
     expect( refused.code ).toBe( 1 )
     expect( refused.stderr ).toMatch( /pre-migration copy/ )
+  } )
+
+  it( 'find accepts a from schema alone', () => {
+    const copy = put( copies, 'pre-migration-v13-to-v14-20261107-181500.db', 'x' )
+
+    expect( runCli( [ 'find', '13' ], dataDir ) )
+      .toEqual( { code: 0, stdout: `${ copy }\n`, stderr: '' } )
   } )
 
   it( 'needs DATA_DIR and a known command', () => {
