@@ -440,6 +440,10 @@ const BASELINE_COLUMNS: Record< string, string[] > = {
     'auto_enroll',
     'new_per_day',
     'created_at',
+    'target_level',
+    'intent',
+    'syllabus_status',
+    'syllabus_error',
   ],
   melete_notes: [
     'id',
@@ -456,6 +460,11 @@ const BASELINE_COLUMNS: Record< string, string[] > = {
     'generation_error',
     'missing_at',
     'created_at',
+    'mapping',
+    'mapping_error',
+    'mapping_pinned',
+    'off_syllabus',
+    'off_syllabus_suggestion',
   ],
   melete_questions: [
     'id',
@@ -478,6 +487,7 @@ const BASELINE_COLUMNS: Record< string, string[] > = {
     'fsrs_state',
     'last_review',
     'created_at',
+    'concept_id',
   ],
   melete_reviews: [
     'id',
@@ -506,7 +516,20 @@ const BASELINE_COLUMNS: Record< string, string[] > = {
     'outcome',
     'error',
     'created_at',
+    'subject_id',
   ],
+  melete_sections: [ 'id', 'user_id', 'subject_id', 'position', 'name', 'created_at' ],
+  melete_concepts: [
+    'id',
+    'user_id',
+    'subject_id',
+    'section_id',
+    'position',
+    'name',
+    'description',
+    'created_at',
+  ],
+  melete_note_concepts: [ 'user_id', 'note_id', 'concept_id', 'source' ],
   users: [
     'id',
     'email',
@@ -547,6 +570,9 @@ const BASELINE_INDEXES = [
   'melete_reviews_question',
   'melete_reviews_day',
   'melete_runs_note',
+  'melete_concepts_subject',
+  'melete_note_concepts_concept',
+  'melete_questions_concept',
   'transcription_runs_user',
 ]
 

@@ -280,3 +280,128 @@ describe( 'migration 14 (stored schema 14, ADR 0085)', () => {
       ] )
   } )
 } )
+
+describe( 'migration 15 (stored schema 15, Melete concept layer, ADR 0089)', () => {
+  const USER = '00000000-0000-4000-8000-000000000002'
+  const SUBJECT = '50000000-0000-4000-8000-000000000001'
+  const NOTE = '51000000-0000-4000-8000-000000000001'
+  const QUESTION = '52000000-0000-4000-8000-000000000001'
+
+  const migrated = (): void => {
+    openSeeded( 14 )
+    runMigrations( getDatabase(), migrations.slice( 0, 6 ) )
+  }
+
+  const addConcept = ( id: string ): void => {
+    getDatabase().prepare( `INSERT INTO melete_sections
+      ( id, user_id, subject_id, position, name, created_at )
+      VALUES ( ?, ?, ?, 0, 'Basics', '2026-11-07T00:00:00.000Z' )` )
+      .run( `s-${ id }`, USER, SUBJECT )
+    getDatabase().prepare( `INSERT INTO melete_concepts
+      ( id, user_id, subject_id, section_id, position, name, created_at )
+      VALUES ( ?, ?, ?, ?, 0, 'Cells', '2026-11-07T00:00:00.000Z' )` )
+      .run( id, USER, SUBJECT, `s-${ id }` )
+  }
+
+  afterEach( () => {
+    closeDatabase()
+  } )
+
+  it( 'reads existing subjects back with no level, no intent and syllabus_status none', () => {
+    migrated()
+
+    expect( rows( `SELECT target_level, intent, syllabus_status, syllabus_error
+      FROM melete_subjects` ) )
+      .toEqual( [ {
+        target_level: null,
+        intent: null,
+        syllabus_status: 'none',
+        syllabus_error: null,
+      } ] )
+  } )
+
+  it( 'reads existing notes back as idle, unpinned and not off-syllabus', () => {
+    migrated()
+
+    expect( rows( `SELECT mapping, mapping_error, mapping_pinned, off_syllabus,
+      off_syllabus_suggestion FROM melete_notes ORDER BY id` ) )
+      .toEqual( [ 1, 2 ].map( () => ( {
+        mapping: 'idle',
+        mapping_error: null,
+        mapping_pinned: 0,
+        off_syllabus: null,
+        off_syllabus_suggestion: null,
+      } ) ) )
+  } )
+
+  it( 'leaves questions unlabelled and runs without a subject', () => {
+    migrated()
+
+    expect( rows( 'SELECT DISTINCT concept_id FROM melete_questions' ) )
+      .toEqual( [ { concept_id: null } ] )
+    expect( rows( 'SELECT DISTINCT subject_id FROM melete_runs' ) )
+      .toEqual( [ { subject_id: null } ] )
+  } )
+
+  it( 'creates the three new tables empty', () => {
+    migrated()
+
+    for( const table of [ 'melete_sections', 'melete_concepts', 'melete_note_concepts' ] ) {
+      expect( tableCounts()[ table ], table ).toBe( 0 )
+    }
+  } )
+
+  it( 'refuses values outside the new CHECK lists', () => {
+    migrated()
+
+    const db = getDatabase()
+
+    expect( () => db.prepare( 'UPDATE melete_subjects SET target_level = ?' ).run( 'guru' ) )
+      .toThrow( /CHECK/ )
+    expect( () => db.prepare( 'UPDATE melete_subjects SET syllabus_status = ?' ).run( 'ready' ) )
+      .toThrow( /CHECK/ )
+    expect( () => db.prepare( 'UPDATE melete_notes SET mapping = ?' ).run( 'done' ) )
+      .toThrow( /CHECK/ )
+    expect( () => db.prepare( 'UPDATE melete_notes SET off_syllabus = ?' ).run( 'hidden' ) )
+      .toThrow( /CHECK/ )
+
+    addConcept( 'c1' )
+    expect( () => db.prepare( `INSERT INTO melete_note_concepts
+      ( user_id, note_id, concept_id, source ) VALUES ( ?, ?, 'c1', 'guess' )` )
+      .run( USER, NOTE ) ).toThrow( /CHECK/ )
+    db.prepare( 'UPDATE melete_subjects SET target_level = ?, syllabus_status = ?' )
+      .run( 'working', 'drafting' )
+  } )
+
+  it( 'nulls a question label and drops mappings when a concept is deleted', () => {
+    migrated()
+    addConcept( 'c1' )
+
+    const db = getDatabase()
+
+    db.prepare( `INSERT INTO melete_note_concepts ( user_id, note_id, concept_id, source )
+      VALUES ( ?, ?, 'c1', 'claude' )` ).run( USER, NOTE )
+    db.prepare( 'UPDATE melete_questions SET concept_id = ? WHERE id = ?' ).run( 'c1', QUESTION )
+    db.prepare( 'DELETE FROM melete_concepts WHERE id = ?' ).run( 'c1' )
+
+    expect( rows( `SELECT concept_id FROM melete_questions WHERE id = '${ QUESTION }'` ) )
+      .toEqual( [ { concept_id: null } ] )
+    expect( tableCounts().melete_note_concepts ).toBe( 0 )
+    expect( db.pragma( 'foreign_key_check' ) ).toEqual( [] )
+  } )
+
+  it( 'removes sections and concepts with their subject', () => {
+    migrated()
+    addConcept( 'c1' )
+
+    const db = getDatabase()
+
+    db.prepare( 'DELETE FROM melete_reviews' ).run()
+    db.prepare( 'DELETE FROM melete_questions' ).run()
+    db.prepare( 'DELETE FROM melete_notes' ).run()
+    db.prepare( 'DELETE FROM melete_subjects' ).run()
+
+    expect( tableCounts().melete_sections ).toBe( 0 )
+    expect( tableCounts().melete_concepts ).toBe( 0 )
+  } )
+} )
