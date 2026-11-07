@@ -37,3 +37,21 @@ test( 'the root CLAUDE.md keeps a short summary and points at docs/architecture.
   const precedence = text.slice( text.indexOf( '## Precedence' ), text.indexOf( '## Rules that span apps' ) )
   assert.match( precedence, /2\. The TRD and ADRs override[^\n]*docs\/architecture\.md/ )
 } )
+
+test( 'the Git section works on release branches and keeps the old rules (v1.1 onwards)', () => {
+  const text = read( 'CLAUDE.md' )
+  const git = text.slice( text.indexOf( '\n## Git' ), text.indexOf( '\n## Before you stop' ) )
+  assert.match( git, /release branch named in the version's `tasks\.md`/ )
+  assert.match( git, /release\/1\.1\.0/ )
+  assert.match( git, /never on `main`/ )
+  assert.match( git, /Push after every commit to that branch/ )
+  assert.match( git, /Never merge, never tag, never push to `main`/ )
+  assert.match( git, /--no-ff/ )
+  assert.match( git, /never equal a tag name/ )
+  assert.match( git, /merges `main` into the branch/ )
+  assert.match( git, /renumbered after any migration that came from `main`, before it is locked/ )
+  assert.doesNotMatch( git, /Work on `main`\./ )
+  for( const kept of [ 'Stage files by name', 'never `git add -A`', 'Never `--amend`', 'force-push', 'If a push fails, stop and report it', 'Conventional messages' ] ) {
+    assert.ok( git.includes( kept ), `the Git section lost: ${ kept }` )
+  }
+} )

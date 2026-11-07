@@ -64,7 +64,10 @@ If something isn't covered by the PRD, TRD, ADRs or the approved plan (a new dep
 
 ## Git
 
-- Work on `main`. One commit per task, containing its code, tests and the `tasks.md` update. Push after every commit.
+- From v1.1, work happens on the release branch named in the version's `tasks.md` (for example `release/1.1.0`), never on `main`. One commit per task, containing its code, tests and the `tasks.md` update. Push after every commit to that branch.
+- Never merge, never tag, never push to `main`: Naresh merges the release branch with `--no-ff`, releases from `main` and tags.
+- Branch names never equal a tag name (no branch called `v1.1.0`).
+- If `main` gets a fix during a release (a 1.x.y), Naresh merges `main` into the branch. A new migration on the branch is renumbered after any migration that came from `main`, before it is locked.
 - Conventional messages scoped by version and task id, so every scope is unique across versions: `feat(0.9-3.2): Claude client`, `refactor(0.9-6.1): useJob on TanStack Query`, `docs(0.9-plan): checkpoint B`. Use major.minor for the version (`0.9`), and the full version for a patch release (`0.7.1-2.3`).
 - Stage files by name; never `git add -A` or `git add .`. Never commit `.env` or anything with a secret.
 - Never `--amend`, rebase, force-push, `reset`, `stash`, `checkout -- <file>` or `restore`. If a commit is wrong, fix it in a new commit.
