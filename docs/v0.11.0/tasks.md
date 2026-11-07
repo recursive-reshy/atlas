@@ -37,7 +37,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
 | **Phase 1** | **Kick-off** | | |
-| 1.1 | Version 0.11.0 in every `package.json`, `apps/agent/pyproject.toml`, the agent's `uv.lock` entry and the README status line; root `CLAUDE.md` current version 0.11.0; confirm `docs/README.md` lists v0.11.0 and ADRs 0084–0087 | | ⬜ |
+| 1.1 | Version 0.11.0 in every `package.json`, `apps/agent/pyproject.toml`, the agent's `uv.lock` entry and the README status line; root `CLAUDE.md` current version 0.11.0; confirm `docs/README.md` lists v0.11.0 and ADRs 0084–0087 | | ✅ |
 | **Phase 2** | **Migrations (TRD §2)** | | |
 | 2.1 | Lock file and `migrations:lock` script (TRD §2.2); lock versions 10–13; hash and contiguity tests; `SCHEMA_BASE` guard test | 0085 | ⬜ |
 | 2.2 | `fixtures/schema-13.sql` covering every table (TRD §2.3); missing-seed and empty-table guard tests | 0085 | ⬜ |
@@ -97,3 +97,5 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 ---
 
 ## Log
+
+- 1.1 — Version 0.11.0 in the 6 package.json files, agent pyproject.toml and uv.lock (`uv lock --check` ok), README status line and root CLAUDE.md (current version and Workflow paths now v0.11.0); docs/README.md already listed v0.11.0 and ADRs 0084–0087. Root `pnpm test`, lint and typecheck green.
