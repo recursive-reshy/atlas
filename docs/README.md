@@ -112,7 +112,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0085](decisions/0085-locked-migrations-and-seed-fixtures.md) | Released migrations are locked by hash and upgrade-tested from SQL seeds | Accepted |
 | [0086](decisions/0086-deploy-preflight-and-rollback.md) | deploy.sh checks replication first, records each deploy, and rolls back past a migration | Accepted |
 | [0087](decisions/0087-dependency-policy.md) | Minor and patch updates only before 1.0; majors one per release after; images pinned by digest | Accepted |
-| [0088](decisions/0088-restore-drill-scratch-check-only.md) | The 0.11 restore drill is the scratch check; the new-VM rehearsal is deferred | Accepted |
+| [0088](decisions/0088-restore-drill-scratch-check-only.md) | The 0.11 restore drill is the scratch check; the new-VM rehearsal is deferred; the soak is waived | Accepted |
 
 ## Template for new ADRs
 

@@ -149,6 +149,9 @@ test( 'A new VM warns that it is for when the old VM is gone (ADR 0088)', () => 
   assert.match( intro, /gs:\/\/<bucket>\/atlas\.db/ )
   assert.match( intro, /Obsidian Sync/ )
   assert.match( intro, /separate replica path/ )
+  assert.match( intro, /fork/ )
+  assert.match( intro, /redirect URIs/ )
+  assert.match( intro, /APP_ORIGINS/ )
   assert.match( intro, /ADR 0088/ )
 } )
 

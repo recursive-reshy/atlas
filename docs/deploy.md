@@ -288,7 +288,7 @@ If only the app changed, `sudo /opt/atlas/deploy.sh 0.11.0` is enough and keeps 
 
 **The first upgrade from 0.10.0.** The installed 0.10.0 `deploy.sh` doesn't know `--force`, and the 0.10.0 app's health body has no `schema` or `replication` fields, so the new preflight can't read it. For that one upgrade:
 
-- send the 0.11.0 files and run the new script from them, not the installed one: `sudo ~/atlas-src/deploy/vm/deploy.sh 0.11.0 --files ~/atlas-src --force`;
+- the installed `/opt/atlas/deploy.sh` rejects `--force` (it parses options before `--files` installs the new script), so send the 0.11.0 files and run the checkout's script, not the installed one: `sudo ~/atlas-src/deploy/vm/deploy.sh 0.11.0 --files ~/atlas-src --force`;
 - `/var/lib/atlas/deploys.log` doesn't exist yet and the script can't learn the running schema from the old health body, so seed it by hand first: `echo "$(date -u +%FT%TZ) 0.10.0 13" | sudo tee /var/lib/atlas/deploys.log`;
 - a deploy over 0.10.0 needs `--force` in both directions, and the report is unreliable while 0.10.0 is involved: after a rollback to 0.10.0 it says `schema unknown`, and redeploying 0.11.0 can say `schema 14, unchanged` though it migrated 13 → 14. Check `GET /api/health` instead. All of this happens only because 0.10.0's health has no schema or replication fields; from 0.11.0 on it doesn't.
 
@@ -390,10 +390,10 @@ Compare with the live database (`user_version` equals `schema` in `GET /api/heal
 
 | Date | Time taken | Restore point against last write | Result |
 | --- | --- | --- | --- |
-| 2026-11-07 (0.11 rehearsal, after the rollback to 0.10.0) | not recorded | not recorded | Passed: `user_version` 13, integrity ok |
+| 2026-11-07 | | | Passed after a rollback: `user_version` 13, integrity ok (Litestream followed the swap) |
 
 ### A new VM
-**Warning: this procedure is for when the old VM is gone.** Run while production is up, it starts a second Litestream writer on the same replica (`gs://<bucket>/atlas.db`), and a logged-in Obsidian Sync client would push into the real vault. It has not been rehearsed (the 0.11 drill was the scratch check only, ADR 0088). A future rehearsal must use a separate replica path (its own `litestream.yml`, with a copy of the replica restored there) and skip the Obsidian login in step 4.
+**Warning: this procedure is for when the old VM is gone.** Run while production is up, it starts a second Litestream writer on the same replica (`gs://<bucket>/atlas.db`) and would fork it, and a logged-in Obsidian Sync client would push into the real vault. It has not been rehearsed (the 0.11 drill was the scratch check only, ADR 0088). Both would fork or overwrite real data. A future rehearsal must use a separate replica path (its own `litestream.yml`, with a copy of the replica restored there), skip the Obsidian login in step 4, and have its address added to the OAuth client's redirect URIs and to `APP_ORIGINS`.
 
 The disaster case: the VM or its disk is gone.
 1. Create the VM as in [step 1](#1-google-cloud-resources) (same service account, so it can read the bucket) and run `bootstrap.sh` ([step 2](#2-bootstrap-the-vm)). Tailscale is [step 3](#3-tailscale).
