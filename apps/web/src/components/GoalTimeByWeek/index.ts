@@ -1,0 +1,1 @@
+export { GoalTimeByWeek } from './GoalTimeByWeek'

@@ -7,6 +7,7 @@ import type {
   LogMetricBody,
   ThemisArea,
   ThemisCheckin,
+  ThemisGoalListItem,
   ThemisMetricUpdate,
   UpdateAreaBody,
   UpdateGoalBody,
@@ -78,6 +79,16 @@ const requireFreeName = ( userId: string, name: string, own?: string ): void => 
   if( taken !== undefined && taken.id !== own ) {
     throw new ConflictError( 'You already have an area with that name' )
   }
+}
+
+// Every goal, whatever its status, with its area's name (ADR 0095)
+export const listAllGoals = ( userId: string ): ThemisGoalListItem[] => {
+  const names = new Map( listAreas( userId ).map( ( { id, name } ) => [ id, name ] ) )
+
+  return listGoals( userId ).map( ( record ) => ( {
+    goal: toThemisGoal( record ),
+    area_name: names.get( record.area_id ) ?? '',
+  } ) )
 }
 
 export const createArea = ( userId: string, body: CreateAreaBody ): ThemisArea => {

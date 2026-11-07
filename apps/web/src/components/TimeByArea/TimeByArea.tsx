@@ -1,7 +1,6 @@
 // React
 import type { ReactElement } from 'react'
 // Packages
-import Box from '@mui/material/Box'
 import Stack from '@mui/material/Stack'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
@@ -10,6 +9,7 @@ import Typography from '@mui/material/Typography'
 import type { ThemisOverviewArea, ThemisPeriod } from '@atlas/shared'
 // App
 import { formatStudyTime } from '#src/formatStudyTime'
+import { TimeBar } from '../TimeBar'
 
 interface TimeByAreaProps {
   areas: ThemisOverviewArea[]
@@ -22,24 +22,6 @@ const PERIODS: { value: ThemisPeriod, label: string }[] = [
   { value: 'month', label: 'Month' },
   { value: 'quarter', label: 'Quarter' },
 ]
-
-const HEIGHT = 12
-
-function Segment(
-  { label, share, color }: { label: string, share: number, color: string },
-): ReactElement | null {
-  if( share === 0 ) {
-    return null
-  }
-
-  return (
-    <Box
-      role="img"
-      aria-label={ `${ label } ${ Math.round( share ) }%` }
-      sx={ { width: `${ share }%`, height: HEIGHT, bgcolor: color } }
-    />
-  )
-}
 
 // Measured and logged as two shades; each area's bar is sized against the busiest area
 export function TimeByArea( { areas, period, onPeriodChange }: TimeByAreaProps ): ReactElement {
@@ -72,7 +54,7 @@ export function TimeByArea( { areas, period, onPeriodChange }: TimeByAreaProps )
       </Stack>
       <Stack component="ul" spacing={ 2 } sx={ { listStyle: 'none', m: 0, p: 0 } }>
         { areas.map( ( { id, name, time } ) => {
-          const width = busiest === 0 ? 0 : time.seconds / busiest * 100
+          const width = busiest === 0 ? 0 : time.seconds / busiest
 
           return (
             <Stack component="li" key={ id } aria-label={ name } spacing={ 0.5 }>
@@ -80,25 +62,7 @@ export function TimeByArea( { areas, period, onPeriodChange }: TimeByAreaProps )
                 <Typography variant="body2">{ name }</Typography>
                 <Typography variant="body2">{ formatStudyTime( time.seconds ) }</Typography>
               </Stack>
-              <Box
-                sx={ {
-                  display: 'flex',
-                  width: `${ width }%`,
-                  borderRadius: 0.5,
-                  overflow: 'hidden',
-                } }
-              >
-                <Segment
-                  label="Measured"
-                  share={ time.seconds === 0 ? 0 : time.measured / time.seconds * 100 }
-                  color="primary.main"
-                />
-                <Segment
-                  label="Logged"
-                  share={ time.seconds === 0 ? 0 : time.logged / time.seconds * 100 }
-                  color="secondary.main"
-                />
-              </Box>
+              <TimeBar measured={ time.measured } logged={ time.logged } scale={ width } />
               <Typography variant="caption" color="text.secondary">
                 { `${ formatStudyTime( time.measured ) } measured` }
                 { ` · ${ formatStudyTime( time.logged ) } logged` }

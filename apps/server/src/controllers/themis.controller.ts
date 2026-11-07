@@ -8,6 +8,7 @@ import {
   CreateAreaBody,
   CreateGoalBody,
   GetThemisGoalResponse,
+  GetThemisGoalsResponse,
   GetThemisOverviewResponse,
   LogMetricBody,
   SetGoalSubjectsBody,
@@ -28,6 +29,7 @@ import {
   changeGoal,
   createArea,
   createGoal,
+  listAllGoals,
   logMetric,
   removeArea,
   removeGoal,
@@ -128,6 +130,13 @@ export const getThemisOverview = (
   const period = ThemisPeriod.default( 'week' ).parse( req.query.period )
 
   res.status( 200 ).json( getOverview( currentUser( req ).id, period ) )
+}
+
+export const getThemisGoals = (
+  req: Request,
+  res: Response< GetThemisGoalsResponse >,
+): void => {
+  res.status( 200 ).json( { goals: listAllGoals( currentUser( req ).id ) } )
 }
 
 export const getThemisGoal = (

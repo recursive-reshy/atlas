@@ -7,6 +7,7 @@ import {
   deleteAreaRoute,
   deleteGoalRoute,
   getThemisGoal,
+  getThemisGoals,
   getThemisOverview,
   patchArea,
   patchGoal,
@@ -28,6 +29,7 @@ themisRoutes.delete( '/themis/goals/:id', deleteGoalRoute )
 themisRoutes.post( '/themis/goals/:id/metric', postMetric )
 themisRoutes.post( '/themis/goals/:id/checkins', postCheckin )
 themisRoutes.get( '/themis/overview', getThemisOverview )
+themisRoutes.get( '/themis/goals', getThemisGoals )
 themisRoutes.get( '/themis/goals/:id', getThemisGoal )
 // Linking subjects also needs Melete, and is refused the same way without it
 themisRoutes.put( '/themis/goals/:id/subjects', requireModule( 'melete' ), putGoalSubjects )

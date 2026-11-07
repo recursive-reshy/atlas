@@ -6,6 +6,7 @@ import {
   CreateAreaBody,
   CreateGoalBody,
   GetThemisGoalResponse,
+  GetThemisGoalsResponse,
   GetThemisOverviewResponse,
   LogMetricBody,
   SetGoalSubjectsBody,
@@ -320,5 +321,26 @@ describe( 'SetGoalSubjectsBody', () => {
     expect( SetGoalSubjectsBody.safeParse( { subject_ids: [ 'x' ] } ).success ).toBe( false )
     expect( SetGoalSubjectsBody.safeParse( {} ).success ).toBe( false )
     expect( SetGoalSubjectsBody.safeParse( { subject_ids: [], extra: 1 } ).success ).toBe( false )
+  } )
+} )
+
+describe( 'GetThemisGoalsResponse', () => {
+  it( 'is a list of goals with the name of their area, which may be empty', () => {
+    const goal = {
+      id,
+      area_id: id,
+      name: 'Old goal',
+      position: 0,
+      target_date: null,
+      status: 'achieved',
+      status_changed_at: '2026-11-07T00:00:00.000Z',
+      outcome: 'learning',
+      created_at: '2026-10-01T00:00:00.000Z',
+    }
+    const list = { goals: [ { goal, area_name: 'Career' } ] }
+
+    expect( GetThemisGoalsResponse.parse( list ) ).toEqual( list )
+    expect( GetThemisGoalsResponse.parse( { goals: [] } ) ).toEqual( { goals: [] } )
+    expect( GetThemisGoalsResponse.safeParse( { goals: [ { goal } ] } ).success ).toBe( false )
   } )
 } )

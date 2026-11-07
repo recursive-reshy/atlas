@@ -12,7 +12,11 @@ import {
 // App
 import { useThemisOverview } from '#src/hooks/useThemisOverview'
 import { renderWithClient } from '#src/test-support/renderWithClient'
-import { dueFixture, overviewFixture } from '#src/test-support/themis.fixture'
+import {
+  CAREER_ID,
+  dueFixture,
+  overviewFixture,
+} from '#src/test-support/themis.fixture'
 import { ThemisHome } from './ThemisHome'
 
 vi.mock( '#src/hooks/useThemisOverview' )
@@ -20,6 +24,15 @@ vi.mock( '#src/components/CheckinsDue', () => ( {
   CheckinsDue: ( { due }: { due: unknown[] } ) => <p>{ `check-ins: ${ due.length }` }</p>,
 } ) )
 vi.mock( '#src/components/AddAreaForm', () => ( { AddAreaForm: () => <p>add area form</p> } ) )
+vi.mock( '#src/components/AreaDialog', () => ( {
+  AreaDialog: ( { area }: { area: { name: string } | null } ) => (
+    <p>{ area === null ? 'area dialog new' : `area dialog ${ area.name }` }</p>
+  ),
+} ) )
+vi.mock( '#src/components/GoalDialog', () => ( {
+  GoalDialog: ( { areaId }: { areaId: string | null } ) => <p>{ `goal dialog in ${ areaId }` }</p>,
+} ) )
+vi.mock( '#src/components/AllGoals', () => ( { AllGoals: () => <p>all goals list</p> } ) )
 
 const show = ( overrides = {} ): void => {
   vi.mocked( useThemisOverview ).mockReturnValue( {
@@ -117,5 +130,41 @@ describe( 'ThemisHome', () => {
     renderWithClient( <ThemisHome /> )
 
     expect( screen.getByText( 'check-ins: 1' ) ).toBeInTheDocument()
+  } )
+
+  it( 'adds an area from the page', async () => {
+    renderWithClient( <ThemisHome /> )
+    await userEvent.click( screen.getByRole( 'button', { name: 'Add area' } ) )
+
+    expect( screen.getByText( 'area dialog new' ) ).toBeInTheDocument()
+  } )
+
+  it( 'edits an area from its section', async () => {
+    renderWithClient( <ThemisHome /> )
+    await userEvent.click( screen.getByRole( 'button', { name: 'Edit area Career' } ) )
+
+    expect( screen.getByText( 'area dialog Career' ) ).toBeInTheDocument()
+  } )
+
+  it( 'adds a goal in the area it was opened from', async () => {
+    renderWithClient( <ThemisHome /> )
+    await userEvent.click( screen.getByRole( 'button', { name: 'Add goal to Career' } ) )
+
+    expect( screen.getByText( `goal dialog in ${ CAREER_ID }` ) ).toBeInTheDocument()
+  } )
+
+  it( 'links to the list of all goals', () => {
+    renderWithClient( <ThemisHome /> )
+
+    expect( screen.getByRole( 'link', { name: 'All goals' } ) )
+      .toHaveAttribute( 'href', '/themis?view=all' )
+  } )
+
+  it( 'shows the list of all goals instead of the home for ?view=all', () => {
+    renderWithClient( <ThemisHome />, { route: '/themis?view=all' } )
+
+    expect( screen.getByText( 'all goals list' ) ).toBeInTheDocument()
+    expect( screen.queryByRole( 'heading', { name: 'Where your time went' } ) )
+      .not.toBeInTheDocument()
   } )
 } )

@@ -1,0 +1,1 @@
+export { GoalHistory } from './GoalHistory'

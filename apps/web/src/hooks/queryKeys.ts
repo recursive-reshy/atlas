@@ -75,5 +75,6 @@ export const adminKeys = {
 export const themisKeys = {
   all: [ 'themis' ] as const,
   overview: ( period: string ) => [ 'themis', 'overview', period ] as const,
+  goals: [ 'themis', 'goals' ] as const,
   goal: ( id: string ) => [ 'themis', 'goals', id ] as const,
 }

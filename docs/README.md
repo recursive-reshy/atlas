@@ -122,6 +122,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0092](decisions/0092-themis-goals-module.md) | Themis: areas, goals and three outcome types; first in the drawer | Accepted |
 | [0093](decisions/0093-resource-suggestions-without-search.md) | Resource suggestions from Claude's own knowledge, with search queries instead of links | Accepted |
 | [0094](decisions/0094-note-concepts-carry-user-id.md) | `melete_note_concepts` carries a `user_id`, so the schema guard needs no exception | Accepted |
+| [0095](decisions/0095-themis-goals-list-route.md) | `GET /api/themis/goals` lists every goal, so achieved and dropped goals stay reachable | Accepted |
 
 ## Template for new ADRs
 

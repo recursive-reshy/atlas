@@ -6,7 +6,7 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import { ThemisAreaResponse, ThemisGoalResponse } from '@atlas/shared'
+import { GetThemisGoalsResponse, ThemisAreaResponse, ThemisGoalResponse } from '@atlas/shared'
 // App
 import { app } from '../app.js'
 // Logger
@@ -428,5 +428,54 @@ describe( 'logging (ADR 0049)', () => {
 
     expect( logged ).not.toContain( 'Secret' )
     spies.forEach( ( spy ) => spy.mockRestore() )
+  } )
+} )
+
+describe( 'GET /api/themis/goals', () => {
+  it( 'lists every goal whatever its status, with its area, in area then goal order', async () => {
+    const agent = admin()
+    const career = await makeArea( agent, 'Career' )
+    const health = await makeArea( agent, 'Health' )
+
+    const first = await makeGoal( agent, career, { outcome: 'learning' }, 'First' )
+    await makeGoal( agent, health, { outcome: 'learning' }, 'Fitness' )
+    await makeGoal( agent, career, { outcome: 'learning' }, 'Second' )
+    await agent.patch( `/api/themis/goals/${ first }` ).send( { status: 'achieved' } )
+
+    const response = await agent.get( '/api/themis/goals' )
+    const { goals } = GetThemisGoalsResponse.parse( response.body )
+
+    expect( response.status ).toBe( 200 )
+    expect( goals.map( ( { goal, area_name: area } ) => [ goal.name, area, goal.status ] ) )
+      .toEqual( [
+        [ 'First', 'Career', 'achieved' ],
+        [ 'Second', 'Career', 'active' ],
+        [ 'Fitness', 'Health', 'active' ],
+      ] )
+  } )
+
+  it( 'is empty for a user with no goals', async () => {
+    const response = await admin().get( '/api/themis/goals' )
+
+    expect( response.status ).toBe( 200 )
+    expect( response.body ).toEqual( { goals: [] } )
+  } )
+
+  it( 'never lists another user\'s goals', async () => {
+    const owner = admin()
+    const other = signedInRequest( app, createTestUser( { modules: [ 'themis' ] } ) )
+
+    await makeGoal( owner, await makeArea( owner, 'Career' ) )
+
+    expect( ( await other.get( '/api/themis/goals' ) ).body ).toEqual( { goals: [] } )
+  } )
+
+  it( 'is a 404 for a user without Themis', async () => {
+    const agent = signedInRequest( app, createTestUser( { modules: [ 'melete' ] } ) )
+    const unknownRoute = await agent.get( '/api/nowhere' )
+    const response = await agent.get( '/api/themis/goals' )
+
+    expect( response.status ).toBe( 404 )
+    expect( response.body ).toEqual( unknownRoute.body )
   } )
 } )

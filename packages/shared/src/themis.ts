@@ -249,6 +249,13 @@ export const GetThemisGoalResponse = z.object( {
 } )
 export type GetThemisGoalResponse = z.infer< typeof GetThemisGoalResponse >
 
+// Every goal whatever its status, for the All goals list (ADR 0095)
+export const ThemisGoalListItem = z.object( { goal: ThemisGoal, area_name: z.string() } )
+export type ThemisGoalListItem = z.infer< typeof ThemisGoalListItem >
+
+export const GetThemisGoalsResponse = z.object( { goals: z.array( ThemisGoalListItem ) } )
+export type GetThemisGoalsResponse = z.infer< typeof GetThemisGoalsResponse >
+
 export const SetGoalSubjectsBody = z.strictObject( {
   subject_ids: z.array( z.uuid() ).max( 200 ),
 } )
