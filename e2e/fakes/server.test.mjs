@@ -231,3 +231,63 @@ describe( 'unexpected requests', () => {
     assert.match( JSON.parse( response.body ).error.message, /submit_suggestions/ )
   } )
 } )
+
+const answerText = ( body ) => JSON.parse( JSON.parse( post( body ).body ).content[ 0 ].text )
+
+describe( 'POST /v1/messages for the Melete syllabus (v1.1)', () => {
+  const syllabusRequest = request( 'You draft a syllabus for a subject a learner is studying.\n\nMore.' )
+  const approvedRequest = request(
+    'You write active-recall questions from one study note and place the note in a syllabus.\n\nMore.',
+  )
+  const mapRequest = request( 'You map a study note and its questions onto the concepts of a syllabus.\n\nMore.' )
+  const suggestRequest = request( 'You suggest learning resources for one concept of a syllabus.\n\nMore.' )
+
+  it( 'drafts a syllabus of two concepts in one section', () => {
+    const { sections } = answerText( syllabusRequest )
+
+    assert.equal( sections.length, 1 )
+    assert.equal( sections[ 0 ].concepts.length, 2 )
+
+    for( const concept of sections[ 0 ].concepts ) {
+      assert.ok( concept.name.length > 0 && concept.description.length > 0 )
+    }
+  } )
+
+  it( 'tells the approved question form from the plain one, though they start alike', () => {
+    const plain = answerText( questionsRequest )
+    const approved = answerText( approvedRequest )
+
+    assert.equal( plain.concepts, undefined )
+    assert.deepEqual( approved.concepts, [ 'c1' ] )
+    assert.equal( approved.off_syllabus, null )
+    assert.equal( approved.questions.length, 2 )
+
+    for( const question of approved.questions ) {
+      assert.equal( question.concept, 'c1' )
+      assert.ok( RECALL_NOTE.includes( question.passage ), `${ question.passage } is not in the note` )
+    }
+  } )
+
+  it( 'maps the note to the first concept and labels both questions with it', () => {
+    const map = answerText( mapRequest )
+
+    assert.deepEqual( map.concepts, [ 'c1' ] )
+    assert.equal( map.off_syllabus, null )
+    assert.deepEqual( map.labels, [ { question: 1, concept: 'c1' }, { question: 2, concept: 'c1' } ] )
+  } )
+
+  it( 'suggests three resources with a search query and no link anywhere', () => {
+    const { suggestions } = answerText( suggestRequest )
+
+    assert.equal( suggestions.length, 3 )
+
+    for( const suggestion of suggestions ) {
+      assert.ok( [ 'book', 'docs', 'course', 'video', 'article', 'talk', 'other' ].includes( suggestion.kind ) )
+      assert.ok( suggestion.title.length > 0 && suggestion.query.length > 0 )
+      assert.ok( !JSON.stringify( suggestion ).includes( 'http' ), 'a suggestion has a link' )
+    }
+
+    assert.ok( suggestions.some( ( { kind } ) => kind === 'video' ) )
+  } )
+} )
+

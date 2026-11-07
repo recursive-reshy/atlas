@@ -5,7 +5,11 @@ import {
   ARTICLE_2,
   FEED,
   MELETE_GRADE,
+  MELETE_MAP,
   MELETE_QUESTIONS,
+  MELETE_QUESTIONS_APPROVED,
+  MELETE_SUGGESTIONS,
+  MELETE_SYLLABUS,
   MODELS,
   SUGGESTIONS,
   SUMMARY,
@@ -46,10 +50,16 @@ const message = ( model, content, stopReason ) => json( 200, {
 } )
 
 // The locked instructions start every system prompt, so their first line tells the callers apart.
+// The first match wins: the approved-syllabus question prompt starts like the plain one, so it
+// comes first.
 const SYSTEM_ANSWERS = [
   [ 'You summarize ', SUMMARY ],
+  [ 'You write active-recall questions from one study note and place', MELETE_QUESTIONS_APPROVED ],
   [ 'You write active-recall questions', MELETE_QUESTIONS ],
   [ 'You grade a learner\'s answer', MELETE_GRADE ],
+  [ 'You draft a syllabus ', MELETE_SYLLABUS ],
+  [ 'You map a study note ', MELETE_MAP ],
+  [ 'You suggest learning resources ', MELETE_SUGGESTIONS ],
 ]
 
 const firstLine = ( system ) => {

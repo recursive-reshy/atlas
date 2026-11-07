@@ -145,3 +145,55 @@ export const MELETE_GRADE = {
   feedback: 'You have the gist; add why the effort of retrieval matters.',
   suggested_rating: 'hard',
 }
+
+// v1.1: the syllabus Claude drafts, the same questions placed on its first concept, the Map answer
+// and three resources. No suggestion holds a link (ADR 0093).
+export const MELETE_SYLLABUS = {
+  sections: [
+    {
+      name: 'Foundations',
+      concepts: [
+        { name: 'Active recall', description: 'Retrieving an idea from memory instead of rereading.' },
+        { name: 'Spaced repetition', description: 'Scheduling reviews just before forgetting.' },
+      ],
+    },
+  ],
+}
+
+export const MELETE_QUESTIONS_APPROVED = {
+  concepts: [ 'c1' ],
+  off_syllabus: null,
+  questions: MELETE_QUESTIONS.questions.map( ( question ) => ( { ...question, concept: 'c1' } ) ),
+}
+
+export const MELETE_MAP = {
+  concepts: [ 'c1' ],
+  off_syllabus: null,
+  labels: [ { question: 1, concept: 'c1' }, { question: 2, concept: 'c1' } ],
+}
+
+export const MELETE_SUGGESTIONS = {
+  suggestions: [
+    {
+      title: 'Make It Stick',
+      by: 'Brown, Roediger and McDaniel',
+      kind: 'book',
+      why: 'Explains spacing and retrieval practice with the research behind them.',
+      query: 'Make It Stick Brown Roediger McDaniel',
+    },
+    {
+      title: 'Spaced repetition explained',
+      by: 'A learning-science channel',
+      kind: 'video',
+      why: 'A short talk on how review gaps should grow.',
+      query: 'spaced repetition explained forgetting curve',
+    },
+    {
+      title: 'Anki manual: introduction',
+      by: 'Anki',
+      kind: 'docs',
+      why: 'Shows spacing applied in a real scheduler.',
+      query: 'Anki manual introduction spaced repetition',
+    },
+  ],
+}
