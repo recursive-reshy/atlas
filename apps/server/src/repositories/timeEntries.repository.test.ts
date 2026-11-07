@@ -7,11 +7,21 @@ import {
 } from 'vitest'
 // Repositories
 import {
+  deleteLoggedEntry,
   extendMeasuredEntry,
+  findTimeEntry,
+  goalTimeByDay,
+  insertLoggedEntry,
   insertMeasuredEntry,
   latestMeasuredEntry,
+  listTimeEntries,
   sumSubjectSeconds,
+  timeByGoal,
+  updateLoggedEntry,
 } from './timeEntries.repository.js'
+import { setSubjectsForGoal } from './meleteSubjects.repository.js'
+import { insertArea } from './themisAreas.repository.js'
+import { insertGoal } from './themisGoals.repository.js'
 import { getDatabase } from './database.js'
 // Test support
 import { createTestUser, defaultTestAdmin } from '../test-support/auth.js'
@@ -127,5 +137,162 @@ describe( 'sumSubjectSeconds', () => {
 
     expect( sumSubjectSeconds( userId, subjectId, '2026-11-09', '2026-11-15' ) ).toBe( 0 )
     expect( sumSubjectSeconds( createTestUser().id, other, '2026-11-09', '2026-11-15' ) ).toBe( 0 )
+  } )
+} )
+
+type Target = { subject_id: string } | { goal_id: string }
+
+const logged = ( target: Target, day: string, seconds: number ) => ( {
+  subject_id: null,
+  goal_id: null,
+  note: null,
+  ...target,
+  day,
+  seconds,
+} )
+
+describe( 'insertLoggedEntry and findTimeEntry', () => {
+  it( 'stores a logged entry against a subject, or a goal', () => {
+    const goal = insertGoal( userId, {
+      area_id: insertArea( userId, 'Career' ).id,
+      name: 'G',
+      outcome: 'learning',
+    } ).id
+
+    const forSubject = insertLoggedEntry( userId, {
+      ...logged( { subject_id: subjectId }, '2026-11-10', 1800 ),
+      note: 'chapter 3',
+    } )
+    const forGoal = insertLoggedEntry( userId, logged( { goal_id: goal }, '2026-11-10', 600 ) )
+
+    expect( forSubject ).toEqual( {
+      id: expect.stringMatching( /^[0-9a-f-]{36}$/ ) as string,
+      source: 'logged',
+      subject_id: subjectId,
+      goal_id: null,
+      day: '2026-11-10',
+      seconds: 1800,
+      note: 'chapter 3',
+      created_at: expect.stringMatching( /^\d{4}-\d{2}-\d{2}T/ ) as string,
+      updated_at: expect.stringMatching( /^\d{4}-\d{2}-\d{2}T/ ) as string,
+    } )
+    expect( forGoal ).toMatchObject( { goal_id: goal, subject_id: null } )
+    expect( findTimeEntry( userId, forGoal.id ) ).toEqual( forGoal )
+    expect( findTimeEntry( createTestUser().id, forGoal.id ) ).toBeUndefined()
+  } )
+} )
+
+describe( 'updateLoggedEntry and deleteLoggedEntry', () => {
+  it( 'changes the minutes, day and note of a logged entry', () => {
+    const { id } = insertLoggedEntry(
+      userId,
+      logged( { subject_id: subjectId }, '2026-11-10', 60 ),
+    )
+
+    expect( updateLoggedEntry( userId, id, { seconds: 120, day: '2026-11-09', note: 'x' } ) )
+      .toMatchObject( { seconds: 120, day: '2026-11-09', note: 'x' } )
+    expect( updateLoggedEntry( userId, id, { note: null } ) ).toMatchObject( { note: null } )
+  } )
+
+  it( 'never touches a measured entry or another user\'s entry', () => {
+    const measured = insertMeasuredEntry( userId, subjectId, session( 'a', 'a' ) )
+    const { id } = insertLoggedEntry(
+      userId,
+      logged( { subject_id: subjectId }, '2026-11-10', 60 ),
+    )
+    const other = createTestUser().id
+
+    expect( updateLoggedEntry( userId, measured, { seconds: 5 } ) ).toBeUndefined()
+    expect( deleteLoggedEntry( userId, measured ) ).toBe( false )
+    expect( updateLoggedEntry( other, id, { seconds: 5 } ) ).toBeUndefined()
+    expect( deleteLoggedEntry( other, id ) ).toBe( false )
+    expect( findTimeEntry( userId, measured )?.seconds ).toBe( 60 )
+    expect( findTimeEntry( userId, id )?.seconds ).toBe( 60 )
+  } )
+
+  it( 'deletes a logged entry', () => {
+    const { id } = insertLoggedEntry(
+      userId,
+      logged( { subject_id: subjectId }, '2026-11-10', 60 ),
+    )
+
+    expect( deleteLoggedEntry( userId, id ) ).toBe( true )
+    expect( findTimeEntry( userId, id ) ).toBeUndefined()
+  } )
+} )
+
+describe( 'listTimeEntries', () => {
+  it( 'lists the user\'s entries on the days given, newest day first', () => {
+    insertLoggedEntry( userId, logged( { subject_id: subjectId }, '2026-11-01', 60 ) )
+    insertLoggedEntry( userId, logged( { subject_id: subjectId }, '2026-11-05', 60 ) )
+    insertMeasuredEntry( userId, subjectId, session( 'a', 'a', '2026-11-03' ) )
+    insertLoggedEntry( userId, logged( { subject_id: subjectId }, '2026-11-09', 60 ) )
+
+    expect( listTimeEntries( userId, '2026-11-01', '2026-11-05' ).map( ( { day } ) => day ) )
+      .toEqual( [ '2026-11-05', '2026-11-03', '2026-11-01' ] )
+    expect( listTimeEntries( createTestUser().id, '2026-11-01', '2026-11-30' ) ).toEqual( [] )
+  } )
+} )
+
+describe( 'timeByGoal', () => {
+  const makeGoal = ( name: string ): string => insertGoal( userId, {
+    area_id: insertArea( userId, `Area ${ name }` ).id,
+    name,
+    outcome: 'learning',
+  } ).id
+
+  it( 'adds a goal\'s own logged time to all the time of its linked subjects, by source', () => {
+    const goal = makeGoal( 'A' )
+    const other = makeGoal( 'B' )
+    const second = addSubject( userId, 'Learning/Second' )
+    const unlinked = addSubject( userId, 'Learning/Unlinked' )
+
+    setSubjectsForGoal( userId, goal, [ subjectId, second ] )
+    setSubjectsForGoal( userId, other, [] )
+    insertMeasuredEntry( userId, subjectId, { ...session( 'a', 'a', '2026-11-10' ), seconds: 100 } )
+    insertLoggedEntry( userId, logged( { subject_id: second }, '2026-11-10', 200 ) )
+    insertLoggedEntry( userId, logged( { goal_id: goal }, '2026-11-11', 400 ) )
+    insertLoggedEntry( userId, logged( { goal_id: other }, '2026-11-11', 800 ) )
+    insertMeasuredEntry( userId, unlinked, { ...session( 'b', 'b', '2026-11-10' ), seconds: 1600 } )
+
+    expect( timeByGoal( userId, '2026-11-09', '2026-11-15' ) ).toEqual( {
+      [ goal ]: { measured: 100, logged: 600 },
+      [ other ]: { measured: 0, logged: 800 },
+    } )
+  } )
+
+  it( 'counts only the days given, inclusive, and the user\'s own', () => {
+    const goal = makeGoal( 'A' )
+
+    insertLoggedEntry( userId, logged( { goal_id: goal }, '2026-11-08', 1 ) )
+    insertLoggedEntry( userId, logged( { goal_id: goal }, '2026-11-09', 10 ) )
+    insertLoggedEntry( userId, logged( { goal_id: goal }, '2026-11-15', 100 ) )
+    insertLoggedEntry( userId, logged( { goal_id: goal }, '2026-11-16', 1000 ) )
+
+    expect( timeByGoal( userId, '2026-11-09', '2026-11-15' ) )
+      .toEqual( { [ goal ]: { measured: 0, logged: 110 } } )
+    expect( timeByGoal( createTestUser().id, '2026-11-09', '2026-11-15' ) ).toEqual( {} )
+  } )
+} )
+
+describe( 'goalTimeByDay', () => {
+  it( 'gives a goal\'s time per day and source, linked subjects included', () => {
+    const goal = insertGoal( userId, {
+      area_id: insertArea( userId, 'Career' ).id,
+      name: 'G',
+      outcome: 'learning',
+    } ).id
+
+    setSubjectsForGoal( userId, goal, [ subjectId ] )
+    insertMeasuredEntry( userId, subjectId, { ...session( 'a', 'a', '2026-11-10' ), seconds: 100 } )
+    insertMeasuredEntry( userId, subjectId, { ...session( 'b', 'b', '2026-11-10' ), seconds: 50 } )
+    insertLoggedEntry( userId, logged( { goal_id: goal }, '2026-11-10', 400 ) )
+    insertLoggedEntry( userId, logged( { goal_id: goal }, '2026-11-12', 60 ) )
+
+    expect( goalTimeByDay( userId, goal, '2026-11-01', '2026-11-30' ) ).toEqual( [
+      { day: '2026-11-10', source: 'logged', seconds: 400 },
+      { day: '2026-11-10', source: 'measured', seconds: 150 },
+      { day: '2026-11-12', source: 'logged', seconds: 60 },
+    ] )
   } )
 } )

@@ -25,6 +25,10 @@ import { setNoteConcepts } from '../repositories/meleteNoteConcepts.repository.j
 import { updateSubject } from '../repositories/meleteSubjects.repository.js'
 import { insertCheckin } from '../repositories/themisCheckins.repository.js'
 import { insertMetricUpdate } from '../repositories/themisMetrics.repository.js'
+import {
+  insertLoggedEntry,
+  insertMeasuredEntry,
+} from '../repositories/timeEntries.repository.js'
 // Test support
 import { createTestUser, signedInRequest } from '../test-support/auth.js'
 import { addNote, addQuestion, addSubject } from '../test-support/meleteData.fixture.js'
@@ -475,5 +479,144 @@ describe( 'GET /api/themis/overview', () => {
     const response = await other.get( '/api/themis/overview' )
 
     expect( GetThemisOverviewResponse.parse( response.body ).areas ).toEqual( [] )
+  } )
+} )
+
+describe( 'time in the overview and a goal\'s detail', () => {
+  const measured = ( subject: string, day: string, seconds: number ): void => {
+    insertMeasuredEntry( user.id, subject, {
+      started_at: `${ day }T01:00:00.000Z`,
+      ended_at: `${ day }T01:00:00.000Z`,
+      day,
+      seconds,
+    } )
+  }
+
+  const logged = (
+    target: { subject_id: string } | { goal_id: string },
+    day: string,
+    seconds: number,
+  ): void => {
+    insertLoggedEntry( user.id, {
+      subject_id: null,
+      goal_id: null,
+      note: null,
+      ...target,
+      day,
+      seconds,
+    } )
+  }
+
+  const overview = async ( query = '' ): Promise< GetThemisOverviewResponse > => {
+    return GetThemisOverviewResponse.parse(
+      ( await agent.get( `/api/themis/overview${ query }` ) ).body,
+    )
+  }
+
+  // Career has `first` (linked to `linkedSubject`) and an achieved goal; Financial has `second`
+  const setup = async () => {
+    const financial = await makeArea( 'Financial' )
+    const first = await makeGoal( { outcome: 'learning' }, 'First' )
+    const second = await makeGoal( { outcome: 'learning' }, 'Second', financial )
+    const linkedSubject = addSubject( user.id, 'Learning/Linked' )
+    const unlinked = addSubject( user.id, 'Learning/Unlinked' )
+
+    await agent.put( `/api/themis/goals/${ first }/subjects` )
+      .send( { subject_ids: [ linkedSubject ] } )
+
+    return { first, second, linkedSubject, unlinked }
+  }
+
+  it( 'gives a goal its own logged time plus all the time of its linked subjects', async () => {
+    const { first, linkedSubject, unlinked } = await setup()
+
+    measured( linkedSubject, '2026-11-10', 100 )
+    logged( { subject_id: linkedSubject }, '2026-11-11', 200 )
+    logged( { goal_id: first }, '2026-11-11', 400 )
+    measured( unlinked, '2026-11-10', 1600 )
+
+    const { areas } = await overview()
+
+    expect( areas[ 0 ]?.goals[ 0 ]?.time ).toEqual( { seconds: 700, measured: 100, logged: 600 } )
+    expect( areas[ 1 ]?.goals[ 0 ]?.time ).toEqual( { seconds: 0, measured: 0, logged: 0 } )
+  } )
+
+  it( 'gives an area the sum of its active goals, and leaves unlinked subjects out', async () => {
+    const { first, linkedSubject, unlinked } = await setup()
+    const achieved = await makeGoal( { outcome: 'learning' }, 'Done' )
+
+    await agent.patch( `/api/themis/goals/${ achieved }` ).send( { status: 'achieved' } )
+    logged( { goal_id: first }, '2026-11-10', 300 )
+    measured( linkedSubject, '2026-11-10', 100 )
+    logged( { goal_id: achieved }, '2026-11-10', 5000 )
+    measured( unlinked, '2026-11-10', 1600 )
+
+    const { areas } = await overview()
+
+    expect( areas[ 0 ]?.time ).toEqual( { seconds: 400, measured: 100, logged: 300 } )
+    expect( areas[ 1 ]?.time ).toEqual( { seconds: 0, measured: 0, logged: 0 } )
+  } )
+
+  it( 'picks the entries of the week, month or quarter, edges included', async () => {
+    const { first } = await setup()
+
+    for( const [ day, seconds ] of [
+      [ '2026-09-30', 1 ],
+      [ '2026-10-01', 10 ],
+      [ '2026-10-31', 100 ],
+      [ '2026-11-01', 1000 ],
+      [ '2026-11-08', 10_000 ],
+      [ '2026-11-09', 100_000 ],
+      [ '2026-11-15', 1_000_000 ],
+      [ '2026-11-16', 10_000_000 ],
+      [ '2026-11-30', 100_000_000 ],
+    ] as const ) {
+      logged( { goal_id: first }, day, seconds )
+    }
+
+    const seconds = async ( query: string ): Promise< number | undefined > => {
+      return ( await overview( query ) ).areas[ 0 ]?.goals[ 0 ]?.time.seconds
+    }
+
+    expect( await seconds( '?period=week' ) ).toBe( 1_100_000 )
+    expect( await seconds( '?period=month' ) ).toBe( 111_111_000 )
+    expect( await seconds( '?period=quarter' ) ).toBe( 111_111_110 )
+  } )
+
+  it( 'moves a subject\'s past time with it when it is relinked', async () => {
+    const { first, second, linkedSubject } = await setup()
+
+    measured( linkedSubject, '2026-11-10', 100 )
+    await agent.put( `/api/themis/goals/${ second }/subjects` )
+      .send( { subject_ids: [ linkedSubject ] } )
+
+    const { areas } = await overview()
+
+    expect( areas[ 0 ]?.goals[ 0 ]?.goal.id ).toBe( first )
+    expect( areas[ 0 ]?.goals[ 0 ]?.time.seconds ).toBe( 0 )
+    expect( areas[ 1 ]?.goals[ 0 ]?.time.seconds ).toBe( 100 )
+  } )
+
+  it( 'gives a goal\'s detail twelve weeks of measured and logged time', async () => {
+    const { first, linkedSubject } = await setup()
+
+    measured( linkedSubject, '2026-11-10', 100 )
+    logged( { goal_id: first }, '2026-11-11', 400 )
+    logged( { goal_id: first }, '2026-11-03', 60 )
+    logged( { goal_id: first }, '2026-08-24', 5 )
+    logged( { goal_id: first }, '2026-08-23', 7000 )
+
+    const detail = GetThemisGoalResponse.parse(
+      ( await agent.get( `/api/themis/goals/${ first }` ) ).body,
+    )
+    const week = ( start: string ) => detail.time_by_week
+      .find( ( { week_start: at } ) => at === start )
+
+    expect( detail.time_by_week ).toHaveLength( 12 )
+    expect( week( '2026-11-09' ) )
+      .toEqual( { week_start: '2026-11-09', measured: 100, logged: 400 } )
+    expect( week( '2026-11-02' ) ).toEqual( { week_start: '2026-11-02', measured: 0, logged: 60 } )
+    expect( week( '2026-08-24' ) ).toEqual( { week_start: '2026-08-24', measured: 0, logged: 5 } )
+    expect( detail.time_by_week.reduce( ( sum, { logged: value } ) => sum + value, 0 ) ).toBe( 465 )
   } )
 } )

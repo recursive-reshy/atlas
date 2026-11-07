@@ -15,10 +15,12 @@ import { NotFoundError } from '../errors.js'
 // Themis
 import { pooledLearning } from '../themis/overview.js'
 import {
+  addDays,
   checkinDue,
   periodRange,
   recentWeekStarts,
   studyDay,
+  weekStart,
 } from '../themis/periods.js'
 // Repositories
 import {
@@ -32,6 +34,8 @@ import { listCheckins, listPeriodStarts } from '../repositories/themisCheckins.r
 import { listGoals } from '../repositories/themisGoals.repository.js'
 import type { GoalRecord } from '../repositories/themisGoals.repository.js'
 import { listMetricUpdates } from '../repositories/themisMetrics.repository.js'
+import { goalTimeByDay, timeByGoal } from '../repositories/timeEntries.repository.js'
+import type { TimeSplit } from '../repositories/timeEntries.repository.js'
 // Services
 import { subjectConceptStats, subjectName } from './melete.service.js'
 import { requireGoal, toThemisGoal } from './themis.service.js'
@@ -40,8 +44,10 @@ import { requireGoal, toThemisGoal } from './themis.service.js'
 const RECENT = 8
 const WEEKS = 12
 
-// Time arrives with task 7.2
-const NO_TIME: ThemisTime = { seconds: 0, measured: 0, logged: 0 }
+const toTime = ( split: TimeSplit = { measured: 0, logged: 0 } ): ThemisTime => ( {
+  ...split,
+  seconds: split.measured + split.logged,
+} )
 
 const linked = ( subjects: SubjectRecord[] ): ThemisLinkedSubject[] => {
   return subjects.map( ( { id, folder } ) => ( { id, name: subjectName( folder ) } ) )
@@ -78,12 +84,12 @@ const outcomeOf = (
   }
 }
 
-const cardFor = ( userId: string, goal: GoalRecord ): ThemisGoalCard => {
+const cardFor = ( userId: string, goal: GoalRecord, time: ThemisTime ): ThemisGoalCard => {
   const subjects = listSubjectsForGoal( userId, goal.id )
 
   return {
     goal: toThemisGoal( goal ),
-    time: NO_TIME,
+    time,
     outcome: outcomeOf( userId, goal, subjects ),
     subjects: linked( subjects ),
   }
@@ -120,19 +126,30 @@ export const getOverview = (
     } ]
   } )
 
+  const range = periodRange( period, today )
+  const times = timeByGoal( userId, range.from, range.to )
+
   return {
     period,
-    ...periodRange( period, today ),
+    ...range,
     checkins_due: checkinsDue,
-    areas: areas.map( ( area ) => ( {
-      id: area.id,
-      name: area.name,
-      position: area.position,
-      time: NO_TIME,
-      goals: goals
+    areas: areas.map( ( area ) => {
+      const cards = goals
         .filter( ( goal ) => goal.area_id === area.id )
-        .map( ( goal ) => cardFor( userId, goal ) ),
-    } ) ),
+        .map( ( goal ) => cardFor( userId, goal, toTime( times[ goal.id ] ) ) )
+
+      // An area's time is its active goals' time; achieved and dropped goals are left out
+      return {
+        id: area.id,
+        name: area.name,
+        position: area.position,
+        time: toTime( {
+          measured: cards.reduce( ( sum, { time } ) => sum + time.measured, 0 ),
+          logged: cards.reduce( ( sum, { time } ) => sum + time.logged, 0 ),
+        } ),
+        goals: cards,
+      }
+    } ),
   }
 }
 
@@ -141,7 +158,22 @@ export const getGoalDetail = (
   id: string,
   now = new Date(),
 ): GetThemisGoalResponse => {
-  const { goal, outcome, subjects } = cardFor( userId, requireGoal( userId, id ) )
+  const { goal, outcome, subjects } = cardFor( userId, requireGoal( userId, id ), toTime() )
+  const weeks = recentWeekStarts( studyDay( now ), WEEKS )
+  const perWeek = new Map( weeks.map( ( start ) => [ start, { measured: 0, logged: 0 } ] ) )
+
+  for( const { day, source, seconds } of goalTimeByDay(
+    userId,
+    id,
+    weeks[ 0 ] ?? '',
+    addDays( weeks.at( -1 ) ?? '', 6 ),
+  ) ) {
+    const bucket = perWeek.get( weekStart( day ) )
+
+    if( bucket !== undefined ) {
+      bucket[ source ] += seconds
+    }
+  }
 
   return {
     goal,
@@ -149,8 +181,10 @@ export const getGoalDetail = (
     subjects,
     metric_updates: listMetricUpdates( userId, id ),
     checkins: listCheckins( userId, id ),
-    time_by_week: recentWeekStarts( studyDay( now ), WEEKS )
-      .map( ( week_start ) => ( { week_start, measured: 0, logged: 0 } ) ),
+    time_by_week: weeks.map( ( week_start ) => ( {
+      week_start,
+      ...perWeek.get( week_start ) ?? { measured: 0, logged: 0 },
+    } ) ),
   }
 }
 

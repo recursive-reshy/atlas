@@ -25,6 +25,7 @@ import { promptProfilesRoutes } from './routes/promptProfiles.routes.js'
 import { settingsRoutes } from './routes/settings.routes.js'
 import { statusRoutes } from './routes/status.routes.js'
 import { themisRoutes } from './routes/themis.routes.js'
+import { timeEntriesRoutes } from './routes/timeEntries.routes.js'
 import { testSessionRoutes } from './routes/testSession.routes.js'
 import { vaultRoutes } from './routes/vault.routes.js'
 import { webRoutes } from './routes/web.routes.js'
@@ -65,6 +66,7 @@ app.use( '/api', promptProfilesRoutes )
 app.use( '/api', statusRoutes )
 app.use( '/api', meleteRoutes )
 app.use( '/api', themisRoutes )
+app.use( '/api', timeEntriesRoutes )
 app.use( '/api', notFoundHandler )
 
 if( config.webDir !== undefined ) {
