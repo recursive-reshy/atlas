@@ -24,7 +24,7 @@ The reasons behind each part are in `docs/decisions/`. Read the ADRs a task list
 
 ## Workflow
 
-Work is planned in versioned docs: `docs/v<version>/prd.md` (what and why), `trd.md` (how) and `tasks.md` (ordered tasks grouped into checkpoints). The current version is **0.11.0**. Only Naresh edits the PRD and TRD; `tasks.md` is the only planning doc you edit, and you also write ADRs and checkpoint plans.
+Work is planned in versioned docs: `docs/v<version>/prd.md` (what and why), `trd.md` (how) and `tasks.md` (ordered tasks grouped into checkpoints). The current version is **1.0.0** (planning docs stay in `docs/v0.11.0` until v1.1 starts). Only Naresh edits the PRD and TRD; `tasks.md` is the only planning doc you edit, and you also write ADRs and checkpoint plans.
 
 At the start of every session:
 1. Read `docs/v0.11.0/prd.md`, `trd.md` and `tasks.md`, and the ADRs listed against the next unticked task.

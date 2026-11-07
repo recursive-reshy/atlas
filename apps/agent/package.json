@@ -1,6 +1,6 @@
 {
   "name": "@atlas/agent",
-  "version": "0.11.0",
+  "version": "1.0.0",
   "private": true,
   "scripts": {
     "dev": "uv run uvicorn atlas_agent.main:app --reload --port 8100",
