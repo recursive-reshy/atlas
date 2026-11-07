@@ -21,6 +21,7 @@
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "migrations:lock": "tsx --conditions=development scripts/lockMigrations.ts",
     "fixture:gmail": "tsx --conditions=development --env-file-if-exists=.env scripts/save-gmail-fixture.ts"
   },
   "dependencies": {
