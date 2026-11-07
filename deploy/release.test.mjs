@@ -16,6 +16,16 @@ const realRepo = join( here, '..' )
 const bin = mkdtempSync( join( tmpdir(), 'atlas-release-bin-' ) )
 writeFileSync( join( bin, 'docker' ), '#!/bin/sh\necho "docker $*" >> "$FAKE_DIR/calls"\n' )
 chmodSync( join( bin, 'docker' ), 0o755 )
+// The migration lock check (ADR 0085) runs through pnpm. The fake records its arguments and
+// fails with FAKE_PNPM_STATUS, printing what the real script prints.
+writeFileSync( join( bin, 'pnpm' ), [
+  '#!/bin/sh',
+  'echo "pnpm $*" >> "$FAKE_DIR/pnpm-calls"',
+  'if [ "${FAKE_PNPM_STATUS:-0}" != 0 ]; then echo "Migrations 14 are not locked." >&2; fi',
+  'exit "${FAKE_PNPM_STATUS:-0}"',
+  '',
+].join( '\n' ) )
+chmodSync( join( bin, 'pnpm' ), 0o755 )
 
 const git = ( repo, ...args ) => execFileSync( 'git', args, {
   cwd: repo,
@@ -35,6 +45,7 @@ const sandbox = ( { version = '0.10.0' } = {} ) => {
   return {
     dir,
     repo,
+    pnpmCalls: () => ( existsSync( join( dir, 'pnpm-calls' ) ) ? readFileSync( join( dir, 'pnpm-calls' ), 'utf8' ).trim().split( '\n' ) : [] ),
     calls: () => ( existsSync( join( dir, 'calls' ) ) ? readFileSync( join( dir, 'calls' ), 'utf8' ).trim().split( '\n' ) : [] ),
     run: ( args, env = {} ) => spawnSync( 'bash', [ script, ...args ], {
       encoding: 'utf8',
@@ -104,4 +115,23 @@ test( 'deploy/release.env is ignored by git and has an example', () => {
   const ignored = spawnSync( 'git', [ 'check-ignore', '-q', 'deploy/release.env' ], { cwd: realRepo } )
   assert.equal( ignored.status, 0 )
   assert.match( readFileSync( join( here, 'release.env.example' ), 'utf8' ), /^REGISTRY=.+-docker\.pkg\.dev\/.+$/m )
+} )
+
+test( 'checks that every migration is locked before building (ADR 0085)', () => {
+  const box = sandbox()
+  const result = box.run( [ '0.10.0' ], { REGISTRY } )
+  assert.equal( result.status, 0, result.stderr )
+  assert.deepEqual( box.pnpmCalls(), [ 'pnpm --filter @atlas/server migrations:lock --check' ] )
+} )
+
+test( 'refuses to build with an unlocked migration, dry run or not, and says how to lock it', () => {
+  for( const args of [ [ '0.10.0' ], [ '0.10.0', '--dry-run' ] ] ) {
+    const box = sandbox()
+    const result = box.run( args, { REGISTRY, FAKE_PNPM_STATUS: '1' } )
+    assert.notEqual( result.status, 0 )
+    assert.match( result.stderr, /not locked/ )
+    assert.match( result.stderr, /pnpm --filter @atlas\/server migrations:lock/ )
+    assert.match( result.stderr, /commit/ )
+    assert.deepEqual( box.calls(), [], 'nothing was built' )
+  }
 } )

@@ -34,6 +34,10 @@ package_version=$(grep -o '"version": *"[^"]*"' "$ROOT/package.json" | head -n 1
 
 [ -z "$(git -C "$ROOT" status --porcelain)" ] || fail "the working tree has uncommitted changes; commit them first so the images match a commit"
 
+# Every migration that reaches the VM is locked by hash first (ADR 0085), so it can never change.
+(cd "$ROOT" && pnpm --filter @atlas/server migrations:lock --check) \
+  || fail "a migration is not locked; run 'pnpm --filter @atlas/server migrations:lock', commit apps/server/src/repositories/migrations.lock.json, then release again"
+
 REGISTRY=${REGISTRY:-}
 if [ -z "$REGISTRY" ] && [ -f "$ROOT/deploy/release.env" ]; then
   REGISTRY=$(grep -m 1 '^REGISTRY=' "$ROOT/deploy/release.env" | cut -d= -f2- || true)

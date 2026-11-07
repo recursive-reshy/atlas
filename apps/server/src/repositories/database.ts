@@ -8,7 +8,6 @@ import { dirname, join } from 'node:path'
 import Database from 'better-sqlite3'
 import { z } from 'zod'
 // Repositories
-import { logger } from '../logger.js'
 import { backupStamp } from './backupStamp.js'
 
 // The whole 0.9 schema in one step (ADR 0066). It seeds nothing: seeding is seedUser.
@@ -569,6 +568,21 @@ export const migrations: Migration[] = [
 
 let database: Database.Database | undefined
 
+// Names the migration that failed. database.ts stays free of the logger (and so of config), so
+// that `migrations:lock` and release.sh can import the list without the app's environment;
+// server.ts logs it.
+export class MigrationError extends Error {
+  version: number
+
+  constructor( version: number, cause: unknown ) {
+    const reason = cause instanceof Error ? cause.message : String( cause )
+
+    super( `Migration ${ version } failed: ${ reason }`, { cause } )
+    this.name = 'MigrationError'
+    this.version = version
+  }
+}
+
 export const runMigrations = ( db: Database.Database, migrations: Migration[] ): void => {
   const applied = z.number().parse( db.pragma( 'user_version', { simple: true } ) )
 
@@ -584,8 +598,7 @@ export const runMigrations = ( db: Database.Database, migrations: Migration[] ):
             migration( db )
           }
         } catch( error ) {
-          logger.error( { err: error, version }, 'migration failed' )
-          throw error
+          throw new MigrationError( version, error )
         }
 
         db.pragma( `user_version = ${ version }` )

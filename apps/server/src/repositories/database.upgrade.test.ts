@@ -9,13 +9,10 @@ import {
   describe,
   expect,
   it,
-  vi,
 } from 'vitest'
 import { z } from 'zod'
 // Shared
 import { AppSettingKey } from '@atlas/shared'
-// Logging
-import { logger } from '../logger.js'
 // Test support
 import { loadSeed, seededVersions } from '../test-support/schemaAt.js'
 // Repositories
@@ -23,6 +20,7 @@ import {
   SCHEMA_BASE,
   closeDatabase,
   getDatabase,
+  MigrationError,
   migrations,
   openDatabase,
   runMigrations,
@@ -205,29 +203,33 @@ describe( 'upgrading a seeded database (ADR 0085)', () => {
 } )
 
 describe( 'a migration that fails (TRD §2.6)', () => {
-  it( 'leaves the file at its schema, logs which migration failed, and refuses to open', () => {
+  it( 'leaves the file at its schema and refuses to open, naming the migration', () => {
     const directory = mkdtempSync( join( tmpdir(), 'atlas-failed-migration-' ) )
     const path = join( directory, 'atlas.db' )
-    const error = vi.spyOn( logger, 'error' )
 
     try {
       openDatabase( path, { migrations: migrations.slice( 0, 4 ) } )
       closeDatabase()
 
-      expect( () => openDatabase( path, {
-        migrations: [
-          ...migrations.slice( 0, 4 ),
-          'CREATE TABLE half_done ( id INTEGER )',
-          () => {
-            throw new Error( 'backfill failed' )
-          },
-        ],
-      } ) ).toThrow( 'backfill failed' )
+      let thrown: unknown
 
-      expect( error ).toHaveBeenCalledWith(
-        expect.objectContaining( { version: 15, err: expect.any( Error ) as Error } ),
-        'migration failed',
-      )
+      try {
+        openDatabase( path, {
+          migrations: [
+            ...migrations.slice( 0, 4 ),
+            'CREATE TABLE half_done ( id INTEGER )',
+            () => {
+              throw new Error( 'backfill failed' )
+            },
+          ],
+        } )
+      } catch( error ) {
+        thrown = error
+      }
+
+      expect( thrown ).toBeInstanceOf( MigrationError )
+      expect( ( thrown as MigrationError ).version ).toBe( 15 )
+      expect( ( thrown as MigrationError ).message ).toContain( 'backfill failed' )
 
       const raw = new Database( path )
 
@@ -236,7 +238,6 @@ describe( 'a migration that fails (TRD §2.6)', () => {
         .toBeUndefined()
       raw.close()
     } finally {
-      error.mockRestore()
       closeDatabase()
       rmSync( directory, { recursive: true, force: true } )
     }

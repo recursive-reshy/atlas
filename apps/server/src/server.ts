@@ -10,7 +10,7 @@ import { config, ignoredEnv } from './config.js'
 // Logging
 import { logger } from './logger.js'
 // Repositories
-import { closeDatabase, openDatabase } from './repositories/database.js'
+import { MigrationError, closeDatabase, openDatabase } from './repositories/database.js'
 // Services
 import { pruneHealth } from './services/health.service.js'
 import { recoverInterruptedJobs } from './services/jobs.service.js'
@@ -48,6 +48,10 @@ try {
   }
 
 } catch( error ) {
+  if( error instanceof MigrationError ) {
+    logger.error( { err: error, version: error.version }, 'migration failed' )
+  }
+
   logger.error( { err: error }, 'The database cannot be opened' )
   process.exit( 1 )
 }

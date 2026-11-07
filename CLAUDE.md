@@ -50,6 +50,11 @@ If something isn't covered by the PRD, TRD, ADRs or the approved plan (a new dep
 - **The stored transcript is the source of truth.** Markdown and TXT are rendered from it by pure formatters; Markdown is never stored as the canonical data.
 - **No secrets in the repo.** Environment files stay out of git; `.env.example` lists the variable names only.
 - **Don't add a dependency** unless the TRD or an ADR names it. Ask instead.
+- **Database changes (ADRs 0084, 0085).** Schema 13 is the 1.0 baseline and the production database is never reset, recreated or hand-edited.
+  - A schema change is a new migration appended to `migrations` in `apps/server/src/repositories/database.ts`.
+  - Never edit, reorder or remove a locked migration (its hash is in `migrations.lock.json`; even reformatting its SQL breaks the hash) and never change `SCHEMA_BASE`. Fix a mistake with a later migration.
+  - Each new migration needs, written first: a seed for the schema it starts from (`fixtures/schema-<N>.sql`, invented data, every table filled), a test against that seed in `database.upgrade.test.ts`, and an entry in its `ALLOWED_COUNT_CHANGES` if it adds or removes rows.
+  - Lock it with `pnpm --filter @atlas/server migrations:lock` and commit the lock file; locking also needs the new schema's own seed, because every locked version from 13 must have one. `deploy/release.sh` refuses to build with an unlocked migration.
 
 ## Git
 
