@@ -21,6 +21,8 @@ import {
   MeleteQuestionState,
   MeleteApprovedQuestionsOutput,
   MeleteMapOutput,
+  OffSyllabusActionBody,
+  UpdateNoteConceptsBody,
   MeleteQuestionsOutput,
   MeleteRating,
   MeleteReviewCounts,
@@ -322,6 +324,30 @@ describe( 'MeleteMapOutput', () => {
       ...reply,
       labels: [ { question: 0, concept: 'c1' } ],
     } ) ).toBe( false )
+  } )
+} )
+
+describe( 'the note mapping bodies', () => {
+  it( 'takes a list of concept ids, at most 10, with none allowed', () => {
+    expect( UpdateNoteConceptsBody.parse( { concept_ids: [ id ] } ) )
+      .toEqual( { concept_ids: [ id ] } )
+    expect( accepts( UpdateNoteConceptsBody, { concept_ids: [] } ) ).toBe( true )
+    expect( accepts( UpdateNoteConceptsBody, { concept_ids: Array( 11 ).fill( id ) } ) )
+      .toBe( false )
+    expect( accepts( UpdateNoteConceptsBody, { concept_ids: [ 'nope' ] } ) ).toBe( false )
+    expect( accepts( UpdateNoteConceptsBody, {} ) ).toBe( false )
+  } )
+
+  it( 'takes dismiss, or add_concept with a section and an optional name', () => {
+    expect( OffSyllabusActionBody.parse( { action: 'dismiss' } ) ).toEqual( { action: 'dismiss' } )
+    expect( OffSyllabusActionBody.parse( { action: 'add_concept', section_id: id } ) )
+      .toEqual( { action: 'add_concept', section_id: id } )
+    expect( OffSyllabusActionBody.parse( { action: 'add_concept', section_id: id, name: 'X' } ) )
+      .toEqual( { action: 'add_concept', section_id: id, name: 'X' } )
+    expect( accepts( OffSyllabusActionBody, { action: 'add_concept' } ) ).toBe( false )
+    expect( accepts( OffSyllabusActionBody, { action: 'add_concept', section_id: id, name: '' } ) )
+      .toBe( false )
+    expect( accepts( OffSyllabusActionBody, { action: 'delete' } ) ).toBe( false )
   } )
 } )
 

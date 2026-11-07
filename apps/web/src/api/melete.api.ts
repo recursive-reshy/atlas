@@ -10,6 +10,7 @@ import {
 import type {
   GradeAnswerBody,
   MeleteQuestion,
+  OffSyllabusActionBody,
   MeleteSubject,
   RecordReviewBody,
   UpdateMeleteSubjectBody,
@@ -80,6 +81,28 @@ export const regenerateNote = async ( id: string ): Promise< GetMeleteNoteRespon
 
 export const retryGeneration = async ( id: string ): Promise< GetMeleteNoteResponse > => {
   return request( `${ notePath( id ) }/retry`, GetMeleteNoteResponse, { method: 'POST' } )
+}
+
+export const setNoteConcepts = async (
+  id: string,
+  conceptIds: string[],
+): Promise< GetMeleteNoteResponse > => {
+  return request(
+    `${ notePath( id ) }/concepts`,
+    GetMeleteNoteResponse,
+    jsonInit( 'PUT', { concept_ids: conceptIds } ),
+  )
+}
+
+export const applyOffSyllabusAction = async (
+  id: string,
+  body: OffSyllabusActionBody,
+): Promise< GetMeleteNoteResponse > => {
+  return request(
+    `${ notePath( id ) }/off-syllabus`,
+    GetMeleteNoteResponse,
+    jsonInit( 'POST', body ),
+  )
 }
 
 export const dropQuestion = async ( id: string ): Promise< MeleteQuestion > => {

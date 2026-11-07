@@ -15,18 +15,32 @@ import { meleteNoteFixture, NOTE_ID } from '#src/test-support/melete.fixture'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { MeleteNoteRow } from './MeleteNoteRow'
 
-const setup = ( overrides: Partial< MeleteNote > = {} ) => {
+const sections = [ { id: 'section-1', name: 'Basics' } ]
+
+const setup = ( overrides: Partial< MeleteNote > = {}, concepts: string[] = [] ) => {
   const onEnrolledChange = vi.fn()
   const onRetry = vi.fn()
+  const onDismissOffSyllabus = vi.fn()
+  const onAddOffSyllabus = vi.fn()
   renderWithClient(
     <MeleteNoteRow
       note={ meleteNoteFixture( overrides ) }
+      concepts={ concepts }
+      sections={ sections }
       onEnrolledChange={ onEnrolledChange }
       onRetry={ onRetry }
+      onDismissOffSyllabus={ onDismissOffSyllabus }
+      onAddOffSyllabus={ onAddOffSyllabus }
     />,
   )
 
-  return { onEnrolledChange, onRetry, user: userEvent.setup() }
+  return {
+    onEnrolledChange,
+    onRetry,
+    onDismissOffSyllabus,
+    onAddOffSyllabus,
+    user: userEvent.setup(),
+  }
 }
 
 describe( 'MeleteNoteRow', () => {
@@ -80,3 +94,58 @@ describe( 'MeleteNoteRow', () => {
     expect( onRetry ).toHaveBeenCalled()
   } )
 } )
+
+describe( 'MeleteNoteRow mapping', () => {
+  it( 'shows the concepts the note is mapped to', () => {
+    setup( {}, [ 'Type parameters', 'Narrowing' ] )
+
+    expect( screen.getByText( 'Type parameters' ) ).toBeInTheDocument()
+    expect( screen.getByText( 'Narrowing' ) ).toBeInTheDocument()
+  } )
+
+  it( 'shows nothing about mapping for a note with no concepts and no flag', () => {
+    setup()
+
+    expect( screen.queryByText( /mapping/i ) ).not.toBeInTheDocument()
+    expect( screen.queryByText( /off-syllabus/i ) ).not.toBeInTheDocument()
+  } )
+
+  it.each( [ 'queued', 'mapping' ] as const )( 'says it is mapping while %s', ( mapping ) => {
+    setup( { mapping } )
+
+    expect( screen.getByText( 'Mapping…' ) ).toBeInTheDocument()
+  } )
+
+  it( 'shows a failed mapping with its reason and retries it', async () => {
+    const { onRetry, user } = setup( { mapping: 'failed', mapping_error: 'Overloaded' } )
+
+    expect( screen.getByText( 'Overloaded' ) ).toBeInTheDocument()
+    expect( screen.getByText( 'Mapping failed' ) ).toBeInTheDocument()
+
+    await user.click( screen.getByRole( 'button', { name: 'Retry' } ) )
+
+    expect( onRetry ).toHaveBeenCalledTimes( 1 )
+  } )
+
+  it( 'shows the off-syllabus flag with its suggestion, to dismiss or add', async () => {
+    const { onDismissOffSyllabus, onAddOffSyllabus, user } = setup( {
+      off_syllabus: 'flagged',
+      off_syllabus_suggestion: 'Decorators',
+    } )
+
+    expect( screen.getByText( /“Decorators”/ ) ).toBeInTheDocument()
+
+    await user.click( screen.getByRole( 'button', { name: 'Add concept' } ) )
+    await user.click( screen.getByRole( 'button', { name: 'Dismiss' } ) )
+
+    expect( onAddOffSyllabus ).toHaveBeenCalledWith( 'section-1' )
+    expect( onDismissOffSyllabus ).toHaveBeenCalledTimes( 1 )
+  } )
+
+  it( 'does not show a dismissed flag', () => {
+    setup( { off_syllabus: 'dismissed', off_syllabus_suggestion: 'Decorators' } )
+
+    expect( screen.queryByText( /off-syllabus/i ) ).not.toBeInTheDocument()
+  } )
+} )
+

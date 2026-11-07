@@ -17,6 +17,8 @@ import {
   useUpdateSubject,
 } from '#src/hooks/useMeleteMutations'
 import { useMeleteSubject } from '#src/hooks/useMeleteSubject'
+import { useMeleteSyllabus } from '#src/hooks/useMeleteSyllabus'
+import { useOffSyllabusAction } from '#src/hooks/useNoteMappingMutations'
 import { SyllabusPanel } from '#src/components/SyllabusPanel'
 import {
   meleteNoteFixture,
@@ -29,6 +31,8 @@ import { renderWithClient } from '#src/test-support/renderWithClient'
 import { MeleteSubject } from './MeleteSubject'
 
 vi.mock( '#src/hooks/useMeleteSubject' )
+vi.mock( '#src/hooks/useMeleteSyllabus' )
+vi.mock( '#src/hooks/useNoteMappingMutations' )
 vi.mock( '#src/hooks/useMeleteMutations' )
 vi.mock( '#src/components/SyllabusPanel', () => ( {
   SyllabusPanel: vi.fn( () => <p>The syllabus panel</p> ),
@@ -40,6 +44,8 @@ const mocks = {
   update: vi.fn(),
   setNote: vi.fn(),
   retry: vi.fn(),
+  offSyllabus: vi.fn(),
+  syllabus: vi.mocked( useMeleteSyllabus ),
 }
 
 const show = ( overrides = {} ): void => {
@@ -67,6 +73,9 @@ beforeEach( () => {
   vi.mocked( useUpdateSubject ).mockReturnValue( mutationStub( { mutate: mocks.update } ) )
   vi.mocked( useSetNoteEnrolled ).mockReturnValue( mutationStub( { mutate: mocks.setNote } ) )
   vi.mocked( useRetryGeneration ).mockReturnValue( mutationStub( { mutate: mocks.retry } ) )
+  vi.mocked( useOffSyllabusAction )
+    .mockReturnValue( mutationStub( { mutate: mocks.offSyllabus } ) )
+  mocks.syllabus.mockReturnValue( { syllabus: null, isLoading: false, error: null } )
   show()
 } )
 
@@ -107,6 +116,52 @@ describe( 'MeleteSubject', () => {
 
     expect( mocks.setNote ).toHaveBeenCalledWith( { id: NOTE_ID, enrolled: true } )
     expect( mocks.retry ).toHaveBeenCalledWith( NOTE_ID )
+  } )
+
+  it( 'reads the syllabus only for an approved subject, to name each note\'s concepts', () => {
+    show( { subject: meleteSubjectFixture( { syllabus_status: 'approved' } ) } )
+    renderPage( 'notes' )
+
+    expect( mocks.syllabus ).toHaveBeenCalledWith( SUBJECT_ID, true )
+  } )
+
+  it( 'does not read the syllabus of an unapproved subject', () => {
+    renderPage( 'notes' )
+
+    expect( mocks.syllabus ).toHaveBeenCalledWith( SUBJECT_ID, false )
+  } )
+
+  it( 'dismisses a note\'s off-syllabus flag and adds its concept to a section', async () => {
+    show( {
+      subject: meleteSubjectFixture( { syllabus_status: 'approved' } ),
+      notes: [ meleteNoteFixture( {
+        off_syllabus: 'flagged',
+        off_syllabus_suggestion: 'Decorators',
+      } ) ],
+    } )
+    mocks.syllabus.mockReturnValue( {
+      syllabus: { sections: [ {
+        id: '1a2b3c4d-0000-4000-8000-000000000001',
+        name: 'Basics',
+        concepts: [],
+      } ] },
+      isLoading: false,
+      error: null,
+    } )
+
+    const user = renderPage( 'notes' )
+
+    await user.click( screen.getByRole( 'button', { name: 'Dismiss' } ) )
+    await user.click( screen.getByRole( 'button', { name: 'Add concept' } ) )
+
+    expect( mocks.offSyllabus ).toHaveBeenNthCalledWith(
+      1,
+      { id: NOTE_ID, body: { action: 'dismiss' } },
+    )
+    expect( mocks.offSyllabus ).toHaveBeenNthCalledWith( 2, {
+      id: NOTE_ID,
+      body: { action: 'add_concept', section_id: '1a2b3c4d-0000-4000-8000-000000000001' },
+    } )
   } )
 
   it( 'says so when the subject has no notes', () => {

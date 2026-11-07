@@ -43,7 +43,8 @@ import {
   updateNote,
 } from '../repositories/meleteNotes.repository.js'
 import { findQuestion } from '../repositories/meleteQuestions.repository.js'
-import { replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
+import { listConcepts, replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
+import { listSections } from '../repositories/meleteSections.repository.js'
 import { listSubjects, updateSubject } from '../repositories/meleteSubjects.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'
 // Test support
@@ -93,6 +94,7 @@ const note = ( path: string ) => {
 }
 
 const GENERICS = 'TypeScript/Generics.md'
+const OWNERSHIP = 'Rust/Ownership.md'
 
 beforeEach( async () => {
   vault = await createMeleteVault()
@@ -906,5 +908,104 @@ describe( 'the syllabus routes', () => {
     expect( ( await request( app, other ).post( url( id, '/approve' ) ).send( {} ) ).status )
       .toBe( 404 )
     expect( ( await request( app, transcriber ).get( url( id ) ) ).status ).toBe( 404 )
+  } )
+} )
+
+describe( 'the note mapping routes', () => {
+  // Rust, scanned and approved, with one note flagged off-syllabus
+  const approved = async () => {
+    await scanned()
+
+    const { id } = subject( 'Rust' )
+
+    replaceSyllabus( userId, id, [
+      { name: 'Basics', concepts: [ { name: 'Ownership', description: '' } ] },
+    ] )
+    updateSubject( userId, id, { target_level: 'working', syllabus_status: 'approved' } )
+
+    const { id: noteId } = note( OWNERSHIP )
+
+    getDatabase().prepare( 'UPDATE melete_notes SET enrolled = 1' ).run()
+
+    return {
+      noteId,
+      conceptId: listConcepts( userId, id )[ 0 ].id,
+      sectionId: listSections( userId, id )[ 0 ].id,
+    }
+  }
+
+  it( 'PUT concepts maps the note by hand and answers with the note', async () => {
+    const { noteId, conceptId } = await approved()
+    const response = await request( app )
+      .put( `/api/melete/notes/${ noteId }/concepts` )
+      .send( { concept_ids: [ conceptId ] } )
+
+    expect( response.status ).toBe( 200 )
+    expect( GetMeleteNoteResponse.parse( response.body ).note ).toMatchObject( {
+      mapping: 'queued',
+      mapping_pinned: true,
+      concept_ids: [ conceptId ],
+    } )
+  } )
+
+  it( 'PUT concepts returns 400 for a bad body or foreign concept, 409 if unapproved', async () => {
+    const { noteId } = await approved()
+    const put = ( body: object ) => {
+      return request( app ).put( `/api/melete/notes/${ noteId }/concepts` ).send( body )
+    }
+
+    expect( ( await put( {} ) ).status ).toBe( 400 )
+    expect( ( await put( { concept_ids: [ 'x' ] } ) ).status ).toBe( 400 )
+    expect( ( await put( { concept_ids: [ crypto.randomUUID() ] } ) ).status ).toBe( 400 )
+
+    updateSubject( userId, note( OWNERSHIP ).subject_id, { syllabus_status: 'draft' } )
+
+    expect( ( await put( { concept_ids: [] } ) ).status ).toBe( 409 )
+  } )
+
+  it( 'POST off-syllabus adds a concept, and dismisses', async () => {
+    const { noteId, sectionId } = await approved()
+    const post = ( body: object ) => {
+      return request( app ).post( `/api/melete/notes/${ noteId }/off-syllabus` ).send( body )
+    }
+
+    updateNote( userId, noteId, { off_syllabus: 'flagged', off_syllabus_suggestion: 'Borrowing' } )
+
+    const added = await post( { action: 'add_concept', section_id: sectionId } )
+
+    expect( added.status ).toBe( 200 )
+    expect( GetMeleteNoteResponse.parse( added.body ).note )
+      .toMatchObject( { off_syllabus: null, mapping_pinned: true } )
+
+    updateNote( userId, noteId, { off_syllabus: 'flagged' } )
+
+    const dismissed = await post( { action: 'dismiss' } )
+
+    expect( GetMeleteNoteResponse.parse( dismissed.body ).note.off_syllabus ).toBe( 'dismissed' )
+  } )
+
+  it( 'POST off-syllabus returns 400 for a bad body and 409 for an unflagged note', async () => {
+    const { noteId, sectionId } = await approved()
+    const post = ( body: object ) => {
+      return request( app ).post( `/api/melete/notes/${ noteId }/off-syllabus` ).send( body )
+    }
+
+    expect( ( await post( { action: 'delete' } ) ).status ).toBe( 400 )
+    expect( ( await post( { action: 'add_concept' } ) ).status ).toBe( 400 )
+    expect( ( await post( { action: 'add_concept', section_id: sectionId, name: 'X' } ) ).status )
+      .toBe( 409 )
+  } )
+
+  it( 'answers 404 for an unknown note and 400 for an id that is not a uuid', async () => {
+    const base = `/api/melete/notes/${ crypto.randomUUID() }`
+    const put = ( url: string ) => request( app ).put( url ).send( { concept_ids: [] } )
+
+    expect( ( await put( `${ base }/concepts` ) ).status ).toBe( 404 )
+    const dismiss = await request( app )
+      .post( `${ base }/off-syllabus` )
+      .send( { action: 'dismiss' } )
+
+    expect( dismiss.status ).toBe( 404 )
+    expect( ( await put( '/api/melete/notes/nope/concepts' ) ).status ).toBe( 400 )
   } )
 } )

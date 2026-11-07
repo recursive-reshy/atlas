@@ -14,6 +14,10 @@ import {
   useRetryGeneration,
 } from '#src/hooks/useMeleteMutations'
 import { useMeleteNote } from '#src/hooks/useMeleteNote'
+import { useMeleteSubject } from '#src/hooks/useMeleteSubject'
+import { useMeleteSyllabus } from '#src/hooks/useMeleteSyllabus'
+import { useSetNoteConcepts } from '#src/hooks/useNoteMappingMutations'
+import { NoteConceptsEditor } from '../NoteConceptsEditor'
 import { MeleteQuestionItem } from '../MeleteQuestionItem'
 
 export function MeleteNote(): ReactElement {
@@ -22,6 +26,10 @@ export function MeleteNote(): ReactElement {
   const regenerateNote = useRegenerateNote()
   const retryGeneration = useRetryGeneration()
   const dropQuestion = useDropQuestion()
+  const setConcepts = useSetNoteConcepts()
+  const { subject } = useMeleteSubject( note?.subject_id ?? '' )
+  const isApproved = subject?.syllabus_status === 'approved'
+  const { syllabus } = useMeleteSyllabus( note?.subject_id ?? '', isApproved )
   const changeError = [ regenerateNote, retryGeneration, dropQuestion ]
     .find( ( mutation ) => mutation.isError )?.error?.message ?? null
 
@@ -79,6 +87,22 @@ export function MeleteNote(): ReactElement {
           { note.generation_error ?? 'Question generation failed' }
         </Alert>
       ) }
+      { note.mapping === 'failed' && (
+        <Alert
+          severity="error"
+          action={ (
+            <Button
+              color="inherit"
+              size="small"
+              onClick={ () => retryGeneration.mutate( note.id ) }
+            >
+              Retry
+            </Button>
+          ) }
+        >
+          { note.mapping_error ?? 'Mapping failed' }
+        </Alert>
+      ) }
       { changeError !== null && <Alert severity="error">{ changeError }</Alert> }
       <Stack direction="row" spacing={ 1 }>
         <Button
@@ -95,6 +119,16 @@ export function MeleteNote(): ReactElement {
           </Button>
         ) }
       </Stack>
+      { isApproved && syllabus !== null && (
+        <NoteConceptsEditor
+          key={ note.concept_ids.join( ',' ) }
+          note={ note }
+          syllabus={ syllabus }
+          isSaving={ setConcepts.isPending }
+          error={ setConcepts.error?.message ?? null }
+          onSave={ ( conceptIds ) => setConcepts.mutate( { id: note.id, conceptIds } ) }
+        />
+      ) }
       { active.length === 0 && dropped.length === 0 && (
         <Typography color="text.secondary">No questions yet.</Typography>
       ) }

@@ -10,6 +10,7 @@ import {
   patchMeleteNote,
   patchMeleteSubject,
   postGradeAnswer,
+  postOffSyllabus,
   postApproveSyllabus,
   postDraftSyllabus,
   postDropQuestion,
@@ -19,6 +20,7 @@ import {
   postRetryGeneration,
   postSubjectEnrollment,
   putMeleteSyllabus,
+  putNoteConcepts,
 } from '../controllers/melete.controller.js'
 
 export const meleteRoutes: Router = Router()
@@ -34,6 +36,8 @@ meleteRoutes.post( '/melete/subjects/:id/syllabus/approve', postApproveSyllabus 
 meleteRoutes.post( '/melete/subjects/:id/syllabus/remap', postRemapSyllabus )
 meleteRoutes.get( '/melete/notes/:id', getMeleteNote )
 meleteRoutes.patch( '/melete/notes/:id', patchMeleteNote )
+meleteRoutes.put( '/melete/notes/:id/concepts', putNoteConcepts )
+meleteRoutes.post( '/melete/notes/:id/off-syllabus', postOffSyllabus )
 meleteRoutes.post( '/melete/notes/:id/regenerate', postRegenerateNote )
 meleteRoutes.post( '/melete/notes/:id/retry', postRetryGeneration )
 meleteRoutes.post( '/melete/questions/:id/drop', postDropQuestion )

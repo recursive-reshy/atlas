@@ -185,6 +185,21 @@ export type EnrollSubjectBody = z.infer< typeof EnrollSubjectBody >
 export const UpdateMeleteNoteBody = z.object( { enrolled: z.boolean() } )
 export type UpdateMeleteNoteBody = z.infer< typeof UpdateMeleteNoteBody >
 
+// A hand mapping (ADR 0089): the note is pinned to exactly these concepts
+export const UpdateNoteConceptsBody = z.object( { concept_ids: z.array( z.uuid() ).max( 10 ) } )
+export type UpdateNoteConceptsBody = z.infer< typeof UpdateNoteConceptsBody >
+
+export const OffSyllabusActionBody = z.discriminatedUnion( 'action', [
+  z.object( { action: z.literal( 'dismiss' ) } ),
+  z.object( {
+    action: z.literal( 'add_concept' ),
+    section_id: z.uuid(),
+    // The note's suggestion when left out
+    name: z.string().trim().min( 1 ).max( 200 ).optional(),
+  } ),
+] )
+export type OffSyllabusActionBody = z.infer< typeof OffSyllabusActionBody >
+
 export const GetMeleteNoteResponse = z.object( {
   note: MeleteNote,
   questions: z.array( MeleteQuestion ),

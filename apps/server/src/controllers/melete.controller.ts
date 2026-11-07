@@ -5,7 +5,9 @@ import { z } from 'zod'
 // Shared
 import {
   ApproveMeleteSyllabusResponse,
+  OffSyllabusActionBody,
   RemapMeleteSyllabusResponse,
+  UpdateNoteConceptsBody,
   EnrollSubjectBody,
   GetMeleteNoteResponse,
   GetMeleteSubjectResponse,
@@ -37,6 +39,10 @@ import {
   setSubjectEnrolled,
   updateSubject,
 } from '../services/melete.service.js'
+import {
+  applyOffSyllabusAction,
+  setNoteConceptsByHand,
+} from '../services/meleteNoteMapping.service.js'
 import { getNextReview, gradeAnswer, recordReview } from '../services/meleteReview.service.js'
 import {
   approveSyllabus,
@@ -109,6 +115,28 @@ export const postApproveSyllabus = (
   const subject = approveSyllabus( currentUser( req ).id, Id.parse( req.params.id ) )
 
   res.status( 200 ).json( { subject } )
+}
+
+export const putNoteConcepts = (
+  req: Request,
+  res: Response< GetMeleteNoteResponse >,
+): void => {
+  const { concept_ids: conceptIds } = UpdateNoteConceptsBody.parse( req.body )
+
+  res.status( 200 ).json(
+    setNoteConceptsByHand( currentUser( req ).id, Id.parse( req.params.id ), conceptIds ),
+  )
+}
+
+export const postOffSyllabus = (
+  req: Request,
+  res: Response< GetMeleteNoteResponse >,
+): void => {
+  res.status( 200 ).json( applyOffSyllabusAction(
+    currentUser( req ).id,
+    Id.parse( req.params.id ),
+    OffSyllabusActionBody.parse( req.body ),
+  ) )
 }
 
 export const postRemapSyllabus = (

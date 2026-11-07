@@ -89,6 +89,8 @@ describe( 'the Melete routes are per user', () => {
       [ 'get', `/api/melete/notes/${ n }` ],
       [ 'patch', `/api/melete/notes/${ n }`, { enrolled: true } ],
       [ 'post', `/api/melete/subjects/${ s }/syllabus/remap`, {} ],
+      [ 'put', `/api/melete/notes/${ n }/concepts`, { concept_ids: [] } ],
+      [ 'post', `/api/melete/notes/${ n }/off-syllabus`, { action: 'dismiss' } ],
       [ 'post', `/api/melete/notes/${ n }/regenerate`, {} ],
       [ 'post', `/api/melete/notes/${ n }/retry`, {} ],
       [ 'post', `/api/melete/questions/${ q }/drop`, {} ],
@@ -103,7 +105,7 @@ describe( 'the Melete routes are per user', () => {
       const agent = asOther()
       const request = method === 'get'
         ? agent.get( path )
-        : agent[ method as 'post' ]( path )
+        : agent[ method as 'post' | 'put' ]( path )
       const response = await ( body === undefined ? request : request.send( body ) )
 
       return { status: response.status, body: response.body as unknown }
@@ -114,7 +116,7 @@ describe( 'the Melete routes are per user', () => {
 
     expect( refused.map( ( { status } ) => status ) )
       .toEqual( missing.map( ( { status } ) => status ) )
-    expect( refused.map( ( { status } ) => status ) ).toEqual( Array( 12 ).fill( 404 ) )
+    expect( refused.map( ( { status } ) => status ) ).toEqual( Array( 14 ).fill( 404 ) )
     expect( refused.map( ( { body } ) => body ) ).toEqual( missing.map( ( { body } ) => body ) )
     expect( findQuestion( owner.id, question )?.state ).toBe( 'active' )
   } )

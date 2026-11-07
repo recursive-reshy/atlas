@@ -16,9 +16,13 @@ import {
   useRetryGeneration,
 } from '#src/hooks/useMeleteMutations'
 import { useMeleteNote } from '#src/hooks/useMeleteNote'
+import { useMeleteSubject } from '#src/hooks/useMeleteSubject'
+import { useMeleteSyllabus } from '#src/hooks/useMeleteSyllabus'
+import { useSetNoteConcepts } from '#src/hooks/useNoteMappingMutations'
 import {
   meleteNoteFixture,
   meleteQuestionFixture,
+  meleteSubjectFixture,
   NOTE_ID,
   QUESTION_ID,
   SUBJECT_ID,
@@ -28,6 +32,9 @@ import { renderWithClient } from '#src/test-support/renderWithClient'
 import { MeleteNote } from './MeleteNote'
 
 vi.mock( '#src/hooks/useMeleteNote' )
+vi.mock( '#src/hooks/useMeleteSubject' )
+vi.mock( '#src/hooks/useMeleteSyllabus' )
+vi.mock( '#src/hooks/useNoteMappingMutations' )
 vi.mock( '#src/hooks/useMeleteMutations' )
 
 const mocks = {
@@ -35,6 +42,9 @@ const mocks = {
   regenerate: vi.fn(),
   retry: vi.fn(),
   drop: vi.fn(),
+  setConcepts: vi.fn(),
+  subject: vi.mocked( useMeleteSubject ),
+  syllabus: vi.mocked( useMeleteSyllabus ),
 }
 
 const OBSIDIAN_URL = 'obsidian://open?vault=Brain&file=Learning%2FTypeScript%2FGenerics'
@@ -64,6 +74,14 @@ beforeEach( () => {
   vi.mocked( useRegenerateNote ).mockReturnValue( mutationStub( { mutate: mocks.regenerate } ) )
   vi.mocked( useRetryGeneration ).mockReturnValue( mutationStub( { mutate: mocks.retry } ) )
   vi.mocked( useDropQuestion ).mockReturnValue( mutationStub( { mutate: mocks.drop } ) )
+  vi.mocked( useSetNoteConcepts ).mockReturnValue( mutationStub( { mutate: mocks.setConcepts } ) )
+  mocks.subject.mockReturnValue( {
+    subject: meleteSubjectFixture(),
+    notes: [],
+    isLoading: false,
+    error: null,
+  } )
+  mocks.syllabus.mockReturnValue( { syllabus: null, isLoading: false, error: null } )
   show()
 } )
 
@@ -195,3 +213,54 @@ describe( 'MeleteNote', () => {
     expect( screen.getByRole( 'alert' ) ).toHaveTextContent( 'Note not found' )
   } )
 } )
+
+describe( 'MeleteNote mapping', () => {
+  const CONCEPT = '1a2b3c4d-0000-4000-8000-000000000011'
+  const approve = (): void => {
+    mocks.subject.mockReturnValue( {
+      subject: meleteSubjectFixture( { syllabus_status: 'approved' } ),
+      notes: [],
+      isLoading: false,
+      error: null,
+    } )
+    mocks.syllabus.mockReturnValue( {
+      syllabus: { sections: [ {
+        id: '1a2b3c4d-0000-4000-8000-000000000001',
+        name: 'Basics',
+        concepts: [ { id: CONCEPT, name: 'Type parameters', description: '' } ],
+      } ] },
+      isLoading: false,
+      error: null,
+    } )
+  }
+
+  it( 'lets the user map the note by hand once the subject has an approved syllabus', async () => {
+    approve()
+    const user = renderPage()
+
+    await user.click( screen.getByRole( 'combobox', { name: 'Concepts' } ) )
+    await user.click( screen.getByRole( 'option', { name: 'Type parameters' } ) )
+    await user.click( screen.getByRole( 'button', { name: 'Save mapping' } ) )
+
+    expect( mocks.setConcepts ).toHaveBeenCalledWith( { id: NOTE_ID, conceptIds: [ CONCEPT ] } )
+  } )
+
+  it( 'reads the syllabus only for an approved subject', () => {
+    renderPage()
+
+    expect( mocks.syllabus ).toHaveBeenCalledWith( SUBJECT_ID, false )
+    expect( screen.queryByRole( 'combobox', { name: 'Concepts' } ) ).not.toBeInTheDocument()
+  } )
+
+  it( 'shows a failed mapping with its reason and retries it', async () => {
+    show( { note: meleteNoteFixture( { mapping: 'failed', mapping_error: 'Overloaded' } ) } )
+    const user = renderPage()
+
+    expect( screen.getByRole( 'alert' ) ).toHaveTextContent( 'Overloaded' )
+
+    await user.click( screen.getByRole( 'button', { name: 'Retry' } ) )
+
+    expect( mocks.retry ).toHaveBeenCalledWith( NOTE_ID )
+  } )
+} )
+

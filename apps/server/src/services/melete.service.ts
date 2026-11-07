@@ -106,7 +106,7 @@ const toMeleteNote = (
   }
 }
 
-const noteView = ( userId: string, note: NoteRecord ): GetMeleteNoteResponse => {
+export const noteView = ( userId: string, note: NoteRecord ): GetMeleteNoteResponse => {
   const questions = listForNote( userId, note.id )
 
   return {

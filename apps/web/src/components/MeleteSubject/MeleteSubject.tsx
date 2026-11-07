@@ -20,6 +20,8 @@ import {
   useUpdateSubject,
 } from '#src/hooks/useMeleteMutations'
 import { useMeleteSubject } from '#src/hooks/useMeleteSubject'
+import { useMeleteSyllabus } from '#src/hooks/useMeleteSyllabus'
+import { useOffSyllabusAction } from '#src/hooks/useNoteMappingMutations'
 
 const TABS = [
   { value: 'overview', label: 'Overview' },
@@ -64,8 +66,15 @@ export function MeleteSubject(): ReactElement {
   const updateSubject = useUpdateSubject()
   const setNoteEnrolled = useSetNoteEnrolled()
   const retryGeneration = useRetryGeneration()
-  const changeError = [ enrollSubject, updateSubject, setNoteEnrolled, retryGeneration ]
-    .find( ( mutation ) => mutation.isError )?.error?.message ?? null
+  const offSyllabus = useOffSyllabusAction()
+  const { syllabus } = useMeleteSyllabus( subjectId, subject?.syllabus_status === 'approved' )
+  const changeError = [
+    enrollSubject,
+    updateSubject,
+    setNoteEnrolled,
+    retryGeneration,
+    offSyllabus,
+  ].find( ( mutation ) => mutation.isError )?.error?.message ?? null
   const tab = tabFrom( params.get( 'tab' ) )
   const openTab = ( value: TabValue ): void => setParams( { tab: value } )
 
@@ -106,8 +115,15 @@ export function MeleteSubject(): ReactElement {
       { tab === 'notes' && (
         <SubjectNotes
           notes={ notes }
+          syllabus={ subject.syllabus_status === 'approved' ? syllabus : null }
           onEnrolledChange={ ( id, enrolled ) => setNoteEnrolled.mutate( { id, enrolled } ) }
           onRetry={ ( id ) => retryGeneration.mutate( id ) }
+          onDismissOffSyllabus={ ( id ) => {
+            offSyllabus.mutate( { id, body: { action: 'dismiss' } } )
+          } }
+          onAddOffSyllabus={ ( id, sectionId ) => {
+            offSyllabus.mutate( { id, body: { action: 'add_concept', section_id: sectionId } } )
+          } }
         />
       ) }
       { tab === 'settings' && (

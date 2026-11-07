@@ -24,6 +24,7 @@ import {
   updateMeleteSubject,
 } from '../api/melete.api'
 import { meleteKeys } from './queryKeys'
+import { useNoteResponse } from './useNoteResponse'
 
 type Mutation< Variables, Result > = UseMutationResult< Result, Error, Variables >
 
@@ -60,27 +61,6 @@ export function useUpdateSubject(): Mutation<
         ( current ) => current === undefined ? current : { ...current, subject },
       )
       await queryClient.invalidateQueries( { queryKey: meleteKeys.today } )
-    },
-  } )
-}
-
-// A note's change moves its subject's list and Today's counts, so both are refreshed.
-const useNoteResponse = < Variables >(
-  mutationFn: ( variables: Variables ) => Promise< GetMeleteNoteResponse >,
-  noteIdOf: ( variables: Variables ) => string,
-): Mutation< Variables, GetMeleteNoteResponse > => {
-  const queryClient = useQueryClient()
-
-  return useMutation( {
-    mutationFn,
-    onSuccess: async ( response, variables ) => {
-      queryClient.setQueryData( meleteKeys.note( noteIdOf( variables ) ), response )
-      await Promise.all( [
-        queryClient.invalidateQueries( {
-          queryKey: meleteKeys.subject( response.note.subject_id ),
-        } ),
-        queryClient.invalidateQueries( { queryKey: meleteKeys.today } ),
-      ] )
     },
   } )
 }

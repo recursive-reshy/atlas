@@ -27,8 +27,10 @@ import {
   getNextReview,
   gradeAnswer,
   recordReview,
+  applyOffSyllabusAction,
   regenerateNote,
   retryGeneration,
+  setNoteConcepts,
   setNoteEnrolled,
   updateMeleteSubject,
 } from './melete.api'
@@ -149,6 +151,33 @@ describe( 'melete api changes', () => {
     expect( fetchMock ).toHaveBeenLastCalledWith(
       `/api/melete/notes/${ NOTE_ID }/retry`,
       { method: 'POST', ...EMPTY_JSON },
+    )
+  } )
+
+  it( 'puts a hand mapping and returns the note', async () => {
+    fetchMock.mockResolvedValue( json( meleteNoteResponseFixture() ) )
+
+    await expect( setNoteConcepts( NOTE_ID, [ SUBJECT_ID ] ) ).resolves
+      .toEqual( meleteNoteResponseFixture() )
+    expect( fetchMock ).toHaveBeenCalledWith(
+      `/api/melete/notes/${ NOTE_ID }/concepts`,
+      jsonInit( 'PUT', { concept_ids: [ SUBJECT_ID ] } ),
+    )
+  } )
+
+  it( 'posts an off-syllabus action and returns the note', async () => {
+    fetchMock.mockImplementation( () => Promise.resolve( json( meleteNoteResponseFixture() ) ) )
+
+    await applyOffSyllabusAction( NOTE_ID, { action: 'dismiss' } )
+    expect( fetchMock ).toHaveBeenLastCalledWith(
+      `/api/melete/notes/${ NOTE_ID }/off-syllabus`,
+      jsonInit( 'POST', { action: 'dismiss' } ),
+    )
+
+    await applyOffSyllabusAction( NOTE_ID, { action: 'add_concept', section_id: SUBJECT_ID } )
+    expect( fetchMock ).toHaveBeenLastCalledWith(
+      `/api/melete/notes/${ NOTE_ID }/off-syllabus`,
+      jsonInit( 'POST', { action: 'add_concept', section_id: SUBJECT_ID } ),
     )
   } )
 
