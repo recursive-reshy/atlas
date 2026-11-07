@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-FROM node:24-slim AS build
+FROM node:24-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9 AS build
 
 RUN apt-get update \
   && apt-get install -y --no-install-recommends python3 make g++ \
@@ -25,7 +25,7 @@ RUN pnpm --filter @atlas/shared --filter @atlas/server build \
 
 
 # Gemini reads YouTube links itself (ADR 0081), so the image holds only the app
-FROM node:24-slim
+FROM node:24-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9
 
 ENV NODE_ENV=production \
     PORT=3100 \

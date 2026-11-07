@@ -149,7 +149,7 @@ test( 'production restores the database before the app and replicates after it',
   assert.equal( litestream.depends_on.app.condition, 'service_started' )
   for( const service of [ restore, litestream ] ) {
     assert.equal( service.user, '1000:1000' )
-    assert.equal( service.image, 'litestream/litestream:0.5.17' )
+    assert.match( service.image, /^litestream\/litestream:0\.5\.17@sha256:[0-9a-f]{64}$/ )
     assert.ok( service.volumes.some( ( volume ) => volume.target === '/data' ), 'shares /data' )
     assert.ok( service.volumes.some( ( volume ) => volume.target === '/etc/litestream.yml' && volume.read_only ), 'config is read only' )
     assert.equal( service.environment.LITESTREAM_BUCKET, 'example-bucket' )

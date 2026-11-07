@@ -318,6 +318,18 @@ After it finishes, check that Replication goes green within a check or two. Lite
 
 If there is no pre-migration copy, or you need a state from an exact moment, use the point-in-time restore in [Restoring the database](#restoring-the-database).
 
+## Updating a pinned image
+
+Every third-party image is pinned as `tag@sha256:<digest>` (ADR 0087): `node:24-slim` in the three Dockerfiles that use it, `python:3.14-slim` in `apps/agent/Dockerfile`, and Litestream in `compose.prod.yml`. `deploy/images.test.mjs` fails on a `FROM` or `image:` that names a tag alone. The digest is the multi-architecture index, so it works on the Mac and on the VM.
+
+To move one (a security fix in the base image, or a new Litestream version), on your Mac:
+
+```sh
+docker buildx imagetools inspect node:24-slim   # the first "Digest:" line is the one to use
+```
+
+Replace the digest in every file that names that image (`grep -rn 'node:24-slim' Dockerfile deploy e2e`), keep the tag in front of it, then run `pnpm test` and `pnpm e2e` before releasing. A new Litestream version also changes the `restore` command in "Restoring the database".
+
 ## Rotating a secret
 
 Add a version in Secret Manager, then restart the service so it fetches again:

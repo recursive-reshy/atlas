@@ -13,7 +13,7 @@ This file holds only what is true everywhere. Each app has its own `CLAUDE.md` w
 | `apps/agent` | Python vault agent service: stateless, read-only vault tools and Claude tool-use agents; linking is its first endpoint (ADR 0042) |
 | `packages/shared` | Cross-app contracts: Zod schemas and their inferred types |
 | `e2e/` | End-to-end smoke test (ADR 0053): Playwright specs signed in through the test-only session route, local fakes (article, feed, Gemini and the YouTube Data API, Anthropic API) and a Compose override; run with `pnpm e2e` |
-| `deploy/` | Hosting (ADRs 0075–0078): the Obsidian Sync client image and `sync.sh`, the Litestream config, the VM scripts (`bootstrap.sh`, `fetch-secrets.sh`, `deploy.sh`, `atlas.service`, `atlas.env.example`) and `release.sh`; `deploy.sh` checks `GET /api/health` replication before an upgrade, records `/var/lib/atlas/deploys.log` and rolls back past a migration with `--restore-pre-migration` (ADR 0086); each has a `node:test` file beside it, run by the root `pnpm test` |
+| `deploy/` | Hosting (ADRs 0075–0078): the Obsidian Sync client image and `sync.sh`, the Litestream config, the VM scripts (`bootstrap.sh`, `fetch-secrets.sh`, `deploy.sh`, `atlas.service`, `atlas.env.example`) and `release.sh`; `deploy.sh` checks `GET /api/health` replication before an upgrade, records `/var/lib/atlas/deploys.log` and rolls back past a migration with `--restore-pre-migration` (ADR 0086); each has a `node:test` file beside it, run by the root `pnpm test`; every third-party image is pinned as `tag@sha256:…` and `images.test.mjs` fails on a tag alone (ADR 0087) |
 | `docs/` | Versioned plans in `docs/v<version>/` (PRD, TRD, tasks, checkpoint plans) and ADRs in `docs/decisions/`, indexed in `docs/README.md` |
 
 ## Architecture

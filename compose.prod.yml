@@ -4,7 +4,7 @@
 # fetched secrets as --env-file (deploy/vm/atlas.service).
 services:
   restore:
-    image: litestream/litestream:0.5.17
+    image: litestream/litestream:0.5.17@sha256:4b02b9859a6b6b4087d8b8944e15f7e984bd7957cba322bbeee38b0e27b9656a
     user: "1000:1000"
     command: [ "restore", "-if-db-not-exists", "-if-replica-exists", "/data/atlas.db" ]
     environment:
@@ -32,7 +32,7 @@ services:
       - ${VAULTS_HOST_PATH}:/vaults:ro
 
   litestream:
-    image: litestream/litestream:0.5.17
+    image: litestream/litestream:0.5.17@sha256:4b02b9859a6b6b4087d8b8944e15f7e984bd7957cba322bbeee38b0e27b9656a
     user: "1000:1000"
     command: [ "replicate" ]
     environment:

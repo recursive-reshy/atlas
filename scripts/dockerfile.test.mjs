@@ -26,7 +26,7 @@ test( 'the app image starts node directly, with no entrypoint script', () => {
 test( 'the app image has one runtime stage after the build', () => {
   const stages = [ ...code.matchAll( /^FROM .* AS (\w+)$/gm ) ].map( ( match ) => match[ 1 ] )
   assert.deepEqual( stages, [ 'build' ] )
-  assert.match( code, /^FROM node:24-slim$/m )
+  assert.match( code, /^FROM node:24-slim@sha256:[0-9a-f]{64}$/m )
 })
 
 test( 'VAULT_PATH, removed from the server long ago, is not set in the image', () => {

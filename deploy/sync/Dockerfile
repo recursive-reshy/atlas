@@ -2,7 +2,7 @@
 
 # One Obsidian Headless sync client per synced user (ADR 0075). Our own image, because it holds the
 # user's Obsidian login; the pinned version is checked against Obsidian's docs when it is raised.
-FROM node:24-slim
+FROM node:24-slim@sha256:01d566e8d94d8c619591d78652babfccd3c6992a3dffa9ed5ab39e11cf6c70e9
 
 ARG OBSIDIAN_HEADLESS_VERSION=0.0.14
 
