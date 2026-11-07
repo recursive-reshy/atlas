@@ -8,6 +8,7 @@ import { dirname, join } from 'node:path'
 import Database from 'better-sqlite3'
 import { z } from 'zod'
 // Repositories
+import { logger } from '../logger.js'
 import { backupStamp } from './backupStamp.js'
 
 // The whole 0.9 schema in one step (ADR 0066). It seeds nothing: seeding is seedUser.
@@ -569,10 +570,15 @@ export const runMigrations = ( db: Database.Database, migrations: Migration[] ):
       const version = SCHEMA_BASE + index + 1
 
       if( applied < version ) {
-        if( typeof migration === 'string' ) {
-          db.exec( migration )
-        } else {
-          migration( db )
+        try {
+          if( typeof migration === 'string' ) {
+            db.exec( migration )
+          } else {
+            migration( db )
+          }
+        } catch( error ) {
+          logger.error( { err: error, version }, 'migration failed' )
+          throw error
         }
 
         db.pragma( `user_version = ${ version }` )

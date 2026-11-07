@@ -43,7 +43,7 @@ INSERT INTO jobs ( id, user_id, url, status, error, title, source_document, save
 
 INSERT INTO feed_items ( id, user_id, feed_id, item_key, title, link, published_at, author, content_markdown, status, job_id, added_at ) VALUES
   ( '21000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'post-1', 'First post', 'https://blog.example.test/1', '2026-10-01T00:00:00.000Z', 'Blog Author', 'Invented post text.', 'inbox', NULL, '2026-10-01T01:00:00.000Z' ),
-  ( '21000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'post-2', 'Second post', 'https://blog.example.test/2', NULL, NULL, NULL, 'summarized', '30000000-0000-4000-8000-000000000008', '2026-10-01T02:00:00.000Z' ),
+  ( '21000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', '20000000-0000-4000-8000-000000000001', 'post-2', 'Second post', 'https://blog.example.test/2', NULL, NULL, NULL, 'queued', '30000000-0000-4000-8000-000000000008', '2026-10-01T02:00:00.000Z' ),
   ( '21000000-0000-4000-8000-000000000003', '00000000-0000-4000-8000-000000000002', '20000000-0000-4000-8000-000000000002', 'news-1', 'News item', 'https://news.example.test/1', '2026-10-02T00:00:00.000Z', NULL, NULL, 'dismissed', NULL, '2026-10-02T01:00:00.000Z' );
 
 INSERT INTO summary_runs ( id, user_id, job_id, model, prompt_version_id, input_tokens, output_tokens, cost_usd, outcome, error, created_at ) VALUES
@@ -66,7 +66,7 @@ INSERT INTO gmail_account ( user_id, email, refresh_token_enc, scope, status, er
   ( '00000000-0000-4000-8000-000000000001', 'mailbox@example.test', 'not-a-real-token', 'https://www.googleapis.com/auth/gmail.readonly', 'connected', NULL, '2026-09-20T00:00:00.000Z' );
 
 INSERT INTO gmail_sources ( id, user_id, name, match_kind, label_ids, query, destination, profile_id, enabled, auto_summarize, sync_from, last_skipped_count, created_at, deleted_at ) VALUES
-  ( '40000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001', 'Newsletter', 'label', '["Label_1"]', NULL, 'newsletter', '10000000-0000-4000-8000-000000000001', 1, 0, '2026-09-20T00:00:00.000Z', 0, '2026-09-20T00:00:00.000Z', NULL ),
+  ( '40000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001', 'Newsletter', 'labels', '["Label_1"]', NULL, 'newsletter', '10000000-0000-4000-8000-000000000001', 1, 0, '2026-09-20T00:00:00.000Z', 0, '2026-09-20T00:00:00.000Z', NULL ),
   ( '40000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', 'Job alerts', 'query', NULL, 'from:alerts@example.test', 'jobs', NULL, 0, 0, '2026-09-21T00:00:00.000Z', 1, '2026-09-21T00:00:00.000Z', NULL );
 
 INSERT INTO gmail_messages ( id, user_id, source_id, message_id, subject, sender, sender_address, received_at, body_html, body_text, status, backfilled, attempts, error, job_id, added_at ) VALUES
@@ -74,10 +74,10 @@ INSERT INTO gmail_messages ( id, user_id, source_id, message_id, subject, sender
   ( '41000000-0000-4000-8000-000000000002', '00000000-0000-4000-8000-000000000001', '40000000-0000-4000-8000-000000000002', 'msg-2', 'New jobs for you', 'Alerts', 'alerts@example.test', '2026-10-02T06:00:00.000Z', '<p>Invented alert</p>', NULL, 'extracted', 1, 1, NULL, NULL, '2026-10-02T06:01:00.000Z' );
 
 INSERT INTO extraction_runs ( id, user_id, gmail_message_row, model, input_tokens, output_tokens, cost_usd, outcome, postings_count, error, created_at ) VALUES
-  ( 1, '00000000-0000-4000-8000-000000000001', '41000000-0000-4000-8000-000000000002', 'claude-test', 2000, 400, 0.0090, 'succeeded', 1, NULL, '2026-10-02T06:02:00.000Z' );
+  ( 1, '00000000-0000-4000-8000-000000000001', '41000000-0000-4000-8000-000000000002', 'claude-test', 2000, 400, 0.0090, 'extracted', 1, NULL, '2026-10-02T06:02:00.000Z' );
 
 INSERT INTO job_postings ( id, user_id, platform, platform_job_id, dedupe_key, title, url, posted_at, first_seen_at, last_seen_at, details ) VALUES
-  ( '42000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001', 'examplehub', 'job-123', 'examplehub:job-123', 'Invented posting', 'https://jobs.example.test/123', '2026-10-02T00:00:00.000Z', '2026-10-02T06:02:00.000Z', '2026-10-02T06:02:00.000Z', '{"budget":null}' );
+  ( '42000000-0000-4000-8000-000000000001', '00000000-0000-4000-8000-000000000001', 'examplehub', 'job-123', 'examplehub:job-123', 'Invented posting', 'https://jobs.example.test/123', '2026-10-02T00:00:00.000Z', '2026-10-02T06:02:00.000Z', '2026-10-02T06:02:00.000Z', '{"budget":{"type":"fixed","min":100,"max":200,"currency":"USD"},"skills":["testing"],"description":"Invented posting text.","experience_level":"Intermediate","duration":null,"proposals":null,"client":null,"extra":[]}' );
 
 INSERT INTO posting_sightings ( user_id, posting_id, gmail_message_row, seen_at ) VALUES
   ( '00000000-0000-4000-8000-000000000001', '42000000-0000-4000-8000-000000000001', '41000000-0000-4000-8000-000000000002', '2026-10-02T06:02:00.000Z' );
@@ -105,9 +105,9 @@ INSERT INTO sessions ( token_hash, user_id, created_at, last_seen_at, expires_at
   ( 'hash-session-member', '00000000-0000-4000-8000-000000000002', '2026-10-02T08:30:00.000Z', '2026-10-03T08:30:00.000Z', '2026-11-02T08:30:00.000Z' );
 
 INSERT INTO settings ( user_id, key, value ) VALUES
-  ( '00000000-0000-4000-8000-000000000001', 'default_model', 'claude-test' ),
+  ( '00000000-0000-4000-8000-000000000001', 'default_model', '"claude-test"' ),
   ( '00000000-0000-4000-8000-000000000001', 'linking_enabled', 'true' ),
-  ( '00000000-0000-4000-8000-000000000002', 'melete_learning_root', 'Learning' );
+  ( '00000000-0000-4000-8000-000000000002', 'melete_learning_root', '"Learning"' );
 
 INSERT INTO app_settings ( key, value ) VALUES
   ( 'feed_check_interval_minutes', '30' );
