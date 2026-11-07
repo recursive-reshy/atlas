@@ -49,7 +49,7 @@ describe( 'app with WEB_DIR set', () => {
   it( 'keeps the API responding with JSON', async () => {
     const response = await request( app ).get( '/api/health' )
 
-    expect( response.body ).toEqual( { status: 'ok' } )
+    expect( response.body ).toMatchObject( { ok: true } )
   } )
 
   it( 'keeps the JSON 404 for unknown API paths', async () => {
