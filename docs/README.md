@@ -4,7 +4,7 @@
 
 Each version has its own folder. The current version is 0.11.0. User guides: [deploy.md](deploy.md) (hosting on a VM), [backups.md](backups.md), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md).
 
-- **v0.11.0 (released, soaking):** [PRD](v0.11.0/prd.md) · [TRD](v0.11.0/trd.md) · [Tasks](v0.11.0/tasks.md) · [Release notes](v0.11.0/release-notes.md) · checkpoint plans in `v0.11.0/plans/` · [1.0 readiness](v1-readiness.md)
+- **v0.11.0 (done):** [PRD](v0.11.0/prd.md) · [TRD](v0.11.0/trd.md) · [Tasks](v0.11.0/tasks.md) · [Release notes](v0.11.0/release-notes.md) · checkpoint plans in `v0.11.0/plans/` · [1.0 readiness](v1-readiness.md)
 - **v0.10.0 (done):** [PRD](v0.10.0/prd.md) · [TRD](v0.10.0/trd.md) · [Tasks](v0.10.0/tasks.md) · [Release notes](v0.10.0/release-notes.md) · checkpoint plans in `v0.10.0/plans/` · [Deploy runbook](deploy.md)
 - **v0.9.1 (done):** [PRD](v0.9.1/prd.md) · [TRD](v0.9.1/trd.md) · [Tasks](v0.9.1/tasks.md) · [Release notes](v0.9.1/release-notes.md) · checkpoint plans in `v0.9.1/plans/`
 - **v0.9.0 (done):** [PRD](v0.9.0/prd.md) · [TRD](v0.9.0/trd.md) · [Tasks](v0.9.0/tasks.md) · [Release notes](v0.9.0/release-notes.md) · checkpoint plans in `v0.9.0/plans/`

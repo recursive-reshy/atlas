@@ -19,9 +19,9 @@ test( 'v1-readiness.md has the checklist, with the deferred rehearsal unticked a
   assert.match( deferred, /^- \[ \]/, 'the new-VM rehearsal is unticked' )
   assert.match( deferred, /deferred, ADR 0088/ )
   assert.match( text, /does not block 1\.0|doesn't block 1\.0/i )
-  assert.match( find( /one to two weeks|soak/i ) ?? '', /^- \[ \]/, 'the soak is unticked' )
-  assert.match( find( /Status rows/i ) ?? '', /^- \[ \]/ )
-  assert.match( find( /open fault/i ) ?? '', /^- \[ \]/ )
+  assert.match( find( /soak|one to two weeks/i ) ?? '', /waived \(ADR 0088\)/, 'the soak is recorded as waived' )
+  assert.match( find( /Status rows/i ) ?? '', /^- \[x\]/ )
+  assert.match( find( /open fault/i ) ?? '', /^- \[x\]/ )
   assert.match( text, /release\.sh 1\.0\.0/ )
   assert.match( text, /deploy\.sh 1\.0\.0/ )
 } )
@@ -30,10 +30,11 @@ test( 'the 0.11.0 release notes cover the outline, and the README links both doc
   const file = 'docs/v0.11.0/release-notes.md'
   assert.ok( existsSync( join( root, file ) ), file )
   const text = read( file )
-  for( const topic of [ /locked/i, /migration 14|duration_seconds/i, /\/api\/health/, /--restore-pre-migration/, /restore/i, /pinned|digest/i, /ADR 0084/, /ADR 0088/, /## Upgrading/, /## Deferred/ ] ) {
+  for( const topic of [ /locked/i, /migration 14|duration_seconds/i, /\/api\/health/, /--restore-pre-migration/, /restore/i, /pinned|digest/i, /ADR 0084/, /ADR 0088/, /## Upgrading from 0\.10\.0/, /## Deferred/, /waived/i ] ) {
     assert.match( text, topic )
   }
   const readme = read( 'docs/README.md' )
+  assert.match( readme, /\*\*v0\.11\.0 \(done\)/ )
   assert.match( readme, /\(v0\.11\.0\/release-notes\.md\)/ )
   assert.match( readme, /\(v1-readiness\.md\)/ )
   for( const [ doc, base ] of [ [ file, 'docs/v0.11.0' ], [ 'docs/v1-readiness.md', 'docs' ] ] ) {
@@ -47,4 +48,14 @@ test( 'the 0.11.0 release notes cover the outline, and the README links both doc
 test( 'every ADR file is listed in docs/README.md', () => {
   const readme = read( 'docs/README.md' )
   assert.match( readme, /decisions\/0088-restore-drill-scratch-check-only\.md/ )
+} )
+
+test( 'ADR 0088 records the three decisions and is on the tasks it covers', () => {
+  const adr = read( 'docs/decisions/0088-restore-drill-scratch-check-only.md' )
+  for( const topic of [ /scratch check/i, /deferred/i, /soak/i, /waived/i, /PRD §6\.4/, /TRD §5–6/, /bootstrap/, /Obsidian/ ] ) assert.match( adr, topic )
+  const tasks = read( 'docs/v0.11.0/tasks.md' )
+  for( const id of [ '5.3', '5.4' ] ) {
+    const row = tasks.split( '\n' ).find( ( line ) => line.startsWith( `| ${ id } |` ) )
+    assert.match( row ?? '', /0088/, `task ${ id } lists ADR 0088` )
+  }
 } )
