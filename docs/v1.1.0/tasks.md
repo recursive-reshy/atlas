@@ -55,7 +55,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 ---
 
 ## Checkpoint B: Phases 4–5 (mapping, numbers and suggestions)
-**Plan:** ⬜ [`plans/checkpoint-b.md`](plans/checkpoint-b.md)
+**Plan:** ✅ [`plans/checkpoint-b.md`](plans/checkpoint-b.md)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
