@@ -39,6 +39,11 @@ vi.mock( '#src/components/SubjectOverview', () => ( {
     <p>{ `The overview of ${ subjectId }` }</p>
   ) ),
 } ) )
+vi.mock( '#src/components/LogTimeButton', () => ( {
+  LogTimeButton: ( { subjectId }: { subjectId?: string } ) => (
+    <p>{ `log time for ${ subjectId }` }</p>
+  ),
+} ) )
 vi.mock( '#src/components/SyllabusPanel', () => ( {
   SyllabusPanel: vi.fn( () => <p>The syllabus panel</p> ),
 } ) )
@@ -289,5 +294,11 @@ describe( 'MeleteSubject', () => {
       expect( screen.queryByRole( 'button', { name: 'Set up syllabus' } ) )
         .not.toBeInTheDocument()
     } )
+  } )
+
+  it( 'offers Log time for this subject above the tabs', () => {
+    renderPage()
+
+    expect( screen.getByText( `log time for ${ SUBJECT_ID }` ) ).toBeInTheDocument()
   } )
 } )

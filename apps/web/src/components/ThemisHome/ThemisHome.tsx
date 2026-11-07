@@ -18,6 +18,7 @@ import { AreaDialog } from '../AreaDialog'
 import { AreaSection } from '../AreaSection'
 import { CheckinsDue } from '../CheckinsDue'
 import { GoalDialog } from '../GoalDialog'
+import { LogTimeButton } from '../LogTimeButton'
 import { TimeByArea } from '../TimeByArea'
 
 type Open =
@@ -54,6 +55,7 @@ export function ThemisHome(): ReactElement {
           Areas are the parts of your life you set goals in, such as Career or Health.
         </Typography>
         <AddAreaForm />
+        <LogTimeButton isFloating />
       </Stack>
     )
   }
@@ -97,6 +99,7 @@ export function ThemisHome(): ReactElement {
           onAddGoal={ ( areaId ) => setOpen( { kind: 'goal', areaId } ) }
         />
       ) ) }
+      <LogTimeButton isFloating />
       { open?.kind === 'area' && <AreaDialog area={ open.area } onClose={ close } /> }
       { open?.kind === 'goal' && (
         <GoalDialog

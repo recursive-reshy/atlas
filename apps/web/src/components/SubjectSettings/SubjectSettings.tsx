@@ -10,6 +10,7 @@ import type { MeleteSubject, UpdateMeleteSubjectBody } from '@atlas/shared'
 import { MeleteTargetLevel } from '@atlas/shared'
 // App
 import { SubjectControls } from '#src/components/SubjectControls'
+import { SubjectGoalPicker } from '#src/components/SubjectGoalPicker'
 import { LEVELS } from '#src/syllabusLevels'
 
 interface SubjectSettingsProps {
@@ -48,6 +49,7 @@ export function SubjectSettings(
           <MenuItem key={ value } value={ value }>{ label }</MenuItem>
         ) ) }
       </TextField>
+      <SubjectGoalPicker subject={ subject } onUpdate={ onUpdate } />
       <TextField
         label="Intent"
         helperText="What this subject is for. Used the next time the syllabus is drafted."

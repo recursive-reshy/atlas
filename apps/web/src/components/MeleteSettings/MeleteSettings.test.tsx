@@ -185,4 +185,48 @@ describe( 'MeleteSettings', () => {
       expect( mutate ).not.toHaveBeenCalled()
     } )
   } )
+
+  describe( 'the session settings', () => {
+    it( 'shows the saved gap and final card credit', () => {
+      renderWithClient( <MeleteSettings /> )
+
+      expect( screen.getByRole(
+        'spinbutton',
+        { name: 'Minutes without an answer that end a session' },
+      ) ).toHaveValue( 5 )
+      expect( screen.getByRole( 'spinbutton', { name: 'Seconds counted for the last card' } ) )
+        .toHaveValue( 30 )
+    } )
+
+    it( 'saves the gap, from 1 to 30 minutes', async () => {
+      const user = userEvent.setup()
+
+      renderWithClient( <MeleteSettings /> )
+
+      const field = screen.getByRole(
+        'spinbutton',
+        { name: 'Minutes without an answer that end a session' },
+      )
+
+      await user.clear( field )
+      await user.type( field, '10' )
+      await user.tab()
+
+      expect( mutate ).toHaveBeenCalledWith( { melete_session_gap_minutes: 10 } )
+    } )
+
+    it( 'saves the final card credit, which may be 0', async () => {
+      const user = userEvent.setup()
+
+      renderWithClient( <MeleteSettings /> )
+
+      const field = screen.getByRole( 'spinbutton', { name: 'Seconds counted for the last card' } )
+
+      await user.clear( field )
+      await user.type( field, '0' )
+      await user.tab()
+
+      expect( mutate ).toHaveBeenCalledWith( { melete_final_card_seconds: 0 } )
+    } )
+  } )
 } )

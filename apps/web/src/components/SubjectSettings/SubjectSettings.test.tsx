@@ -13,6 +13,12 @@ import { meleteSubjectFixture } from '#src/test-support/melete.fixture'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { SubjectSettings } from './SubjectSettings'
 
+vi.mock( '#src/components/SubjectGoalPicker', () => ( {
+  SubjectGoalPicker: ( { onUpdate }: { onUpdate: ( body: { goal_id: null } ) => void } ) => (
+    <button type="button" onClick={ () => onUpdate( { goal_id: null } ) }>goal picker</button>
+  ),
+} ) )
+
 const setup = ( overrides = {} ) => {
   const onEnrollAll = vi.fn()
   const onUpdate = vi.fn()
@@ -86,5 +92,13 @@ describe( 'SubjectSettings', () => {
     setup()
 
     expect( intent() ).toHaveAttribute( 'maxlength', '500' )
+  } )
+
+  it( 'has the goal picker, which updates the subject', async () => {
+    const { user, onUpdate } = setup()
+
+    await user.click( screen.getByRole( 'button', { name: 'goal picker' } ) )
+
+    expect( onUpdate ).toHaveBeenCalledWith( { goal_id: null } )
   } )
 } )

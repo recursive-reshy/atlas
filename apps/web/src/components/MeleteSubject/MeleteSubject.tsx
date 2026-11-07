@@ -10,6 +10,7 @@ import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
 import { Link as RouterLink, useParams, useSearchParams } from 'react-router'
 // App
+import { LogTimeButton } from '#src/components/LogTimeButton'
 import { SubjectNotes } from '#src/components/SubjectNotes'
 import { SubjectOverview } from '#src/components/SubjectOverview'
 import { SubjectSettings } from '#src/components/SubjectSettings'
@@ -95,6 +96,7 @@ export function MeleteSubject(): ReactElement {
         { `${ subject.note_count } notes · ${ subject.enrolled_count } enrolled`
           + ` · ${ subject.due_count } due` }
       </Typography>
+      <LogTimeButton subjectId={ subject.id } />
       { changeError !== null && <Alert severity="error">{ changeError }</Alert> }
       <Tabs
         value={ tab }

@@ -32,6 +32,11 @@ vi.mock( '#src/components/AreaDialog', () => ( {
 vi.mock( '#src/components/GoalDialog', () => ( {
   GoalDialog: ( { areaId }: { areaId: string | null } ) => <p>{ `goal dialog in ${ areaId }` }</p>,
 } ) )
+vi.mock( '#src/components/LogTimeButton', () => ( {
+  LogTimeButton: ( { isFloating }: { isFloating?: boolean } ) => (
+    <p>{ isFloating ? 'floating log time' : 'log time' }</p>
+  ),
+} ) )
 vi.mock( '#src/components/AllGoals', () => ( { AllGoals: () => <p>all goals list</p> } ) )
 
 const show = ( overrides = {} ): void => {
@@ -166,5 +171,24 @@ describe( 'ThemisHome', () => {
     expect( screen.getByText( 'all goals list' ) ).toBeInTheDocument()
     expect( screen.queryByRole( 'heading', { name: 'Where your time went' } ) )
       .not.toBeInTheDocument()
+  } )
+
+  it( 'keeps a floating Log time button on the home', () => {
+    renderWithClient( <ThemisHome /> )
+
+    expect( screen.getByText( 'floating log time' ) ).toBeInTheDocument()
+  } )
+
+  it( 'keeps it in the empty state too', () => {
+    show( { overview: overviewFixture( { areas: [] } ) } )
+    renderWithClient( <ThemisHome /> )
+
+    expect( screen.getByText( 'floating log time' ) ).toBeInTheDocument()
+  } )
+
+  it( 'leaves it off the list of all goals', () => {
+    renderWithClient( <ThemisHome />, { route: '/themis?view=all' } )
+
+    expect( screen.queryByText( 'floating log time' ) ).not.toBeInTheDocument()
   } )
 } )

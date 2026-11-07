@@ -34,6 +34,13 @@ describe( 'useMeleteToday', () => {
     )
   } )
 
+  it( 'does not ask while disabled, and is not loading', () => {
+    const { result } = renderHookWithClient( () => useMeleteToday( false ) )
+
+    expect( mockedGet ).not.toHaveBeenCalled()
+    expect( result.current ).toEqual( { today: null, isLoading: false, error: null } )
+  } )
+
   it( 'reports a load error', async () => {
     mockedGet.mockRejectedValue( new ApiError( 'Could not reach the server', null ) )
     const { result } = renderHookWithClient( () => useMeleteToday() )

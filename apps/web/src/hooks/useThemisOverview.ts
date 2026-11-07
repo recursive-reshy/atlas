@@ -12,15 +12,20 @@ export interface ThemisOverviewState {
   error: string | null
 }
 
-export function useThemisOverview( period: ThemisPeriod ): ThemisOverviewState {
+// `isEnabled` is false for a user without Themis, whose request would be a 404
+export function useThemisOverview(
+  period: ThemisPeriod,
+  isEnabled = true,
+): ThemisOverviewState {
   const { data, error, isPending } = useQuery( {
     queryKey: themisKeys.overview( period ),
     queryFn: () => getThemisOverview( period ),
+    enabled: isEnabled,
   } )
 
   return {
     overview: data ?? null,
-    isLoading: isPending,
+    isLoading: isEnabled && isPending,
     error: error === null ? null : error.message,
   }
 }
