@@ -4,9 +4,10 @@ import { estimateCostUsd } from '../summarizer/pricing.js'
 import { insertRun } from '../repositories/meleteRuns.repository.js'
 
 type RunDetails = {
-  kind: 'generate' | 'grade'
+  kind: 'generate' | 'grade' | 'syllabus' | 'map' | 'suggest'
   noteId?: string
   questionId?: string
+  subjectId?: string
   model: string
   promptVersionId: number
   usage: { input_tokens: number, output_tokens: number } | undefined
@@ -16,7 +17,7 @@ type RunDetails = {
 
 // Every Claude attempt leaves a row; tokens and cost are null when the call gave none
 export const recordMeleteRun = ( userId: string, details: RunDetails ): number => {
-  const { kind, noteId, questionId, model, promptVersionId, usage, error, now } = details
+  const { kind, noteId, questionId, subjectId, model, promptVersionId, usage, error, now } = details
   const inputTokens = usage?.input_tokens ?? null
   const outputTokens = usage?.output_tokens ?? null
 
@@ -24,6 +25,7 @@ export const recordMeleteRun = ( userId: string, details: RunDetails ): number =
     kind,
     note_id: noteId ?? null,
     question_id: questionId ?? null,
+    subject_id: subjectId ?? null,
     model,
     prompt_version_id: promptVersionId,
     input_tokens: inputTokens,

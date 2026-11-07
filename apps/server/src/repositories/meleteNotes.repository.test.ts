@@ -59,6 +59,11 @@ describe( 'insertNote and findNote', () => {
       generation: 'idle',
       generation_error: null,
       missing_at: null,
+      mapping: 'idle',
+      mapping_error: null,
+      mapping_pinned: false,
+      off_syllabus: null,
+      off_syllabus_suggestion: null,
       created_at: expect.stringMatching( /^\d{4}-\d{2}-\d{2}T/ ) as string,
     } )
     expect( findNote( userId, note.id ) ).toEqual( note )
@@ -304,5 +309,35 @@ describe( 'ownership', () => {
 
     expect( findMissingByHash( userId, 'h' ) ).toHaveLength( 1 )
     expect( findMissingByHash( other, 'h' ) ).toEqual( [] )
+  } )
+} )
+
+describe( 'updateNote, the mapping fields', () => {
+  it( 'sets and clears the mapping state, error and pin', () => {
+    const id = addNote( userId, addSubject( userId ) )
+
+    expect( updateNote( userId, id, { mapping: 'failed', mapping_error: 'Bad output' } ) )
+      .toMatchObject( { mapping: 'failed', mapping_error: 'Bad output', mapping_pinned: false } )
+    expect( updateNote( userId, id, {
+      mapping: 'queued',
+      mapping_error: null,
+      mapping_pinned: true,
+    } ) )
+      .toMatchObject( { mapping: 'queued', mapping_error: null, mapping_pinned: true } )
+    expect( updateNote( userId, id, { mapping_pinned: false } )?.mapping_pinned ).toBe( false )
+  } )
+
+  it( 'flags a note off-syllabus with a suggestion, then clears it', () => {
+    const id = addNote( userId, addSubject( userId ) )
+
+    expect( updateNote( userId, id, {
+      off_syllabus: 'flagged',
+      off_syllabus_suggestion: 'Joins',
+    } ) )
+      .toMatchObject( { off_syllabus: 'flagged', off_syllabus_suggestion: 'Joins' } )
+    expect( updateNote( userId, id, { off_syllabus: 'dismissed' } ) )
+      .toMatchObject( { off_syllabus: 'dismissed', off_syllabus_suggestion: 'Joins' } )
+    expect( updateNote( userId, id, { off_syllabus: null, off_syllabus_suggestion: null } ) )
+      .toMatchObject( { off_syllabus: null, off_syllabus_suggestion: null } )
   } )
 } )

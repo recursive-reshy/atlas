@@ -13,6 +13,7 @@ import {
   MeleteFsrsState,
   MeleteGeneration,
   MeleteGrade,
+  MeleteMapping,
   MeleteGradeOutput,
   MeleteNote,
   MeleteQuestion,
@@ -23,6 +24,12 @@ import {
   MeleteReviewItem,
   MeleteReviewMode,
   MeleteSubject,
+  MeleteSyllabus,
+  MeleteSyllabusDiff,
+  MeleteSyllabusEdit,
+  MeleteSyllabusOutput,
+  MeleteSyllabusStatus,
+  MeleteTargetLevel,
   RecordReviewBody,
   RecordReviewResponse,
   UpdateMeleteNoteBody,
@@ -47,6 +54,13 @@ const subject = {
   due_count: 3,
   new_available: 5,
   new_remaining_today: 5,
+  target_level: 'working',
+  intent: null,
+  syllabus_status: 'approved',
+  syllabus_error: null,
+  coverage: 0.5,
+  mastery: 0.25,
+  concept_count: 12,
 }
 
 const note = {
@@ -331,5 +345,103 @@ describe( 'responses', () => {
     expect( GetNextReviewResponse.parse( { item: null, counts } ) )
       .toEqual( { item: null, counts } )
     expect( RecordReviewResponse.parse( { question, counts } ).counts ).toEqual( counts )
+  } )
+} )
+
+describe( 'the concept layer contracts (ADR 0089)', () => {
+  const id = '11111111-1111-4111-8111-111111111111'
+
+  it( 'knows the four target levels and five syllabus statuses', () => {
+    expect( MeleteTargetLevel.options )
+      .toEqual( [ 'awareness', 'working', 'proficient', 'expert' ] )
+    expect( MeleteSyllabusStatus.options )
+      .toEqual( [ 'none', 'drafting', 'draft', 'approved', 'failed' ] )
+    expect( MeleteMapping.options ).toEqual( [ 'idle', 'queued', 'mapping', 'failed' ] )
+  } )
+
+  it( 'adds the syllabus fields to a subject, with numbers null until approved', () => {
+    const subject = {
+      id,
+      name: 'Data Engineering',
+      folder: 'Learning/Data Engineering',
+      auto_enroll: false,
+      new_per_day: 10,
+      note_count: 0,
+      enrolled_count: 0,
+      due_count: 0,
+      new_available: 0,
+      new_remaining_today: 0,
+      target_level: null,
+      intent: null,
+      syllabus_status: 'none',
+      syllabus_error: null,
+      coverage: null,
+      mastery: null,
+      concept_count: null,
+    }
+
+    expect( MeleteSubject.parse( subject ) ).toEqual( subject )
+    expect( MeleteSubject.safeParse( { ...subject, syllabus_status: 'ready' } ).success )
+      .toBe( false )
+    expect( MeleteSubject.safeParse( { ...subject, coverage: 1.2 } ).success ).toBe( false )
+  } )
+
+  it( 'parses a syllabus with ids and an edit whose new rows have none', () => {
+    const syllabus = {
+      sections: [ {
+        id,
+        name: 'Basics',
+        concepts: [ { id, name: 'SQL', description: 'Queries' } ],
+      } ],
+    }
+
+    expect( MeleteSyllabus.parse( syllabus ) ).toEqual( syllabus )
+    expect( MeleteSyllabusEdit.parse( {
+      sections: [ { name: 'New', concepts: [ { name: 'Joins', description: '' } ] } ],
+    } ) ).toBeDefined()
+    expect( MeleteSyllabus.safeParse( {
+      sections: [ { name: 'No id', concepts: [] } ],
+    } ).success ).toBe( false )
+  } )
+
+  it( 'refuses an edit with more than 80 concepts or an empty section', () => {
+    const concepts = Array.from( { length: 81 }, ( _, index ) => {
+      return { name: `Concept ${ index }`, description: '' }
+    } )
+
+    expect( MeleteSyllabusEdit.safeParse( { sections: [ { name: 'Big', concepts } ] } ).success )
+      .toBe( false )
+    expect( MeleteSyllabusEdit.safeParse( {
+      sections: [ { name: 'Empty', concepts: [] } ],
+    } ).success ).toBe( false )
+    expect( MeleteSyllabusEdit.safeParse( {
+      sections: [ { name: ' ', concepts: [ { name: 'A', description: '' } ] } ],
+    } ).success ).toBe( false )
+  } )
+
+  it( 'checks the diff counts and Claude\'s syllabus output', () => {
+    expect( MeleteSyllabusDiff.parse( { renamed: 1, added: 2, removed: 0, moved: 3 } ) )
+      .toEqual( { renamed: 1, added: 2, removed: 0, moved: 3 } )
+    expect( MeleteSyllabusDiff.safeParse( {
+      renamed: -1,
+      added: 0,
+      removed: 0,
+      moved: 0,
+    } ).success ).toBe( false )
+    expect( MeleteSyllabusOutput.parse( {
+      sections: [ { name: 'A', concepts: [ { name: 'B', description: 'C' } ] } ],
+    } ) ).toBeDefined()
+    expect( MeleteSyllabusOutput.safeParse( { sections: [] } ).success ).toBe( false )
+  } )
+
+  it( 'lets a subject update carry a level or an intent of up to 500 characters', () => {
+    expect( UpdateMeleteSubjectBody.parse( { target_level: 'expert' } ) )
+      .toEqual( { target_level: 'expert' } )
+    expect( UpdateMeleteSubjectBody.parse( { intent: 'Pass the exam' } ) )
+      .toEqual( { intent: 'Pass the exam' } )
+    expect( UpdateMeleteSubjectBody.parse( { intent: null } ) ).toEqual( { intent: null } )
+    expect( UpdateMeleteSubjectBody.safeParse( { intent: 'x'.repeat( 501 ) } ).success )
+      .toBe( false )
+    expect( UpdateMeleteSubjectBody.safeParse( { target_level: 'guru' } ).success ).toBe( false )
   } )
 } )

@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { MeleteGeneration } from '@atlas/shared'
+import { MeleteGeneration, MeleteMapping, MeleteOffSyllabus } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 
@@ -20,6 +20,11 @@ export const NoteRecord = z.object( {
   generation: MeleteGeneration,
   generation_error: z.string().nullable(),
   missing_at: z.string().nullable(),
+  mapping: MeleteMapping,
+  mapping_error: z.string().nullable(),
+  mapping_pinned: Flag,
+  off_syllabus: MeleteOffSyllabus.nullable(),
+  off_syllabus_suggestion: z.string().nullable(),
   created_at: z.string(),
 } )
 export type NoteRecord = z.infer< typeof NoteRecord >
@@ -41,6 +46,11 @@ const UPDATABLE = [
   'generation',
   'generation_error',
   'missing_at',
+  'mapping',
+  'mapping_error',
+  'mapping_pinned',
+  'off_syllabus',
+  'off_syllabus_suggestion',
 ] as const
 
 export type NoteChanges = Partial< Pick< NoteRecord, typeof UPDATABLE[ number ] > >
@@ -112,7 +122,11 @@ export const updateNote = (
         SET ${ columns.map( ( column ) => `${ column } = @${ column }` ).join( ', ' ) }
         WHERE id = @id AND user_id = @user_id` )
       .run( {
-        ...Object.fromEntries( columns.map( ( c ) => [ c, changes[ c ] ] ) ),
+        ...Object.fromEntries( columns.map( ( column ) => {
+          const value = changes[ column ]
+
+          return [ column, typeof value === 'boolean' ? Number( value ) : value ]
+        } ) ),
         id,
         user_id: userId,
       } )

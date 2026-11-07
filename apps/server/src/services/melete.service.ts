@@ -130,6 +130,14 @@ const toMeleteSubject = (
     due_count: counts?.due ?? 0,
     new_available: newAvailable,
     new_remaining_today: Math.min( newRemaining( userId, subject, now ), newAvailable ),
+    target_level: subject.target_level,
+    intent: subject.intent,
+    syllabus_status: subject.syllabus_status,
+    syllabus_error: subject.syllabus_error,
+    // Computed from the mapped notes once a syllabus is approved (Checkpoint B)
+    coverage: null,
+    mastery: null,
+    concept_count: null,
   }
 }
 

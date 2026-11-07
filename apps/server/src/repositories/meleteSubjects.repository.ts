@@ -1,5 +1,7 @@
 // Packages
 import { z } from 'zod'
+// Shared
+import { MeleteSyllabusStatus, MeleteTargetLevel } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 
@@ -10,11 +12,22 @@ export const SubjectRecord = z.object( {
   folder: z.string(),
   auto_enroll: Flag,
   new_per_day: z.int(),
+  target_level: MeleteTargetLevel.nullable(),
+  intent: z.string().nullable(),
+  syllabus_status: MeleteSyllabusStatus,
+  syllabus_error: z.string().nullable(),
   created_at: z.string(),
 } )
 export type SubjectRecord = z.infer< typeof SubjectRecord >
 
-export type SubjectChanges = { auto_enroll?: boolean, new_per_day?: number }
+export type SubjectChanges = {
+  auto_enroll?: boolean
+  new_per_day?: number
+  target_level?: MeleteTargetLevel
+  intent?: string | null
+  syllabus_status?: MeleteSyllabusStatus
+  syllabus_error?: string | null
+}
 
 export const findSubject = ( userId: string, id: string ): SubjectRecord | undefined => {
   const row = getDatabase()
@@ -61,6 +74,20 @@ export const updateSubject = (
   if( changes.new_per_day !== undefined ) {
     db.prepare( 'UPDATE melete_subjects SET new_per_day = ? WHERE id = ? AND user_id = ?' )
       .run( changes.new_per_day, id, userId )
+  }
+
+  const syllabus = {
+    target_level: changes.target_level,
+    intent: changes.intent,
+    syllabus_status: changes.syllabus_status,
+    syllabus_error: changes.syllabus_error,
+  }
+
+  for( const [ column, value ] of Object.entries( syllabus ) ) {
+    if( value !== undefined ) {
+      db.prepare( `UPDATE melete_subjects SET ${ column } = ? WHERE id = ? AND user_id = ?` )
+        .run( value, id, userId )
+    }
   }
 
   return findSubject( userId, id )

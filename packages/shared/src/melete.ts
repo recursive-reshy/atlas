@@ -16,6 +16,18 @@ export type MeleteQuestionState = z.infer< typeof MeleteQuestionState >
 export const MeleteFsrsState = z.enum( [ 'new', 'learning', 'review', 'relearning' ] )
 export type MeleteFsrsState = z.infer< typeof MeleteFsrsState >
 
+export const MeleteTargetLevel = z.enum( [ 'awareness', 'working', 'proficient', 'expert' ] )
+export type MeleteTargetLevel = z.infer< typeof MeleteTargetLevel >
+
+export const MeleteSyllabusStatus = z.enum( [ 'none', 'drafting', 'draft', 'approved', 'failed' ] )
+export type MeleteSyllabusStatus = z.infer< typeof MeleteSyllabusStatus >
+
+export const MeleteMapping = z.enum( [ 'idle', 'queued', 'mapping', 'failed' ] )
+export type MeleteMapping = z.infer< typeof MeleteMapping >
+
+export const MeleteOffSyllabus = z.enum( [ 'flagged', 'dismissed' ] )
+export type MeleteOffSyllabus = z.infer< typeof MeleteOffSyllabus >
+
 const SuggestedRating = z.enum( [ 'again', 'hard', 'good' ] )
 
 export const MeleteSubject = z.object( {
@@ -29,6 +41,14 @@ export const MeleteSubject = z.object( {
   due_count: z.int().min( 0 ),
   new_available: z.int().min( 0 ),
   new_remaining_today: z.int().min( 0 ),
+  target_level: MeleteTargetLevel.nullable(),
+  intent: z.string().nullable(),
+  syllabus_status: MeleteSyllabusStatus,
+  syllabus_error: z.string().nullable(),
+  // Null until the syllabus is approved and has concepts
+  coverage: z.number().min( 0 ).max( 1 ).nullable(),
+  mastery: z.number().min( 0 ).max( 1 ).nullable(),
+  concept_count: z.int().min( 0 ).nullable(),
 } )
 export type MeleteSubject = z.infer< typeof MeleteSubject >
 
@@ -120,9 +140,11 @@ export type GetMeleteSubjectResponse = z.infer< typeof GetMeleteSubjectResponse 
 export const UpdateMeleteSubjectBody = z.object( {
   auto_enroll: z.boolean().optional(),
   new_per_day: z.int().min( 0 ).max( 100 ).optional(),
+  target_level: MeleteTargetLevel.optional(),
+  intent: z.string().max( 500 ).nullable().optional(),
 } ).refine(
   ( body ) => Object.values( body ).some( ( value ) => value !== undefined ),
-  { message: 'Provide auto_enroll or new_per_day' },
+  { message: 'Provide auto_enroll, new_per_day, target_level or intent' },
 )
 export type UpdateMeleteSubjectBody = z.infer< typeof UpdateMeleteSubjectBody >
 
@@ -173,3 +195,64 @@ export const RecordReviewResponse = z.object( {
   counts: MeleteReviewCounts,
 } )
 export type RecordReviewResponse = z.infer< typeof RecordReviewResponse >
+
+// A syllabus is sections of concepts, two levels only; at most 80 concepts (ADR 0089)
+export const MELETE_MAX_CONCEPTS = 80
+
+const ConceptName = z.string().trim().min( 1 ).max( 200 )
+const ConceptDescription = z.string().trim().max( 400 )
+const SectionName = z.string().trim().min( 1 ).max( 200 )
+
+export const MeleteConcept = z.object( {
+  id: z.uuid(),
+  name: ConceptName,
+  description: ConceptDescription,
+} )
+export type MeleteConcept = z.infer< typeof MeleteConcept >
+
+export const MeleteSection = z.object( {
+  id: z.uuid(),
+  name: SectionName,
+  concepts: z.array( MeleteConcept ),
+} )
+export type MeleteSection = z.infer< typeof MeleteSection >
+
+export const MeleteSyllabus = z.object( { sections: z.array( MeleteSection ) } )
+export type MeleteSyllabus = z.infer< typeof MeleteSyllabus >
+
+// What the editor sends back: existing ids kept, new rows without one
+export const MeleteSyllabusEdit = z.object( {
+  sections: z.array( z.object( {
+    id: z.uuid().optional(),
+    name: SectionName,
+    concepts: z.array( z.object( {
+      id: z.uuid().optional(),
+      name: ConceptName,
+      description: ConceptDescription,
+    } ) ).min( 1 ),
+  } ) ),
+} ).refine(
+  ( { sections } ) => {
+    return sections.reduce( ( total, { concepts } ) => total + concepts.length, 0 )
+      <= MELETE_MAX_CONCEPTS
+  },
+  { message: `A syllabus has at most ${ MELETE_MAX_CONCEPTS } concepts` },
+)
+export type MeleteSyllabusEdit = z.infer< typeof MeleteSyllabusEdit >
+
+export const MeleteSyllabusDiff = z.object( {
+  renamed: z.int().min( 0 ),
+  added: z.int().min( 0 ),
+  removed: z.int().min( 0 ),
+  moved: z.int().min( 0 ),
+} )
+export type MeleteSyllabusDiff = z.infer< typeof MeleteSyllabusDiff >
+
+// Claude's draft: names only, no ids
+export const MeleteSyllabusOutput = z.object( {
+  sections: z.array( z.object( {
+    name: z.string(),
+    concepts: z.array( z.object( { name: z.string(), description: z.string() } ) ),
+  } ) ).min( 1 ),
+} )
+export type MeleteSyllabusOutput = z.infer< typeof MeleteSyllabusOutput >

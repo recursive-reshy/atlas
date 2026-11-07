@@ -28,6 +28,7 @@ export const QuestionRecord = CardRow.extend( {
   body_hash: z.string(),
   state: MeleteQuestionState,
   run_id: z.int(),
+  concept_id: z.string().nullable(),
   created_at: z.string(),
 } )
 export type QuestionRecord = z.infer< typeof QuestionRecord >
@@ -202,4 +203,17 @@ export const countBySubject = ( userId: string, now: string ): SubjectCounts[] =
       GROUP BY s.id
       ORDER BY lower( s.folder ), s.folder` )
     .all( { now, userId } ) )
+}
+
+// A relabel never touches the card, so the FSRS state survives a remap
+export const setQuestionConcept = (
+  userId: string,
+  id: string,
+  conceptId: string | null,
+): QuestionRecord | undefined => {
+  getDatabase()
+    .prepare( 'UPDATE melete_questions SET concept_id = ? WHERE id = ? AND user_id = ?' )
+    .run( conceptId, id, userId )
+
+  return findQuestion( userId, id )
 }

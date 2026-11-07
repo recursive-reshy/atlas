@@ -19,8 +19,12 @@ import {
   retireActiveForNote,
   saveCard,
   setState,
+  setQuestionConcept,
 } from './meleteQuestions.repository.js'
 import type { CardRow } from './meleteQuestions.repository.js'
+// Repositories
+import { insertConcept } from './meleteConcepts.repository.js'
+import { insertSection } from './meleteSections.repository.js'
 // Test support
 import { createTestUser, defaultTestAdmin } from '../test-support/auth.js'
 
@@ -61,6 +65,7 @@ describe( 'insertQuestions', () => {
       body_hash: 'hash-1',
       state: 'active',
       run_id: 7,
+      concept_id: null,
       due: null,
       stability: 0,
       difficulty: 0,
@@ -426,5 +431,39 @@ describe( 'ownership', () => {
     expect( retireActiveForNote( other, noteId ) ).toBe( 0 )
     expect( findQuestion( userId, questionId ) )
       .toMatchObject( { state: 'active', reps: 0, due: past } )
+  } )
+} )
+
+describe( 'setQuestionConcept', () => {
+  const conceptFor = ( subjectId: string ): string => {
+    const section = insertSection( userId, { subject_id: subjectId, name: 'S', position: 0 } )
+
+    return insertConcept( userId, {
+      subject_id: subjectId,
+      section_id: section.id,
+      name: 'C',
+      description: '',
+      position: 0,
+    } ).id
+  }
+
+  it( 'labels a question with a concept and clears it again, keeping its card', () => {
+    const subjectId = addSubject( userId )
+    const questionId = addQuestion( userId, addNote( userId, subjectId ), { fsrsState: 'review' } )
+    const conceptId = conceptFor( subjectId )
+
+    expect( setQuestionConcept( userId, questionId, conceptId ) )
+      .toMatchObject( { concept_id: conceptId, fsrs_state: 'review' } )
+    expect( setQuestionConcept( userId, questionId, null ) )
+      .toMatchObject( { concept_id: null, fsrs_state: 'review' } )
+  } )
+
+  it( 'does not label another user\'s question', () => {
+    const subjectId = addSubject( userId )
+    const questionId = addQuestion( userId, addNote( userId, subjectId ) )
+    const other = createTestUser( { role: 'member', modules: [ 'melete' ] } ).id
+
+    expect( setQuestionConcept( other, questionId, conceptFor( subjectId ) ) ).toBeUndefined()
+    expect( findQuestion( userId, questionId )?.concept_id ).toBeNull()
   } )
 } )

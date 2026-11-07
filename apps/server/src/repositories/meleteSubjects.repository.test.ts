@@ -30,6 +30,10 @@ describe( 'upsertSubject', () => {
       folder: 'Learning/TypeScript',
       auto_enroll: false,
       new_per_day: 10,
+      target_level: null,
+      intent: null,
+      syllabus_status: 'none',
+      syllabus_error: null,
       created_at: expect.stringMatching( /^\d{4}-\d{2}-\d{2}T/ ) as string,
     } )
   } )
@@ -111,5 +115,42 @@ describe( 'ownership', () => {
     expect( updateSubject( other, mine.id, { new_per_day: 1, auto_enroll: true } ) ).toBeUndefined()
     expect( findSubject( userId, mine.id ) )
       .toMatchObject( { new_per_day: 10, auto_enroll: false } )
+  } )
+} )
+
+describe( 'updateSubject, the syllabus fields', () => {
+  it( 'sets and clears the target level and intent', () => {
+    const { id } = upsertSubject( userId, 'Learning/Data' )
+
+    expect( updateSubject( userId, id, { target_level: 'proficient', intent: 'Pass the exam' } ) )
+      .toMatchObject( { target_level: 'proficient', intent: 'Pass the exam' } )
+    expect( updateSubject( userId, id, { intent: null } ) )
+      .toMatchObject( { target_level: 'proficient', intent: null } )
+  } )
+
+  it( 'sets the syllabus status with its error, and clears the error', () => {
+    const { id } = upsertSubject( userId, 'Learning/Data' )
+
+    expect( updateSubject( userId, id, { syllabus_status: 'failed', syllabus_error: 'Too long' } ) )
+      .toMatchObject( { syllabus_status: 'failed', syllabus_error: 'Too long' } )
+    expect( updateSubject( userId, id, { syllabus_status: 'drafting', syllabus_error: null } ) )
+      .toMatchObject( { syllabus_status: 'drafting', syllabus_error: null } )
+  } )
+
+  it( 'leaves the syllabus fields alone when only enrolment changes', () => {
+    const { id } = upsertSubject( userId, 'Learning/Data' )
+
+    updateSubject( userId, id, { target_level: 'expert', syllabus_status: 'approved' } )
+
+    expect( updateSubject( userId, id, { new_per_day: 2 } ) )
+      .toMatchObject( { target_level: 'expert', syllabus_status: 'approved', new_per_day: 2 } )
+  } )
+
+  it( 'does not change another user\'s subject', () => {
+    const { id } = upsertSubject( userId, 'Learning/Data' )
+    const other = createTestUser( { role: 'member', modules: [ 'melete' ] } ).id
+
+    expect( updateSubject( other, id, { target_level: 'expert' } ) ).toBeUndefined()
+    expect( findSubject( userId, id )?.target_level ).toBeNull()
   } )
 } )

@@ -33,6 +33,7 @@ const run = ( overrides: Partial< NewMeleteRun > = {} ): NewMeleteRun => {
     kind: 'generate',
     note_id: 'note-1',
     question_id: null,
+    subject_id: null,
     model: 'claude-haiku-5-5',
     prompt_version_id: versionOf( 'melete_questions' ),
     input_tokens: 1200,
@@ -106,5 +107,19 @@ describe( 'ownership', () => {
 
     expect( findRun( other, id ) ).toBeUndefined()
     expect( findRun( userId, id ) ).toBeDefined()
+  } )
+} )
+
+describe( 'the concept-layer run kinds', () => {
+  it.each( [ 'syllabus', 'map', 'suggest' ] as const )( 'stores a %s run', ( kind ) => {
+    const id = insertRun( userId, run( {
+      kind,
+      note_id: null,
+      subject_id: 'subject-1',
+      prompt_version_id: versionOf( 'melete_questions' ),
+    } ) )
+
+    expect( findRun( userId, id ) )
+      .toMatchObject( { kind, note_id: null, subject_id: 'subject-1' } )
   } )
 } )
