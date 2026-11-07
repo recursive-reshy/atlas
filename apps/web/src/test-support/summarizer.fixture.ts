@@ -10,6 +10,9 @@ export const BUSINESS_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a01'
 export const LINKER_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a09'
 export const MELETE_QUESTIONS_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a0a'
 export const MELETE_GRADING_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a0b'
+export const MELETE_SYLLABUS_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a0c'
+export const MELETE_MAP_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a0d'
+export const MELETE_SUGGEST_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a0e'
 export const CODING_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a02'
 const GENERAL_ID = '0b7c1c3e-5d4a-4e6f-9a7b-1c2d3e4f5a03'
 
@@ -59,28 +62,22 @@ export const profilesFixture = (): PromptProfile[] => [
   } ),
 ]
 
-export const meleteProfilesFixture = (): PromptProfile[] => [
-  profileFixture( {
-    id: MELETE_QUESTIONS_ID,
-    name: 'Melete questions',
-    purpose: 'melete_questions',
-    current_version: versionFixture( {
-      id: 20,
-      profile_id: MELETE_QUESTIONS_ID,
-      guidance: 'Ask me to explain.',
-    } ),
-  } ),
-  profileFixture( {
-    id: MELETE_GRADING_ID,
-    name: 'Melete grading',
-    purpose: 'melete_grading',
-    current_version: versionFixture( {
-      id: 21,
-      profile_id: MELETE_GRADING_ID,
-      guidance: 'Be strict about the core idea.',
-    } ),
-  } ),
+const MELETE_PROFILES: [ string, string, PromptProfile[ 'purpose' ], string ][] = [
+  [ MELETE_QUESTIONS_ID, 'Melete questions', 'melete_questions', 'Ask me to explain.' ],
+  [ MELETE_GRADING_ID, 'Melete grading', 'melete_grading', 'Be strict about the core idea.' ],
+  [ MELETE_SYLLABUS_ID, 'Melete syllabus', 'melete_syllabus', 'Put the foundations first.' ],
+  [ MELETE_MAP_ID, 'Melete mapping', 'melete_map', 'Prefer one or two concepts.' ],
+  [ MELETE_SUGGEST_ID, 'Melete suggestions', 'melete_suggest', 'Prefer free resources.' ],
 ]
+
+export const meleteProfilesFixture = (): PromptProfile[] => {
+  return MELETE_PROFILES.map( ( [ id, name, purpose, guidance ], index ) => profileFixture( {
+    id,
+    name,
+    purpose,
+    current_version: versionFixture( { id: 20 + index, profile_id: id, guidance } ),
+  } ) )
+}
 
 export const modelsFixture = (
   overrides: Partial< ListModelsResponse > = {},
@@ -111,6 +108,9 @@ export const settingsFixture = (
       melete_question_model: 'claude-haiku-5-5',
       melete_grading_model: 'claude-haiku-5-5',
       melete_review_mode: 'typed',
+      melete_syllabus_model: 'claude-sonnet-5-5',
+      melete_map_model: 'claude-haiku-5-5',
+      melete_suggest_model: 'claude-sonnet-5-5',
       melete_question_profile_id: MELETE_QUESTIONS_ID,
       melete_grading_profile_id: MELETE_GRADING_ID,
       ...overrides,
@@ -120,6 +120,9 @@ export const settingsFixture = (
       article: 'You summarize an article.',
       melete_questions: 'You write questions.',
       melete_grading: 'You grade answers.',
+      melete_syllabus: 'You draft a syllabus.',
+      melete_map: 'You map a note.',
+      melete_suggest: 'You suggest resources.',
     },
     linker_locked_instructions: 'You propose links.',
     agent_status: 'ok',

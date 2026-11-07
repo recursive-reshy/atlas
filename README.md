@@ -97,7 +97,7 @@ Open **Melete** in the navigation drawer.
    - **Quick** mode: think of the answer, **Show answer**, then rate.
    - Rate with **Again**, **Hard**, **Good** or **Easy** (a suggested one is pre-selected; **Next** confirms it). On a keyboard, 1–4 select and Enter confirms. The toggle in the header switches mode from the next question on, and the choice is remembered.
    - **More → Drop question** removes a question from review. The screen ends with *All done for now*.
-6. **Models and prompts.** Settings → Models has a **Melete** section for the question and grading models (Haiku by default). Settings → Prompts has two more prompts under **Melete**, one for questions and one for grading, with versions and reset like the others.
+6. **Models and prompts.** Settings → Models has a **Melete** section for the question and grading models (Haiku by default) and, from 1.1, the syllabus, mapping and suggestion models (Sonnet, Haiku and Sonnet by default). Settings → Prompts has five prompts under **Melete**: questions, grading, syllabus, mapping and suggestions, with versions and reset like the others. The syllabus, mapping and suggestion prompts are added for existing people the first time 1.1 starts.
 7. **From your phone.** Follow [`docs/phone-access.md`](docs/phone-access.md), then Add to Home Screen; the icon opens Melete.
 
 ### Settings

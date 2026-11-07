@@ -12,7 +12,12 @@ import { useSettings } from '#src/hooks/useSettings'
 
 interface ModelSelectProps {
   label: string
-  settingKey: 'melete_question_model' | 'melete_grading_model'
+  settingKey:
+    | 'melete_question_model'
+    | 'melete_grading_model'
+    | 'melete_syllabus_model'
+    | 'melete_map_model'
+    | 'melete_suggest_model'
 }
 
 function ModelSelect( { label, settingKey }: ModelSelectProps ): ReactElement {
@@ -56,6 +61,9 @@ export function MeleteSettings(): ReactElement {
       ) }
       <ModelSelect label="Question model" settingKey="melete_question_model" />
       <ModelSelect label="Grading model" settingKey="melete_grading_model" />
+      <ModelSelect label="Syllabus model" settingKey="melete_syllabus_model" />
+      <ModelSelect label="Mapping model" settingKey="melete_map_model" />
+      <ModelSelect label="Suggestion model" settingKey="melete_suggest_model" />
       <Typography role="status" variant="body2" color="text.secondary">
         { updateSettings.isSuccess ? 'Saved' : '' }
       </Typography>

@@ -43,13 +43,19 @@ describe( 'PromptList', () => {
       .toHaveAttribute( 'href', '/settings/prompts/linker' )
   } )
 
-  it( 'groups the two Melete prompts after Linking', () => {
+  it( 'groups the five Melete prompts after Linking', () => {
     setup()
 
     const melete = screen.getByRole( 'list', { name: 'Melete' } )
 
     expect( within( melete ).getAllByRole( 'link' ).map( ( link ) => link.textContent ) )
-      .toEqual( [ 'Melete questions', 'Melete grading' ] )
+      .toEqual( [
+        'Melete questions',
+        'Melete grading',
+        'Melete syllabus',
+        'Melete mapping',
+        'Melete suggestions',
+      ] )
     expect( within( melete ).getByRole( 'link', { name: 'Melete questions' } ) )
       .toHaveAttribute( 'href', `/settings/prompts/${ MELETE_QUESTIONS_ID }` )
     expect( within( melete ).getByRole( 'link', { name: 'Melete grading' } ) )

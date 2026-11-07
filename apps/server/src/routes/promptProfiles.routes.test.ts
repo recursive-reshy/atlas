@@ -382,6 +382,9 @@ describe( 'GET /api/prompt-profiles with a purpose', () => {
         'linker',
         'melete_questions',
         'melete_grading',
+        'melete_syllabus',
+        'melete_map',
+        'melete_suggest',
       ] )
   } )
 

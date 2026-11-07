@@ -73,6 +73,41 @@ describe( 'MeleteSettings', () => {
     expect( mutate ).toHaveBeenCalledWith( { melete_grading_model: 'claude-sonnet-5-5' } )
   } )
 
+  it( 'shows the saved syllabus, mapping and suggestion models', () => {
+    vi.mocked( useSettings ).mockReturnValue( settingsState( {
+      settings: {
+        ...settingsFixture().settings,
+        melete_syllabus_model: 'claude-opus-5-5',
+        melete_map_model: 'claude-sonnet-5-5',
+        melete_suggest_model: 'claude-opus-5-5',
+      },
+    } ) )
+    renderWithClient( <MeleteSettings /> )
+
+    expect( screen.getByRole( 'combobox', { name: 'Syllabus model' } ) )
+      .toHaveTextContent( 'Claude Opus 5.5' )
+    expect( screen.getByRole( 'combobox', { name: 'Mapping model' } ) )
+      .toHaveTextContent( 'Claude Sonnet 5.5' )
+    expect( screen.getByRole( 'combobox', { name: 'Suggestion model' } ) )
+      .toHaveTextContent( 'Claude Opus 5.5' )
+  } )
+
+  it.each( [
+    [ 'Syllabus model', 'melete_syllabus_model', 'claude-opus-5-5', 'Claude Opus 5.5' ],
+    [ 'Mapping model', 'melete_map_model', 'claude-opus-5-5', 'Claude Opus 5.5' ],
+    [ 'Suggestion model', 'melete_suggest_model', 'claude-sonnet-5-5', 'Claude Sonnet 5.5' ],
+  ] )( 'saves a new %s', async ( label, key, id, name ) => {
+    vi.mocked( useSettings ).mockReturnValue( settingsState( {
+      settings: { ...settingsFixture().settings, [ key ]: 'claude-haiku-5-5' },
+      updateSettings: mutationStub( { mutate } ),
+    } ) )
+    renderWithClient( <MeleteSettings /> )
+
+    await pick( label, name )
+
+    expect( mutate ).toHaveBeenCalledWith( { [ key ]: id } )
+  } )
+
   it( 'keeps a saved model that is not in the list selectable', () => {
     vi.mocked( useSettings ).mockReturnValue( settingsState( {
       settings: { ...settingsFixture().settings, melete_question_model: 'claude-haiku-5-5' },

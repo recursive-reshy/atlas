@@ -9,9 +9,15 @@ import { modulesFor } from './modules.service.js'
 // Melete
 import {
   DEFAULT_MELETE_GRADING_GUIDANCE,
+  DEFAULT_MELETE_MAP_GUIDANCE,
   DEFAULT_MELETE_QUESTIONS_GUIDANCE,
+  DEFAULT_MELETE_SUGGEST_GUIDANCE,
+  DEFAULT_MELETE_SYLLABUS_GUIDANCE,
   MELETE_GRADING_SEED_KEY,
+  MELETE_MAP_SEED_KEY,
   MELETE_QUESTIONS_SEED_KEY,
+  MELETE_SUGGEST_SEED_KEY,
+  MELETE_SYLLABUS_SEED_KEY,
 } from '../melete/prompts.js'
 // Repositories
 import {
@@ -60,12 +66,15 @@ const toProfile = ( userId: string, record: ProfileRecord ): PromptProfile => {
 }
 
 // A profile belongs to the module that uses it (TRD §5.3): the summary and linker prompts to
-// Transcriber, the two Melete prompts to Melete
+// Transcriber, the five Melete prompts to Melete
 const PURPOSE_MODULE: Record< PromptPurpose, ModuleId > = {
   summary: 'transcriber',
   linker: 'transcriber',
   melete_questions: 'melete',
   melete_grading: 'melete',
+  melete_syllabus: 'melete',
+  melete_map: 'melete',
+  melete_suggest: 'melete',
 }
 
 const allows = ( userId: string, purpose: PromptPurpose ): boolean => {
@@ -91,6 +100,9 @@ const PURPOSE_ORDER: PromptPurpose[] = [
   'linker',
   'melete_questions',
   'melete_grading',
+  'melete_syllabus',
+  'melete_map',
+  'melete_suggest',
 ]
 
 // Summary profiles unless asked: the pickers use this list and know no other purpose
@@ -212,6 +224,12 @@ const resetGuidance = ( { purpose, seed_key }: ProfileRecord ): string | undefin
       return DEFAULT_MELETE_QUESTIONS_GUIDANCE
     case 'melete_grading':
       return DEFAULT_MELETE_GRADING_GUIDANCE
+    case 'melete_syllabus':
+      return DEFAULT_MELETE_SYLLABUS_GUIDANCE
+    case 'melete_map':
+      return DEFAULT_MELETE_MAP_GUIDANCE
+    case 'melete_suggest':
+      return DEFAULT_MELETE_SUGGEST_GUIDANCE
     case 'summary':
       return SEEDED_PROFILES.find( ( { seedKey } ) => seedKey === seed_key )?.guidance
   }
@@ -279,13 +297,21 @@ export const resolveLinkerPrompt = (
   return { profile, version: profile.current_version }
 }
 
+type MeletePurpose = Exclude< PromptPurpose, 'summary' | 'linker' >
+
+const MELETE_SEED_KEYS: Record< MeletePurpose, string > = {
+  melete_questions: MELETE_QUESTIONS_SEED_KEY,
+  melete_grading: MELETE_GRADING_SEED_KEY,
+  melete_syllabus: MELETE_SYLLABUS_SEED_KEY,
+  melete_map: MELETE_MAP_SEED_KEY,
+  melete_suggest: MELETE_SUGGEST_SEED_KEY,
+}
+
 export const resolveMeletePrompt = (
   userId: string,
-  purpose: 'melete_questions' | 'melete_grading',
+  purpose: MeletePurpose,
 ): { profile: PromptProfile, version: PromptVersion } => {
-  const seedKey = purpose === 'melete_questions'
-    ? MELETE_QUESTIONS_SEED_KEY
-    : MELETE_GRADING_SEED_KEY
+  const seedKey = MELETE_SEED_KEYS[ purpose ]
   const record = findProfileBySeedKey( userId, seedKey )
 
   if( record === undefined ) {

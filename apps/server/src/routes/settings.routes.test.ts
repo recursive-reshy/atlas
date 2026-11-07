@@ -30,6 +30,9 @@ import { listSummaryModels } from '../clients/anthropicModels.client.js'
 // Melete
 import {
   LOCKED_INSTRUCTIONS_MELETE_GRADING,
+  LOCKED_INSTRUCTIONS_MELETE_MAP,
+  LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
+  LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
 } from '../melete/prompts.js'
 // Repositories
@@ -89,6 +92,9 @@ describe( 'GET /api/settings', () => {
         melete_question_model: 'claude-sonnet-5-5',
         melete_grading_model: 'claude-sonnet-5-5',
         melete_review_mode: 'typed',
+        melete_syllabus_model: 'claude-sonnet-5-5',
+        melete_map_model: 'claude-sonnet-5-5',
+        melete_suggest_model: 'claude-sonnet-5-5',
         melete_question_profile_id: findProfileBySeedKey( userId, 'melete_questions' )?.id,
         melete_grading_profile_id: findProfileBySeedKey( userId, 'melete_grading' )?.id,
       },
@@ -97,6 +103,9 @@ describe( 'GET /api/settings', () => {
         article: LOCKED_INSTRUCTIONS_ARTICLE,
         melete_questions: LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
         melete_grading: LOCKED_INSTRUCTIONS_MELETE_GRADING,
+        melete_syllabus: LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
+        melete_map: LOCKED_INSTRUCTIONS_MELETE_MAP,
+        melete_suggest: LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
       },
       linker_locked_instructions: null,
       agent_status: 'not_configured',
@@ -191,6 +200,9 @@ describe( 'PATCH /api/settings for Melete', () => {
       melete_question_model: 'claude-opus-5-5',
       melete_grading_model: 'claude-sonnet-5-5',
       melete_review_mode: 'quick',
+      melete_syllabus_model: 'claude-opus-5-5',
+      melete_map_model: 'claude-sonnet-5-5',
+      melete_suggest_model: 'claude-opus-5-5',
     } )
 
     expect( response.status ).toBe( 200 )
@@ -199,6 +211,9 @@ describe( 'PATCH /api/settings for Melete', () => {
       melete_question_model: 'claude-opus-5-5',
       melete_grading_model: 'claude-sonnet-5-5',
       melete_review_mode: 'quick',
+      melete_syllabus_model: 'claude-opus-5-5',
+      melete_map_model: 'claude-sonnet-5-5',
+      melete_suggest_model: 'claude-opus-5-5',
     } )
   } )
 

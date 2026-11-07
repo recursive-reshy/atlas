@@ -137,8 +137,14 @@ describe( 'the shared routes', () => {
     expect( new Set( await list( [ 'transcriber' ] ) ) )
       .toEqual( new Set( [ 'summary', 'linker' ] ) )
     expect( new Set( await list( [ 'melete' ] ) ) )
-      .toEqual( new Set( [ 'melete_questions', 'melete_grading' ] ) )
-    expect( new Set( await list( [ 'transcriber', 'melete' ] ) ).size ).toBe( 4 )
+      .toEqual( new Set( [
+        'melete_questions',
+        'melete_grading',
+        'melete_syllabus',
+        'melete_map',
+        'melete_suggest',
+      ] ) )
+    expect( new Set( await list( [ 'transcriber', 'melete' ] ) ).size ).toBe( 7 )
     expect( await list( [] ) ).toEqual( [] )
   } )
 

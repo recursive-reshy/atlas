@@ -27,6 +27,18 @@ const MELETE_LOCKED = {
     key: 'melete_grading',
     title: 'Instructions the app always sends for grading',
   },
+  melete_syllabus: {
+    key: 'melete_syllabus',
+    title: 'Instructions the app always sends for syllabus drafting',
+  },
+  melete_map: {
+    key: 'melete_map',
+    title: 'Instructions the app always sends for mapping notes',
+  },
+  melete_suggest: {
+    key: 'melete_suggest',
+    title: 'Instructions the app always sends for resource suggestions',
+  },
 } as const
 
 interface PromptPanelProps {

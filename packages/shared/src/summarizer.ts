@@ -42,6 +42,9 @@ export const UserSettingKey = z.enum( [
   'melete_question_model',
   'melete_grading_model',
   'melete_review_mode',
+  'melete_syllabus_model',
+  'melete_map_model',
+  'melete_suggest_model',
 ] )
 export type UserSettingKey = z.infer< typeof UserSettingKey >
 
@@ -60,6 +63,9 @@ export const Settings = z.object( {
   melete_question_model: z.string().min( 1 ),
   melete_grading_model: z.string().min( 1 ),
   melete_review_mode: MeleteReviewMode,
+  melete_syllabus_model: z.string().min( 1 ),
+  melete_map_model: z.string().min( 1 ),
+  melete_suggest_model: z.string().min( 1 ),
   melete_question_profile_id: z.uuid(),
   melete_grading_profile_id: z.uuid(),
 } )
@@ -75,6 +81,9 @@ export const GetSettingsResponse = z.object( {
     article: z.string(),
     melete_questions: z.string(),
     melete_grading: z.string(),
+    melete_syllabus: z.string(),
+    melete_map: z.string(),
+    melete_suggest: z.string(),
   } ),
   linker_locked_instructions: z.string().nullable(),
   agent_status: AgentStatus,
@@ -92,14 +101,18 @@ export const UpdateSettingsBody = z.object( {
   melete_question_model: z.string().min( 1 ).optional(),
   melete_grading_model: z.string().min( 1 ).optional(),
   melete_review_mode: MeleteReviewMode.optional(),
+  melete_syllabus_model: z.string().min( 1 ).optional(),
+  melete_map_model: z.string().min( 1 ).optional(),
+  melete_suggest_model: z.string().min( 1 ).optional(),
 } ).refine(
   ( body ) => Object.values( body ).some( ( value ) => value !== undefined ),
   {
     message: [
       'Provide default_model, extraction_model, default_profile_id,',
       'feed_check_interval_minutes, linking_enabled, linking_model,',
-      'melete_learning_root, melete_question_model, melete_grading_model',
-      'or melete_review_mode',
+      'melete_learning_root, melete_question_model, melete_grading_model,',
+      'melete_review_mode, melete_syllabus_model, melete_map_model',
+      'or melete_suggest_model',
     ].join( ' ' ),
   },
 )
@@ -123,6 +136,9 @@ export const PromptPurpose = z.enum( [
   'linker',
   'melete_questions',
   'melete_grading',
+  'melete_syllabus',
+  'melete_map',
+  'melete_suggest',
 ] )
 export type PromptPurpose = z.infer< typeof PromptPurpose >
 

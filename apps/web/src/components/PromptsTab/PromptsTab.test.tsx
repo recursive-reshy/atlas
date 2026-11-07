@@ -67,7 +67,7 @@ describe( 'PromptsTab, wide window', () => {
   it( 'gives the list the Melete prompts', () => {
     renderWithRouter( `/settings/prompts/${ CODING_ID }` )
 
-    expect( screen.getByText( '2 Melete prompts in the list' ) ).toBeInTheDocument()
+    expect( screen.getByText( '5 Melete prompts in the list' ) ).toBeInTheDocument()
   } )
 
   it( 'opens the default profile on /settings/prompts', () => {
@@ -143,7 +143,7 @@ describe( 'PromptsTab, by module', () => {
     const me = memberFixture( { modules: [ 'melete' ] } )
     renderWithRouter( `/settings/prompts/${ MELETE_QUESTIONS_ID }`, { me } )
 
-    expect( screen.getByText( '2 Melete prompts in the list' ) ).toBeInTheDocument()
+    expect( screen.getByText( '5 Melete prompts in the list' ) ).toBeInTheDocument()
     expect( screen.getByText( 'summary group false' ) ).toBeInTheDocument()
     expect( screen.queryByText( /^manager for/ ) ).not.toBeInTheDocument()
   } )
