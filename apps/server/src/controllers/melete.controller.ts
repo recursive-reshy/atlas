@@ -4,6 +4,7 @@ import { Request, Response } from 'express'
 import { z } from 'zod'
 // Shared
 import {
+  ApproveMeleteSyllabusResponse,
   EnrollSubjectBody,
   GetMeleteNoteResponse,
   GetMeleteSubjectResponse,
@@ -13,8 +14,11 @@ import {
   GradeAnswerResponse,
   MeleteQuestion,
   MeleteSubject,
+  MeleteSyllabus,
+  MeleteSyllabusEdit,
   RecordReviewBody,
   RecordReviewResponse,
+  SaveMeleteSyllabusResponse,
   UpdateMeleteNoteBody,
   UpdateMeleteSubjectBody,
 } from '@atlas/shared'
@@ -33,7 +37,12 @@ import {
   updateSubject,
 } from '../services/melete.service.js'
 import { getNextReview, gradeAnswer, recordReview } from '../services/meleteReview.service.js'
-import { requestSyllabusDraft } from '../services/meleteSyllabus.service.js'
+import {
+  approveSyllabus,
+  getSyllabus,
+  requestSyllabusDraft,
+  saveSyllabus,
+} from '../services/meleteSyllabus.service.js'
 
 const Id = z.uuid()
 
@@ -71,6 +80,33 @@ export const postDraftSyllabus = (
   const subject = requestSyllabusDraft( currentUser( req ).id, Id.parse( req.params.id ) )
 
   res.status( 202 ).json( { subject } )
+}
+
+export const getMeleteSyllabus = (
+  req: Request,
+  res: Response< MeleteSyllabus >,
+): void => {
+  res.status( 200 ).json( getSyllabus( currentUser( req ).id, Id.parse( req.params.id ) ) )
+}
+
+export const putMeleteSyllabus = (
+  req: Request,
+  res: Response< SaveMeleteSyllabusResponse >,
+): void => {
+  res.status( 200 ).json( saveSyllabus(
+    currentUser( req ).id,
+    Id.parse( req.params.id ),
+    MeleteSyllabusEdit.parse( req.body ),
+  ) )
+}
+
+export const postApproveSyllabus = (
+  req: Request,
+  res: Response< ApproveMeleteSyllabusResponse >,
+): void => {
+  const subject = approveSyllabus( currentUser( req ).id, Id.parse( req.params.id ) )
+
+  res.status( 200 ).json( { subject } )
 }
 
 export const postSubjectEnrollment = async (

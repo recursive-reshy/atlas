@@ -256,3 +256,12 @@ export const MeleteSyllabusOutput = z.object( {
   } ) ).min( 1 ),
 } )
 export type MeleteSyllabusOutput = z.infer< typeof MeleteSyllabusOutput >
+
+export const SaveMeleteSyllabusResponse = z.object( {
+  syllabus: MeleteSyllabus,
+  diff: MeleteSyllabusDiff,
+} )
+export type SaveMeleteSyllabusResponse = z.infer< typeof SaveMeleteSyllabusResponse >
+
+export const ApproveMeleteSyllabusResponse = z.object( { subject: MeleteSubject } )
+export type ApproveMeleteSyllabusResponse = z.infer< typeof ApproveMeleteSyllabusResponse >

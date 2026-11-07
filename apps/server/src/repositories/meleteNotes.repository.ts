@@ -161,3 +161,11 @@ export const setEnrolled = (
         WHERE user_id = ? AND id IN ( ${ placeholders( ids ) } )` )
     .run( ...( enrolled ? [ at, userId, ...ids ] : [ userId, ...ids ] ) )
 }
+
+// Approving a syllabus maps every enrolled note again, pinned or not (TRD §4.3)
+export const queueMappingForSubject = ( userId: string, subjectId: string ): number => {
+  return getDatabase()
+    .prepare( `UPDATE melete_notes SET mapping = 'queued', mapping_error = NULL
+      WHERE user_id = ? AND subject_id = ? AND enrolled = 1 AND missing_at IS NULL` )
+    .run( userId, subjectId ).changes
+}

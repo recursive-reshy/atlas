@@ -24,8 +24,14 @@ import {
 } from '../melete/prompts.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
-import { insertConcept, listConcepts } from '../repositories/meleteConcepts.repository.js'
-import { setNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
+import {
+  insertConcept,
+  listConcepts,
+  replaceSyllabus,
+} from '../repositories/meleteConcepts.repository.js'
+import { listNoteConcepts, setNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
+import { findNote, listNotesBySubject, updateNote } from '../repositories/meleteNotes.repository.js'
+import { findQuestion, setQuestionConcept } from '../repositories/meleteQuestions.repository.js'
 import { findRun } from '../repositories/meleteRuns.repository.js'
 import { insertSection, listSections } from '../repositories/meleteSections.repository.js'
 import {
@@ -35,13 +41,20 @@ import {
 } from '../repositories/meleteSubjects.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'
 // Services
-import { draftForSubject, requestSyllabusDraft } from './meleteSyllabus.service.js'
+import {
+  approveSyllabus,
+  draftForSubject,
+  getSyllabus,
+  requestSyllabusDraft,
+  saveSyllabus,
+} from './meleteSyllabus.service.js'
 import { resetScanClock, scanLearningRoot } from './meleteScan.service.js'
 import { resolveMeletePrompt } from './prompts.service.js'
 // Logging
 import { logger } from '../logger.js'
 // Test support
 import { createTestUser, defaultTestAdmin } from '../test-support/auth.js'
+import { addQuestion, addSubject } from '../test-support/meleteData.fixture.js'
 import { MeleteVault, createMeleteVault } from '../test-support/meleteVault.fixture.js'
 
 let userId = ''
@@ -476,5 +489,276 @@ describe( 'draftForSubject', () => {
     } )
 
     expect( lines ).toHaveLength( 60 )
+  } )
+} )
+
+// Two sections: Basics (SQL, Joins, Indexes) and Advanced (Windows, CTEs)
+const stored = async (
+  status: 'draft' | 'approved' | 'none' | 'drafting' | 'failed' = 'draft',
+): Promise< string > => {
+  await scanLearningRoot( userId, { force: true, now: T0 } )
+
+  const id = subjectId()
+
+  replaceSyllabus( userId, id, [
+    {
+      name: 'Basics',
+      concepts: [
+        { name: 'SQL', description: 'Queries' },
+        { name: 'Joins', description: 'Combining tables' },
+        { name: 'Indexes', description: 'Speed' },
+      ],
+    },
+    {
+      name: 'Advanced',
+      concepts: [
+        { name: 'Windows', description: 'Frames' },
+        { name: 'CTEs', description: 'WITH' },
+      ],
+    },
+  ] )
+  updateSubject( userId, id, { target_level: 'working', syllabus_status: status } )
+
+  return id
+}
+
+describe( 'getSyllabus', () => {
+  it( 'returns the sections and their concepts in order, with ids', async () => {
+    const id = await stored()
+    const { sections } = getSyllabus( userId, id )
+
+    expect( sections.map( ( { name, concepts } ) => [ name, concepts.map( ( c ) => c.name ) ] ) )
+      .toEqual( [
+        [ 'Basics', [ 'SQL', 'Joins', 'Indexes' ] ],
+        [ 'Advanced', [ 'Windows', 'CTEs' ] ],
+      ] )
+    expect( sections[ 0 ].concepts[ 1 ] ).toEqual( {
+      id: expect.stringMatching( /^[0-9a-f-]{36}$/ ) as string,
+      name: 'Joins',
+      description: 'Combining tables',
+    } )
+  } )
+
+  it( 'returns no sections for a subject with no syllabus', async () => {
+    await scanLearningRoot( userId, { force: true, now: T0 } )
+
+    expect( getSyllabus( userId, subjectId() ) ).toEqual( { sections: [] } )
+  } )
+
+  it( 'answers not found for an unknown subject and for another user\'s', async () => {
+    const id = await stored()
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+    expect( () => getSyllabus( userId, crypto.randomUUID() ) ).toThrow( NotFoundError )
+    expect( () => getSyllabus( other, id ) ).toThrow( NotFoundError )
+  } )
+} )
+
+describe( 'saveSyllabus', () => {
+  const edit = ( id: string ) => {
+    const { sections } = getSyllabus( userId, id )
+
+    return { sections: structuredClone( sections ) }
+  }
+
+  it( 'applies a rename, an addition, a removal and a move, and returns the counts', async () => {
+    const id = await stored()
+    const next = edit( id )
+    const [ basics, advanced ] = next.sections
+    const [ windows ] = advanced.concepts.splice( 0, 1 )
+
+    basics.concepts[ 0 ].name = 'SQL basics'
+    basics.concepts.splice( 2, 1 )
+    basics.concepts.push( windows )
+    advanced.concepts.push( { name: 'Recursion', description: 'Self-reference' } as never )
+
+    const saved = saveSyllabus( userId, id, next )
+
+    expect( saved.diff ).toEqual( { renamed: 1, added: 1, removed: 1, moved: 1 } )
+    expect( saved.syllabus.sections.map( ( { concepts } ) => concepts.map( ( c ) => c.name ) ) )
+      .toEqual( [ [ 'SQL basics', 'Joins', 'Windows' ], [ 'CTEs', 'Recursion' ] ] )
+    expect( names() ).toEqual( [ [ 'SQL basics', 'Joins', 'Windows' ], [ 'CTEs', 'Recursion' ] ] )
+    expect( getSyllabus( userId, id ) ).toEqual( saved.syllabus )
+  } )
+
+  it( 'keeps the ids of concepts that were renamed or moved, and gives new ones ids', async () => {
+    const id = await stored()
+    const before = getSyllabus( userId, id ).sections.flatMap( ( { concepts } ) => concepts )
+    const next = edit( id )
+
+    next.sections[ 0 ].concepts[ 0 ].name = 'Renamed'
+    next.sections[ 1 ].concepts.reverse()
+    next.sections[ 1 ].concepts.push( { name: 'New', description: '' } as never )
+
+    const after = saveSyllabus( userId, id, next ).syllabus.sections
+      .flatMap( ( { concepts } ) => concepts )
+
+    expect( after.filter( ( { name } ) => name !== 'New' ).map( ( c ) => c.id ).sort() )
+      .toEqual( before.map( ( c ) => c.id ).sort() )
+    expect( after.find( ( { name } ) => name === 'New' )?.id ).toMatch( /^[0-9a-f-]{36}$/ )
+  } )
+
+  it( 'keeps the mappings and labels of a renamed or moved concept', async () => {
+    const id = await stored()
+    const next = edit( id )
+    const sql = next.sections[ 0 ].concepts[ 0 ]
+    const noteId = listNotesBySubject( userId, id )[ 0 ].id
+    const questionId = addQuestion( userId, noteId )
+
+    setNoteConcepts( userId, noteId, [ sql.id ], 'claude' )
+    setQuestionConcept( userId, questionId, sql.id )
+    sql.name = 'SQL basics'
+    next.sections[ 1 ].concepts.push( ...next.sections[ 0 ].concepts.splice( 0, 1 ) )
+    saveSyllabus( userId, id, next )
+
+    expect( listNoteConcepts( userId, noteId ).map( ( c ) => c.concept_id ) ).toEqual( [ sql.id ] )
+    expect( findQuestion( userId, questionId )?.concept_id ).toBe( sql.id )
+  } )
+
+  it( 'removes the mappings and labels of a removed concept', async () => {
+    const id = await stored()
+    const next = edit( id )
+    const [ sql ] = next.sections[ 0 ].concepts.splice( 0, 1 )
+    const noteId = listNotesBySubject( userId, id )[ 0 ].id
+    const questionId = addQuestion( userId, noteId )
+
+    setNoteConcepts( userId, noteId, [ sql.id ], 'hand' )
+    setQuestionConcept( userId, questionId, sql.id )
+    saveSyllabus( userId, id, next )
+
+    expect( listNoteConcepts( userId, noteId ) ).toEqual( [] )
+    expect( findQuestion( userId, questionId )?.concept_id ).toBeNull()
+  } )
+
+  it( 'adds a section, moves a concept into it and drops an emptied section', async () => {
+    const id = await stored()
+    const next = edit( id )
+    const [ indexes ] = next.sections[ 0 ].concepts.splice( 2, 1 )
+
+    next.sections.splice( 1, 1 )
+    next.sections.push( { name: 'Performance', concepts: [ indexes ] } as never )
+
+    const saved = saveSyllabus( userId, id, next )
+
+    expect( saved.syllabus.sections.map( ( { name } ) => name ) )
+      .toEqual( [ 'Basics', 'Performance' ] )
+    expect( names() ).toEqual( [ [ 'SQL', 'Joins' ], [ 'Indexes' ] ] )
+    expect( saved.diff ).toEqual( { renamed: 0, added: 0, removed: 2, moved: 1 } )
+  } )
+
+  it.each( [ 'draft', 'approved' ] as const )( 'saves while the status is %s', async ( status ) => {
+    const id = await stored( status )
+    const next = edit( id )
+
+    next.sections[ 0 ].name = 'Fundamentals'
+
+    expect( saveSyllabus( userId, id, next ).syllabus.sections[ 0 ].name ).toBe( 'Fundamentals' )
+    expect( findSubject( userId, id )?.syllabus_status ).toBe( status )
+  } )
+
+  it.each( [ 'none', 'drafting', 'failed' ] as const )( 'refuses while %s', async ( status ) => {
+    const id = await stored( status )
+
+    expect( () => saveSyllabus( userId, id, edit( id ) ) ).toThrow( ConflictError )
+  } )
+
+  it( 'refuses an unknown id and changes nothing, not even the valid parts', async () => {
+    const id = await stored()
+    const next = edit( id )
+
+    next.sections[ 0 ].name = 'Renamed'
+    next.sections[ 1 ].concepts[ 0 ].id = crypto.randomUUID()
+
+    expect( () => saveSyllabus( userId, id, next ) ).toThrow( ValidationError )
+    expect( names() ).toEqual( [ [ 'SQL', 'Joins', 'Indexes' ], [ 'Windows', 'CTEs' ] ] )
+    expect( listSections( userId, id )[ 0 ].name ).toBe( 'Basics' )
+  } )
+
+  it( 'refuses ids from another subject or another user', async () => {
+    const id = await stored()
+    const next = edit( id )
+    const foreign = addSubject( userId, 'Learning/Foreign' )
+
+    replaceSyllabus( userId, foreign, [
+      { name: 'X', concepts: [ { name: 'Y', description: '' } ] },
+    ] )
+    next.sections[ 0 ].concepts[ 0 ].id = listConcepts( userId, foreign )[ 0 ].id
+
+    expect( () => saveSyllabus( userId, id, next ) ).toThrow( ValidationError )
+
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+    expect( () => saveSyllabus( other, id, edit( id ) ) ).toThrow( NotFoundError )
+  } )
+
+  it( 'accepts an empty syllabus while still a draft', async () => {
+    const id = await stored()
+
+    expect( saveSyllabus( userId, id, { sections: [] } ).diff )
+      .toEqual( { renamed: 0, added: 0, removed: 5, moved: 0 } )
+    expect( getSyllabus( userId, id ) ).toEqual( { sections: [] } )
+  } )
+} )
+
+describe( 'approveSyllabus', () => {
+  it( 'approves a draft and queues every enrolled note in the vault for mapping', async () => {
+    const id = await stored()
+    const [ first, second ] = listNotesBySubject( userId, id )
+
+    getDatabase().prepare( 'UPDATE melete_notes SET enrolled = 1' ).run()
+    updateNote( userId, first.id, {
+      mapping: 'failed',
+      mapping_error: 'Bad',
+      mapping_pinned: true,
+    } )
+
+    const subject = approveSyllabus( userId, id, T0 )
+
+    expect( subject ).toMatchObject( { id, syllabus_status: 'approved' } )
+    expect( findSubject( userId, id )?.syllabus_status ).toBe( 'approved' )
+
+    for( const note of [ first, second ] ) {
+      expect( findNote( userId, note.id ) )
+        .toMatchObject( { mapping: 'queued', mapping_error: null } )
+    }
+
+    expect( findNote( userId, first.id )?.mapping_pinned ).toBe( true )
+  } )
+
+  it( 'leaves notes that are not enrolled alone', async () => {
+    const id = await stored()
+
+    approveSyllabus( userId, id, T0 )
+
+    expect( listNotesBySubject( userId, id ).map( ( { mapping } ) => mapping ) )
+      .toEqual( listNotesBySubject( userId, id ).map( () => 'idle' ) )
+  } )
+
+  it.each( [ 'none', 'drafting', 'failed', 'approved' ] as const )(
+    'refuses while %s',
+    async ( status ) => {
+      const id = await stored( status )
+
+      expect( () => approveSyllabus( userId, id, T0 ) ).toThrow( ConflictError )
+      expect( findSubject( userId, id )?.syllabus_status ).toBe( status )
+    },
+  )
+
+  it( 'refuses a draft with no concepts', async () => {
+    const id = await stored()
+
+    saveSyllabus( userId, id, { sections: [] } )
+
+    expect( () => approveSyllabus( userId, id, T0 ) )
+      .toThrow( new ConflictError( 'The syllabus has no concepts' ) )
+    expect( findSubject( userId, id )?.syllabus_status ).toBe( 'draft' )
+  } )
+
+  it( 'answers not found for an unknown subject and for another user\'s', async () => {
+    const id = await stored()
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+    expect( () => approveSyllabus( userId, crypto.randomUUID(), T0 ) ).toThrow( NotFoundError )
+    expect( () => approveSyllabus( other, id, T0 ) ).toThrow( NotFoundError )
   } )
 } )

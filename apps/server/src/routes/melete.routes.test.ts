@@ -20,7 +20,9 @@ import {
   GetNextReviewResponse,
   GradeAnswerResponse,
   MeleteQuestion,
+  MeleteSyllabus,
   RecordReviewResponse,
+  SaveMeleteSyllabusResponse,
 } from '@atlas/shared'
 // App
 import { app } from '../app.js'
@@ -35,7 +37,8 @@ import { rememberSkipped, resetScanOutcome } from '../melete/scanOutcome.js'
 // Repositories
 import { listNotesUnder, updateNote } from '../repositories/meleteNotes.repository.js'
 import { findQuestion } from '../repositories/meleteQuestions.repository.js'
-import { listSubjects } from '../repositories/meleteSubjects.repository.js'
+import { replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
+import { listSubjects, updateSubject } from '../repositories/meleteSubjects.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'
 // Test support
 import { addQuestion } from '../test-support/meleteData.fixture.js'
@@ -718,5 +721,141 @@ describe( 'POST /api/melete/questions/:id/review', () => {
     await rate( id, { rating: 'easy', mode: 'quick' } )
 
     expect( await treeOf( vault.vaultPath ) ).toEqual( before )
+  } )
+} )
+
+describe( 'the syllabus routes', () => {
+  const url = ( id: string, tail = '' ): string => `/api/melete/subjects/${ id }/syllabus${ tail }`
+
+  // Rust, scanned, with two sections of concepts and the given status
+  const withSyllabus = async (
+    status: 'draft' | 'approved' | 'none' = 'draft',
+  ): Promise< string > => {
+    await scanned()
+
+    const { id } = subject( 'Rust' )
+
+    replaceSyllabus( userId, id, [
+      { name: 'Basics', concepts: [ { name: 'Ownership', description: 'One owner' } ] },
+      { name: 'Advanced', concepts: [ { name: 'Lifetimes', description: '' } ] },
+    ] )
+    updateSubject( userId, id, { target_level: 'working', syllabus_status: status } )
+
+    return id
+  }
+
+  it( 'GET returns the sections and concepts in order', async () => {
+    const id = await withSyllabus()
+    const response = await request( app ).get( url( id ) )
+    const syllabus = MeleteSyllabus.parse( response.body )
+
+    expect( response.status ).toBe( 200 )
+    expect( syllabus.sections.map( ( { name } ) => name ) ).toEqual( [ 'Basics', 'Advanced' ] )
+    expect( syllabus.sections[ 0 ].concepts[ 0 ] )
+      .toMatchObject( { name: 'Ownership', description: 'One owner' } )
+  } )
+
+  it( 'GET returns no sections before a draft', async () => {
+    await scanned()
+
+    const response = await request( app ).get( url( subject( 'Rust' ).id ) )
+
+    expect( response.status ).toBe( 200 )
+    expect( response.body ).toEqual( { sections: [] } )
+  } )
+
+  it( 'PUT saves the edit and answers with the syllabus and the diff', async () => {
+    const id = await withSyllabus()
+    const { sections } = MeleteSyllabus.parse( ( await request( app ).get( url( id ) ) ).body )
+
+    sections[ 0 ].concepts[ 0 ].name = 'Ownership rules'
+    sections[ 1 ].concepts.push( { name: 'Traits', description: '' } as never )
+
+    const response = await request( app ).put( url( id ) ).send( { sections } )
+    const saved = SaveMeleteSyllabusResponse.parse( response.body )
+
+    expect( response.status ).toBe( 200 )
+    expect( saved.diff ).toEqual( { renamed: 1, added: 1, removed: 0, moved: 0 } )
+    expect( saved.syllabus.sections[ 1 ].concepts.map( ( { name } ) => name ) )
+      .toEqual( [ 'Lifetimes', 'Traits' ] )
+  } )
+
+  const section = ( concepts: { name: string, description: string }[], id?: string ) => {
+    return { sections: [ { id, name: 'A', concepts } ] }
+  }
+
+  it.each( [
+    [ 'no sections key', {} ],
+    [ 'an empty section', { sections: [ { name: 'Empty', concepts: [] } ] } ],
+    [ 'a blank concept name', section( [ { name: ' ', description: '' } ] ) ],
+    [ 'an id that is not a uuid', section( [ { name: 'B', description: '' } ], 'x' ) ],
+  ] )( 'PUT returns 400 for %s', async ( _label, body ) => {
+    const id = await withSyllabus()
+
+    expect( ( await request( app ).put( url( id ) ).send( body ) ).status ).toBe( 400 )
+  } )
+
+  it( 'PUT returns 400 for more than 80 concepts', async () => {
+    const id = await withSyllabus()
+    const concepts = Array.from( { length: 81 }, ( _, index ) => {
+      return { name: `Concept ${ index }`, description: '' }
+    } )
+
+    const response = await request( app ).put( url( id ) ).send( {
+      sections: [ { name: 'Big', concepts } ],
+    } )
+
+    expect( response.status ).toBe( 400 )
+  } )
+
+  it( 'PUT returns 400 for an id the syllabus does not have', async () => {
+    const id = await withSyllabus()
+    const body = { sections: [ {
+      id: crypto.randomUUID(),
+      name: 'Basics',
+      concepts: [ { name: 'Ownership', description: '' } ],
+    } ] }
+
+    expect( ( await request( app ).put( url( id ) ).send( body ) ).status ).toBe( 400 )
+  } )
+
+  it( 'PUT returns 409 before there is a syllabus to edit', async () => {
+    const id = await withSyllabus( 'none' )
+
+    expect( ( await request( app ).put( url( id ) ).send( { sections: [] } ) ).status ).toBe( 409 )
+  } )
+
+  it( 'POST approve approves a draft and answers with the subject', async () => {
+    const id = await withSyllabus()
+    const response = await request( app ).post( url( id, '/approve' ) ).send( {} )
+
+    expect( response.status ).toBe( 200 )
+    expect( response.body ).toMatchObject( { subject: { id, syllabus_status: 'approved' } } )
+  } )
+
+  it( 'POST approve returns 409 for a syllabus that is not a draft', async () => {
+    const id = await withSyllabus( 'approved' )
+
+    expect( ( await request( app ).post( url( id, '/approve' ) ).send( {} ) ).status ).toBe( 409 )
+  } )
+
+  it( 'returns 404 for an unknown subject, another user\'s and a user without Melete', async () => {
+    const id = await withSyllabus()
+    const other = createTestUser( { modules: [ 'melete' ] } )
+    const transcriber = createTestUser( { modules: [ 'transcriber' ] } )
+    const unknown = crypto.randomUUID()
+
+    expect( ( await request( app ).get( url( unknown ) ) ).status ).toBe( 404 )
+    expect( ( await request( app ).put( url( unknown ) ).send( { sections: [] } ) ).status )
+      .toBe( 404 )
+    expect( ( await request( app ).post( url( unknown, '/approve' ) ).send( {} ) ).status )
+      .toBe( 404 )
+
+    expect( ( await request( app, other ).get( url( id ) ) ).status ).toBe( 404 )
+    expect( ( await request( app, other ).put( url( id ) ).send( { sections: [] } ) ).status )
+      .toBe( 404 )
+    expect( ( await request( app, other ).post( url( id, '/approve' ) ).send( {} ) ).status )
+      .toBe( 404 )
+    expect( ( await request( app, transcriber ).get( url( id ) ) ).status ).toBe( 404 )
   } )
 } )

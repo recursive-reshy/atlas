@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import type { z } from 'zod'
 // Melete
 import {
+  ApproveMeleteSyllabusResponse,
   EnrollSubjectBody,
   GetMeleteNoteResponse,
   GetMeleteSubjectResponse,
@@ -32,6 +33,7 @@ import {
   MeleteTargetLevel,
   RecordReviewBody,
   RecordReviewResponse,
+  SaveMeleteSyllabusResponse,
   UpdateMeleteNoteBody,
   UpdateMeleteSubjectBody,
 } from './melete.js'
@@ -443,5 +445,44 @@ describe( 'the concept layer contracts (ADR 0089)', () => {
     expect( UpdateMeleteSubjectBody.safeParse( { intent: 'x'.repeat( 501 ) } ).success )
       .toBe( false )
     expect( UpdateMeleteSubjectBody.safeParse( { target_level: 'guru' } ).success ).toBe( false )
+  } )
+} )
+
+describe( 'the syllabus responses', () => {
+  const id = '11111111-1111-4111-8111-111111111111'
+  const syllabus = {
+    sections: [ { id, name: 'Basics', concepts: [ { id, name: 'SQL', description: '' } ] } ],
+  }
+  const diff = { renamed: 1, added: 0, removed: 2, moved: 0 }
+
+  it( 'a save answers with the syllabus as stored and the diff', () => {
+    expect( SaveMeleteSyllabusResponse.parse( { syllabus, diff } ) ).toEqual( { syllabus, diff } )
+    expect( SaveMeleteSyllabusResponse.safeParse( { syllabus } ).success ).toBe( false )
+    expect( SaveMeleteSyllabusResponse.safeParse( { diff } ).success ).toBe( false )
+  } )
+
+  it( 'an approval answers with the subject', () => {
+    const subject = {
+      id,
+      name: 'Data',
+      folder: 'Learning/Data',
+      auto_enroll: false,
+      new_per_day: 10,
+      note_count: 0,
+      enrolled_count: 0,
+      due_count: 0,
+      new_available: 0,
+      new_remaining_today: 0,
+      target_level: 'working',
+      intent: null,
+      syllabus_status: 'approved',
+      syllabus_error: null,
+      coverage: null,
+      mastery: null,
+      concept_count: null,
+    }
+
+    expect( ApproveMeleteSyllabusResponse.parse( { subject } ) ).toEqual( { subject } )
+    expect( ApproveMeleteSyllabusResponse.safeParse( {} ).success ).toBe( false )
   } )
 } )

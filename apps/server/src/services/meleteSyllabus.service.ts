@@ -2,7 +2,12 @@
 import { readFile } from 'node:fs/promises'
 import { join } from 'node:path'
 // Shared
-import type { MeleteSubject } from '@atlas/shared'
+import type {
+  MeleteSubject,
+  MeleteSyllabus,
+  MeleteSyllabusEdit,
+  SaveMeleteSyllabusResponse,
+} from '@atlas/shared'
 // Clients
 import { draftSyllabus } from '../clients/claude.client.js'
 // Errors
@@ -16,6 +21,7 @@ import {
 import { LOCKED_INSTRUCTIONS_MELETE_SYLLABUS, buildMeleteSystemPrompt } from '../melete/prompts.js'
 import { recordMeleteRun } from '../melete/runs.js'
 import { splitFrontMatter } from '../melete/scan.js'
+import { planSyllabus } from '../melete/syllabusDiff.js'
 import {
   MAX_SYLLABUS_NOTES,
   buildSyllabusUser,
@@ -24,8 +30,24 @@ import {
 } from '../melete/syllabus.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
-import { replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
-import { listNotesBySubject } from '../repositories/meleteNotes.repository.js'
+import {
+  deleteConcept,
+  insertConcept,
+  listConcepts,
+  replaceSyllabus,
+  updateConcept,
+} from '../repositories/meleteConcepts.repository.js'
+import {
+  listNotesBySubject,
+  queueMappingForSubject,
+} from '../repositories/meleteNotes.repository.js'
+import {
+  deleteSection,
+  insertSection,
+  listSections,
+  updateSection,
+} from '../repositories/meleteSections.repository.js'
+import type { SubjectRecord } from '../repositories/meleteSubjects.repository.js'
 import { findSubject, updateSubject } from '../repositories/meleteSubjects.repository.js'
 // Services
 import { subjectName, toMeleteSubject } from './melete.service.js'
@@ -193,4 +215,117 @@ export const draftForSubject = async (
   } catch( error ) {
     failDraft( userId, subjectId, messageOf( error ) )
   }
+}
+
+const requireSubject = ( userId: string, subjectId: string ): SubjectRecord => {
+  const subject = findSubject( userId, subjectId )
+
+  if( subject === undefined ) {
+    throw new NotFoundError( 'Subject not found' )
+  }
+
+  return subject
+}
+
+export const getSyllabus = ( userId: string, subjectId: string ): MeleteSyllabus => {
+  requireSubject( userId, subjectId )
+
+  const concepts = listConcepts( userId, subjectId )
+
+  return {
+    sections: listSections( userId, subjectId ).map( ( section ) => ( {
+      id: section.id,
+      name: section.name,
+      concepts: concepts
+        .filter( ( { section_id } ) => section_id === section.id )
+        .map( ( { id, name, description } ) => ( { id, name, description } ) ),
+    } ) ),
+  }
+}
+
+// The edited syllabus replaces the stored one in place (TRD §3.3): concepts keep their ids, so
+// their mappings and question labels survive a rename or a move, and only a removal drops them
+export const saveSyllabus = (
+  userId: string,
+  subjectId: string,
+  edit: MeleteSyllabusEdit,
+): SaveMeleteSyllabusResponse => {
+  const subject = requireSubject( userId, subjectId )
+
+  if( subject.syllabus_status !== 'draft' && subject.syllabus_status !== 'approved' ) {
+    throw new ConflictError( 'There is no syllabus to edit yet' )
+  }
+
+  const plan = planSyllabus( getSyllabus( userId, subjectId ), edit )
+
+  getDatabase().transaction( () => {
+    for( const section of plan.sections ) {
+      const sectionId = section.id === null
+        ? insertSection( userId, {
+          subject_id: subjectId,
+          name: section.name,
+          position: section.position,
+        } ).id
+        : updateSection( userId, section.id, { name: section.name, position: section.position } )
+          ?.id
+
+      for( const concept of section.concepts ) {
+        if( sectionId === undefined ) {
+          throw new NotFoundError( 'Section not found' )
+        }
+
+        if( concept.id === null ) {
+          insertConcept( userId, {
+            subject_id: subjectId,
+            section_id: sectionId,
+            name: concept.name,
+            description: concept.description,
+            position: concept.position,
+          } )
+        } else {
+          updateConcept( userId, concept.id, {
+            name: concept.name,
+            description: concept.description,
+            position: concept.position,
+            section_id: sectionId,
+          } )
+        }
+      }
+    }
+
+    // Surviving concepts have left a removed section by now
+    plan.removeConceptIds.forEach( ( id ) => deleteConcept( userId, id ) )
+    plan.removeSectionIds.forEach( ( id ) => deleteSection( userId, id ) )
+  } )()
+
+  return { syllabus: getSyllabus( userId, subjectId ), diff: plan.diff }
+}
+
+// Approving queues every enrolled note for mapping; the loop does the mapping (Checkpoint B)
+export const approveSyllabus = (
+  userId: string,
+  subjectId: string,
+  now = new Date(),
+): MeleteSubject => {
+  const subject = requireSubject( userId, subjectId )
+
+  if( subject.syllabus_status !== 'draft' ) {
+    throw new ConflictError( 'Only a drafted syllabus can be approved' )
+  }
+
+  if( listConcepts( userId, subjectId ).length === 0 ) {
+    throw new ConflictError( 'The syllabus has no concepts' )
+  }
+
+  const approved = getDatabase().transaction( () => {
+    queueMappingForSubject( userId, subjectId )
+
+    return updateSubject( userId, subjectId, { syllabus_status: 'approved' } )
+  } )()
+
+  if( approved === undefined ) {
+    throw new NotFoundError( 'Subject not found' )
+  }
+
+  return toMeleteSubject( userId, approved, now )
 }

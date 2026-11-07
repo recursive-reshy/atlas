@@ -12,6 +12,7 @@ import {
   findMissingByHash,
   findNote,
   insertNote,
+  queueMappingForSubject,
   listNotesBySubject,
   listNotesUnder,
   setEnrolled,
@@ -339,5 +340,47 @@ describe( 'updateNote, the mapping fields', () => {
       .toMatchObject( { off_syllabus: 'dismissed', off_syllabus_suggestion: 'Joins' } )
     expect( updateNote( userId, id, { off_syllabus: null, off_syllabus_suggestion: null } ) )
       .toMatchObject( { off_syllabus: null, off_syllabus_suggestion: null } )
+  } )
+} )
+
+describe( 'queueMappingForSubject', () => {
+  it( 'queues every enrolled note still in the vault, pinned or not, and clears the error', () => {
+    const subjectId = addSubject( userId )
+    const plain = addNote( userId, subjectId )
+    const pinned = addNote( userId, subjectId )
+    const failed = addNote( userId, subjectId )
+
+    updateNote( userId, pinned, { mapping_pinned: true } )
+    updateNote( userId, failed, { mapping: 'failed', mapping_error: 'Bad output' } )
+
+    expect( queueMappingForSubject( userId, subjectId ) ).toBe( 3 )
+
+    for( const id of [ plain, pinned, failed ] ) {
+      expect( findNote( userId, id ) ).toMatchObject( { mapping: 'queued', mapping_error: null } )
+    }
+
+    expect( findNote( userId, pinned )?.mapping_pinned ).toBe( true )
+  } )
+
+  it( 'leaves notes that are not enrolled, are missing, or belong to another subject', () => {
+    const subjectId = addSubject( userId )
+    const unenrolled = addNote( userId, subjectId, { enrolled: false } )
+    const missing = addNote( userId, subjectId, { missingAt: '2026-10-02T00:00:00.000Z' } )
+    const other = addNote( userId, addSubject( userId, 'Learning/Other' ) )
+
+    expect( queueMappingForSubject( userId, subjectId ) ).toBe( 0 )
+
+    for( const id of [ unenrolled, missing, other ] ) {
+      expect( findNote( userId, id )?.mapping ).toBe( 'idle' )
+    }
+  } )
+
+  it( 'never touches another user\'s notes', () => {
+    const subjectId = addSubject( userId )
+    const note = addNote( userId, subjectId )
+    const other = createTestUser( { role: 'member', modules: [ 'melete' ] } ).id
+
+    expect( queueMappingForSubject( other, subjectId ) ).toBe( 0 )
+    expect( findNote( userId, note )?.mapping ).toBe( 'idle' )
   } )
 } )
