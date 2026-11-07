@@ -356,7 +356,13 @@ Rotating `token-encryption-key` signs everyone out and breaks every stored Gmail
 
 ## Restoring the database
 
-Litestream keeps the database in the bucket, a second at a time, with a week of history. A restore loses what had not reached the bucket yet, so expect to lose **seconds to a minute** of writes. There are three procedures: a check that costs nothing and touches nothing, the disaster case, and a restore to an earlier moment. Each of the first two ends in a record table; fill in a row every time you run it.
+There is no backup button. [Litestream](https://litestream.io) copies the database to the bucket within about a second of every change, takes a snapshot every day and keeps seven days of history (ADR 0076). A restore loses what had not reached the bucket yet, so expect to lose **seconds to a minute** of writes.
+
+- **The replica holds** everything in `atlas.db`: jobs and drafts, prompt profiles, settings, feeds, Gmail sources and the encrypted Gmail tokens, usage and cost records, Melete questions and reviews, and users. It is useless without `TOKEN_ENCRYPTION_KEY`, which lives in Secret Manager and never in the bucket.
+- **The vaults are not in the bucket.** Obsidian Sync holds them.
+- **Before an upgrade changes the database's structure,** the app copies the file to `pre-migration/` next to it (`/srv/atlas/data/pre-migration/` on the VM); [Rolling back](#rolling-back) uses those copies.
+- **On the Mac,** Docker runs without Litestream, so there is no replica. The database is in the `atlas_data` Docker volume; copy it out yourself if you care about it.
+- **Check that replication works** in Settings → Sources, on the **Replication** row (admin only): it fails when Litestream reports sync errors, and shows the time of the last sync it saw. There are three procedures: a check that costs nothing and touches nothing, the disaster case, and a restore to an earlier moment. Each of the first two ends in a record table; fill in a row every time you run it.
 
 ### Scratch check
 Any time. Production is untouched: the copy goes to a temporary folder, is read, and is deleted. On the VM:

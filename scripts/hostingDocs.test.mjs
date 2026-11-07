@@ -46,10 +46,19 @@ test( 'the user docs are rewritten for the VM', () => {
   assert.match( phone, /\bVM\b/ )
   assert.doesNotMatch( phone, /Mnemosyne|keep the Mac awake|Prevent automatic sleeping/i )
 
-  const backups = read( 'docs/backups.md' )
-  assert.match( backups, /deploy\.md#/ )
-  assert.ok( backups.split( '\n' ).length < 25, 'backups.md is only a pointer now' )
-  assert.doesNotMatch( backups, /Mnemosyne|BACKUP_HOST_PATH/ )
+  // docs/backups.md was folded into the runbook's "Restoring the database" (1.0 cleanup)
+  assert.ok( !existsSync( join( root, 'docs/backups.md' ) ), 'docs/backups.md is gone; the runbook covers it' )
+  const deploy = read( 'docs/deploy.md' )
+  const restore = deploy.slice( deploy.indexOf( '\n## Restoring the database' ), deploy.indexOf( '\n### Scratch check' ) )
+  for( const [ topic, pattern ] of Object.entries( {
+    'what is in the replica': /TOKEN_ENCRYPTION_KEY/,
+    'the pre-migration copies': /pre-migration\//,
+    'the Mac has no replica': /atlas_data/,
+    'the Replication row': /Replication/,
+  } ) ) assert.match( restore, pattern, `Restoring the database no longer says: ${ topic }` )
+  for( const file of [ 'README.md', 'docs/README.md', 'docs/deploy.md', 'docs/phone-access.md', 'docs/google-cloud-setup.md' ] ) {
+    assert.doesNotMatch( read( file ), /\(((\.\.\/)?docs\/)?backups\.md\)/, `${ file } links the deleted backups.md` )
+  }
 } )
 
 test( 'the root CLAUDE.md describes the hosting and the deploy folder', () => {

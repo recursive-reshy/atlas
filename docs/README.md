@@ -2,7 +2,7 @@
 
 ## Plans
 
-Each version has its own folder. The current version is 1.0.0 (the planning docs are still in `v0.11.0/` until v1.1 starts). User guides: [deploy.md](deploy.md) (hosting on a VM), [backups.md](backups.md), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md).
+Each version has its own folder. The current version is 1.0.0 (the planning docs are still in `v0.11.0/` until v1.1 starts). User guides: [deploy.md](deploy.md) (hosting on a VM, including backups and restore), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md).
 
 - **v1.0.0:** the same code as 0.11.0 with the version raised and no migration; the promise is [ADR 0084](decisions/0084-stability-promise-from-1-0.md), the checklist is [1.0 readiness](v1-readiness.md)
 - **v0.11.0 (done):** [PRD](v0.11.0/prd.md) · [TRD](v0.11.0/trd.md) · [Tasks](v0.11.0/tasks.md) · [Release notes](v0.11.0/release-notes.md) · checkpoint plans in `v0.11.0/plans/` · [1.0 readiness](v1-readiness.md)
