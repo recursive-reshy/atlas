@@ -47,7 +47,9 @@ import {
   getDefaultModel,
   getFeedCheckInterval,
   getLearningRoot,
+  getFinalCardSeconds,
   getMasteryDays,
+  getSessionGapMinutes,
   getLockedInstructions,
   getSettings,
   getSettingsResponse,
@@ -115,6 +117,8 @@ describe( 'getSettings', () => {
       melete_map_model: 'claude-sonnet-5-5',
       melete_suggest_model: 'claude-sonnet-5-5',
       melete_mastery_days: 21,
+      melete_session_gap_minutes: 5,
+      melete_final_card_seconds: 30,
       melete_question_profile_id: profileIdOf( 'melete_questions' ),
       melete_grading_profile_id: profileIdOf( 'melete_grading' ),
     } )
@@ -527,6 +531,8 @@ describe( 'updateSettings', () => {
       melete_map_model: 'claude-sonnet-5-5',
       melete_suggest_model: 'claude-sonnet-5-5',
       melete_mastery_days: 21,
+      melete_session_gap_minutes: 5,
+      melete_final_card_seconds: 30,
       melete_question_profile_id: profileIdOf( 'melete_questions' ),
       melete_grading_profile_id: profileIdOf( 'melete_grading' ),
     } )
@@ -705,3 +711,49 @@ describe( 'the mastery days', () => {
   } )
 } )
 
+
+describe( 'the study time settings', () => {
+  it( 'default to a 5 minute gap and 30 seconds for the final card', async () => {
+    const settings = await getSettings( userId )
+
+    expect( settings.melete_session_gap_minutes ).toBe( 5 )
+    expect( settings.melete_final_card_seconds ).toBe( 30 )
+    expect( getSessionGapMinutes( userId ) ).toBe( 5 )
+    expect( getFinalCardSeconds( userId ) ).toBe( 30 )
+  } )
+
+  it( 'read the stored values, and fall back to the defaults for bad ones', () => {
+    setSetting( userId, 'melete_session_gap_minutes', 10 )
+    setSetting( userId, 'melete_final_card_seconds', 0 )
+
+    expect( getSessionGapMinutes( userId ) ).toBe( 10 )
+    expect( getFinalCardSeconds( userId ) ).toBe( 0 )
+
+    setSetting( userId, 'melete_session_gap_minutes', 0 )
+    setSetting( userId, 'melete_final_card_seconds', 500 )
+
+    expect( getSessionGapMinutes( userId ) ).toBe( 5 )
+    expect( getFinalCardSeconds( userId ) ).toBe( 30 )
+  } )
+
+  it( 'are saved, and one user\'s own', async () => {
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+    const settings = await updateSettings( userId, true, {
+      melete_session_gap_minutes: 12,
+      melete_final_card_seconds: 45,
+    } )
+
+    expect( settings.melete_session_gap_minutes ).toBe( 12 )
+    expect( settings.melete_final_card_seconds ).toBe( 45 )
+    expect( getSetting( userId, 'melete_session_gap_minutes' ) ).toBe( 12 )
+    expect( getSessionGapMinutes( other ) ).toBe( 5 )
+  } )
+
+  it( 'are refused whole, as a 404, for a user without Melete', async () => {
+    const transcriber = createTestUser( { modules: [ 'transcriber' ] } ).id
+
+    await expect( updateSettings( transcriber, false, { melete_final_card_seconds: 10 } ) )
+      .rejects.toThrow( NotFoundError )
+    expect( getSetting( transcriber, 'melete_final_card_seconds' ) ).toBeUndefined()
+  } )
+} )

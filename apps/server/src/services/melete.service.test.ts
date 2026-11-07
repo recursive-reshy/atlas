@@ -393,7 +393,7 @@ describe( 'getToday', () => {
     expect( today.totals ).toEqual( { due: 1, new_remaining: 1, learning_soon: 0 } )
   } )
 
-  it( 'counts what is due before the study day ends as due today, and no time yet', async () => {
+  it( 'counts what is due before the study day ends as due today', async () => {
     const generics = noteId( GENERICS )
 
     await setSubjectEnrolled( userId, subjectId( 'TypeScript' ), true, at( 1 ) )
@@ -421,6 +421,30 @@ describe( 'getToday', () => {
 
     expect( typescript ).toMatchObject( { due_count: 1, due_today: 3, seconds_this_week: 0 } )
     expect( rust ).toMatchObject( { due_count: 0, due_today: 0, seconds_this_week: 0 } )
+  } )
+
+  it( 'adds up the subject\'s time in the current Monday to Sunday study week', async () => {
+    const entry = ( subject: string, source: string, day: string, seconds: number ): void => {
+      getDatabase().prepare( `INSERT INTO time_entries
+        ( id, user_id, source, subject_id, day, seconds, created_at, updated_at )
+        VALUES ( ?, ?, ?, ?, ?, ?, 'x', 'x' )` )
+        .run( crypto.randomUUID(), userId, source, subject, day, seconds )
+    }
+    const typescript = subjectId( 'TypeScript' )
+
+    // T0 is Thursday 2026-10-22; the week runs 10-19 to 10-25
+    entry( typescript, 'measured', '2026-10-18', 100 )
+    entry( typescript, 'measured', '2026-10-19', 200 )
+    entry( typescript, 'logged', '2026-10-22', 1000 )
+    entry( typescript, 'measured', '2026-10-25', 400 )
+    entry( typescript, 'measured', '2026-10-26', 800 )
+    entry( subjectId( 'Rust' ), 'measured', '2026-10-20', 50 )
+
+    const { subjects } = await getToday( userId, at( 2 ) )
+
+    expect( subjects.find( ( { name } ) => name === 'TypeScript' )?.seconds_this_week )
+      .toBe( 1600 )
+    expect( subjects.find( ( { name } ) => name === 'Rust' )?.seconds_this_week ).toBe( 50 )
   } )
 
   it( 'takes the day\'s new questions already reviewed off what is remaining', async () => {

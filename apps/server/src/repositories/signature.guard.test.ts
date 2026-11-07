@@ -31,6 +31,7 @@ import * as themisAreas from './themisAreas.repository.js'
 import * as themisCheckins from './themisCheckins.repository.js'
 import * as themisGoals from './themisGoals.repository.js'
 import * as themisMetrics from './themisMetrics.repository.js'
+import * as timeEntries from './timeEntries.repository.js'
 import * as transcriptionRuns from './transcriptionRuns.repository.js'
 import * as userModules from './userModules.repository.js'
 
@@ -69,6 +70,7 @@ const DATA_REPOSITORIES: Record< string, Record< string, unknown > > = {
   themisCheckins,
   themisGoals,
   themisMetrics,
+  timeEntries,
   transcriptionRuns,
   userModules,
 }

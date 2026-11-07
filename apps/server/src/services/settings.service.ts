@@ -2,7 +2,9 @@
 import { z } from 'zod'
 // Shared
 import {
+  DEFAULT_MELETE_FINAL_CARD_SECONDS,
   DEFAULT_MELETE_MASTERY_DAYS,
+  DEFAULT_MELETE_SESSION_GAP_MINUTES,
   FeedCheckInterval,
   GetSettingsResponse,
   MeleteReviewMode,
@@ -121,6 +123,21 @@ export const getMasteryDays = ( userId: string ): number => {
     .parse( getSetting( userId, 'melete_mastery_days' ) )
 }
 
+const SESSION_GAP_RANGE = z.int().min( 1 ).max( 30 )
+const FINAL_CARD_RANGE = z.int().min( 0 ).max( 120 )
+
+// Answers closer than this are one measured session (ADR 0091)
+export const getSessionGapMinutes = ( userId: string ): number => {
+  return SESSION_GAP_RANGE.catch( DEFAULT_MELETE_SESSION_GAP_MINUTES )
+    .parse( getSetting( userId, 'melete_session_gap_minutes' ) )
+}
+
+// What the last answer of a session is credited for
+export const getFinalCardSeconds = ( userId: string ): number => {
+  return FINAL_CARD_RANGE.catch( DEFAULT_MELETE_FINAL_CARD_SECONDS )
+    .parse( getSetting( userId, 'melete_final_card_seconds' ) )
+}
+
 export const getLearningRoot = ( userId: string ): string | null => {
   return z.string().min( 1 ).nullable().catch( null )
     .parse( getSetting( userId, 'melete_learning_root' ) )
@@ -154,6 +171,8 @@ export const getSettings = async ( userId: string ): Promise< Settings > => {
     melete_map_model: await resolveMeleteMapModel( userId ),
     melete_suggest_model: await resolveMeleteSuggestModel( userId ),
     melete_mastery_days: getMasteryDays( userId ),
+    melete_session_gap_minutes: getSessionGapMinutes( userId ),
+    melete_final_card_seconds: getFinalCardSeconds( userId ),
     melete_question_profile_id: meleteProfileId( userId, MELETE_QUESTIONS_SEED_KEY ),
     melete_grading_profile_id: meleteProfileId( userId, MELETE_GRADING_SEED_KEY ),
   }
@@ -219,6 +238,8 @@ const MODULE_KEYS: Record< ModuleId, ( keyof UpdateSettingsBody )[] > = {
     'melete_map_model',
     'melete_suggest_model',
     'melete_mastery_days',
+    'melete_session_gap_minutes',
+    'melete_final_card_seconds',
   ],
   themis: [],
 }
@@ -328,6 +349,14 @@ export const updateSettings = async (
 
   if( body.melete_mastery_days !== undefined ) {
     setSetting( userId, 'melete_mastery_days', body.melete_mastery_days )
+  }
+
+  if( body.melete_session_gap_minutes !== undefined ) {
+    setSetting( userId, 'melete_session_gap_minutes', body.melete_session_gap_minutes )
+  }
+
+  if( body.melete_final_card_seconds !== undefined ) {
+    setSetting( userId, 'melete_final_card_seconds', body.melete_final_card_seconds )
   }
 
   if( body.melete_learning_root !== undefined ) {

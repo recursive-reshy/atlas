@@ -96,6 +96,8 @@ describe( 'GET /api/settings', () => {
         melete_map_model: 'claude-sonnet-5-5',
         melete_suggest_model: 'claude-sonnet-5-5',
         melete_mastery_days: 21,
+        melete_session_gap_minutes: 5,
+        melete_final_card_seconds: 30,
         melete_question_profile_id: findProfileBySeedKey( userId, 'melete_questions' )?.id,
         melete_grading_profile_id: findProfileBySeedKey( userId, 'melete_grading' )?.id,
       },

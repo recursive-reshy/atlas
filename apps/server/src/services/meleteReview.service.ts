@@ -64,6 +64,7 @@ import {
   toMeleteQuestion,
 } from './melete.service.js'
 import { scanLearningRoot } from './meleteScan.service.js'
+import { recordAnswerTime } from './time.service.js'
 import { resolveMeletePrompt } from './prompts.service.js'
 import { getLearningRoot, resolveMeleteGradingModel } from './settings.service.js'
 import { vaultDirFor } from './vault.service.js'
@@ -281,6 +282,9 @@ export const recordReview = async (
     requireGradeRun( userId, body.grade_run_id, questionId )
   }
 
+  // requireReviewable has just found the note, so it is there
+  const subjectId = findNote( userId, question.note_id )?.subject_id ?? ''
+
   getDatabase().transaction( () => {
     const before = CardRow.parse( question )
 
@@ -300,6 +304,8 @@ export const recordReview = async (
       was_new: before.fsrs_state === 'new',
       before_state: JSON.stringify( before ),
     } )
+
+    recordAnswerTime( userId, subjectId, now )
 
     const mode = MeleteReviewMode.catch( 'typed' )
       .parse( getSetting( userId, 'melete_review_mode' ) )

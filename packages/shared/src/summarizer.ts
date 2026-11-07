@@ -30,6 +30,13 @@ export type FeedCheckInterval = z.infer< typeof FeedCheckInterval >
 export const DEFAULT_MELETE_MASTERY_DAYS = 21
 const MasteryDays = z.int().min( 7 ).max( 90 )
 
+// Measured study time (ADR 0091): answers closer than the gap are one session, and the last
+// answer of a session is credited some seconds for the time spent on it
+export const DEFAULT_MELETE_SESSION_GAP_MINUTES = 5
+export const DEFAULT_MELETE_FINAL_CARD_SECONDS = 30
+const SessionGapMinutes = z.int().min( 1 ).max( 30 )
+const FinalCardSeconds = z.int().min( 0 ).max( 120 )
+
 const LearningRoot = z.string().refine(
   ( path ) => path.split( '/' ).every( isValidFolderName ),
   { message: 'Invalid folder path' },
@@ -49,6 +56,8 @@ export const UserSettingKey = z.enum( [
   'melete_map_model',
   'melete_suggest_model',
   'melete_mastery_days',
+  'melete_session_gap_minutes',
+  'melete_final_card_seconds',
 ] )
 export type UserSettingKey = z.infer< typeof UserSettingKey >
 
@@ -72,6 +81,8 @@ export const Settings = z.object( {
   melete_suggest_model: z.string().min( 1 ),
   // Days of FSRS stability that count a question as known (ADR 0090)
   melete_mastery_days: MasteryDays,
+  melete_session_gap_minutes: SessionGapMinutes,
+  melete_final_card_seconds: FinalCardSeconds,
   melete_question_profile_id: z.uuid(),
   melete_grading_profile_id: z.uuid(),
 } )
@@ -111,6 +122,8 @@ export const UpdateSettingsBody = z.object( {
   melete_map_model: z.string().min( 1 ).optional(),
   melete_suggest_model: z.string().min( 1 ).optional(),
   melete_mastery_days: MasteryDays.optional(),
+  melete_session_gap_minutes: SessionGapMinutes.optional(),
+  melete_final_card_seconds: FinalCardSeconds.optional(),
 } ).refine(
   ( body ) => Object.values( body ).some( ( value ) => value !== undefined ),
   {
@@ -119,7 +132,8 @@ export const UpdateSettingsBody = z.object( {
       'feed_check_interval_minutes, linking_enabled, linking_model,',
       'melete_learning_root, melete_question_model, melete_grading_model,',
       'melete_review_mode, melete_syllabus_model, melete_map_model',
-      'melete_suggest_model or melete_mastery_days',
+      'melete_suggest_model, melete_mastery_days, melete_session_gap_minutes',
+      'or melete_final_card_seconds',
     ].join( ' ' ),
   },
 )

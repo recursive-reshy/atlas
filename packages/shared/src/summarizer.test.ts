@@ -90,6 +90,8 @@ describe( 'UserSettingKey and AppSettingKey', () => {
       'melete_map_model',
       'melete_suggest_model',
       'melete_mastery_days',
+      'melete_session_gap_minutes',
+      'melete_final_card_seconds',
     ] )
     expect( AppSettingKey.options ).toEqual( [ 'feed_check_interval_minutes' ] )
   } )
@@ -117,6 +119,8 @@ describe( 'Settings', () => {
     melete_map_model: 'h',
     melete_suggest_model: 's',
     melete_mastery_days: 21,
+    melete_session_gap_minutes: 5,
+    melete_final_card_seconds: 30,
     melete_question_profile_id: profileId,
     melete_grading_profile_id: profileId,
   }
@@ -171,6 +175,8 @@ describe( 'Settings', () => {
     'melete_map_model',
     'melete_suggest_model',
     'melete_mastery_days',
+    'melete_session_gap_minutes',
+    'melete_final_card_seconds',
     'melete_question_profile_id',
     'melete_grading_profile_id',
   ] )( 'rejects a missing %s', ( key ) => {
@@ -198,6 +204,16 @@ describe( 'Settings', () => {
     expect( Settings.safeParse( { ...settings, melete_mastery_days: 6 } ).success ).toBe( false )
     expect( Settings.safeParse( { ...settings, melete_mastery_days: 91 } ).success ).toBe( false )
     expect( Settings.safeParse( { ...settings, melete_mastery_days: 20.5 } ).success ).toBe( false )
+    expect( Settings.safeParse( { ...settings, melete_session_gap_minutes: 0 } ).success )
+      .toBe( false )
+    expect( Settings.safeParse( { ...settings, melete_session_gap_minutes: 31 } ).success )
+      .toBe( false )
+    expect( Settings.safeParse( { ...settings, melete_session_gap_minutes: 2.5 } ).success )
+      .toBe( false )
+    expect( Settings.safeParse( { ...settings, melete_final_card_seconds: -1 } ).success )
+      .toBe( false )
+    expect( Settings.safeParse( { ...settings, melete_final_card_seconds: 121 } ).success )
+      .toBe( false )
     expect( Settings.safeParse( { ...settings, melete_question_profile_id: 'x' } ).success )
       .toBe( false )
     expect( Settings.safeParse( { ...settings, melete_grading_profile_id: 'x' } ).success )
@@ -296,6 +312,14 @@ describe( 'UpdateSettingsBody', () => {
     expect( UpdateSettingsBody.safeParse( { melete_review_mode: 'quick' } ).success ).toBe( true )
     expect( UpdateSettingsBody.safeParse( { melete_mastery_days: 7 } ).success ).toBe( true )
     expect( UpdateSettingsBody.safeParse( { melete_mastery_days: 90 } ).success ).toBe( true )
+    expect( UpdateSettingsBody.safeParse( { melete_session_gap_minutes: 1 } ).success )
+      .toBe( true )
+    expect( UpdateSettingsBody.safeParse( { melete_session_gap_minutes: 30 } ).success )
+      .toBe( true )
+    expect( UpdateSettingsBody.safeParse( { melete_final_card_seconds: 0 } ).success )
+      .toBe( true )
+    expect( UpdateSettingsBody.safeParse( { melete_final_card_seconds: 120 } ).success )
+      .toBe( true )
   } )
 
   it( 'rejects a bad learning root, empty Melete models and an unknown review mode', () => {
@@ -313,6 +337,14 @@ describe( 'UpdateSettingsBody', () => {
     expect( UpdateSettingsBody.safeParse( { melete_mastery_days: 6 } ).success ).toBe( false )
     expect( UpdateSettingsBody.safeParse( { melete_mastery_days: 91 } ).success ).toBe( false )
     expect( UpdateSettingsBody.safeParse( { melete_mastery_days: 21.5 } ).success ).toBe( false )
+    expect( UpdateSettingsBody.safeParse( { melete_session_gap_minutes: 0 } ).success )
+      .toBe( false )
+    expect( UpdateSettingsBody.safeParse( { melete_session_gap_minutes: 31 } ).success )
+      .toBe( false )
+    expect( UpdateSettingsBody.safeParse( { melete_final_card_seconds: -1 } ).success )
+      .toBe( false )
+    expect( UpdateSettingsBody.safeParse( { melete_final_card_seconds: 121 } ).success )
+      .toBe( false )
   } )
 
   it( 'does not accept the Melete profile ids', () => {

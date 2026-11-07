@@ -867,6 +867,109 @@ describe( 'recordReview', () => {
   } )
 } )
 
+describe( 'measured time from recordReview (ADR 0091)', () => {
+  const exact = createScheduler( { fuzz: false } )
+  const body = { rating: 'good', mode: 'quick' } as const
+
+  const sessions = () => getDatabase().prepare( `SELECT subject_id, source, day, started_at,
+    ended_at, seconds FROM time_entries ORDER BY started_at, rowid` ).all()
+
+  const review = ( id: string, seconds: number ) => recordReview(
+    userId,
+    id,
+    body,
+    at( seconds ),
+    exact,
+  )
+
+  it( 'starts a measured session for the question\'s subject with the final card', async () => {
+    await review( reviewable(), 0 )
+
+    expect( sessions() ).toEqual( [ {
+      subject_id: subjectId( 'TypeScript' ),
+      source: 'measured',
+      day: '2026-10-22',
+      started_at: iso( 0 ),
+      ended_at: iso( 0 ),
+      seconds: 30,
+    } ] )
+  } )
+
+  it( 'extends the session for an answer within the gap', async () => {
+    await review( reviewable(), 0 )
+    await review( reviewable( { position: 2 } ), 120 )
+
+    expect( sessions() ).toEqual( [ expect.objectContaining( {
+      started_at: iso( 0 ),
+      ended_at: iso( 120 ),
+      seconds: 150,
+    } ) ] )
+  } )
+
+  it( 'starts another session after a gap of more than five minutes', async () => {
+    await review( reviewable(), 0 )
+    await review( reviewable( { position: 2 } ), 360 )
+
+    expect( sessions() ).toEqual( [
+      expect.objectContaining( { started_at: iso( 0 ), seconds: 30 } ),
+      expect.objectContaining( { started_at: iso( 360 ), seconds: 30 } ),
+    ] )
+  } )
+
+  it( 'keeps a session for each subject', async () => {
+    await review( reviewable(), 0 )
+    await review(
+      addQuestion( userId, noteId( OWNERSHIP ), { fsrsState: 'review', due: iso( -60 ) } ),
+      30,
+    )
+
+    expect( sessions().map( ( row ) => ( row as { subject_id: string } ).subject_id ).sort() )
+      .toEqual( [ subjectId( 'TypeScript' ), subjectId( 'Rust' ) ].sort() )
+  } )
+
+  it( 'follows the user\'s gap and final card settings', async () => {
+    setSetting( userId, 'melete_session_gap_minutes', 1 )
+    setSetting( userId, 'melete_final_card_seconds', 10 )
+    await review( reviewable(), 0 )
+    await review( reviewable( { position: 2 } ), 90 )
+    await review( reviewable( { position: 3 } ), 120 )
+
+    expect( sessions() ).toEqual( [
+      expect.objectContaining( { started_at: iso( 0 ), seconds: 10 } ),
+      expect.objectContaining( { started_at: iso( 90 ), ended_at: iso( 120 ), seconds: 40 } ),
+    ] )
+  } )
+
+  it( 'is one user\'s own', async () => {
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+    await review( reviewable(), 0 )
+
+    expect( getDatabase().prepare( 'SELECT COUNT(*) AS count FROM time_entries WHERE user_id = ?' )
+      .get( other ) ).toEqual( { count: 0 } )
+  } )
+
+  it( 'writes no time when the review is refused or cannot be stored', async () => {
+    const id = reviewable()
+
+    await expect( recordReview( userId, crypto.randomUUID(), body, at( 0 ), exact ) )
+      .rejects.toThrow( NotFoundError )
+    getDatabase().exec( `CREATE TRIGGER refuse_review BEFORE INSERT ON melete_reviews
+      BEGIN SELECT RAISE( ABORT, 'refused' ); END` )
+    await expect( recordReview( userId, id, body, at( 0 ), exact ) ).rejects.toThrow( 'refused' )
+
+    expect( sessions() ).toEqual( [] )
+  } )
+
+  it( 'is not recorded by grading an answer', async () => {
+    grade.mockResolvedValue( { output: graded, usage } )
+
+    await gradeAnswer( userId, reviewable(), { answer: 'something' }, at( 0 ) )
+
+    expect( sessions() ).toEqual( [] )
+  } )
+} )
+
 describe( 'reviews for two users', () => {
   const exact = createScheduler( { fuzz: false } )
 

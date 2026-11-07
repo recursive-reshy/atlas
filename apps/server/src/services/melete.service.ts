@@ -19,6 +19,8 @@ import { lastSkipped } from '../melete/scanOutcome.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
 import { listConceptUsage } from '../repositories/meleteConcepts.repository.js'
+import { sumSubjectSeconds } from '../repositories/timeEntries.repository.js'
+import { periodRange, studyDay } from '../themis/periods.js'
 import { findGoal } from '../repositories/themisGoals.repository.js'
 import { listNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
 import {
@@ -164,6 +166,13 @@ const subjectNumbers = (
   return totals === null ? none : { ...totals, concept_count: stats.length }
 }
 
+// Measured and logged time on the study days of the current Monday to Sunday week (ADR 0091)
+const secondsThisWeek = ( userId: string, subjectId: string, now: Date ): number => {
+  const { from, to } = periodRange( 'week', studyDay( now ) )
+
+  return sumSubjectSeconds( userId, subjectId, from, to )
+}
+
 export const subjectName = ( folder: string ): string => folder.split( '/' ).at( -1 ) ?? folder
 
 export const toMeleteSubject = (
@@ -195,8 +204,7 @@ export const toMeleteSubject = (
     syllabus_error: subject.syllabus_error,
     ...subjectNumbers( userId, subject ),
     due_today: dueToday( userId, subject.id, now ),
-    // Measured and logged time arrive in 1.1 task 7.1
-    seconds_this_week: 0,
+    seconds_this_week: secondsThisWeek( userId, subject.id, now ),
     goal_id: subject.goal_id,
   }
 }
