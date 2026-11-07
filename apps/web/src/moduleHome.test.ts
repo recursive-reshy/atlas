@@ -14,7 +14,7 @@ describe( 'homeFor', () => {
     expect( homeFor( [ 'themis' ] ) ).toBe( '/themis' )
   } )
 
-  it( 'keeps Mnemosyne first for a user without Themis', () => {
+  it( 'keeps the Transcriber first for a user without Themis', () => {
     expect( homeFor( [ 'transcriber', 'melete' ] ) ).toBe( '/' )
     expect( homeFor( [ 'transcriber' ] ) ).toBe( '/' )
   } )
