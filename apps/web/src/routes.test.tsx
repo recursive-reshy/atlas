@@ -13,6 +13,8 @@ import { renderWithRouter } from '#src/test-support/renderWithRouter'
 
 vi.mock( '#src/components/MeleteToday', () => ( { MeleteToday: () => <p>melete today</p> } ) )
 vi.mock( '#src/components/HomePage', () => ( { HomePage: () => <p>home page</p> } ) )
+vi.mock( '#src/components/ThemisHome', () => ( { ThemisHome: () => <p>themis home</p> } ) )
+vi.mock( '#src/components/ThemisGoal', () => ( { ThemisGoal: () => <p>themis goal</p> } ) )
 vi.mock( '#src/components/AppShell', () => ( {
   AppShell: ( { children }: { children: unknown } ) => <>{ children as never }</>,
 } ) )
@@ -60,5 +62,29 @@ describe( 'routes and the gate', () => {
 
     expect( location().pathname ).toBe( '/' )
     expect( screen.getByText( 'home page' ) ).toBeInTheDocument()
+  } )
+
+  it( 'lands a user with Themis on it from the root', () => {
+    const me = memberFixture( { modules: [ 'transcriber', 'themis' ] } )
+    const { location } = renderWithRouter( '/nowhere', { me } )
+
+    expect( location().pathname ).toBe( '/themis' )
+    expect( screen.getByText( 'themis home' ) ).toBeInTheDocument()
+  } )
+
+  it( 'serves a goal page to a user with Themis', () => {
+    const me = memberFixture( { modules: [ 'themis' ] } )
+    const { location } = renderWithRouter( '/themis/goals/g1', { me } )
+
+    expect( location().pathname ).toBe( '/themis/goals/g1' )
+    expect( screen.getByText( 'themis goal' ) ).toBeInTheDocument()
+  } )
+
+  it( 'keeps a member without Themis off it', () => {
+    const me = memberFixture( { modules: [ 'transcriber' ] } )
+    const { location } = renderWithRouter( '/themis', { me } )
+
+    expect( location().pathname ).toBe( '/' )
+    expect( screen.queryByText( 'themis home' ) ).not.toBeInTheDocument()
   } )
 } )

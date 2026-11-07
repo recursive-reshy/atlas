@@ -1,6 +1,7 @@
 // React
 import type { ReactElement } from 'react'
 // Packages
+import ThemisIcon from '@mui/icons-material/BalanceOutlined'
 import MeleteIcon from '@mui/icons-material/SchoolOutlined'
 import SettingsIcon from '@mui/icons-material/Settings'
 import TranscriberIcon from '@mui/icons-material/GraphicEq'
@@ -20,7 +21,17 @@ import { SignOutItem } from '../SignOutItem'
 const DRAWER_WIDTH = 240
 const MINI_DRAWER_WIDTH = 64
 
+// In drawer order, matching moduleHome.ts.
 const NAV_ITEMS = [
+  {
+    module: 'themis',
+    label: 'Themis',
+    to: '/themis',
+    icon: <ThemisIcon />,
+    isCurrent: ( pathname: string ): boolean => (
+      pathname === '/themis' || pathname.startsWith( '/themis/' )
+    ),
+  },
   {
     module: 'transcriber',
     label: 'Mnemosyne',

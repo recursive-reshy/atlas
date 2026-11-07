@@ -137,6 +137,64 @@ describe( 'NavDrawer, Melete item', () => {
   } )
 } )
 
+describe( 'NavDrawer, Themis item', () => {
+  const withThemis = (): void => {
+    signedInAs( meFixture( { modules: [ 'transcriber', 'melete', 'themis' ] } ) )
+  }
+
+  it( 'is first, before Mnemosyne and Melete, and links to /themis', () => {
+    withThemis()
+    renderWithClient( <NavDrawer { ...defaults } /> )
+
+    const themis = screen.getByRole( 'link', { name: 'Themis' } )
+    const transcriber = screen.getByRole( 'link', { name: 'Mnemosyne' } )
+    const melete = screen.getByRole( 'link', { name: 'Melete' } )
+
+    expect( themis ).toHaveAttribute( 'href', '/themis' )
+    expect( themis.compareDocumentPosition( transcriber ) )
+      .toBe( Node.DOCUMENT_POSITION_FOLLOWING )
+    expect( transcriber.compareDocumentPosition( melete ) )
+      .toBe( Node.DOCUMENT_POSITION_FOLLOWING )
+  } )
+
+  it.each( [ '/themis', '/themis/goals/3f2b8c1e' ] )(
+    'is current on %s, and the others are not',
+    ( route ) => {
+      withThemis()
+      renderWithClient( <NavDrawer { ...defaults } />, { route } )
+
+      expect( screen.getByRole( 'link', { name: 'Themis' } ) )
+        .toHaveAttribute( 'aria-current', 'page' )
+      expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) )
+        .not.toHaveAttribute( 'aria-current' )
+    },
+  )
+
+  it( 'is not current elsewhere', () => {
+    withThemis()
+    renderWithClient( <NavDrawer { ...defaults } />, { route: '/melete' } )
+
+    expect( screen.getByRole( 'link', { name: 'Themis' } ) ).not.toHaveAttribute( 'aria-current' )
+  } )
+
+  it( 'is hidden from a user without the module', () => {
+    renderWithClient( <NavDrawer { ...defaults } /> )
+
+    expect( screen.queryByRole( 'link', { name: 'Themis' } ) ).not.toBeInTheDocument()
+  } )
+
+  it( 'shows a tooltip with the name on hover when collapsed', async () => {
+    const user = userEvent.setup()
+
+    withThemis()
+    renderWithClient( <NavDrawer { ...defaults } isExpanded={ false } /> )
+
+    await user.hover( screen.getByRole( 'link', { name: 'Themis' } ) )
+
+    expect( await screen.findByRole( 'tooltip' ) ).toHaveTextContent( 'Themis' )
+  } )
+} )
+
 describe( 'NavDrawer, Settings item', () => {
   it( 'links to the settings page', () => {
     renderWithClient( <NavDrawer { ...defaults } /> )
