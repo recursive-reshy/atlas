@@ -5,6 +5,7 @@ import { z } from 'zod'
 // Shared
 import {
   ApproveMeleteSyllabusResponse,
+  RemapMeleteSyllabusResponse,
   EnrollSubjectBody,
   GetMeleteNoteResponse,
   GetMeleteSubjectResponse,
@@ -39,6 +40,7 @@ import {
 import { getNextReview, gradeAnswer, recordReview } from '../services/meleteReview.service.js'
 import {
   approveSyllabus,
+  remapSyllabus,
   getSyllabus,
   requestSyllabusDraft,
   saveSyllabus,
@@ -107,6 +109,13 @@ export const postApproveSyllabus = (
   const subject = approveSyllabus( currentUser( req ).id, Id.parse( req.params.id ) )
 
   res.status( 200 ).json( { subject } )
+}
+
+export const postRemapSyllabus = (
+  req: Request,
+  res: Response< RemapMeleteSyllabusResponse >,
+): void => {
+  res.status( 202 ).json( remapSyllabus( currentUser( req ).id, Id.parse( req.params.id ) ) )
 }
 
 export const postSubjectEnrollment = async (

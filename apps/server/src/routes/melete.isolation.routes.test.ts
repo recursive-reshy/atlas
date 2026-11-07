@@ -88,6 +88,7 @@ describe( 'the Melete routes are per user', () => {
       [ 'post', `/api/melete/subjects/${ s }/enrollment`, { enrolled: true } ],
       [ 'get', `/api/melete/notes/${ n }` ],
       [ 'patch', `/api/melete/notes/${ n }`, { enrolled: true } ],
+      [ 'post', `/api/melete/subjects/${ s }/syllabus/remap`, {} ],
       [ 'post', `/api/melete/notes/${ n }/regenerate`, {} ],
       [ 'post', `/api/melete/notes/${ n }/retry`, {} ],
       [ 'post', `/api/melete/questions/${ q }/drop`, {} ],
@@ -113,7 +114,7 @@ describe( 'the Melete routes are per user', () => {
 
     expect( refused.map( ( { status } ) => status ) )
       .toEqual( missing.map( ( { status } ) => status ) )
-    expect( refused.map( ( { status } ) => status ) ).toEqual( Array( 11 ).fill( 404 ) )
+    expect( refused.map( ( { status } ) => status ) ).toEqual( Array( 12 ).fill( 404 ) )
     expect( refused.map( ( { body } ) => body ) ).toEqual( missing.map( ( { body } ) => body ) )
     expect( findQuestion( owner.id, question )?.state ).toBe( 'active' )
   } )

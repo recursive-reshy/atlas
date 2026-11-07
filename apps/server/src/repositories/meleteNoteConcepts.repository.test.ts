@@ -8,7 +8,12 @@ import {
 // Repositories
 import { insertConcept } from './meleteConcepts.repository.js'
 import { insertSection } from './meleteSections.repository.js'
-import { listNoteConcepts, setNoteConcepts } from './meleteNoteConcepts.repository.js'
+import {
+  listNoteConcepts,
+  listNoteIdsForConcepts,
+  noteIdsWithoutConcepts,
+  setNoteConcepts,
+} from './meleteNoteConcepts.repository.js'
 // Test support
 import { createTestUser, defaultTestAdmin } from '../test-support/auth.js'
 import { addNote, addSubject } from '../test-support/meleteData.fixture.js'
@@ -86,5 +91,40 @@ describe( 'ownership', () => {
 
     expect( listNoteConcepts( other, noteId ) ).toEqual( [] )
     expect( listNoteConcepts( userId, noteId ) ).toHaveLength( 1 )
+  } )
+} )
+
+describe( 'listNoteIdsForConcepts', () => {
+  it( 'lists the notes mapped to any of the concepts, each once', () => {
+    const other = addNote( userId, subjectId )
+    const unmapped = addNote( userId, subjectId )
+
+    setNoteConcepts( userId, noteId, [ first, second ], 'claude' )
+    setNoteConcepts( userId, other, [ second ], 'hand' )
+
+    expect( listNoteIdsForConcepts( userId, [ first, second ] ).sort() )
+      .toEqual( [ noteId, other ].sort() )
+    expect( listNoteIdsForConcepts( userId, [ first ] ) ).toEqual( [ noteId ] )
+    expect( listNoteIdsForConcepts( userId, [] ) ).toEqual( [] )
+    expect( listNoteIdsForConcepts( userId, [ first, second ] ) ).not.toContain( unmapped )
+  } )
+
+  it( 'does not look at another user\'s mappings', () => {
+    setNoteConcepts( userId, noteId, [ first ], 'claude' )
+
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+    expect( listNoteIdsForConcepts( other, [ first ] ) ).toEqual( [] )
+  } )
+} )
+
+describe( 'noteIdsWithoutConcepts', () => {
+  it( 'keeps the notes that have no mapping left', () => {
+    const other = addNote( userId, subjectId )
+
+    setNoteConcepts( userId, noteId, [ first ], 'claude' )
+
+    expect( noteIdsWithoutConcepts( userId, [ noteId, other ] ) ).toEqual( [ other ] )
+    expect( noteIdsWithoutConcepts( userId, [] ) ).toEqual( [] )
   } )
 } )

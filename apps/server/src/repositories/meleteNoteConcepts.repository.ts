@@ -41,3 +41,33 @@ export const setNoteConcepts = (
     }
   } )()
 }
+
+const marks = ( values: readonly unknown[] ): string => values.map( () => '?' ).join( ', ' )
+
+// Notes mapped to any of these concepts, for finding who loses one when they are removed
+export const listNoteIdsForConcepts = ( userId: string, conceptIds: string[] ): string[] => {
+  if( conceptIds.length === 0 ) {
+    return []
+  }
+
+  return z.array( z.string() ).parse( getDatabase()
+    .prepare( `SELECT DISTINCT note_id FROM melete_note_concepts
+      WHERE user_id = ? AND concept_id IN ( ${ marks( conceptIds ) } )` )
+    .pluck()
+    .all( userId, ...conceptIds ) )
+}
+
+export const noteIdsWithoutConcepts = ( userId: string, noteIds: string[] ): string[] => {
+  if( noteIds.length === 0 ) {
+    return []
+  }
+
+  return z.array( z.string() ).parse( getDatabase()
+    .prepare( `SELECT id FROM melete_notes
+      WHERE user_id = ? AND id IN ( ${ marks( noteIds ) } )
+        AND NOT EXISTS (
+          SELECT 1 FROM melete_note_concepts nc WHERE nc.note_id = melete_notes.id
+        )` )
+    .pluck()
+    .all( userId, ...noteIds ) )
+}

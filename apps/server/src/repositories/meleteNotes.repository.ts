@@ -169,3 +169,35 @@ export const queueMappingForSubject = ( userId: string, subjectId: string ): num
       WHERE user_id = ? AND subject_id = ? AND enrolled = 1 AND missing_at IS NULL` )
     .run( userId, subjectId ).changes
 }
+
+// The automatic remaps (TRD §4.3) take enrolled notes that are still in the vault, never a
+// pinned one and never one Map is working on now; a failed one is tried again
+const AUTOMATIC = `enrolled = 1 AND missing_at IS NULL AND mapping_pinned = 0
+  AND mapping IN ( 'idle', 'failed' )`
+
+// Remap all
+export const queueMappingUnpinned = ( userId: string, subjectId: string ): number => {
+  return getDatabase()
+    .prepare( `UPDATE melete_notes SET mapping = 'queued', mapping_error = NULL
+      WHERE user_id = ? AND subject_id = ? AND ${ AUTOMATIC }` )
+    .run( userId, subjectId ).changes
+}
+
+// A concept was added: the notes that fitted none may fit it now
+export const queueMappingFlagged = ( userId: string, subjectId: string ): number => {
+  return getDatabase()
+    .prepare( `UPDATE melete_notes SET mapping = 'queued', mapping_error = NULL
+      WHERE user_id = ? AND subject_id = ? AND off_syllabus = 'flagged' AND ${ AUTOMATIC }` )
+    .run( userId, subjectId ).changes
+}
+
+export const queueMappingForNotes = ( userId: string, ids: string[] ): number => {
+  if( ids.length === 0 ) {
+    return 0
+  }
+
+  return getDatabase()
+    .prepare( `UPDATE melete_notes SET mapping = 'queued', mapping_error = NULL
+      WHERE user_id = ? AND id IN ( ${ placeholders( ids ) } ) AND ${ AUTOMATIC }` )
+    .run( userId, ...ids ).changes
+}

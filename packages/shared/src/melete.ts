@@ -296,3 +296,7 @@ export type SaveMeleteSyllabusResponse = z.infer< typeof SaveMeleteSyllabusRespo
 
 export const ApproveMeleteSyllabusResponse = z.object( { subject: MeleteSubject } )
 export type ApproveMeleteSyllabusResponse = z.infer< typeof ApproveMeleteSyllabusResponse >
+
+// Remap all: how many notes were queued for Map
+export const RemapMeleteSyllabusResponse = z.object( { queued: z.int().min( 0 ) } )
+export type RemapMeleteSyllabusResponse = z.infer< typeof RemapMeleteSyllabusResponse >

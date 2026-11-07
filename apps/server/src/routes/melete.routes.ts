@@ -14,6 +14,7 @@ import {
   postDraftSyllabus,
   postDropQuestion,
   postRecordReview,
+  postRemapSyllabus,
   postRegenerateNote,
   postRetryGeneration,
   postSubjectEnrollment,
@@ -30,6 +31,7 @@ meleteRoutes.post( '/melete/subjects/:id/syllabus/draft', postDraftSyllabus )
 meleteRoutes.get( '/melete/subjects/:id/syllabus', getMeleteSyllabus )
 meleteRoutes.put( '/melete/subjects/:id/syllabus', putMeleteSyllabus )
 meleteRoutes.post( '/melete/subjects/:id/syllabus/approve', postApproveSyllabus )
+meleteRoutes.post( '/melete/subjects/:id/syllabus/remap', postRemapSyllabus )
 meleteRoutes.get( '/melete/notes/:id', getMeleteNote )
 meleteRoutes.patch( '/melete/notes/:id', patchMeleteNote )
 meleteRoutes.post( '/melete/notes/:id/regenerate', postRegenerateNote )

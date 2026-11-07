@@ -38,8 +38,15 @@ import {
   updateConcept,
 } from '../repositories/meleteConcepts.repository.js'
 import {
+  listNoteIdsForConcepts,
+  noteIdsWithoutConcepts,
+} from '../repositories/meleteNoteConcepts.repository.js'
+import {
   listNotesBySubject,
+  queueMappingFlagged,
+  queueMappingForNotes,
   queueMappingForSubject,
+  queueMappingUnpinned,
 } from '../repositories/meleteNotes.repository.js'
 import {
   deleteSection,
@@ -259,6 +266,8 @@ export const saveSyllabus = (
   const plan = planSyllabus( getSyllabus( userId, subjectId ), edit )
 
   getDatabase().transaction( () => {
+    const losing = listNoteIdsForConcepts( userId, plan.removeConceptIds )
+
     for( const section of plan.sections ) {
       const sectionId = section.id === null
         ? insertSection( userId, {
@@ -296,6 +305,15 @@ export const saveSyllabus = (
     // Surviving concepts have left a removed section by now
     plan.removeConceptIds.forEach( ( id ) => deleteConcept( userId, id ) )
     plan.removeSectionIds.forEach( ( id ) => deleteSection( userId, id ) )
+
+    // Only an approved syllabus is mapped. Renames and moves change nothing for a note (TRD §4.3)
+    if( subject.syllabus_status === 'approved' ) {
+      if( plan.diff.added > 0 ) {
+        queueMappingFlagged( userId, subjectId )
+      }
+
+      queueMappingForNotes( userId, noteIdsWithoutConcepts( userId, losing ) )
+    }
   } )()
 
   return { syllabus: getSyllabus( userId, subjectId ), diff: plan.diff }
@@ -328,4 +346,15 @@ export const approveSyllabus = (
   }
 
   return toMeleteSubject( userId, approved, now )
+}
+
+// Remap all (TRD §4.3): every enrolled note that is not pinned goes back to Map
+export const remapSyllabus = ( userId: string, subjectId: string ): { queued: number } => {
+  const subject = requireSubject( userId, subjectId )
+
+  if( subject.syllabus_status !== 'approved' ) {
+    throw new ConflictError( 'Only an approved syllabus can be mapped again' )
+  }
+
+  return { queued: queueMappingUnpinned( userId, subjectId ) }
 }

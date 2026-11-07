@@ -45,6 +45,7 @@ import {
   approveSyllabus,
   draftForSubject,
   getSyllabus,
+  remapSyllabus,
   requestSyllabusDraft,
   saveSyllabus,
 } from './meleteSyllabus.service.js'
@@ -760,5 +761,125 @@ describe( 'approveSyllabus', () => {
 
     expect( () => approveSyllabus( userId, crypto.randomUUID(), T0 ) ).toThrow( NotFoundError )
     expect( () => approveSyllabus( other, id, T0 ) ).toThrow( NotFoundError )
+  } )
+} )
+
+describe( 'remaps after a save and Remap all', () => {
+  // Two enrolled notes on the SQL and Joins concepts, as an approved subject has them
+  const approved = async () => {
+    const id = await stored( 'approved' )
+
+    getDatabase().prepare( 'UPDATE melete_notes SET enrolled = 1' ).run()
+
+    const [ first, second ] = listNotesBySubject( userId, id )
+    const [ sql, joins ] = getSyllabus( userId, id ).sections[ 0 ].concepts
+
+    return { id, first, second, sql, joins }
+  }
+
+  const edit = ( id: string ) => {
+    return { sections: structuredClone( getSyllabus( userId, id ).sections ) }
+  }
+  const mappingOf = ( noteId: string ) => findNote( userId, noteId )?.mapping
+
+  it( 'queues the unpinned flagged notes when a concept is added', async () => {
+    const { id, first, second } = await approved()
+    const next = edit( id )
+
+    updateNote( userId, first.id, { off_syllabus: 'flagged' } )
+    next.sections[ 1 ].concepts.push( { name: 'Triggers', description: '' } as never )
+    saveSyllabus( userId, id, next )
+
+    expect( [ mappingOf( first.id ), mappingOf( second.id ) ] ).toEqual( [ 'queued', 'idle' ] )
+  } )
+
+  it( 'leaves a pinned flagged note, and all notes while the syllabus is a draft', async () => {
+    const { id, first } = await approved()
+
+    updateNote( userId, first.id, { off_syllabus: 'flagged', mapping_pinned: true } )
+
+    const next = edit( id )
+
+    next.sections[ 1 ].concepts.push( { name: 'Triggers', description: '' } as never )
+    saveSyllabus( userId, id, next )
+    expect( mappingOf( first.id ) ).toBe( 'idle' )
+
+    updateNote( userId, first.id, { mapping_pinned: false } )
+    updateSubject( userId, id, { syllabus_status: 'draft' } )
+
+    const again = edit( id )
+
+    again.sections[ 1 ].concepts.push( { name: 'Views', description: '' } as never )
+    saveSyllabus( userId, id, again )
+    expect( mappingOf( first.id ) ).toBe( 'idle' )
+  } )
+
+  it( 'queues a note left with no concept when its concept is removed', async () => {
+    const { id, first, second, sql, joins } = await approved()
+    const next = edit( id )
+
+    setNoteConcepts( userId, first.id, [ sql.id ], 'claude' )
+    setNoteConcepts( userId, second.id, [ sql.id, joins.id ], 'claude' )
+    next.sections[ 0 ].concepts.splice( 0, 1 )
+    saveSyllabus( userId, id, next )
+
+    expect( [ mappingOf( first.id ), mappingOf( second.id ) ] ).toEqual( [ 'queued', 'idle' ] )
+    expect( listNoteConcepts( userId, second.id ).map( ( c ) => c.concept_id ) )
+      .toEqual( [ joins.id ] )
+  } )
+
+  it( 'does not queue a pinned note, or one that never had the concept', async () => {
+    const { id, first, second, sql } = await approved()
+    const next = edit( id )
+
+    setNoteConcepts( userId, first.id, [ sql.id ], 'hand' )
+    updateNote( userId, first.id, { mapping_pinned: true } )
+    next.sections[ 0 ].concepts.splice( 0, 1 )
+    saveSyllabus( userId, id, next )
+
+    expect( [ mappingOf( first.id ), mappingOf( second.id ) ] ).toEqual( [ 'idle', 'idle' ] )
+  } )
+
+  it( 'queues nothing for a rename, a new description, a move or a reorder', async () => {
+    const { id, first, second, sql } = await approved()
+    const next = edit( id )
+
+    setNoteConcepts( userId, first.id, [ sql.id ], 'claude' )
+    updateNote( userId, second.id, { off_syllabus: 'flagged' } )
+    next.sections[ 0 ].concepts[ 0 ].name = 'Renamed'
+    next.sections[ 0 ].concepts[ 1 ].description = 'New words'
+    next.sections[ 1 ].concepts.reverse()
+    next.sections[ 1 ].concepts.push( ...next.sections[ 0 ].concepts.splice( 2, 1 ) )
+
+    expect( saveSyllabus( userId, id, next ).diff.moved ).toBeGreaterThan( 0 )
+    expect( [ mappingOf( first.id ), mappingOf( second.id ) ] ).toEqual( [ 'idle', 'idle' ] )
+  } )
+
+  describe( 'remapSyllabus', () => {
+    it( 'queues every enrolled, unpinned note and says how many', async () => {
+      const { id, first, second } = await approved()
+
+      updateNote( userId, second.id, { mapping_pinned: true } )
+
+      expect( remapSyllabus( userId, id ) ).toEqual( { queued: 1 } )
+      expect( [ mappingOf( first.id ), mappingOf( second.id ) ] ).toEqual( [ 'queued', 'idle' ] )
+    } )
+
+    it.each( [ 'none', 'draft', 'drafting', 'failed' ] as const )(
+      'refuses while %s',
+      async ( status ) => {
+        const id = await stored( status )
+
+        expect( () => remapSyllabus( userId, id ) ).toThrow( ConflictError )
+      },
+    )
+
+    it( 'answers not found for an unknown subject and for another user\'s', async () => {
+      const { id } = await approved()
+      const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+      expect( () => remapSyllabus( userId, crypto.randomUUID() ) ).toThrow( NotFoundError )
+      expect( () => remapSyllabus( other, id ) ).toThrow( NotFoundError )
+    } )
   } )
 } )

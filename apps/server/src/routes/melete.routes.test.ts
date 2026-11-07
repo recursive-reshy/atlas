@@ -22,6 +22,7 @@ import {
   MeleteQuestion,
   MeleteSyllabus,
   RecordReviewResponse,
+  RemapMeleteSyllabusResponse,
   SaveMeleteSyllabusResponse,
 } from '@atlas/shared'
 // App
@@ -35,7 +36,12 @@ import { MeleteError } from '../errors.js'
 import { resetScanClock } from '../melete/scanClock.js'
 import { rememberSkipped, resetScanOutcome } from '../melete/scanOutcome.js'
 // Repositories
-import { listNotesUnder, updateNote } from '../repositories/meleteNotes.repository.js'
+import { getDatabase } from '../repositories/database.js'
+import {
+  listNotesBySubject,
+  listNotesUnder,
+  updateNote,
+} from '../repositories/meleteNotes.repository.js'
 import { findQuestion } from '../repositories/meleteQuestions.repository.js'
 import { replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
 import { listSubjects, updateSubject } from '../repositories/meleteSubjects.repository.js'
@@ -855,6 +861,31 @@ describe( 'the syllabus routes', () => {
     const id = await withSyllabus( 'approved' )
 
     expect( ( await request( app ).post( url( id, '/approve' ) ).send( {} ) ).status ).toBe( 409 )
+  } )
+
+  it( 'POST remap answers 202 with the number of notes queued', async () => {
+    const id = await withSyllabus( 'approved' )
+
+    getDatabase().prepare( 'UPDATE melete_notes SET enrolled = 1' ).run()
+
+    const response = await request( app ).post( url( id, '/remap' ) ).send( {} )
+    const queued = listNotesBySubject( userId, id ).length
+
+    expect( response.status ).toBe( 202 )
+    expect( RemapMeleteSyllabusResponse.parse( response.body ) ).toEqual( { queued } )
+    expect( queued ).toBeGreaterThan( 0 )
+  } )
+
+  it( 'POST remap returns 409 unless approved, and 404 for a stranger or unknown id', async () => {
+    const id = await withSyllabus()
+    const other = createTestUser( { modules: [ 'melete' ] } )
+    const unknownId = crypto.randomUUID()
+
+    expect( ( await request( app ).post( url( id, '/remap' ) ).send( {} ) ).status ).toBe( 409 )
+    expect( ( await request( app, other ).post( url( id, '/remap' ) ).send( {} ) ).status )
+      .toBe( 404 )
+    expect( ( await request( app ).post( url( unknownId, '/remap' ) ).send( {} ) ).status )
+      .toBe( 404 )
   } )
 
   it( 'returns 404 for an unknown subject, another user\'s and a user without Melete', async () => {

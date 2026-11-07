@@ -12,7 +12,10 @@ import {
   findMissingByHash,
   findNote,
   insertNote,
+  queueMappingFlagged,
+  queueMappingForNotes,
   queueMappingForSubject,
+  queueMappingUnpinned,
   listNotesBySubject,
   listNotesUnder,
   setEnrolled,
@@ -382,5 +385,77 @@ describe( 'queueMappingForSubject', () => {
 
     expect( queueMappingForSubject( other, subjectId ) ).toBe( 0 )
     expect( findNote( userId, note )?.mapping ).toBe( 'idle' )
+  } )
+} )
+
+describe( 'the automatic remap queues', () => {
+  const setup = () => {
+    const subjectId = addSubject( userId )
+
+    return {
+      subjectId,
+      plain: addNote( userId, subjectId ),
+      pinned: addNote( userId, subjectId ),
+      unenrolled: addNote( userId, subjectId, { enrolled: false } ),
+      missing: addNote( userId, subjectId, { missingAt: '2026-10-02T00:00:00.000Z' } ),
+      busy: addNote( userId, subjectId ),
+      other: addNote( userId, addSubject( userId, 'Learning/Other' ) ),
+    }
+  }
+
+  const mappingOf = ( ...ids: string[] ) => ids.map( ( id ) => findNote( userId, id )?.mapping )
+
+  describe( 'queueMappingUnpinned', () => {
+    it( 'queues enrolled, live, unpinned notes of the subject, retrying a failed one', () => {
+      const { subjectId, plain, pinned, unenrolled, missing, busy, other } = setup()
+      const failed = addNote( userId, subjectId )
+
+      updateNote( userId, pinned, { mapping_pinned: true } )
+      updateNote( userId, busy, { mapping: 'mapping' } )
+      updateNote( userId, failed, { mapping: 'failed', mapping_error: 'Bad' } )
+
+      expect( queueMappingUnpinned( userId, subjectId ) ).toBe( 2 )
+      expect( mappingOf( plain, failed ) ).toEqual( [ 'queued', 'queued' ] )
+      expect( findNote( userId, failed )?.mapping_error ).toBeNull()
+      expect( mappingOf( pinned, unenrolled, missing, busy, other ) )
+        .toEqual( [ 'idle', 'idle', 'idle', 'mapping', 'idle' ] )
+    } )
+  } )
+
+  describe( 'queueMappingFlagged', () => {
+    it( 'queues only the unpinned notes flagged off-syllabus', () => {
+      const { subjectId, plain, pinned, unenrolled } = setup()
+      const dismissed = addNote( userId, subjectId )
+
+      updateNote( userId, plain, { off_syllabus: 'flagged' } )
+      updateNote( userId, pinned, { off_syllabus: 'flagged', mapping_pinned: true } )
+      updateNote( userId, unenrolled, { off_syllabus: 'flagged' } )
+      updateNote( userId, dismissed, { off_syllabus: 'dismissed' } )
+
+      expect( queueMappingFlagged( userId, subjectId ) ).toBe( 1 )
+      expect( mappingOf( plain, pinned, unenrolled, dismissed ) )
+        .toEqual( [ 'queued', 'idle', 'idle', 'idle' ] )
+    } )
+  } )
+
+  describe( 'queueMappingForNotes', () => {
+    it( 'queues the given notes that are enrolled, live and unpinned, and no others', () => {
+      const { plain, pinned, unenrolled, missing, other } = setup()
+
+      updateNote( userId, pinned, { mapping_pinned: true } )
+
+      expect( queueMappingForNotes( userId, [ plain, pinned, unenrolled, missing ] ) ).toBe( 1 )
+      expect( mappingOf( plain, pinned, unenrolled, missing, other ) )
+        .toEqual( [ 'queued', 'idle', 'idle', 'idle', 'idle' ] )
+      expect( queueMappingForNotes( userId, [] ) ).toBe( 0 )
+    } )
+
+    it( 'does not queue another user\'s note', () => {
+      const { plain } = setup()
+      const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+      expect( queueMappingForNotes( other, [ plain ] ) ).toBe( 0 )
+      expect( mappingOf( plain ) ).toEqual( [ 'idle' ] )
+    } )
   } )
 } )
