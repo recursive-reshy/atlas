@@ -24,6 +24,7 @@ import { modelsRoutes } from './routes/models.routes.js'
 import { promptProfilesRoutes } from './routes/promptProfiles.routes.js'
 import { settingsRoutes } from './routes/settings.routes.js'
 import { statusRoutes } from './routes/status.routes.js'
+import { themisRoutes } from './routes/themis.routes.js'
 import { testSessionRoutes } from './routes/testSession.routes.js'
 import { vaultRoutes } from './routes/vault.routes.js'
 import { webRoutes } from './routes/web.routes.js'
@@ -51,6 +52,7 @@ app.use(
   requireModule( 'transcriber' ),
 )
 app.use( '/api/melete', requireModule( 'melete' ) )
+app.use( '/api/themis', requireModule( 'themis' ) )
 app.use( '/api', jobsRoutes )
 app.use( '/api', feedsRoutes )
 app.use( '/api', inboxRoutes )
@@ -62,6 +64,7 @@ app.use( '/api', modelsRoutes )
 app.use( '/api', promptProfilesRoutes )
 app.use( '/api', statusRoutes )
 app.use( '/api', meleteRoutes )
+app.use( '/api', themisRoutes )
 app.use( '/api', notFoundHandler )
 
 if( config.webDir !== undefined ) {
