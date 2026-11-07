@@ -23,13 +23,31 @@ for( const name of [ 'docker', 'systemctl', 'sleep' ] ) {
   write( join( bin, name ), `#!/bin/sh\necho "${ name } $*" >> "$FAKE_DIR/calls"\n` )
 }
 write( join( bin, 'id' ), '#!/bin/sh\necho "$FAKE_UID"\n' )
-// Health: answers 503 until the HEALTH_OK_AFTER-th call (0 = never)
+// Health: with -w (the wait) answers 503 until the HEALTH_OK_AFTER-th call (0 = never); without
+// it (the preflight and the report) prints the body in HEALTH_BODY, or fails when it is "none"
 write( join( bin, 'curl' ), `#!/bin/sh
 echo "curl $*" >> "$FAKE_DIR/calls"
-n=$(( $(cat "$FAKE_DIR/health" 2>/dev/null || echo 0) + 1 ))
-echo "$n" > "$FAKE_DIR/health"
-if [ "\${HEALTH_OK_AFTER:-3}" -gt 0 ] && [ "$n" -ge "\${HEALTH_OK_AFTER:-3}" ]; then printf 200; else printf 503; fi
+case "$*" in
+  *" -w "*)
+    n=$(( $(cat "$FAKE_DIR/health" 2>/dev/null || echo 0) + 1 ))
+    echo "$n" > "$FAKE_DIR/health"
+    if [ "\${HEALTH_OK_AFTER:-3}" -gt 0 ] && [ "$n" -ge "\${HEALTH_OK_AFTER:-3}" ]; then printf 200; else printf 503; fi
+    ;;
+  *)
+    [ "\${HEALTH_BODY:-}" = "none" ] && exit 7
+    printf '%s' "\${HEALTH_BODY:-$DEFAULT_BODY}"
+    ;;
+esac
 ` )
+
+const body = ( { schema = 13, configured = true, failing = false, checked = new Date() } = {} ) => JSON.stringify( {
+  ok: true,
+  version: '0.10.0',
+  schema,
+  replication: configured
+    ? { configured, failing, last_success_at: checked.toISOString(), last_checked_at: checked.toISOString() }
+    : { configured, failing: null, last_success_at: null, last_checked_at: null },
+} )
 
 const sandbox = ( { uid = 0, current = 'ATLAS_VERSION=0.10.0\nREGISTRY=r.example/atlas\nADMIN_EMAIL=a@b.test\n' } = {} ) => {
   const dir = mkdtempSync( join( tmpdir(), 'atlas-deploy-' ) )
@@ -60,6 +78,7 @@ const sandbox = ( { uid = 0, current = 'ATLAS_VERSION=0.10.0\nREGISTRY=r.example
         ATLAS_RUN: join( dir, 'run' ),
         HEALTH_TIMEOUT: '30',
         HEALTH_INTERVAL: '5',
+        DEFAULT_BODY: body(),
         ...env,
       },
     } ),
@@ -80,7 +99,7 @@ test( 'sets the version, reads the secrets, pulls, restarts the unit and waits f
   const restart = calls.indexOf( 'systemctl restart atlas' )
   assert.ok( calls.indexOf( 'fetch-secrets' ) >= 0 && calls.indexOf( 'fetch-secrets' ) < pull, 'secrets are read before the pull' )
   assert.ok( pull >= 0 && restart > pull, 'pull, then restart' )
-  const health = calls.filter( ( call ) => call.startsWith( 'curl ' ) )
+  const health = calls.filter( ( call ) => call.startsWith( 'curl ' ) && call.includes( ' -w ' ) )
   assert.equal( health.length, 3, 'asked three times: 503, 503, 200' )
   assert.match( health[ 0 ], /http:\/\/127\.0\.0\.1:3100\/api\/health/ )
   assert.equal( calls.filter( ( call ) => call === 'sleep 5' ).length, 2 )
@@ -165,7 +184,7 @@ test( 'a stack that never answers fails with the last status and the rollback co
   const box = sandbox()
   const result = box.run( [ '0.10.1' ], { HEALTH_OK_AFTER: '0' } )
   assert.notEqual( result.status, 0 )
-  assert.equal( box.calls().filter( ( call ) => call.startsWith( 'curl ' ) ).length, 6, '30 s / 5 s attempts' )
+  assert.equal( box.calls().filter( ( call ) => call.startsWith( 'curl ' ) && call.includes( ' -w ' ) ).length, 6, '30 s / 5 s attempts' )
   assert.match( result.stderr, /did not become healthy/ )
   assert.match( result.stderr, /deploy\.sh 0\.10\.0/ )
   assert.ok( box.calls().some( ( call ) => call.includes( ' ps' ) ), 'shows the container status' )
@@ -196,4 +215,84 @@ test( 'refuses a malformed version, a non-root user and a missing atlas.env', ()
   assert.notEqual( missingResult.status, 0 )
   assert.match( missingResult.stderr, /atlas\.env/ )
   for( const b of [ box, user, missing ] ) assert.deepEqual( b.calls(), [] )
+} )
+
+const minutesAgo = ( minutes ) => new Date( Date.now() - minutes * 60_000 )
+
+test( 'the preflight reads the health body before anything is pulled', () => {
+  const box = sandbox()
+  const result = box.run( [ '0.10.1' ] )
+  assert.equal( result.status, 0, result.stderr )
+  const calls = box.calls()
+  const first = calls.findIndex( ( call ) => call.startsWith( 'curl ' ) && !call.includes( ' -w ' ) )
+  assert.ok( first >= 0 && first < calls.indexOf( `${ compose( box ) } pull` ), 'checked before the pull' )
+} )
+
+test( 'refuses to upgrade while replication is failing, and nothing is changed', () => {
+  const box = sandbox()
+  const before = box.env()
+  const result = box.run( [ '0.10.1' ], { HEALTH_BODY: body( { failing: true } ) } )
+  assert.notEqual( result.status, 0 )
+  assert.match( result.stderr, /replication is failing/ )
+  assert.match( result.stderr, /--force/ )
+  assert.equal( box.env(), before )
+  assert.ok( !box.calls().some( ( call ) => call.endsWith( ' pull' ) || call.startsWith( 'systemctl' ) ) )
+} )
+
+test( 'refuses when the last replication check is older than twice the check interval', () => {
+  const box = sandbox()
+  const stale = box.run( [ '0.10.1' ], { HEALTH_BODY: body( { checked: minutesAgo( 5 ) } ) } )
+  assert.notEqual( stale.status, 0 )
+  assert.match( stale.stderr, /last replication check was/ )
+  // The limit follows STATUS_CHECK_INTERVAL_MINUTES in atlas.env
+  const slow = sandbox( { current: 'ATLAS_VERSION=0.10.0\nSTATUS_CHECK_INTERVAL_MINUTES=10\n' } )
+  const ok = slow.run( [ '0.10.1' ], { HEALTH_BODY: body( { checked: minutesAgo( 15 ) } ) } )
+  assert.equal( ok.status, 0, ok.stderr )
+  const tooOld = slow.run( [ '0.10.2' ], { HEALTH_BODY: body( { checked: minutesAgo( 25 ) } ) } )
+  assert.notEqual( tooOld.status, 0 )
+} )
+
+test( 'refuses when replication was never checked', () => {
+  const box = sandbox()
+  const never = JSON.stringify( { ok: true, version: '0.10.0', schema: 13, replication: { configured: true, failing: false, last_success_at: null, last_checked_at: null } } )
+  const result = box.run( [ '0.10.1' ], { HEALTH_BODY: never } )
+  assert.notEqual( result.status, 0 )
+  assert.match( result.stderr, /not been checked/ )
+} )
+
+test( 'refuses when the app does not answer, and says the first deploy needs --force', () => {
+  const box = sandbox()
+  const result = box.run( [ '0.10.1' ], { HEALTH_BODY: 'none' } )
+  assert.notEqual( result.status, 0 )
+  assert.match( result.stderr, /did not answer/ )
+  assert.match( result.stderr, /first deploy/ )
+  assert.match( result.stderr, /--force/ )
+} )
+
+test( 'replication that is not configured passes the preflight', () => {
+  const box = sandbox()
+  const result = box.run( [ '0.10.1' ], { HEALTH_BODY: body( { configured: false } ) } )
+  assert.equal( result.status, 0, result.stderr )
+} )
+
+test( '--force deploys anyway and prints why the preflight would have stopped', () => {
+  const box = sandbox()
+  for( const [ bad, reason ] of [
+    [ body( { failing: true } ), /replication is failing/ ],
+    [ 'none', /did not answer/ ],
+  ] ) {
+    const result = box.run( [ '0.10.1', '--force' ], { HEALTH_BODY: bad } )
+    assert.equal( result.status, 0, result.stderr )
+    assert.match( result.stdout, /--force/ )
+    assert.match( result.stdout, reason )
+  }
+  assert.ok( box.calls().some( ( call ) => call.endsWith( ' pull' ) ) )
+} )
+
+test( '--dry-run lists the preflight and does not run it', () => {
+  const box = sandbox()
+  const result = box.run( [ '0.10.1', '--dry-run' ], { HEALTH_BODY: body( { failing: true } ) } )
+  assert.equal( result.status, 0, result.stderr )
+  assert.match( result.stdout, /\+ check replication/ )
+  assert.deepEqual( box.calls(), [] )
 } )

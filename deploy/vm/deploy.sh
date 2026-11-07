@@ -5,8 +5,11 @@
 #   sudo /opt/atlas/deploy.sh 0.10.1 --files <checkout>  also install that checkout's Compose files,
 #                                                         scripts and unit first
 #   sudo /opt/atlas/deploy.sh 0.10.1 --dry-run           print what it would do, change nothing
+#   sudo /opt/atlas/deploy.sh 0.10.1 --force             skip the replication check (ADR 0086)
 #
-# Reads the secrets, pulls the images for the version (nothing is changed if a pull fails), sets
+# First reads /api/health and refuses to go on when replication is failing, has not been checked
+# for twice STATUS_CHECK_INTERVAL_MINUTES (atlas.env, default 2), or the app does not answer; the
+# very first deploy on a new VM has no app to ask, so it needs --force. Then reads the secrets, pulls the images for the version (nothing is changed if a pull fails), sets
 # ATLAS_VERSION in /etc/atlas/atlas.env, restarts the atlas unit, and waits up to three minutes for
 # the app's health check. Rollback is the same command with the previous version, which is printed.
 #
@@ -30,9 +33,11 @@ fail() {
 version=
 files=
 dry_run=0
+force=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --dry-run) dry_run=1 ;;
+    --force) force=1 ;;
     --files)
       [ $# -ge 2 ] || fail "--files needs a folder"
       files=$2
@@ -45,7 +50,7 @@ while [ $# -gt 0 ]; do
 done
 
 [ "$(id -u)" = "0" ] || fail "run this as root (sudo)"
-[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$ ]] || fail "usage: deploy.sh <version, like 0.10.1> [--files <checkout>] [--dry-run]"
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[A-Za-z0-9.]+)?$ ]] || fail "usage: deploy.sh <version, like 0.10.1> [--files <checkout>] [--dry-run] [--force]"
 [ -f "$ETC/atlas.env" ] || fail "$ETC/atlas.env not found; run bootstrap.sh first"
 [ -z "$files" ] || [ -d "$files" ] || fail "$files is not a folder"
 
@@ -100,6 +105,43 @@ set_version() {
   rm -f "$tmp"
 }
 
+# to_epoch TIMESTAMP: seconds since 1970 for an ISO time like 2026-11-07T10:00:00.000Z
+to_epoch() {
+  local clean=${1%%.*}
+  clean=${clean%Z}
+  date -u -d "${clean}Z" +%s 2>/dev/null || date -u -j -f '%Y-%m-%dT%H:%M:%S' "$clean" +%s
+}
+
+# preflight_problem: prints why an upgrade should not start now, or nothing when it is fine. The body
+# is the server's own flat JSON (packages/shared health.ts), so plain text matching reads it.
+preflight_problem() {
+  local body checked interval age limit
+  if ! body=$(curl -s --max-time 5 "$HEALTH_URL") || [ -z "$body" ]; then
+    echo "the app did not answer at $HEALTH_URL (on the first deploy there is no app to ask)"
+    return 0
+  fi
+  case "$body" in
+    *'"configured":true'*) ;;
+    *) return 0 ;; # replication is not configured (the Mac): nothing to check
+  esac
+  if [[ "$body" == *'"failing":true'* ]]; then
+    echo "replication is failing, so the bucket may be behind the database (check Settings → Sources → Status)"
+    return 0
+  fi
+  checked=$(printf '%s' "$body" | sed -n 's/.*"last_checked_at":"\([^"]*\)".*/\1/p')
+  if [ -z "$checked" ]; then
+    echo "replication has not been checked yet; wait a check interval and try again"
+    return 0
+  fi
+  interval=$(grep -m 1 '^STATUS_CHECK_INTERVAL_MINUTES=' "$ETC/atlas.env" | cut -d= -f2- || true)
+  [[ "$interval" =~ ^[0-9]+$ ]] || interval=2
+  limit=$((interval * 2 * 60))
+  age=$(( $(date -u +%s) - $(to_epoch "$checked") ))
+  if [ "$age" -gt "$limit" ]; then
+    echo "the last replication check was $((age / 60)) minutes ago (limit $((limit / 60)))"
+  fi
+}
+
 wait_for_health() {
   local attempts=$((HEALTH_TIMEOUT / HEALTH_INTERVAL)) code i
   [ "$attempts" -ge 1 ] || attempts=1
@@ -112,6 +154,19 @@ wait_for_health() {
   done
   return 1
 }
+
+if [ "$dry_run" = 1 ]; then
+  echo "+ check replication through $HEALTH_URL (--force prints a failure and goes on)"
+else
+  problem=$(preflight_problem)
+  if [ -n "$problem" ]; then
+    if [ "$force" = 1 ]; then
+      echo "deploy: --force given; the preflight would have stopped here: $problem"
+    else
+      fail "$problem; use --force to deploy anyway"
+    fi
+  fi
+fi
 
 [ -z "$files" ] || step "install files from $files into $OPT" install_files
 step "read the secrets" env "SECRETS_ENV_FILE=$RUN/secrets.env" "$OPT/fetch-secrets.sh"
