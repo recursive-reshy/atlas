@@ -116,8 +116,14 @@ export const dropQuestion = async ( id: string ): Promise< MeleteQuestion > => {
 
 export const getNextReview = async (
   subjectId: string | null,
+  conceptId?: string,
 ): Promise< GetNextReviewResponse > => {
-  const query = subjectId === null ? '' : `?subject=${ encodeURIComponent( subjectId ) }`
+  const parts = [
+    ...subjectId === null ? [] : [ `subject=${ encodeURIComponent( subjectId ) }` ],
+    ...conceptId === undefined ? [] : [ `concept=${ encodeURIComponent( conceptId ) }` ],
+  ]
+  const query = parts.length === 0 ? '' : `?${ parts.join( '&' ) }`
+
   return request( `/api/melete/review/next${ query }`, GetNextReviewResponse )
 }
 

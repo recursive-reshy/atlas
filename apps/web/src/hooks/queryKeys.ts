@@ -53,7 +53,12 @@ export const meleteKeys = {
   // Under the subject key, so refreshing the subject refreshes its syllabus
   syllabus: ( id: string ) => [ 'melete', 'subjects', id, 'syllabus' ] as const,
   note: ( id: string ) => [ 'melete', 'notes', id ] as const,
-  review: ( subjectId: string | null ) => [ 'melete', 'review', subjectId ?? 'all' ] as const,
+  review: ( subjectId: string | null, conceptId: string | null = null ): readonly string[] => {
+    const base = [ 'melete', 'review', subjectId ?? 'all' ] as const
+
+    return conceptId === null ? base : [ ...base, 'concept', conceptId ] as const
+  },
+  gaps: ( id: string ) => [ 'melete', 'subjects', id, 'gaps' ] as const,
 }
 
 export const meKeys = {

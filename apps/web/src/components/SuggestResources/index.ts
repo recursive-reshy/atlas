@@ -1,0 +1,1 @@
+export { SuggestResources } from './SuggestResources'

@@ -227,6 +227,27 @@ export const GetMeleteGapsResponse = z.object( {
 } )
 export type GetMeleteGapsResponse = z.infer< typeof GetMeleteGapsResponse >
 
+export const MeleteResourceKind = z.enum(
+  [ 'book', 'docs', 'course', 'video', 'article', 'talk', 'other' ],
+)
+export type MeleteResourceKind = z.infer< typeof MeleteResourceKind >
+
+// Suggested resources come from Claude's own knowledge, so no links (ADR 0093): the learner
+// searches with `query`
+export const MeleteSuggestionsOutput = z.object( {
+  suggestions: z.array( z.object( {
+    title: z.string().min( 1 ).max( 200 ),
+    by: z.string().max( 200 ),
+    kind: MeleteResourceKind,
+    why: z.string().max( 500 ),
+    query: z.string().min( 1 ).max( 200 ),
+  } ) ).min( 1 ).max( 5 ),
+} )
+export type MeleteSuggestionsOutput = z.infer< typeof MeleteSuggestionsOutput >
+
+export const SuggestMeleteResourcesResponse = MeleteSuggestionsOutput
+export type SuggestMeleteResourcesResponse = MeleteSuggestionsOutput
+
 // A hand mapping (ADR 0089): the note is pinned to exactly these concepts
 export const UpdateNoteConceptsBody = z.object( { concept_ids: z.array( z.uuid() ).max( 10 ) } )
 export type UpdateNoteConceptsBody = z.infer< typeof UpdateNoteConceptsBody >

@@ -7,6 +7,7 @@ import {
   ApproveMeleteSyllabusResponse,
   GetMeleteGapsResponse,
   OffSyllabusActionBody,
+  SuggestMeleteResourcesResponse,
   RemapMeleteSyllabusResponse,
   UpdateNoteConceptsBody,
   EnrollSubjectBody,
@@ -40,6 +41,7 @@ import {
   setSubjectEnrolled,
   updateSubject,
 } from '../services/melete.service.js'
+import { suggestForConcept } from '../services/meleteSuggest.service.js'
 import { getGaps } from '../services/meleteGaps.service.js'
 import {
   applyOffSyllabusAction,
@@ -146,6 +148,18 @@ export const getMeleteGaps = (
   res: Response< GetMeleteGapsResponse >,
 ): void => {
   res.status( 200 ).json( getGaps( currentUser( req ).id, Id.parse( req.params.id ) ) )
+}
+
+export const postSuggestions = async (
+  req: Request,
+  res: Response< SuggestMeleteResourcesResponse >,
+): Promise< void > => {
+  const { suggestions } = await suggestForConcept(
+    currentUser( req ).id,
+    Id.parse( req.params.id ),
+  )
+
+  res.status( 200 ).json( { suggestions } )
 }
 
 export const postRemapSyllabus = (

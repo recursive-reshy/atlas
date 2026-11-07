@@ -104,6 +104,22 @@ describe( 'melete api reads', () => {
       undefined,
     )
   } )
+
+  it( 'asks for one concept, which wins over the subject', async () => {
+    fetchMock.mockImplementation( () => Promise.resolve( json( { item: null, counts } ) ) )
+
+    await getNextReview( null, SUBJECT_ID )
+    expect( fetchMock ).toHaveBeenLastCalledWith(
+      `/api/melete/review/next?concept=${ SUBJECT_ID }`,
+      undefined,
+    )
+
+    await getNextReview( NOTE_ID, SUBJECT_ID )
+    expect( fetchMock ).toHaveBeenLastCalledWith(
+      `/api/melete/review/next?subject=${ NOTE_ID }&concept=${ SUBJECT_ID }`,
+      undefined,
+    )
+  } )
 } )
 
 describe( 'melete api changes', () => {

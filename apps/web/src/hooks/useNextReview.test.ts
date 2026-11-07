@@ -37,6 +37,14 @@ describe( 'useNextReview', () => {
     await vi.waitFor( () => expect( mockedGet ).toHaveBeenCalledWith( null ) )
   } )
 
+  it( 'loads the next item for one concept', async () => {
+    mockedGet.mockResolvedValue( empty )
+    const { result } = renderHookWithClient( () => useNextReview( null, SUBJECT_ID ) )
+
+    await vi.waitFor( () => expect( result.current.isLoading ).toBe( false ) )
+    expect( mockedGet ).toHaveBeenCalledWith( null, SUBJECT_ID )
+  } )
+
   it( 'reports an error', async () => {
     mockedGet.mockRejectedValue( new ApiError( 'Choose a learning root first', 409 ) )
     const { result } = renderHookWithClient( () => useNextReview( null ) )

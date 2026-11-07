@@ -34,6 +34,11 @@ vi.mock( '#src/hooks/useMeleteSubject' )
 vi.mock( '#src/hooks/useMeleteSyllabus' )
 vi.mock( '#src/hooks/useNoteMappingMutations' )
 vi.mock( '#src/hooks/useMeleteMutations' )
+vi.mock( '#src/components/SubjectOverview', () => ( {
+  SubjectOverview: vi.fn( ( { subjectId }: { subjectId: string } ) => (
+    <p>{ `The overview of ${ subjectId }` }</p>
+  ) ),
+} ) )
 vi.mock( '#src/components/SyllabusPanel', () => ( {
   SyllabusPanel: vi.fn( () => <p>The syllabus panel</p> ),
 } ) )
@@ -276,11 +281,11 @@ describe( 'MeleteSubject', () => {
       expect( user.location().search ).toBe( '?tab=syllabus' )
     } )
 
-    it( 'says coverage and mastery will show here once the syllabus is approved', () => {
+    it( 'shows the gap view of an approved subject in place of the pointer', () => {
       show( { subject: meleteSubjectFixture( { syllabus_status: 'approved' } ) } )
       renderPage()
 
-      expect( screen.getByText( /Coverage and mastery will show here/ ) ).toBeInTheDocument()
+      expect( screen.getByText( `The overview of ${ SUBJECT_ID }` ) ).toBeInTheDocument()
       expect( screen.queryByRole( 'button', { name: 'Set up syllabus' } ) )
         .not.toBeInTheDocument()
     } )

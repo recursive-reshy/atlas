@@ -11,6 +11,7 @@ import Typography from '@mui/material/Typography'
 import { Link as RouterLink, useParams, useSearchParams } from 'react-router'
 // App
 import { SubjectNotes } from '#src/components/SubjectNotes'
+import { SubjectOverview } from '#src/components/SubjectOverview'
 import { SubjectSettings } from '#src/components/SubjectSettings'
 import { SyllabusPanel } from '#src/components/SyllabusPanel'
 import {
@@ -36,16 +37,16 @@ const tabFrom = ( text: string | null ): TabValue => {
   return TABS.find( ( { value } ) => value === text )?.value ?? 'overview'
 }
 
-// Until coverage and mastery exist, this tab only points at the syllabus
+// Without an approved syllabus there is nothing to measure, so the tab points at the syllabus
 function Overview(
-  { isApproved, onSetUp }: { isApproved: boolean, onSetUp: () => void },
+  { subjectId, isApproved, onSetUp }: {
+    subjectId: string
+    isApproved: boolean
+    onSetUp: () => void
+  },
 ): ReactElement {
   if( isApproved ) {
-    return (
-      <Typography>
-        Coverage and mastery will show here once your notes are mapped.
-      </Typography>
-    )
+    return <SubjectOverview subjectId={ subjectId } />
   }
 
   return (
@@ -107,6 +108,7 @@ export function MeleteSubject(): ReactElement {
       </Tabs>
       { tab === 'overview' && (
         <Overview
+          subjectId={ subject.id }
           isApproved={ subject.syllabus_status === 'approved' }
           onSetUp={ () => openTab( 'syllabus' ) }
         />

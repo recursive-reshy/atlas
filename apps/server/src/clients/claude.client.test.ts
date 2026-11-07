@@ -16,6 +16,7 @@ import {
   generateQuestions,
   gradeAnswer,
   mapNote,
+  suggestResources,
   summarizeSource,
 } from './claude.client.js'
 // Errors
@@ -603,5 +604,60 @@ describe( 'mapNote', () => {
 
     await expect( mapNote( request ) )
       .rejects.toThrow( 'Mapping response did not match the expected format' )
+  } )
+} )
+
+describe( 'suggestResources', () => {
+  const suggested = {
+    suggestions: [ {
+      title: 'The Rust Book',
+      by: 'Klabnik',
+      kind: 'book',
+      why: 'The standard introduction.',
+      query: 'rust book',
+    } ],
+  }
+  const request = { model: 'claude-sonnet-5-5', system: 'Suggest.', user: 'Concept: Ownership' }
+
+  beforeEach( () => {
+    parse.mockResolvedValue( reply( { parsed_output: suggested } ) )
+  } )
+
+  it( 'returns the parsed suggestions with the tokens it used', async () => {
+    expect( await suggestResources( request ) ).toEqual( {
+      output: suggested,
+      usage: { input_tokens: 1234, output_tokens: 56 },
+    } )
+  } )
+
+  it( 'gives the call 60 seconds, not the generation timeout, and no search tool', async () => {
+    await suggestResources( request )
+
+    const [ sent ] = parse.mock.calls[ 0 ] as [ Record< string, unknown > ]
+
+    expect( constructed ).toEqual( [ { apiKey: 'sk-test', timeout: 60_000, maxRetries: 1 } ] )
+    expect( sent ).toMatchObject( {
+      model: 'claude-sonnet-5-5',
+      system: 'Suggest.',
+      messages: [ { role: 'user', content: 'Concept: Ownership' } ],
+      output_config: { effort: 'medium', format: expect.anything() as unknown },
+    } )
+    expect( sent ).not.toHaveProperty( 'tools' )
+  } )
+
+  it( 'throws a MeleteError carrying the tokens when the answer is cut off', async () => {
+    parse.mockResolvedValue( reply( { stop_reason: 'max_tokens', parsed_output: null } ) )
+
+    await expect( suggestResources( request ) ).rejects.toMatchObject( {
+      message: 'Suggesting resources was cut off before it finished',
+      usage: { input_tokens: 1234, output_tokens: 56 },
+    } )
+  } )
+
+  it( 'throws when the answer does not match the format', async () => {
+    parse.mockResolvedValue( reply( { parsed_output: { suggestions: [] } } ) )
+
+    await expect( suggestResources( request ) )
+      .rejects.toThrow( 'Suggestion response did not match the expected format' )
   } )
 } )

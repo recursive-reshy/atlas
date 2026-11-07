@@ -7,7 +7,7 @@ import type { DraftSection } from '../repositories/meleteConcepts.repository.js'
 export const MAX_SYLLABUS_NOTES = 60
 export const NOTE_OPENING_CHARACTERS = 300
 
-const LEVEL_LABELS: Record< MeleteTargetLevel, string > = {
+export const LEVEL_LABELS: Record< MeleteTargetLevel, string > = {
   awareness: 'Awareness',
   working: 'Working knowledge',
   proficient: 'Proficient',

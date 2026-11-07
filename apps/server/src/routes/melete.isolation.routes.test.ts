@@ -16,6 +16,7 @@ import { config } from '../config.js'
 // Melete
 import { resetScanClock } from '../melete/scanClock.js'
 // Repositories
+import { listConcepts, replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
 import { listNotesUnder } from '../repositories/meleteNotes.repository.js'
 import { findQuestion } from '../repositories/meleteQuestions.repository.js'
 import { listSubjects } from '../repositories/meleteSubjects.repository.js'
@@ -55,7 +56,9 @@ afterEach( async () => {
 } )
 
 // The owner's scanned subject, note and an enrolled question to ask about
-const ownersData = async (): Promise< { subject: string, note: string, question: string } > => {
+const ownersData = async (): Promise<
+  { subject: string, note: string, question: string, concept: string }
+> => {
   await signedInRequest( app, owner ).get( '/api/melete/today' )
 
   const subject = listSubjects( owner.id )[ 0 ]
@@ -65,9 +68,14 @@ const ownersData = async (): Promise< { subject: string, note: string, question:
     throw new Error( 'The vault fixture was not scanned' )
   }
 
+  replaceSyllabus( owner.id, subject.id, [
+    { name: 'Basics', concepts: [ { name: 'A', description: '' } ] },
+  ] )
+
   return {
     subject: subject.id,
     note: note.id,
+    concept: listConcepts( owner.id, subject.id )[ 0 ]?.id ?? '',
     question: addQuestion(
       owner.id,
       note.id,
@@ -78,11 +86,11 @@ const ownersData = async (): Promise< { subject: string, note: string, question:
 
 describe( 'the Melete routes are per user', () => {
   it( 'answers every route on another user\'s data like an unknown id', async () => {
-    const { subject, note, question } = await ownersData()
+    const { subject, note, question, concept } = await ownersData()
     const asOther = (): Agent => signedInRequest( app, other )
 
     type Call = [ string, string, object? ]
-    const calls = ( s: string, n: string, q: string ): Call[] => [
+    const calls = ( s: string, n: string, q: string, c: string ): Call[] => [
       [ 'get', `/api/melete/subjects/${ s }` ],
       [ 'get', `/api/melete/subjects/${ s }/gaps` ],
       [ 'patch', `/api/melete/subjects/${ s }`, { new_per_day: 1 } ],
@@ -90,6 +98,7 @@ describe( 'the Melete routes are per user', () => {
       [ 'get', `/api/melete/notes/${ n }` ],
       [ 'patch', `/api/melete/notes/${ n }`, { enrolled: true } ],
       [ 'post', `/api/melete/subjects/${ s }/syllabus/remap`, {} ],
+      [ 'post', `/api/melete/concepts/${ c }/suggestions`, {} ],
       [ 'put', `/api/melete/notes/${ n }/concepts`, { concept_ids: [] } ],
       [ 'post', `/api/melete/notes/${ n }/off-syllabus`, { action: 'dismiss' } ],
       [ 'post', `/api/melete/notes/${ n }/regenerate`, {} ],
@@ -112,12 +121,13 @@ describe( 'the Melete routes are per user', () => {
       return { status: response.status, body: response.body as unknown }
     }
 
-    const refused = await Promise.all( calls( subject, note, question ).map( send ) )
-    const missing = await Promise.all( calls( unknown(), unknown(), unknown() ).map( send ) )
+    const refused = await Promise.all( calls( subject, note, question, concept ).map( send ) )
+    const strangers = calls( unknown(), unknown(), unknown(), unknown() )
+    const missing = await Promise.all( strangers.map( send ) )
 
     expect( refused.map( ( { status } ) => status ) )
       .toEqual( missing.map( ( { status } ) => status ) )
-    expect( refused.map( ( { status } ) => status ) ).toEqual( Array( 15 ).fill( 404 ) )
+    expect( refused.map( ( { status } ) => status ) ).toEqual( Array( 16 ).fill( 404 ) )
     expect( refused.map( ( { body } ) => body ) ).toEqual( missing.map( ( { body } ) => body ) )
     expect( findQuestion( owner.id, question )?.state ).toBe( 'active' )
   } )

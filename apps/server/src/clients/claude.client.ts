@@ -8,6 +8,7 @@ import {
   MeleteGradeOutput,
   MeleteMapOutput,
   MeleteQuestionsOutput,
+  MeleteSuggestionsOutput,
   MeleteSyllabusOutput,
   SourceDocument,
 } from '@atlas/shared'
@@ -141,10 +142,11 @@ const callStructured = async < Schema extends z.ZodType >(
   { action, response: noun }: Wording,
   maxTokens: number,
   { model, system, user }: MeleteCall,
+  timeoutMs: number = config.melete.generationTimeoutMs,
 ): Promise< { output: z.infer< Schema >, usage: TokenUsage } > => {
   const client = new Anthropic( {
     apiKey: config.anthropicApiKey,
-    timeout: config.melete.generationTimeoutMs,
+    timeout: timeoutMs,
     maxRetries: 1,
   } )
 
@@ -216,6 +218,25 @@ export const mapNote = async ( call: MeleteCall ): Promise< MapOutcome > => {
     { action: 'Mapping', response: 'Mapping response' },
     MAP_MAX_TOKENS,
     call,
+  )
+}
+
+export interface SuggestionsOutcome {
+  output: MeleteSuggestionsOutput
+  usage: TokenUsage
+}
+
+const SUGGEST_MAX_TOKENS = 1536
+// The learner is waiting on the page for this one (ADR 0093)
+const SUGGEST_TIMEOUT_MS = 60_000
+
+export const suggestResources = async ( call: MeleteCall ): Promise< SuggestionsOutcome > => {
+  return callStructured(
+    MeleteSuggestionsOutput,
+    { action: 'Suggesting resources', response: 'Suggestion response' },
+    SUGGEST_MAX_TOKENS,
+    call,
+    SUGGEST_TIMEOUT_MS,
   )
 }
 

@@ -23,6 +23,7 @@ import {
   GetMeleteGapsResponse,
   MeleteMapOutput,
   MeleteNextStep,
+  MeleteSuggestionsOutput,
   OffSyllabusActionBody,
   UpdateNoteConceptsBody,
   MeleteQuestionsOutput,
@@ -405,6 +406,40 @@ describe( 'the gap view', () => {
     expect( accepts( MeleteNextStep, { kind: 'none' } ) ).toBe( true )
     expect( accepts( MeleteNextStep, { kind: 'cover' } ) ).toBe( false )
     expect( accepts( MeleteNextStep, { kind: 'rest' } ) ).toBe( false )
+  } )
+} )
+
+describe( 'MeleteSuggestionsOutput', () => {
+  const suggestion = {
+    title: 'The Rust Book',
+    by: 'Klabnik and Nichols',
+    kind: 'book',
+    why: 'The standard introduction.',
+    query: 'the rust programming language book',
+  }
+
+  it( 'accepts one to five suggestions', () => {
+    expect( MeleteSuggestionsOutput.parse( { suggestions: [ suggestion ] } ) )
+      .toEqual( { suggestions: [ suggestion ] } )
+    expect( accepts( MeleteSuggestionsOutput, { suggestions: Array( 5 ).fill( suggestion ) } ) )
+      .toBe( true )
+  } )
+
+  it( 'rejects none, more than five, an unknown kind and a missing query', () => {
+    const only = ( changes: object ) => ( { suggestions: [ { ...suggestion, ...changes } ] } )
+
+    expect( accepts( MeleteSuggestionsOutput, { suggestions: [] } ) ).toBe( false )
+    expect( accepts( MeleteSuggestionsOutput, { suggestions: Array( 6 ).fill( suggestion ) } ) )
+      .toBe( false )
+    expect( accepts( MeleteSuggestionsOutput, only( { kind: 'podcast' } ) ) ).toBe( false )
+    expect( accepts( MeleteSuggestionsOutput, only( { query: undefined } ) ) ).toBe( false )
+  } )
+
+  it( 'takes every kind of resource', () => {
+    for( const kind of [ 'book', 'docs', 'course', 'video', 'article', 'talk', 'other' ] ) {
+      expect( accepts( MeleteSuggestionsOutput, { suggestions: [ { ...suggestion, kind } ] } ) )
+        .toBe( true )
+    }
   } )
 } )
 

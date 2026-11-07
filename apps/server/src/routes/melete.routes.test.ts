@@ -11,7 +11,7 @@ import {
   vi,
 } from 'vitest'
 // Clients
-import { draftSyllabus, gradeAnswer } from '../clients/claude.client.js'
+import { draftSyllabus, gradeAnswer, suggestResources } from '../clients/claude.client.js'
 // Shared
 import {
   GetMeleteGapsResponse,
@@ -25,6 +25,7 @@ import {
   RecordReviewResponse,
   RemapMeleteSyllabusResponse,
   SaveMeleteSyllabusResponse,
+  SuggestMeleteResourcesResponse,
 } from '@atlas/shared'
 // App
 import { app } from '../app.js'
@@ -64,6 +65,7 @@ vi.mock( '../clients/claude.client.js' )
 
 const grade = vi.mocked( gradeAnswer )
 const draft = vi.mocked( draftSyllabus )
+const suggest = vi.mocked( suggestResources )
 
 let vault: MeleteVault
 let originalVaultsPath: string
@@ -1086,5 +1088,67 @@ describe( 'GET /api/melete/subjects/:id/gaps', () => {
     expect( ( await request( app ).get( `/api/melete/subjects/${ unknownId }/gaps` ) ).status )
       .toBe( 404 )
     expect( ( await request( app ).get( '/api/melete/subjects/nope/gaps' ) ).status ).toBe( 400 )
+  } )
+} )
+
+describe( 'POST /api/melete/concepts/:id/suggestions', () => {
+  const conceptId = async (): Promise< string > => {
+    await scanned()
+
+    const { id } = subject( 'Rust' )
+
+    replaceSyllabus( userId, id, [
+      { name: 'Basics', concepts: [ { name: 'Ownership', description: '' } ] },
+    ] )
+    updateSubject( userId, id, { target_level: 'working', syllabus_status: 'approved' } )
+
+    return listConcepts( userId, id )[ 0 ]?.id ?? ''
+  }
+
+  const postSuggestions = ( id: string, user?: Parameters< typeof request >[ 1 ] ) => {
+    return request( app, user ).post( `/api/melete/concepts/${ id }/suggestions` ).send( {} )
+  }
+
+  const suggestion = {
+    title: 'The Rust Book',
+    by: 'Klabnik',
+    kind: 'book' as const,
+    why: 'Read it at https://doc.rust-lang.org/book/ first.',
+    query: 'rust book',
+  }
+
+  it( 'answers 200 with the suggestions, links removed', async () => {
+    const id = await conceptId()
+
+    suggest.mockResolvedValue( {
+      output: { suggestions: [ suggestion ] },
+      usage: { input_tokens: 1, output_tokens: 1 },
+    } )
+
+    const response = await postSuggestions( id )
+
+    expect( response.status ).toBe( 200 )
+    expect( SuggestMeleteResourcesResponse.parse( response.body ).suggestions[ 0 ] )
+      .toMatchObject( { title: 'The Rust Book', why: 'Read it at first.' } )
+  } )
+
+  it( 'answers 502 when Claude fails', async () => {
+    const id = await conceptId()
+
+    suggest.mockRejectedValue( new Error( 'Overloaded' ) )
+
+    const response = await postSuggestions( id )
+
+    expect( response.status ).toBe( 502 )
+    expect( response.body ).toEqual( { error: 'Overloaded' } )
+  } )
+
+  it( 'answers 404 for an unknown or another user\'s concept and 400 for a bad id', async () => {
+    const id = await conceptId()
+    const other = createTestUser( { modules: [ 'melete' ] } )
+
+    expect( ( await postSuggestions( crypto.randomUUID() ) ).status ).toBe( 404 )
+    expect( ( await postSuggestions( id, other ) ).status ).toBe( 404 )
+    expect( ( await postSuggestions( 'nope' ) ).status ).toBe( 400 )
   } )
 } )
