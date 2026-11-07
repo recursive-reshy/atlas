@@ -34,7 +34,10 @@ case "$*" in
     if [ "\${HEALTH_OK_AFTER:-3}" -gt 0 ] && [ "$n" -ge "\${HEALTH_OK_AFTER:-3}" ]; then printf 200; else printf 503; fi
     ;;
   *)
+    m=$(( $(cat "$FAKE_DIR/bodies" 2>/dev/null || echo 0) + 1 ))
+    echo "$m" > "$FAKE_DIR/bodies"
     [ "\${HEALTH_BODY:-}" = "none" ] && exit 7
+    if [ "$m" -gt 1 ] && [ -n "\${HEALTH_BODY_AFTER:-}" ]; then printf '%s' "$HEALTH_BODY_AFTER"; exit 0; fi
     printf '%s' "\${HEALTH_BODY:-$DEFAULT_BODY}"
     ;;
 esac
@@ -65,6 +68,11 @@ const sandbox = ( { uid = 0, current = 'ATLAS_VERSION=0.10.0\nREGISTRY=r.example
     etc,
     opt,
     env: () => readFileSync( join( etc, 'atlas.env' ), 'utf8' ),
+    history: () => ( existsSync( join( dir, 'var', 'deploys.log' ) ) ? readFileSync( join( dir, 'var', 'deploys.log' ), 'utf8' ).trim().split( '\n' ) : [] ),
+    seedHistory: ( text ) => {
+      mkdirSync( join( dir, 'var' ), { recursive: true } )
+      writeFileSync( join( dir, 'var', 'deploys.log' ), text )
+    },
     calls: () => ( existsSync( join( dir, 'calls' ) ) ? readFileSync( join( dir, 'calls' ), 'utf8' ).trim().split( '\n' ) : [] ),
     run: ( args, env = {}, cwd = undefined ) => spawnSync( 'bash', [ script, ...args ], {
       encoding: 'utf8',
@@ -76,6 +84,7 @@ const sandbox = ( { uid = 0, current = 'ATLAS_VERSION=0.10.0\nREGISTRY=r.example
         ATLAS_ETC: etc,
         ATLAS_OPT: opt,
         ATLAS_RUN: join( dir, 'run' ),
+        ATLAS_DEPLOYS_LOG: join( dir, 'var', 'deploys.log' ),
         HEALTH_TIMEOUT: '30',
         HEALTH_INTERVAL: '5',
         DEFAULT_BODY: body(),
@@ -295,4 +304,60 @@ test( '--dry-run lists the preflight and does not run it', () => {
   assert.equal( result.status, 0, result.stderr )
   assert.match( result.stdout, /\+ check replication/ )
   assert.deepEqual( box.calls(), [] )
+} )
+
+const ISO = '\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}Z'
+
+test( 'reports the version and the schema change, and records the deploy', () => {
+  const box = sandbox()
+  box.seedHistory( '2026-11-01T09:00:00Z 0.10.0 13\n' )
+  const result = box.run( [ '0.11.0' ], { HEALTH_BODY_AFTER: body( { schema: 14 } ) } )
+  assert.equal( result.status, 0, result.stderr )
+  assert.match( result.stdout, /Atlas 0\.11\.0 is up, schema 13 → 14/ )
+  const history = box.history()
+  assert.equal( history.length, 2 )
+  assert.match( history[ 1 ], new RegExp( `^${ ISO } 0\\.11\\.0 14$` ) )
+} )
+
+test( 'says schema unchanged when a deploy did not migrate', () => {
+  const box = sandbox()
+  box.seedHistory( '2026-11-01T09:00:00Z 0.10.0 13\n' )
+  const result = box.run( [ '0.10.1' ], { HEALTH_BODY_AFTER: body( { schema: 13 } ) } )
+  assert.equal( result.status, 0, result.stderr )
+  assert.match( result.stdout, /Atlas 0\.10\.1 is up, schema 13, unchanged/ )
+  assert.match( box.history().at( -1 ), / 0\.10\.1 13$/ )
+})
+
+test( 'the rollback hint uses the history, and names --restore-pre-migration only across a migration', () => {
+  const box = sandbox()
+  box.seedHistory( '2026-11-01T09:00:00Z 0.10.0 13\n' )
+  const migrated = box.run( [ '0.11.0' ], { HEALTH_BODY_AFTER: body( { schema: 14 } ) } )
+  assert.match( migrated.stdout, /to go back: .*deploy\.sh 0\.10\.0 --restore-pre-migration/ )
+  const plain = box.run( [ '0.11.1' ], { HEALTH_BODY: body( { schema: 14 } ), HEALTH_BODY_AFTER: body( { schema: 14 } ) } )
+  assert.match( plain.stdout, /to go back: [^\n]*deploy\.sh 0\.11\.0\)/ )
+  assert.doesNotMatch( plain.stdout, /restore-pre-migration/ )
+} )
+
+test( 'with no history, the running app is recorded first so a later rollback can find its schema', () => {
+  const box = sandbox()
+  const result = box.run( [ '0.11.0' ], { HEALTH_BODY: body( { schema: 13 } ), HEALTH_BODY_AFTER: body( { schema: 14 } ) } )
+  assert.equal( result.status, 0, result.stderr )
+  const history = box.history()
+  assert.equal( history.length, 2 )
+  assert.match( history[ 0 ], /^\S+ 0\.10\.0 13$/, 'the version in atlas.env with the schema the app reported' )
+  assert.match( history[ 1 ], / 0\.11\.0 14$/ )
+  assert.match( result.stdout, /schema 13 → 14/ )
+} )
+
+test( 'a failed health wait records nothing', () => {
+  const box = sandbox()
+  box.seedHistory( '2026-11-01T09:00:00Z 0.10.0 13\n' )
+  assert.notEqual( box.run( [ '0.11.0' ], { HEALTH_OK_AFTER: '0' } ).status, 0 )
+  assert.equal( box.history().length, 1 )
+} )
+
+test( '--dry-run writes no history', () => {
+  const box = sandbox()
+  assert.equal( box.run( [ '0.11.0', '--dry-run' ] ).status, 0 )
+  assert.deepEqual( box.history(), [] )
 } )

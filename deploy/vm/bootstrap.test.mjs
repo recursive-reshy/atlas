@@ -145,6 +145,11 @@ test( 'a first run sets up the packages, swap, Docker, folders, files and the un
     assert.match( calls, new RegExp( `chown 1000:1000 .*${ folder.replaceAll( '/', '\\/' ) }$`, 'm' ) )
   }
 
+  // The deploy history lives in a root-owned folder (ADR 0086)
+  assert.ok( lstatSync( join( box.root, 'var/lib/atlas' ) ).isDirectory(), 'var/lib/atlas' )
+  assert.equal( lstatSync( join( box.root, 'var/lib/atlas' ) ).mode & 0o777, 0o755 )
+  assert.doesNotMatch( calls, /chown .*var\/lib\/atlas/, 'stays root-owned' )
+
   // What the unit runs
   for( const file of [ 'docker-compose.yml', 'compose.prod.yml', 'litestream.yml', 'fetch-secrets.sh', 'deploy.sh' ] ) {
     assert.equal( read( box, `opt/atlas/${ file }` ), readFileSync( join( repo, file === 'litestream.yml' ? 'deploy/litestream/litestream.yml' : file === 'fetch-secrets.sh' || file === 'deploy.sh' ? `deploy/vm/${ file }` : file ), 'utf8' ), file )

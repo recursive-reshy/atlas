@@ -13,7 +13,12 @@
 # ATLAS_VERSION in /etc/atlas/atlas.env, restarts the atlas unit, and waits up to three minutes for
 # the app's health check. Rollback is the same command with the previous version, which is printed.
 #
-# ATLAS_ETC, ATLAS_OPT, ATLAS_RUN, ATLAS_UNIT, HEALTH_URL, HEALTH_TIMEOUT and HEALTH_INTERVAL move
+# After a healthy start it prints the version and the schema change, and appends
+# "<UTC time> <version> <schema>" to /var/lib/atlas/deploys.log (ADR 0086); the last line of that
+# history is the previous version and schema, and a schema change adds --restore-pre-migration to
+# the rollback command it prints.
+#
+# ATLAS_ETC, ATLAS_OPT, ATLAS_RUN, ATLAS_UNIT, ATLAS_DEPLOYS_LOG, HEALTH_URL, HEALTH_TIMEOUT and HEALTH_INTERVAL move
 # the paths and timings for the test.
 set -euo pipefail
 
@@ -21,6 +26,7 @@ ETC=${ATLAS_ETC:-/etc/atlas}
 OPT=${ATLAS_OPT:-/opt/atlas}
 RUN=${ATLAS_RUN:-/run/atlas}
 UNIT=${ATLAS_UNIT:-/etc/systemd/system/atlas.service}
+DEPLOYS_LOG=${ATLAS_DEPLOYS_LOG:-/var/lib/atlas/deploys.log}
 HEALTH_URL=${HEALTH_URL:-http://127.0.0.1:3100/api/health}
 HEALTH_TIMEOUT=${HEALTH_TIMEOUT:-180}
 HEALTH_INTERVAL=${HEALTH_INTERVAL:-5}
@@ -55,6 +61,7 @@ done
 [ -z "$files" ] || [ -d "$files" ] || fail "$files is not a folder"
 
 previous=$(grep -m 1 '^ATLAS_VERSION=' "$ETC/atlas.env" | cut -d= -f2- || true)
+health_body=
 
 compose=(docker compose --project-directory "$OPT" --env-file "$ETC/atlas.env" --env-file "$RUN/secrets.env" -f "$OPT/docker-compose.yml" -f "$OPT/compose.prod.yml")
 
@@ -112,11 +119,16 @@ to_epoch() {
   date -u -d "${clean}Z" +%s 2>/dev/null || date -u -j -f '%Y-%m-%dT%H:%M:%S' "$clean" +%s
 }
 
-# preflight_problem: prints why an upgrade should not start now, or nothing when it is fine. The body
-# is the server's own flat JSON (packages/shared health.ts), so plain text matching reads it.
+# json_field BODY NAME: a string or number field of the server's flat health JSON
+# (packages/shared health.ts), read by plain text matching
+json_field() {
+  printf '%s' "$1" | sed -n "s/.*\"$2\":\"\{0,1\}\([^\",}]*\).*/\1/p"
+}
+
+# preflight_problem BODY: prints why an upgrade should not start now, or nothing when it is fine.
 preflight_problem() {
-  local body checked interval age limit
-  if ! body=$(curl -s --max-time 5 "$HEALTH_URL") || [ -z "$body" ]; then
+  local body=$1 checked interval age limit
+  if [ -z "$body" ]; then
     echo "the app did not answer at $HEALTH_URL (on the first deploy there is no app to ask)"
     return 0
   fi
@@ -128,8 +140,8 @@ preflight_problem() {
     echo "replication is failing, so the bucket may be behind the database (check Settings → Sources → Status)"
     return 0
   fi
-  checked=$(printf '%s' "$body" | sed -n 's/.*"last_checked_at":"\([^"]*\)".*/\1/p')
-  if [ -z "$checked" ]; then
+  checked=$(json_field "$body" last_checked_at)
+  if [ -z "$checked" ] || [ "$checked" = "null" ]; then
     echo "replication has not been checked yet; wait a check interval and try again"
     return 0
   fi
@@ -140,6 +152,16 @@ preflight_problem() {
   if [ "$age" -gt "$limit" ]; then
     echo "the last replication check was $((age / 60)) minutes ago (limit $((limit / 60)))"
   fi
+}
+
+# last_deploy: the last line of the history, "<time> <version> <schema>", or nothing
+last_deploy() {
+  [ -s "$DEPLOYS_LOG" ] && tail -n 1 "$DEPLOYS_LOG" || true
+}
+
+record_deploy() {
+  mkdir -p "$(dirname "$DEPLOYS_LOG")"
+  printf '%s %s %s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$1" "$2" >>"$DEPLOYS_LOG"
 }
 
 wait_for_health() {
@@ -158,7 +180,8 @@ wait_for_health() {
 if [ "$dry_run" = 1 ]; then
   echo "+ check replication through $HEALTH_URL (--force prints a failure and goes on)"
 else
-  problem=$(preflight_problem)
+  health_body=$(curl -s --max-time 5 "$HEALTH_URL" || true)
+  problem=$(preflight_problem "$health_body")
   if [ -n "$problem" ]; then
     if [ "$force" = 1 ]; then
       echo "deploy: --force given; the preflight would have stopped here: $problem"
@@ -179,11 +202,41 @@ if [ "$dry_run" = 1 ]; then
   exit 0
 fi
 
+# The history's last line says what ran before; with no history yet, the app that was answering
+# before this deploy is recorded first, so a later rollback can find its schema.
+last=$(last_deploy)
+if [ -n "$last" ]; then
+  read -r _ last_version last_schema <<<"$last"
+  previous=$last_version
+  schema_before=$last_schema
+else
+  schema_before=$(json_field "$health_body" schema)
+  if [ -n "$previous" ] && [[ "$schema_before" =~ ^[0-9]+$ ]]; then
+    record_deploy "$previous" "$schema_before"
+  fi
+fi
+
 echo "deploy: waiting for $HEALTH_URL (up to ${HEALTH_TIMEOUT}s)"
 if wait_for_health; then
   "${compose[@]}" ps
+  schema_after=$(json_field "$(curl -s --max-time 5 "$HEALTH_URL" || true)" schema)
+  [[ "$schema_after" =~ ^[0-9]+$ ]] || schema_after=
+  if [ -z "$schema_after" ]; then
+    echo "Atlas $version is up, schema unknown"
+  elif [ -z "$schema_before" ]; then
+    echo "Atlas $version is up, schema $schema_after"
+  elif [ "$schema_before" = "$schema_after" ]; then
+    echo "Atlas $version is up, schema $schema_after, unchanged"
+  else
+    echo "Atlas $version is up, schema $schema_before → $schema_after"
+  fi
+  [ -z "$schema_after" ] || record_deploy "$version" "$schema_after"
+  back="$OPT/deploy.sh $previous"
+  if [ -n "$schema_before" ] && [ -n "$schema_after" ] && [ "$schema_before" != "$schema_after" ]; then
+    back="$back --restore-pre-migration"
+  fi
   if [ -n "$previous" ]; then
-    echo "Atlas $version is up (previous version was $previous; to go back: $OPT/deploy.sh $previous)"
+    echo "Atlas $version is up (previous version was $previous; to go back: $back)"
   else
     echo "Atlas $version is up (previous version was none)"
   fi

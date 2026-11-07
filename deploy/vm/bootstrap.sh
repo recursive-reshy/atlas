@@ -168,6 +168,10 @@ for user in $SYNC_USERS; do
   chown 1000:1000 "$R/srv/atlas/vaults/$user"
 done
 
+# The deploy history (ADR 0086), root-owned: only deploy.sh writes it
+mkdir -p "$R/var/lib/atlas"
+chmod 755 "$R/var/lib/atlas"
+
 # --- what the systemd unit runs ---------------------------------------------------------------
 mkdir -p "$R/etc/atlas" "$R/opt/atlas"
 chmod 755 "$R/opt/atlas"
