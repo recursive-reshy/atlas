@@ -33,7 +33,7 @@ export const videoAdapter: SourceAdapter = {
     // First, so a private or missing video never reaches Gemini and costs nothing
     const meta = await getVideoMeta( videoId, youtubeDataOptions() )
     const source = `https://www.youtube.com/watch?v=${ videoId }`
-    const attempt = { model: config.geminiModel, audio_seconds: meta.duration_seconds }
+    const attempt = { model: config.geminiModel, duration_seconds: meta.duration_seconds }
     let transcript: Awaited< ReturnType< typeof transcribeYouTube > >
 
     try {

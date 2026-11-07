@@ -69,7 +69,7 @@ describe( 'getUsage for transcription', () => {
       insertTranscriptionRun( user.id, {
         job_id: 'job',
         model: 'gpt-transcribe',
-        audio_seconds: 3600,
+        duration_seconds: 3600,
         input_tokens: null,
         output_tokens: null,
         cost_usd: cost,

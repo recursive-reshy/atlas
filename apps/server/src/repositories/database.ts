@@ -512,7 +512,7 @@ CREATE INDEX health_errors_subject ON health_errors ( kind, subject_id, at );`
 // Schema 13 (ADR 0081, TRD §12.5). Gemini replaces the download pipeline: the health tables keep
 // only the app kinds that are still checked (rows of whisper, backup and pot_provider go), jobs
 // that were mid-download or mid-conversion fail (the steps no longer exist), and transcription
-// runs gain the tokens Gemini bills by. `pieces` stays and is 1 for a Gemini run.
+// runs gain the tokens Gemini bills by. `pieces` is dropped by migration 14.
 const geminiTranscription = `
 CREATE TABLE health_status_new (
   user_id TEXT REFERENCES users ( id ) ON DELETE CASCADE,
@@ -553,11 +553,18 @@ UPDATE jobs
 ALTER TABLE transcription_runs ADD COLUMN input_tokens INTEGER;
 ALTER TABLE transcription_runs ADD COLUMN output_tokens INTEGER;`
 
+// Migration 14 (v0.11.0, ADR 0085). `pieces` has been 1 for every run since ADR 0081, and the
+// column holds the video's length, not audio the app handled. SQLite 3.53 (3.35+ needed).
+const transcriptionRunsDuration = `
+ALTER TABLE transcription_runs DROP COLUMN pieces;
+ALTER TABLE transcription_runs RENAME COLUMN audio_seconds TO duration_seconds;`
+
 export const migrations: Migration[] = [
   baseline,
   transcriptionRuns,
   potProviderKind,
   geminiTranscription,
+  transcriptionRunsDuration,
 ]
 
 let database: Database.Database | undefined

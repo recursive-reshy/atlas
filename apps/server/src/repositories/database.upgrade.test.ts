@@ -242,3 +242,40 @@ describe( 'a migration that fails (TRD §2.6)', () => {
     }
   } )
 } )
+
+describe( 'migration 14 (stored schema 14, ADR 0085)', () => {
+  afterEach( () => {
+    closeDatabase()
+  } )
+
+  it( 'drops pieces and renames audio_seconds to duration_seconds, keeping the values', () => {
+    openSeeded( 13 )
+    runMigrations( getDatabase(), migrations )
+
+    const columns = rows( 'SELECT name FROM pragma_table_info( \'transcription_runs\' )' )
+      .map( ( { name } ) => name )
+
+    expect( columns ).toContain( 'duration_seconds' )
+    expect( columns ).not.toContain( 'audio_seconds' )
+    expect( columns ).not.toContain( 'pieces' )
+    expect( rows(
+      'SELECT id, duration_seconds, input_tokens FROM transcription_runs ORDER BY id',
+    ) )
+      .toEqual( [
+        { id: 1, duration_seconds: 900, input_tokens: 24000 },
+        { id: 2, duration_seconds: 0, input_tokens: null },
+      ] )
+  } )
+
+  it( 'keeps the transcription branch of usage_events working', () => {
+    openSeeded( 13 )
+    runMigrations( getDatabase(), migrations )
+
+    expect( rows( `SELECT user_id, cost_usd FROM usage_events
+      WHERE category = 'transcription' ORDER BY cost_usd` ) )
+      .toEqual( [
+        { user_id: '00000000-0000-4000-8000-000000000002', cost_usd: null },
+        { user_id: '00000000-0000-4000-8000-000000000001', cost_usd: 0.021 },
+      ] )
+  } )
+} )

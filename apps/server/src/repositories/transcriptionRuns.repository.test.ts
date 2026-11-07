@@ -24,7 +24,7 @@ const buildRun = (
   return {
     job_id: 'job-1',
     model: 'gemini-3.8-flash',
-    audio_seconds: 3600,
+    duration_seconds: 3600,
     input_tokens: 1_000_000,
     output_tokens: 200_000,
     cost_usd: 1.5,

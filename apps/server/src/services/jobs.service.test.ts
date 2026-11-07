@@ -1151,7 +1151,7 @@ describe( 'recordTranscriptionRun', () => {
 
     recordTranscriptionRun( userId, id, {
       model: 'gemini-3.8-flash',
-      audio_seconds: 3600,
+      duration_seconds: 3600,
       input_tokens: 1_000_000,
       output_tokens: 200_000,
       outcome: 'ok',
@@ -1162,7 +1162,7 @@ describe( 'recordTranscriptionRun', () => {
       id: 1,
       job_id: id,
       model: 'gemini-3.8-flash',
-      audio_seconds: 3600,
+      duration_seconds: 3600,
       input_tokens: 1_000_000,
       output_tokens: 200_000,
       cost_usd: 1.5,
@@ -1177,7 +1177,7 @@ describe( 'recordTranscriptionRun', () => {
 
     recordTranscriptionRun( userId, id, {
       model: 'gemini-3.8-flash',
-      audio_seconds: 60,
+      duration_seconds: 60,
       input_tokens: null,
       output_tokens: null,
       outcome: 'error',
@@ -1198,7 +1198,7 @@ describe( 'recordTranscriptionRun', () => {
 
     recordTranscriptionRun( userId, id, {
       model: 'some-new-model',
-      audio_seconds: 60,
+      duration_seconds: 60,
       input_tokens: 100,
       output_tokens: 10,
       outcome: 'ok',

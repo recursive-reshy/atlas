@@ -6,7 +6,7 @@ import { getDatabase } from './database.js'
 export const TranscriptionRunRecord = z.object( {
   job_id: z.string(),
   model: z.string(),
-  audio_seconds: z.int().min( 0 ),
+  duration_seconds: z.int().min( 0 ),
   input_tokens: z.int().min( 0 ).nullable(),
   output_tokens: z.int().min( 0 ).nullable(),
   cost_usd: z.number().nullable(),
@@ -25,10 +25,10 @@ export const insertTranscriptionRun = (
 ): StoredTranscriptionRun => {
   const { lastInsertRowid } = getDatabase()
     .prepare( `INSERT INTO transcription_runs (
-        user_id, job_id, model, audio_seconds, pieces, input_tokens, output_tokens, cost_usd,
+        user_id, job_id, model, duration_seconds, input_tokens, output_tokens, cost_usd,
         outcome, error, created_at
       ) VALUES (
-        @user_id, @job_id, @model, @audio_seconds, 1, @input_tokens, @output_tokens, @cost_usd,
+        @user_id, @job_id, @model, @duration_seconds, @input_tokens, @output_tokens, @cost_usd,
         @outcome, @error, @created_at
       )` )
     .run( { ...TranscriptionRunRecord.parse( run ), user_id: userId } )

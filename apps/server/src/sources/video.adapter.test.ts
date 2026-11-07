@@ -186,7 +186,7 @@ describe( 'videoAdapter.acquire', () => {
       expect( record ).toHaveBeenCalledOnce()
       expect( record ).toHaveBeenCalledWith( {
         model: 'test-gemini',
-        audio_seconds: 12,
+        duration_seconds: 12,
         input_tokens: 1000,
         output_tokens: 200,
         outcome: 'ok',
@@ -205,7 +205,7 @@ describe( 'videoAdapter.acquire', () => {
       expect( record ).toHaveBeenCalledOnce()
       expect( record ).toHaveBeenCalledWith( {
         model: 'test-gemini',
-        audio_seconds: 12,
+        duration_seconds: 12,
         input_tokens: null,
         output_tokens: null,
         outcome: 'error',

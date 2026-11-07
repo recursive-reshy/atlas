@@ -91,9 +91,9 @@ describe( 'the migration after the 0.9 baseline', () => {
       const db = migrate()
 
       db.prepare( `INSERT INTO transcription_runs (
-          user_id, job_id, model, audio_seconds, pieces, cost_usd, outcome, error, created_at
+          user_id, job_id, model, duration_seconds, cost_usd, outcome, error, created_at
         ) VALUES (
-          'u1', 'j', 'gpt-transcribe', 60, 1, 0.0045, 'ok', NULL, '2026-11-02T00:00:00Z'
+          'u1', 'j', 'gpt-transcribe', 60, 0.0045, 'ok', NULL, '2026-11-02T00:00:00Z'
         )` ).run()
 
       const events = db.prepare(
@@ -107,8 +107,8 @@ describe( 'the migration after the 0.9 baseline', () => {
       const db = migrate()
 
       db.prepare( `INSERT INTO transcription_runs (
-          user_id, job_id, model, audio_seconds, pieces, outcome, created_at
-        ) VALUES ( 'u1', 'j', 'm', 1, 1, 'ok', 'now' )` ).run()
+          user_id, job_id, model, duration_seconds, outcome, created_at
+        ) VALUES ( 'u1', 'j', 'm', 1, 'ok', 'now' )` ).run()
       db.prepare( "DELETE FROM users WHERE id = 'u1'" ).run()
 
       expect( db.prepare( 'SELECT COUNT(*) AS n FROM transcription_runs' ).get() )
@@ -119,8 +119,8 @@ describe( 'the migration after the 0.9 baseline', () => {
       const db = migrate()
 
       expect( () => db.prepare( `INSERT INTO transcription_runs (
-          user_id, job_id, model, audio_seconds, pieces, outcome, created_at
-        ) VALUES ( 'u1', 'j', 'm', 1, 1, 'maybe', 'now' )` ).run() ).toThrow()
+          user_id, job_id, model, duration_seconds, outcome, created_at
+        ) VALUES ( 'u1', 'j', 'm', 1, 'maybe', 'now' )` ).run() ).toThrow()
     } )
   } )
 
@@ -157,11 +157,11 @@ describe( 'the migration after the 0.9 baseline', () => {
       return db
     }
 
-    it( 'is the fourth migration, schema 13', () => {
+    it( 'is the fourth migration, and the list only grows after it', () => {
       const db = migrate()
 
-      expect( migrations ).toHaveLength( 4 )
-      expect( db.pragma( 'user_version', { simple: true } ) ).toBe( 13 )
+      expect( migrations.length ).toBeGreaterThanOrEqual( 4 )
+      expect( db.pragma( 'user_version', { simple: true } ) ).toBe( 9 + migrations.length )
     } )
 
     it( 'keeps the kinds that are still checked and drops the others', () => {
@@ -209,9 +209,9 @@ describe( 'the migration after the 0.9 baseline', () => {
         .toEqual( [ { model: 'gpt-transcribe', input_tokens: null, output_tokens: null } ] )
 
       db.prepare( `INSERT INTO transcription_runs (
-          user_id, job_id, model, audio_seconds, pieces, input_tokens, output_tokens, outcome,
+          user_id, job_id, model, duration_seconds, input_tokens, output_tokens, outcome,
           created_at
-        ) VALUES ( 'u1', 'j', 'gemini-3.8-flash', 60, 1, 100, 20, 'ok', 'now' )` ).run()
+        ) VALUES ( 'u1', 'j', 'gemini-3.8-flash', 60, 100, 20, 'ok', 'now' )` ).run()
     } )
   } )
 

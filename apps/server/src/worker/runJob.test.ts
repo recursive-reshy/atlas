@@ -187,7 +187,7 @@ describe( 'runJob', () => {
       expect( listTranscriptionRuns( userId, id ) ).toMatchObject( [ {
         job_id: id,
         model: 'test-model',
-        audio_seconds: meta.duration_seconds,
+        duration_seconds: meta.duration_seconds,
         input_tokens: 1000,
         output_tokens: 200,
         outcome: 'ok',

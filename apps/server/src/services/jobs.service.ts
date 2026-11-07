@@ -87,7 +87,7 @@ import { logger } from '../logger.js'
 
 export interface TranscriptionAttempt {
   model: string
-  audio_seconds: number
+  duration_seconds: number
   input_tokens: number | null
   output_tokens: number | null
   outcome: 'ok' | 'error'
