@@ -33,21 +33,21 @@ const NAV_ITEMS = [
     ),
   },
   {
-    module: 'transcriber',
-    label: 'Mnemosyne',
-    to: '/',
-    icon: <TranscriberIcon />,
-    isCurrent: ( pathname: string ): boolean => (
-      pathname === '/' || pathname.startsWith( '/jobs/' )
-    ),
-  },
-  {
     module: 'melete',
     label: 'Melete',
     to: '/melete',
     icon: <MeleteIcon />,
     isCurrent: ( pathname: string ): boolean => (
       pathname === '/melete' || pathname.startsWith( '/melete/' )
+    ),
+  },
+  {
+    module: 'transcriber',
+    label: 'Mnemosyne',
+    to: '/',
+    icon: <TranscriberIcon />,
+    isCurrent: ( pathname: string ): boolean => (
+      pathname === '/' || pathname.startsWith( '/jobs/' )
     ),
   },
 ] as const
