@@ -18,11 +18,11 @@ This file holds only what is true everywhere. Each app's `CLAUDE.md` has its lan
 
 ## Workflow
 
-The current version is **1.1.0**; its plan is `docs/v1.1.0/` (`prd.md` what and why, `trd.md` how, `tasks.md` ordered tasks in checkpoints). Only Naresh edits the PRD and TRD. You edit `tasks.md`, write checkpoint plans and ADRs.
+The current version is **1.1.1**; its plan is `docs/v1.1.1/` (`prd.md` what and why, `trd.md` how, `tasks.md` ordered tasks in checkpoints). Only Naresh edits the PRD and TRD. You edit `tasks.md`, write checkpoint plans and ADRs.
 
 Each session:
 1. Read `tasks.md` and say which checkpoint and task is next, in one line. Read the TRD sections and ADRs that task names — not the whole TRD, not every ADR.
-2. Plan cell ⬜: enter plan mode, write one plan for the checkpoint (files, tests first, red → green), stop. When approved, save it to `docs/v1.1.0/plans/checkpoint-<x>.md`, tick the cell, commit, push, start.
+2. Plan cell ⬜: enter plan mode, write one plan for the checkpoint (files, tests first, red → green), stop. When approved, save it to `docs/v1.1.1/plans/checkpoint-<x>.md`, tick the cell, commit, push, start.
 3. Plan cell ✅: continue from the first unticked task.
 
 Per task: failing test → least code → refactor while green → tick `tasks.md` with a log line → commit → push. Work through a checkpoint without stopping; stop and report at its end.
@@ -43,8 +43,8 @@ Not covered by the PRD, TRD, ADRs or the plan (a new dependency, endpoint, job s
 
 ## Git
 
-- Work on the release branch named in `tasks.md` (e.g. `release/1.1.0`), never `main`. One commit per task (code, tests, `tasks.md`), pushed after each. Naresh merges `--no-ff`, releases and tags from `main`. No branch is ever named like a tag.
-- Messages: `feat(1.1-3.2): …`, `docs(1.1-plan): checkpoint B`; patch releases use the full version (`1.1.1-2.3`).
+- Work on the release branch named in `tasks.md` (e.g. `release/1.1.1`), never `main`. One commit per task (code, tests, `tasks.md`), pushed after each. Naresh merges `--no-ff`, releases and tags from `main`. No branch is ever named like a tag.
+- Conventional commits, no scope: `feat: …`, `fix: …`, `refactor: …`, `docs: …`, `test: …`, `chore: …`. The subject names the change, not the task number; the task id goes in `tasks.md`, not the message.
 - Stage files by name. Never `git add -A`/`.`, never commit `.env` or a secret.
 - Never `--amend`, rebase, force-push, `reset`, `stash`, `checkout -- <file>` or `restore`. Fix a wrong commit with a new one. If a push fails, stop and report.
 
