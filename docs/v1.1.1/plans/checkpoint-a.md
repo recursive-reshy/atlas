@@ -36,3 +36,11 @@ Tests first: none exist for versions; red→green is a check, not a test: `grep 
 
 ## After approval
 Save this plan to `docs/v1.1.1/plans/checkpoint-a.md`, tick the Plan cell in `tasks.md`, commit (`docs: plan checkpoint A`), push, then start 1.1.
+
+## 1.5 Doc-guard tests (added after the plan; TRD §2.3, decision (a) from Naresh)
+Context: the doc-guard tests in `scripts/` locked CLAUDE.md and README wording that 1.1–1.3 deliberately changed, so root `pnpm test` was red. Naresh decided to change them, per TRD §2.3.
+- `version.test.mjs`: drop the README `Version x.` and CLAUDE.md `current version` assertions and the CLAUDE.md Workflow-path assertions; the docs folder is `docs/v<full version>/` (was `v<major>.<minor>.0`). Keep the cross-package version check, the `docs/README.md` line and the `tasks.md` existence check.
+- `architectureDocs.test.mjs`: drop the two tests on the root CLAUDE.md (Architecture summary length, Git section wording). Keep the section/ADR/fact checks on `architecture.md` and the docs index.
+- `hostingDocs.test.mjs`: drop the root CLAUDE.md hosting test and the `ops/` row check; README variable and Gemini checks move to `docs/configuration.md` (and "Only YouTube" to `docs/troubleshooting.md`); stale-term scans keep their files and also cover `docs/guide.md`, `docs/configuration.md`, `docs/troubleshooting.md`.
+- `docs/roadmap.md` removed (TRD §2.2). Root `pnpm test` green is the exit check.
+Ordering note: 1.3 and 1.4 commits are red on the `scripts/` tests until 1.5 lands, because the tests lock the old README.

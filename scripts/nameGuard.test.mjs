@@ -27,6 +27,7 @@ const MODULE_TAG_FOLDER = new Set( [
   'CLAUDE.md',
   'README.md',
   'apps/server/.env.example',
+  'docs/configuration.md',
   'apps/server/src/clients/vault.client.test.ts',
   'apps/server/src/config.test.ts',
   'apps/server/src/config.ts',

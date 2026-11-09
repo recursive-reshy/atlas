@@ -13,19 +13,20 @@ const OLD_WORDS = /whisper|WHISPER_|BACKUP_DIR|BACKUP_HOST_PATH|Back up now|\.sr
 // A line may mention the old things when it says they are gone
 const SAYS_GONE = /upgrad|no longer|removed|replaced|retired|ignored|instead of|used to|0\.10|ADR 00(02|04|74|51|76)|history|earlier version|Version 0\.[1-9]\.\d adds/i
 
-test( 'the README no longer describes whisper-server or manual backups', () => {
-  const offenders = read( 'README.md' ).split( '\n' )
+test( 'the README and user docs no longer describe whisper-server or manual backups', () => {
+  const offenders = [ 'README.md', 'docs/guide.md', 'docs/configuration.md', 'docs/troubleshooting.md' ].flatMap( ( file ) => read( file ).split( '\n' )
     .map( ( line, index ) => ( { line, number: index + 1 } ) )
     .filter( ( { line } ) => OLD_WORDS.test( line ) && !SAYS_GONE.test( line ) )
-  assert.deepEqual( offenders.map( ( { number, line } ) => `${ number }: ${ line.slice( 0, 100 ) }` ), [] )
+    .map( ( { number, line } ) => `${ file }:${ number }: ${ line.slice( 0, 100 ) }` ) )
+  assert.deepEqual( offenders, [] )
 } )
 
-test( 'the README lists the new variables and the deployment files', () => {
-  const text = read( 'README.md' )
+test( 'docs/configuration.md lists the hosting variables and points at the runbook', () => {
+  const text = read( 'docs/configuration.md' )
   for( const name of [ 'VAULT_CREATE_ENABLED', 'LITESTREAM_METRICS_URL', 'VAULT_SYNC_STATUS_DIR', 'COMPOSE_FILE' ] ) {
     assert.match( text, new RegExp( `\`${ name }\`` ), name )
   }
-  assert.match( text, /docs\/deploy\.md/ )
+  assert.match( text, /deploy\.md/ )
 } )
 
 test( 'the whisper-server launchd files are gone', () => {
@@ -61,14 +62,6 @@ test( 'the user docs are rewritten for the VM', () => {
   }
 } )
 
-test( 'the root CLAUDE.md describes the hosting and the deploy folder', () => {
-  const text = read( 'CLAUDE.md' )
-  assert.match( text, /^\| `deploy\/` \|/m )
-  assert.doesNotMatch( text, /\| `ops\/` \| launchd plist/ )
-  assert.match( text, /compose\.prod\.yml/ )
-  assert.match( text, /docs\/deploy\.md/ )
-} )
-
 // --- Gemini replaces the download pipeline (task 9.6, ADR 0081) ---
 
 const DOWNLOAD_WORDS = /yt-dlp|ffmpeg|ffprobe|openai|pot[-_ ]provider|PO token|bgutil|gpt-transcribe|TRANSCRIPTION_MODEL|OPENAI_/i
@@ -80,9 +73,9 @@ const stale = ( file ) => read( file ).split( '\n' )
   .filter( ( { line } ) => DOWNLOAD_WORDS.test( line ) && !SAYS_REMOVED.test( line ) )
   .map( ( { number, line } ) => `${ file }:${ number }: ${ line.slice( 0, 110 ) }` )
 
-test( 'the README and the CLAUDE.md files no longer describe downloading, ffmpeg or OpenAI', () => {
+test( 'the README, CLAUDE.md files and user docs no longer describe downloading, ffmpeg or OpenAI', () => {
   assert.deepEqual(
-    [ 'README.md', 'CLAUDE.md', 'docs/architecture.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md' ].flatMap( stale ),
+    [ 'README.md', 'CLAUDE.md', 'docs/architecture.md', 'docs/guide.md', 'docs/configuration.md', 'docs/troubleshooting.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md' ].flatMap( stale ),
     [],
   )
 } )
@@ -91,14 +84,14 @@ test( 'the runbook and the Google Cloud guide no longer describe them either', (
   assert.deepEqual( [ 'docs/deploy.md', 'docs/google-cloud-setup.md', 'docs/phone-access.md' ].flatMap( stale ), [] )
 } )
 
-test( 'the README documents the Gemini settings and YouTube-only video', () => {
-  const text = read( 'README.md' )
+test( 'docs/configuration.md and docs/troubleshooting.md document the Gemini settings and YouTube-only video', () => {
+  const text = read( 'docs/configuration.md' )
   for( const name of [ 'GEMINI_MODEL', 'GEMINI_API_KEY', 'YOUTUBE_API_KEY' ] ) {
     assert.match( text, new RegExp( `\`${ name }\`` ), name )
   }
   assert.match( text, /Gemini/ )
-  assert.match( text, /Only YouTube/i )
   assert.match( text, /AI Studio/ )
+  assert.match( read( 'docs/troubleshooting.md' ), /Only public YouTube|Only YouTube/i )
 } )
 
 // Gemini goes through the Developer API with a key (ADR 0083): Vertex AI, Application Default
@@ -108,8 +101,8 @@ const SAYS_NOT_VERTEX = /no longer|removed|remove |disable|ignored|instead of|no
 
 test( 'no doc describes Vertex AI or Application Default Credentials as how Gemini works', () => {
   const offenders = [
-    'README.md', 'CLAUDE.md', 'docs/architecture.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md',
-    'docs/deploy.md', 'docs/google-cloud-setup.md', '.env.example', 'apps/server/.env.example',
+    'README.md', 'CLAUDE.md', 'docs/architecture.md', 'docs/guide.md', 'docs/configuration.md', 'docs/troubleshooting.md',
+    'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md', 'docs/deploy.md', 'docs/google-cloud-setup.md', '.env.example', 'apps/server/.env.example',
   ].flatMap( ( file ) => read( file ).split( '\n' )
     .map( ( line, index ) => ( { line, number: index + 1 } ) )
     .filter( ( { line } ) => VERTEX_WORDS.test( line ) && !SAYS_NOT_VERTEX.test( line ) )
@@ -137,9 +130,8 @@ test( 'the Google Cloud guide covers the AI Studio key and the YouTube Data API 
   assert.match( text, /Generative Language API/ )
 } )
 
-test( 'docs/architecture.md describes Gemini and the root CLAUDE.md has no ops folder row', () => {
+test( 'docs/architecture.md describes Gemini and YouTube-only video', () => {
   const text = read( 'docs/architecture.md' )
   assert.match( text, /Gemini/ )
   assert.match( text, /Only YouTube|YouTube-only|YouTube only/i )
-  assert.doesNotMatch( read( 'CLAUDE.md' ), /^\| `ops\/` \|/m )
 } )
