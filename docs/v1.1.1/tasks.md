@@ -1,6 +1,6 @@
 # Tasks — Atlas v1.1.1
 
-A hardening and tidy-up release: no new features. Built from `trd.md` in this folder (decisions only; there is no PRD). Tasks run strictly in order. Each one is test-first and ends in its own commit.
+A hardening and tidy-up release: no new features. Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order; the TRD section each task follows is named in the task. Each one is test-first and ends in its own commit.
 
 **Branch:** `release/1.1.1`. Never commit to `main`, never merge, never tag.
 
@@ -28,10 +28,11 @@ A hardening and tidy-up release: no new features. Built from `trd.md` in this fo
 | --- | --- | --- | --- |
 | 1.1 | Kick-off: version 1.1.1 in every `package.json`, `apps/agent/pyproject.toml` and its `uv.lock` entry; `docs/README.md` lists v1.1.1 with this folder's docs; commit the four already-rewritten `CLAUDE.md` files (root, server, web, agent) and this `tasks.md` | | ✅ |
 | 1.2 | Move orphaned knowledge into `docs/architecture.md`: diff the previous `apps/server/CLAUDE.md` and `apps/web/CLAUDE.md` (`git show v1.1.0:…`) against `architecture.md`; any *behaviour* described only in the old files (worker fairness via `eligible_users`, `requestOrigin` trust rules, the vault-sync health-file format, the gate's decision order, the Melete generator's order of work) is added as prose about the system — never a file-by-file listing. No code changes | | ✅ |
-| 1.3 | `README.md` trimmed to: what Atlas is, running it locally, where the docs are. Version history moves to `docs/v*/release-notes.md` where it is missing; nothing is lost from git history | | ⬜ |
+| 1.3 | `README.md` trimmed to: what Atlas is, running it locally, where the docs are. Version history moves to `docs/v*/release-notes.md` where it is missing; nothing is lost from git history | | ✅ |
 | 1.4 | `.env.example` carries a one-line comment for every variable (purpose, default, required or optional), because the server `CLAUDE.md` now points there. Check against `config.ts`; the two must agree | | ⬜ |
+| 1.5 | Doc-guard tests (TRD §2.3): `scripts/version.test.mjs`, `hostingDocs.test.mjs` and `architectureDocs.test.mjs` keep the stale-term scans, the cross-package version check, the `docs/README.md` version line and the `docs/v<version>/tasks.md` check; they lose every assertion on `CLAUDE.md` or README wording and line counts; the docs folder is derived from the full version. Checks on README variable names move to `docs/configuration.md`. `docs/roadmap.md` is removed. Root `pnpm test` green | | ⬜ |
 
-**Checkpoint A done when:** the docs describe the system once each (`architecture.md` for how, ADRs for why, `CLAUDE.md` for rules) and `pnpm test` is unchanged.
+**Checkpoint A done when:** root `pnpm test` is green, and the docs describe the system once each (`architecture.md` for how, ADRs for why, `CLAUDE.md` for rules) and `pnpm test` is unchanged.
 
 ---
 
@@ -102,4 +103,5 @@ Target layout (TRD §3): `src/app/` (shell, gate, routing helpers), `src/lib/` (
 _(one line per ticked task: id, commit hash, moved or deleted test files)_
 
 - 1.1 — 6dea9ff (test fix 4d7c420) — version 1.1.1 everywhere, docs/README.md updated, root CLAUDE.md and tasks.md committed. No test files moved or deleted. Separate `test:` commit fixed two NavDrawer order tests left red by 0787812 (menu item ordering).
-- 1.2 — see commit below — architecture.md gains: vault-sync file format and replication check rules, `pruneHealth`, turns between users (`eligible_users`, claim order), `requestOrigin` trust rules, Melete generator order of work, the web gate's decision order. Already covered, left out: lifecycle, `X-Job-Id`, health kinds, pre-migration copy. No test files moved or deleted.
+- 1.2 — 3056868 — architecture.md gains: vault-sync file format and replication check rules, `pruneHealth`, turns between users (`eligible_users`, claim order), `requestOrigin` trust rules, Melete generator order of work, the web gate's decision order. Already covered, left out: lifecycle, `X-Job-Id`, health kinds, pre-migration copy. No test files moved or deleted.
+- 1.3 — HASH13 — README is 83 lines: what Atlas is, requirements, setup, development, stopping, links. Moved verbatim: usage, accounts and output formats to docs/guide.md, the variable table to docs/configuration.md, troubleshooting to docs/troubleshooting.md. The README had no version history to move. No test files moved or deleted in this commit; the `scripts/` doc-guard tests were red from here until 1.5 (see its line).
