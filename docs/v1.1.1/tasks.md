@@ -27,7 +27,7 @@ A hardening and tidy-up release: no new features. Built from `trd.md` in this fo
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
 | 1.1 | Kick-off: version 1.1.1 in every `package.json`, `apps/agent/pyproject.toml` and its `uv.lock` entry; `docs/README.md` lists v1.1.1 with this folder's docs; commit the four already-rewritten `CLAUDE.md` files (root, server, web, agent) and this `tasks.md` | | ✅ |
-| 1.2 | Move orphaned knowledge into `docs/architecture.md`: diff the previous `apps/server/CLAUDE.md` and `apps/web/CLAUDE.md` (`git show v1.1.0:…`) against `architecture.md`; any *behaviour* described only in the old files (worker fairness via `eligible_users`, `requestOrigin` trust rules, the vault-sync health-file format, the gate's decision order, the Melete generator's order of work) is added as prose about the system — never a file-by-file listing. No code changes | | ⬜ |
+| 1.2 | Move orphaned knowledge into `docs/architecture.md`: diff the previous `apps/server/CLAUDE.md` and `apps/web/CLAUDE.md` (`git show v1.1.0:…`) against `architecture.md`; any *behaviour* described only in the old files (worker fairness via `eligible_users`, `requestOrigin` trust rules, the vault-sync health-file format, the gate's decision order, the Melete generator's order of work) is added as prose about the system — never a file-by-file listing. No code changes | | ✅ |
 | 1.3 | `README.md` trimmed to: what Atlas is, running it locally, where the docs are. Version history moves to `docs/v*/release-notes.md` where it is missing; nothing is lost from git history | | ⬜ |
 | 1.4 | `.env.example` carries a one-line comment for every variable (purpose, default, required or optional), because the server `CLAUDE.md` now points there. Check against `config.ts`; the two must agree | | ⬜ |
 
@@ -101,4 +101,5 @@ Target layout (TRD §3): `src/app/` (shell, gate, routing helpers), `src/lib/` (
 ## Log
 _(one line per ticked task: id, commit hash, moved or deleted test files)_
 
-- 1.1 — version 1.1.1 everywhere, docs/README.md updated, root CLAUDE.md and tasks.md committed. No test files moved or deleted. Separate `test:` commit fixed two NavDrawer order tests left red by 0787812 (menu item ordering).
+- 1.1 — 6dea9ff (test fix 4d7c420) — version 1.1.1 everywhere, docs/README.md updated, root CLAUDE.md and tasks.md committed. No test files moved or deleted. Separate `test:` commit fixed two NavDrawer order tests left red by 0787812 (menu item ordering).
+- 1.2 — see commit below — architecture.md gains: vault-sync file format and replication check rules, `pruneHealth`, turns between users (`eligible_users`, claim order), `requestOrigin` trust rules, Melete generator order of work, the web gate's decision order. Already covered, left out: lifecycle, `X-Job-Id`, health kinds, pre-migration copy. No test files moved or deleted.
