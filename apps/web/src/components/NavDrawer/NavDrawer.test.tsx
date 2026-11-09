@@ -95,7 +95,7 @@ describe( 'NavDrawer, wide', () => {
 } )
 
 describe( 'NavDrawer, Melete item', () => {
-  it( 'links to Melete, after Transcriber and before Settings', () => {
+  it( 'links to Melete, before Mnemosyne and Settings', () => {
     renderWithClient( <NavDrawer { ...defaults } /> )
 
     const transcriber = screen.getByRole( 'link', { name: 'Mnemosyne' } )
@@ -103,9 +103,9 @@ describe( 'NavDrawer, Melete item', () => {
     const settings = screen.getByRole( 'link', { name: 'Settings' } )
 
     expect( melete ).toHaveAttribute( 'href', '/melete' )
-    expect( transcriber.compareDocumentPosition( melete ) )
+    expect( melete.compareDocumentPosition( transcriber ) )
       .toBe( Node.DOCUMENT_POSITION_FOLLOWING )
-    expect( melete.compareDocumentPosition( settings ) )
+    expect( transcriber.compareDocumentPosition( settings ) )
       .toBe( Node.DOCUMENT_POSITION_FOLLOWING )
   } )
 
@@ -142,7 +142,7 @@ describe( 'NavDrawer, Themis item', () => {
     signedInAs( meFixture( { modules: [ 'transcriber', 'melete', 'themis' ] } ) )
   }
 
-  it( 'is first, before Mnemosyne and Melete, and links to /themis', () => {
+  it( 'is first, before Melete and Mnemosyne, and links to /themis', () => {
     withThemis()
     renderWithClient( <NavDrawer { ...defaults } /> )
 
@@ -151,9 +151,9 @@ describe( 'NavDrawer, Themis item', () => {
     const melete = screen.getByRole( 'link', { name: 'Melete' } )
 
     expect( themis ).toHaveAttribute( 'href', '/themis' )
-    expect( themis.compareDocumentPosition( transcriber ) )
+    expect( themis.compareDocumentPosition( melete ) )
       .toBe( Node.DOCUMENT_POSITION_FOLLOWING )
-    expect( transcriber.compareDocumentPosition( melete ) )
+    expect( melete.compareDocumentPosition( transcriber ) )
       .toBe( Node.DOCUMENT_POSITION_FOLLOWING )
   } )
 
