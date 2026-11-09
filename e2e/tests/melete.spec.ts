@@ -38,11 +38,13 @@ test( 'a note is enrolled, quizzed in typed and quick modes, and the app is inst
   await dialog.getByRole( 'button', { name: 'Save' } ).click()
 
   await page.getByRole( 'link', { name: 'E2E', exact: true } ).click()
+  await page.getByRole( 'tab', { name: 'Settings' } ).click()
   await page.getByRole( 'button', { name: 'Enroll all', exact: true } ).click()
+  await page.getByRole( 'tab', { name: 'Notes' } ).click()
   await expect( page.getByText( '2 questions' ) ).toBeVisible()
 
   await page.goto( '/melete' )
-  await page.getByRole( 'link', { name: 'Start review' } ).click()
+  await page.getByRole( 'link', { name: 'Review all due' } ).click()
 
   // Typed mode: the fake grades the answer as partly right and suggests Hard.
   await page.getByLabel( 'Your answer' ).fill( 'Remembering an idea instead of rereading it.' )

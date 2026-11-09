@@ -4,6 +4,12 @@ import { Request, Response } from 'express'
 import { z } from 'zod'
 // Shared
 import {
+  ApproveMeleteSyllabusResponse,
+  GetMeleteGapsResponse,
+  OffSyllabusActionBody,
+  SuggestMeleteResourcesResponse,
+  RemapMeleteSyllabusResponse,
+  UpdateNoteConceptsBody,
   EnrollSubjectBody,
   GetMeleteNoteResponse,
   GetMeleteSubjectResponse,
@@ -13,8 +19,11 @@ import {
   GradeAnswerResponse,
   MeleteQuestion,
   MeleteSubject,
+  MeleteSyllabus,
+  MeleteSyllabusEdit,
   RecordReviewBody,
   RecordReviewResponse,
+  SaveMeleteSyllabusResponse,
   UpdateMeleteNoteBody,
   UpdateMeleteSubjectBody,
 } from '@atlas/shared'
@@ -32,7 +41,20 @@ import {
   setSubjectEnrolled,
   updateSubject,
 } from '../services/melete.service.js'
+import { suggestForConcept } from '../services/meleteSuggest.service.js'
+import { getGaps } from '../services/meleteGaps.service.js'
+import {
+  applyOffSyllabusAction,
+  setNoteConceptsByHand,
+} from '../services/meleteNoteMapping.service.js'
 import { getNextReview, gradeAnswer, recordReview } from '../services/meleteReview.service.js'
+import {
+  approveSyllabus,
+  remapSyllabus,
+  getSyllabus,
+  requestSyllabusDraft,
+  saveSyllabus,
+} from '../services/meleteSyllabus.service.js'
 
 const Id = z.uuid()
 
@@ -61,6 +83,90 @@ export const patchMeleteSubject = (
   )
 
   res.status( 200 ).json( { subject } )
+}
+
+export const postDraftSyllabus = (
+  req: Request,
+  res: Response< { subject: MeleteSubject } >,
+): void => {
+  const subject = requestSyllabusDraft( currentUser( req ).id, Id.parse( req.params.id ) )
+
+  res.status( 202 ).json( { subject } )
+}
+
+export const getMeleteSyllabus = (
+  req: Request,
+  res: Response< MeleteSyllabus >,
+): void => {
+  res.status( 200 ).json( getSyllabus( currentUser( req ).id, Id.parse( req.params.id ) ) )
+}
+
+export const putMeleteSyllabus = (
+  req: Request,
+  res: Response< SaveMeleteSyllabusResponse >,
+): void => {
+  res.status( 200 ).json( saveSyllabus(
+    currentUser( req ).id,
+    Id.parse( req.params.id ),
+    MeleteSyllabusEdit.parse( req.body ),
+  ) )
+}
+
+export const postApproveSyllabus = (
+  req: Request,
+  res: Response< ApproveMeleteSyllabusResponse >,
+): void => {
+  const subject = approveSyllabus( currentUser( req ).id, Id.parse( req.params.id ) )
+
+  res.status( 200 ).json( { subject } )
+}
+
+export const putNoteConcepts = (
+  req: Request,
+  res: Response< GetMeleteNoteResponse >,
+): void => {
+  const { concept_ids: conceptIds } = UpdateNoteConceptsBody.parse( req.body )
+
+  res.status( 200 ).json(
+    setNoteConceptsByHand( currentUser( req ).id, Id.parse( req.params.id ), conceptIds ),
+  )
+}
+
+export const postOffSyllabus = (
+  req: Request,
+  res: Response< GetMeleteNoteResponse >,
+): void => {
+  res.status( 200 ).json( applyOffSyllabusAction(
+    currentUser( req ).id,
+    Id.parse( req.params.id ),
+    OffSyllabusActionBody.parse( req.body ),
+  ) )
+}
+
+export const getMeleteGaps = (
+  req: Request,
+  res: Response< GetMeleteGapsResponse >,
+): void => {
+  res.status( 200 ).json( getGaps( currentUser( req ).id, Id.parse( req.params.id ) ) )
+}
+
+export const postSuggestions = async (
+  req: Request,
+  res: Response< SuggestMeleteResourcesResponse >,
+): Promise< void > => {
+  const { suggestions } = await suggestForConcept(
+    currentUser( req ).id,
+    Id.parse( req.params.id ),
+  )
+
+  res.status( 200 ).json( { suggestions } )
+}
+
+export const postRemapSyllabus = (
+  req: Request,
+  res: Response< RemapMeleteSyllabusResponse >,
+): void => {
+  res.status( 202 ).json( remapSyllabus( currentUser( req ).id, Id.parse( req.params.id ) ) )
 }
 
 export const postSubjectEnrollment = async (
@@ -119,9 +225,12 @@ export const getReviewNext = async (
   req: Request,
   res: Response< GetNextReviewResponse >,
 ): Promise< void > => {
-  const { subject } = z.object( { subject: Id.optional() } ).parse( req.query )
+  const { subject, concept } = z.object( { subject: Id.optional(), concept: Id.optional() } )
+    .parse( req.query )
 
-  res.status( 200 ).json( await getNextReview( currentUser( req ).id, { subjectId: subject } ) )
+  res.status( 200 ).json(
+    await getNextReview( currentUser( req ).id, { subjectId: subject, conceptId: concept } ),
+  )
 }
 
 export const postGradeAnswer = async (

@@ -28,6 +28,9 @@ import { getSetting, setSetting } from '../repositories/settings.repository.js'
 // Melete
 import {
   LOCKED_INSTRUCTIONS_MELETE_GRADING,
+  LOCKED_INSTRUCTIONS_MELETE_MAP,
+  LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
+  LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
 } from '../melete/prompts.js'
 import { isScanFresh, markScanned, resetScanClock } from '../melete/scanClock.js'
@@ -44,11 +47,17 @@ import {
   getDefaultModel,
   getFeedCheckInterval,
   getLearningRoot,
+  getFinalCardSeconds,
+  getMasteryDays,
+  getSessionGapMinutes,
   getLockedInstructions,
   getSettings,
   getSettingsResponse,
   resolveLinkingModel,
   resolveMeleteGradingModel,
+  resolveMeleteMapModel,
+  resolveMeleteSuggestModel,
+  resolveMeleteSyllabusModel,
   resolveMeleteQuestionModel,
   updateSettings,
 } from './settings.service.js'
@@ -104,6 +113,12 @@ describe( 'getSettings', () => {
       melete_question_model: 'claude-sonnet-5-5',
       melete_grading_model: 'claude-sonnet-5-5',
       melete_review_mode: 'typed',
+      melete_syllabus_model: 'claude-sonnet-5-5',
+      melete_map_model: 'claude-sonnet-5-5',
+      melete_suggest_model: 'claude-sonnet-5-5',
+      melete_mastery_days: 21,
+      melete_session_gap_minutes: 5,
+      melete_final_card_seconds: 30,
       melete_question_profile_id: profileIdOf( 'melete_questions' ),
       melete_grading_profile_id: profileIdOf( 'melete_grading' ),
     } )
@@ -147,6 +162,7 @@ describe( 'getSettings', () => {
     setSetting( userId, 'linking_model', 'claude-opus-5-5' )
     setSetting( userId, 'melete_question_model', 'claude-opus-5-5' )
     setSetting( userId, 'melete_grading_model', 'claude-opus-5-5' )
+    setSetting( userId, 'melete_map_model', 'claude-opus-5-5' )
 
     expect( ( await getSettings( userId ) ).linking_model ).toBe( 'claude-opus-5-5' )
     expect( listModelsMock ).not.toHaveBeenCalled()
@@ -425,6 +441,9 @@ describe( 'getLockedInstructions', () => {
       article: LOCKED_INSTRUCTIONS_ARTICLE,
       melete_questions: LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
       melete_grading: LOCKED_INSTRUCTIONS_MELETE_GRADING,
+      melete_syllabus: LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
+      melete_map: LOCKED_INSTRUCTIONS_MELETE_MAP,
+      melete_suggest: LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
     } )
   } )
 } )
@@ -508,6 +527,12 @@ describe( 'updateSettings', () => {
       melete_question_model: 'claude-sonnet-5-5',
       melete_grading_model: 'claude-sonnet-5-5',
       melete_review_mode: 'typed',
+      melete_syllabus_model: 'claude-sonnet-5-5',
+      melete_map_model: 'claude-sonnet-5-5',
+      melete_suggest_model: 'claude-sonnet-5-5',
+      melete_mastery_days: 21,
+      melete_session_gap_minutes: 5,
+      melete_final_card_seconds: 30,
       melete_question_profile_id: profileIdOf( 'melete_questions' ),
       melete_grading_profile_id: profileIdOf( 'melete_grading' ),
     } )
@@ -583,5 +608,152 @@ describe( 'updateSettings by module', () => {
     await updateSettings( userId, true, { linking_enabled: false, melete_review_mode: 'quick' } )
 
     expect( getSetting( userId, 'melete_review_mode' ) ).toBe( 'quick' )
+  } )
+} )
+
+describe( 'the syllabus, map and suggest models (ADR 0089)', () => {
+  it( 'default to Sonnet for syllabus and suggestions, the first Haiku for the map', async () => {
+    listModelsMock.mockResolvedValue( modelList( 'claude-opus-5-5', 'claude-haiku-5-5' ) )
+
+    expect( await getSettings( userId ) ).toMatchObject( {
+      melete_syllabus_model: 'claude-sonnet-5-5',
+      melete_map_model: 'claude-haiku-5-5',
+      melete_suggest_model: 'claude-sonnet-5-5',
+    } )
+    expect( await resolveMeleteSyllabusModel( userId ) ).toBe( 'claude-sonnet-5-5' )
+    expect( await resolveMeleteMapModel( userId ) ).toBe( 'claude-haiku-5-5' )
+    expect( await resolveMeleteSuggestModel( userId ) ).toBe( 'claude-sonnet-5-5' )
+  } )
+
+  it( 'prefer the stored model, each on its own', async () => {
+    listModelsMock.mockResolvedValue( modelList( 'claude-haiku-5-5' ) )
+    setSetting( userId, 'melete_syllabus_model', 'claude-opus-5-5' )
+    setSetting( userId, 'melete_suggest_model', 'claude-haiku-5-5' )
+
+    expect( await resolveMeleteSyllabusModel( userId ) ).toBe( 'claude-opus-5-5' )
+    expect( await resolveMeleteMapModel( userId ) ).toBe( 'claude-haiku-5-5' )
+    expect( await resolveMeleteSuggestModel( userId ) ).toBe( 'claude-haiku-5-5' )
+  } )
+
+  it( 'save known models, checking each', async () => {
+    const settings = await updateSettings( userId, true, {
+      melete_syllabus_model: 'claude-opus-5-5',
+      melete_map_model: 'claude-sonnet-5-5',
+      melete_suggest_model: 'claude-opus-5-5',
+    } )
+
+    expect( assertMock ).toHaveBeenCalledWith( userId, 'claude-opus-5-5' )
+    expect( assertMock ).toHaveBeenCalledWith( userId, 'claude-sonnet-5-5' )
+    expect( settings ).toMatchObject( {
+      melete_syllabus_model: 'claude-opus-5-5',
+      melete_map_model: 'claude-sonnet-5-5',
+      melete_suggest_model: 'claude-opus-5-5',
+    } )
+    expect( getSetting( userId, 'melete_map_model' ) ).toBe( 'claude-sonnet-5-5' )
+  } )
+
+  it( 'refuse an unknown model and save nothing', async () => {
+    assertMock.mockRejectedValue( new ValidationError( 'Unknown model: nope' ) )
+
+    await expect( updateSettings( userId, true, {
+      melete_syllabus_model: 'claude-opus-5-5',
+      melete_map_model: 'nope',
+    } ) ).rejects.toThrow( 'Unknown model: nope' )
+
+    expect( getSetting( userId, 'melete_syllabus_model' ) ).toBeUndefined()
+    expect( getSetting( userId, 'melete_map_model' ) ).toBeUndefined()
+  } )
+
+  it( 'are refused whole, as a 404, for a user without Melete', async () => {
+    const transcriber = createTestUser( { modules: [ 'transcriber' ] } ).id
+
+    await expect( updateSettings( transcriber, false, { melete_map_model: 'claude-opus-5-5' } ) )
+      .rejects.toThrow( NotFoundError )
+    expect( getSetting( transcriber, 'melete_map_model' ) ).toBeUndefined()
+  } )
+} )
+
+describe( 'the mastery days', () => {
+  it( 'default to 21', async () => {
+    expect( ( await getSettings( userId ) ).melete_mastery_days ).toBe( 21 )
+  } )
+
+  it( 'read the stored value, and fall back to 21 for a bad one', async () => {
+    setSetting( userId, 'melete_mastery_days', 30 )
+    expect( ( await getSettings( userId ) ).melete_mastery_days ).toBe( 30 )
+
+    setSetting( userId, 'melete_mastery_days', 3 )
+    expect( ( await getSettings( userId ) ).melete_mastery_days ).toBe( 21 )
+  } )
+
+  it( 'are saved, and read back by getMasteryDays', async () => {
+    const settings = await updateSettings( userId, true, { melete_mastery_days: 45 } )
+
+    expect( settings.melete_mastery_days ).toBe( 45 )
+    expect( getSetting( userId, 'melete_mastery_days' ) ).toBe( 45 )
+    expect( getMasteryDays( userId ) ).toBe( 45 )
+  } )
+
+  it( 'are one user\'s own', async () => {
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+    await updateSettings( userId, true, { melete_mastery_days: 45 } )
+
+    expect( getMasteryDays( other ) ).toBe( 21 )
+  } )
+
+  it( 'are refused whole, as a 404, for a user without Melete', async () => {
+    const transcriber = createTestUser( { modules: [ 'transcriber' ] } ).id
+
+    await expect( updateSettings( transcriber, false, { melete_mastery_days: 45 } ) )
+      .rejects.toThrow( NotFoundError )
+    expect( getSetting( transcriber, 'melete_mastery_days' ) ).toBeUndefined()
+  } )
+} )
+
+
+describe( 'the study time settings', () => {
+  it( 'default to a 5 minute gap and 30 seconds for the final card', async () => {
+    const settings = await getSettings( userId )
+
+    expect( settings.melete_session_gap_minutes ).toBe( 5 )
+    expect( settings.melete_final_card_seconds ).toBe( 30 )
+    expect( getSessionGapMinutes( userId ) ).toBe( 5 )
+    expect( getFinalCardSeconds( userId ) ).toBe( 30 )
+  } )
+
+  it( 'read the stored values, and fall back to the defaults for bad ones', () => {
+    setSetting( userId, 'melete_session_gap_minutes', 10 )
+    setSetting( userId, 'melete_final_card_seconds', 0 )
+
+    expect( getSessionGapMinutes( userId ) ).toBe( 10 )
+    expect( getFinalCardSeconds( userId ) ).toBe( 0 )
+
+    setSetting( userId, 'melete_session_gap_minutes', 0 )
+    setSetting( userId, 'melete_final_card_seconds', 500 )
+
+    expect( getSessionGapMinutes( userId ) ).toBe( 5 )
+    expect( getFinalCardSeconds( userId ) ).toBe( 30 )
+  } )
+
+  it( 'are saved, and one user\'s own', async () => {
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+    const settings = await updateSettings( userId, true, {
+      melete_session_gap_minutes: 12,
+      melete_final_card_seconds: 45,
+    } )
+
+    expect( settings.melete_session_gap_minutes ).toBe( 12 )
+    expect( settings.melete_final_card_seconds ).toBe( 45 )
+    expect( getSetting( userId, 'melete_session_gap_minutes' ) ).toBe( 12 )
+    expect( getSessionGapMinutes( other ) ).toBe( 5 )
+  } )
+
+  it( 'are refused whole, as a 404, for a user without Melete', async () => {
+    const transcriber = createTestUser( { modules: [ 'transcriber' ] } ).id
+
+    await expect( updateSettings( transcriber, false, { melete_final_card_seconds: 10 } ) )
+      .rejects.toThrow( NotFoundError )
+    expect( getSetting( transcriber, 'melete_final_card_seconds' ) ).toBeUndefined()
   } )
 } )

@@ -52,7 +52,7 @@ describe( 'MeleteToday without a learning root', () => {
   it( 'has no review button', () => {
     renderWithClient( <MeleteToday /> )
 
-    expect( screen.queryByRole( 'link', { name: 'Start review' } ) ).not.toBeInTheDocument()
+    expect( screen.queryByRole( 'link', { name: 'Review all due' } ) ).not.toBeInTheDocument()
   } )
 } )
 
@@ -62,7 +62,7 @@ describe( 'MeleteToday with a learning root', () => {
     renderWithClient( <MeleteToday /> )
 
     expect( screen.getByText( '4 due · 5 new' ) ).toBeInTheDocument()
-    expect( screen.getByRole( 'link', { name: 'Start review' } ) )
+    expect( screen.getByRole( 'link', { name: 'Review all due' } ) )
       .toHaveAttribute( 'href', '/melete/review' )
   } )
 
@@ -79,11 +79,11 @@ describe( 'MeleteToday with a learning root', () => {
     expect( screen.getByRole( 'link', { name: 'Rust' } ) ).toBeInTheDocument()
   } )
 
-  it( 'disables Start review when nothing is due or new', () => {
+  it( 'disables Review all due when nothing is due or new', () => {
     show( meleteTodayFixture( { totals: { due: 0, new_remaining: 0, learning_soon: 0 } } ) )
     renderWithClient( <MeleteToday /> )
 
-    expect( screen.getByRole( 'link', { name: 'Start review' } ) )
+    expect( screen.getByRole( 'link', { name: 'Review all due' } ) )
       .toHaveAttribute( 'aria-disabled', 'true' )
   } )
 

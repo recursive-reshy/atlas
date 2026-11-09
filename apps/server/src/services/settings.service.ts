@@ -2,6 +2,9 @@
 import { z } from 'zod'
 // Shared
 import {
+  DEFAULT_MELETE_FINAL_CARD_SECONDS,
+  DEFAULT_MELETE_MASTERY_DAYS,
+  DEFAULT_MELETE_SESSION_GAP_MINUTES,
   FeedCheckInterval,
   GetSettingsResponse,
   MeleteReviewMode,
@@ -21,7 +24,10 @@ import { getSetting, setSetting } from '../repositories/settings.repository.js'
 // Melete
 import {
   LOCKED_INSTRUCTIONS_MELETE_GRADING,
+  LOCKED_INSTRUCTIONS_MELETE_MAP,
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
+  LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
+  LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
   MELETE_GRADING_SEED_KEY,
   MELETE_QUESTIONS_SEED_KEY,
 } from '../melete/prompts.js'
@@ -97,6 +103,41 @@ export const resolveMeleteGradingModel = ( userId: string ): Promise< string > =
   return resolveHaikuModel( userId, 'melete_grading_model' )
 }
 
+// Drafting and suggesting are Sonnet work; mapping is the cheap Haiku call (ADR 0089)
+export const resolveMeleteSyllabusModel = ( userId: string ): Promise< string > => {
+  return Promise.resolve( storedModel( userId, 'melete_syllabus_model' ) ?? SHIPPED_DEFAULT_MODEL )
+}
+
+export const resolveMeleteMapModel = ( userId: string ): Promise< string > => {
+  return resolveHaikuModel( userId, 'melete_map_model' )
+}
+
+export const resolveMeleteSuggestModel = ( userId: string ): Promise< string > => {
+  return Promise.resolve( storedModel( userId, 'melete_suggest_model' ) ?? SHIPPED_DEFAULT_MODEL )
+}
+
+const MASTERY_DAYS_RANGE = z.int().min( 7 ).max( 90 )
+
+export const getMasteryDays = ( userId: string ): number => {
+  return MASTERY_DAYS_RANGE.catch( DEFAULT_MELETE_MASTERY_DAYS )
+    .parse( getSetting( userId, 'melete_mastery_days' ) )
+}
+
+const SESSION_GAP_RANGE = z.int().min( 1 ).max( 30 )
+const FINAL_CARD_RANGE = z.int().min( 0 ).max( 120 )
+
+// Answers closer than this are one measured session (ADR 0091)
+export const getSessionGapMinutes = ( userId: string ): number => {
+  return SESSION_GAP_RANGE.catch( DEFAULT_MELETE_SESSION_GAP_MINUTES )
+    .parse( getSetting( userId, 'melete_session_gap_minutes' ) )
+}
+
+// What the last answer of a session is credited for
+export const getFinalCardSeconds = ( userId: string ): number => {
+  return FINAL_CARD_RANGE.catch( DEFAULT_MELETE_FINAL_CARD_SECONDS )
+    .parse( getSetting( userId, 'melete_final_card_seconds' ) )
+}
+
 export const getLearningRoot = ( userId: string ): string | null => {
   return z.string().min( 1 ).nullable().catch( null )
     .parse( getSetting( userId, 'melete_learning_root' ) )
@@ -126,6 +167,12 @@ export const getSettings = async ( userId: string ): Promise< Settings > => {
     melete_grading_model: await resolveMeleteGradingModel( userId ),
     melete_review_mode: MeleteReviewMode.catch( 'typed' )
       .parse( getSetting( userId, 'melete_review_mode' ) ),
+    melete_syllabus_model: await resolveMeleteSyllabusModel( userId ),
+    melete_map_model: await resolveMeleteMapModel( userId ),
+    melete_suggest_model: await resolveMeleteSuggestModel( userId ),
+    melete_mastery_days: getMasteryDays( userId ),
+    melete_session_gap_minutes: getSessionGapMinutes( userId ),
+    melete_final_card_seconds: getFinalCardSeconds( userId ),
     melete_question_profile_id: meleteProfileId( userId, MELETE_QUESTIONS_SEED_KEY ),
     melete_grading_profile_id: meleteProfileId( userId, MELETE_GRADING_SEED_KEY ),
   }
@@ -136,6 +183,9 @@ export const getLockedInstructions = (): GetSettingsResponse[ 'locked_instructio
   article: LOCKED_INSTRUCTIONS_ARTICLE,
   melete_questions: LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
   melete_grading: LOCKED_INSTRUCTIONS_MELETE_GRADING,
+  melete_syllabus: LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
+  melete_map: LOCKED_INSTRUCTIONS_MELETE_MAP,
+  melete_suggest: LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
 } )
 
 const agentSection = async (): Promise<
@@ -184,8 +234,21 @@ const MODULE_KEYS: Record< ModuleId, ( keyof UpdateSettingsBody )[] > = {
     'melete_question_model',
     'melete_grading_model',
     'melete_review_mode',
+    'melete_syllabus_model',
+    'melete_map_model',
+    'melete_suggest_model',
+    'melete_mastery_days',
+    'melete_session_gap_minutes',
+    'melete_final_card_seconds',
   ],
+  themis: [],
 }
+
+const CONCEPT_MODEL_KEYS = [
+  'melete_syllabus_model',
+  'melete_map_model',
+  'melete_suggest_model',
+] as const
 
 // The feed interval is the app's, not a user's: only the admin may set it (ADR 0065). A request
 // that touches a setting the user may not change is refused whole (a 404), saving nothing.
@@ -222,6 +285,14 @@ export const updateSettings = async (
 
   if( body.melete_grading_model !== undefined ) {
     await assertKnownModel( userId, body.melete_grading_model )
+  }
+
+  for( const key of CONCEPT_MODEL_KEYS ) {
+    const model = body[ key ]
+
+    if( model !== undefined ) {
+      await assertKnownModel( userId, model )
+    }
   }
 
   if( body.default_profile_id !== undefined ) {
@@ -264,8 +335,28 @@ export const updateSettings = async (
     setSetting( userId, 'melete_grading_model', body.melete_grading_model )
   }
 
+  for( const key of CONCEPT_MODEL_KEYS ) {
+    const model = body[ key ]
+
+    if( model !== undefined ) {
+      setSetting( userId, key, model )
+    }
+  }
+
   if( body.melete_review_mode !== undefined ) {
     setSetting( userId, 'melete_review_mode', body.melete_review_mode )
+  }
+
+  if( body.melete_mastery_days !== undefined ) {
+    setSetting( userId, 'melete_mastery_days', body.melete_mastery_days )
+  }
+
+  if( body.melete_session_gap_minutes !== undefined ) {
+    setSetting( userId, 'melete_session_gap_minutes', body.melete_session_gap_minutes )
+  }
+
+  if( body.melete_final_card_seconds !== undefined ) {
+    setSetting( userId, 'melete_final_card_seconds', body.melete_final_card_seconds )
   }
 
   if( body.melete_learning_root !== undefined ) {

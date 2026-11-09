@@ -2,9 +2,11 @@
 
 ## Plans
 
-Each version has its own folder. The current version is 1.0.0 (the planning docs are still in `v0.11.0/` until v1.1 starts). User guides: [deploy.md](deploy.md) (hosting on a VM), [backups.md](backups.md), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md).
+Each version has its own folder. The current version is 1.1.0. User guides: [deploy.md](deploy.md) (hosting on a VM, including backups and restore), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md). How the app works: [architecture.md](architecture.md).
 
+- **v1.1.0 (in progress):** [PRD](v1.1.0/prd.md) · [TRD](v1.1.0/trd.md) · [Tasks](v1.1.0/tasks.md) · [Release notes](v1.1.0/release-notes.md) · checkpoint plans in `v1.1.0/plans/`
 - **v1.0.0:** the same code as 0.11.0 with the version raised and no migration; the promise is [ADR 0084](decisions/0084-stability-promise-from-1-0.md), the checklist is [1.0 readiness](v1-readiness.md)
+  - **Docs cleanup (after 1.0):** the architecture moved out of the root `CLAUDE.md` into [architecture.md](architecture.md), `backups.md` was folded into the runbook's "Restoring the database", the 0.10 upgrade section left the runbook, and the Git rules now use release branches. The user guides are [deploy.md](deploy.md), [phone-access.md](phone-access.md) and [google-cloud-setup.md](google-cloud-setup.md).
 - **v0.11.0 (done):** [PRD](v0.11.0/prd.md) · [TRD](v0.11.0/trd.md) · [Tasks](v0.11.0/tasks.md) · [Release notes](v0.11.0/release-notes.md) · checkpoint plans in `v0.11.0/plans/` · [1.0 readiness](v1-readiness.md)
 - **v0.10.0 (done):** [PRD](v0.10.0/prd.md) · [TRD](v0.10.0/trd.md) · [Tasks](v0.10.0/tasks.md) · [Release notes](v0.10.0/release-notes.md) · checkpoint plans in `v0.10.0/plans/` · [Deploy runbook](deploy.md)
 - **v0.9.1 (done):** [PRD](v0.9.1/prd.md) · [TRD](v0.9.1/trd.md) · [Tasks](v0.9.1/tasks.md) · [Release notes](v0.9.1/release-notes.md) · checkpoint plans in `v0.9.1/plans/`
@@ -114,6 +116,13 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0086](decisions/0086-deploy-preflight-and-rollback.md) | deploy.sh checks replication first, records each deploy, and rolls back past a migration | Accepted |
 | [0087](decisions/0087-dependency-policy.md) | Minor and patch updates only before 1.0; majors one per release after; images pinned by digest | Accepted |
 | [0088](decisions/0088-restore-drill-scratch-check-only.md) | The 0.11 restore drill is the scratch check; the new-VM rehearsal is deferred; the soak is waived | Accepted |
+| [0089](decisions/0089-melete-concept-layer.md) | Melete's concept layer: Claude-drafted syllabus, mapping inside question generation, one concept per question | Accepted |
+| [0090](decisions/0090-mastery-from-fsrs-stability.md) | Coverage and mastery: mastery from FSRS stability, averaged over the whole syllabus | Accepted |
+| [0091](decisions/0091-time-from-answers-and-logs.md) | Time spent is measured from saved answers and logged by hand, in one table | Accepted |
+| [0092](decisions/0092-themis-goals-module.md) | Themis: areas, goals and three outcome types; first in the drawer | Accepted |
+| [0093](decisions/0093-resource-suggestions-without-search.md) | Resource suggestions from Claude's own knowledge, with search queries instead of links | Accepted |
+| [0094](decisions/0094-note-concepts-carry-user-id.md) | `melete_note_concepts` carries a `user_id`, so the schema guard needs no exception | Accepted |
+| [0095](decisions/0095-themis-goals-list-route.md) | `GET /api/themis/goals` lists every goal, so achieved and dropped goals stay reachable | Accepted |
 
 ## Template for new ADRs
 

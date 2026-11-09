@@ -4,12 +4,15 @@ import { describe, it, expect } from 'vitest'
 import { getDatabase } from '../repositories/database.js'
 import { insertUser } from '../repositories/users.repository.js'
 // Services
-import { seedUser } from './seedUser.service.js'
+import { seedAllUsers, seedUser } from './seedUser.service.js'
 // Summarizer
 import { DEFAULT_LINKER_GUIDANCE, SEEDED_PROFILES } from '../summarizer/prompts.js'
 // Melete
 import {
   DEFAULT_MELETE_GRADING_GUIDANCE,
+  DEFAULT_MELETE_MAP_GUIDANCE,
+  DEFAULT_MELETE_SUGGEST_GUIDANCE,
+  DEFAULT_MELETE_SYLLABUS_GUIDANCE,
   DEFAULT_MELETE_QUESTIONS_GUIDANCE,
 } from '../melete/prompts.js'
 
@@ -84,7 +87,22 @@ describe( 'seedUser', () => {
       purpose: 'melete_grading',
       guidance: DEFAULT_MELETE_GRADING_GUIDANCE,
     } )
-    expect( rows ).toHaveLength( SEEDED_PROFILES.length + 3 )
+    expect( rows.find( ( { seed_key } ) => seed_key === 'melete_syllabus' ) ).toMatchObject( {
+      name: 'Melete syllabus',
+      purpose: 'melete_syllabus',
+      guidance: DEFAULT_MELETE_SYLLABUS_GUIDANCE,
+    } )
+    expect( rows.find( ( { seed_key } ) => seed_key === 'melete_map' ) ).toMatchObject( {
+      name: 'Melete mapping',
+      purpose: 'melete_map',
+      guidance: DEFAULT_MELETE_MAP_GUIDANCE,
+    } )
+    expect( rows.find( ( { seed_key } ) => seed_key === 'melete_suggest' ) ).toMatchObject( {
+      name: 'Melete suggestions',
+      purpose: 'melete_suggest',
+      guidance: DEFAULT_MELETE_SUGGEST_GUIDANCE,
+    } )
+    expect( rows ).toHaveLength( SEEDED_PROFILES.length + 6 )
   } )
 
   it( 'makes Business ideas the default profile and sets nothing else', () => {
@@ -182,5 +200,67 @@ describe( 'seedUser for an unknown user', () => {
   it( 'throws not found and seeds nothing', () => {
     expect( () => seedUser( 'ghost', NOW ) ).toThrow( 'User not found' )
     expect( profiles() ).toEqual( [] )
+  } )
+} )
+
+describe( 'seedAllUsers (a release that adds profiles)', () => {
+  const removeNewMeleteProfiles = ( userId: string ): void => {
+    const db = getDatabase()
+    const ids = ( db.prepare( `SELECT id FROM prompt_profiles
+      WHERE user_id = ? AND seed_key IN ( 'melete_syllabus', 'melete_map', 'melete_suggest' )` )
+      .all( userId ) as { id: string }[] ).map( ( { id } ) => id )
+
+    for( const id of ids ) {
+      db.prepare( 'DELETE FROM prompt_versions WHERE profile_id = ?' ).run( id )
+      db.prepare( 'DELETE FROM prompt_profiles WHERE id = ?' ).run( id )
+    }
+  }
+
+  it( 'gives every existing user the profiles they lack and changes nothing else', () => {
+    seedUser( addUser( 'a' ), NOW )
+    seedUser( addUser( 'b', 'admin' ), NOW )
+    removeNewMeleteProfiles( 'a' )
+    removeNewMeleteProfiles( 'b' )
+    getDatabase().prepare( `INSERT INTO prompt_versions
+      ( user_id, profile_id, version, guidance, source, created_at )
+      SELECT user_id, id, 2, 'My own guidance.', 'edit', 'now' FROM prompt_profiles
+      WHERE user_id = 'a' AND seed_key = 'melete_questions'` ).run()
+
+    const before = profiles( 'a' ).filter( ( { seed_key } ) => seed_key === 'melete_questions' )
+
+    seedAllUsers( NOW )
+
+    for( const id of [ 'a', 'b' ] ) {
+      const keys = new Set( profiles( id ).map( ( { seed_key } ) => seed_key ) )
+
+      for( const key of [ 'melete_syllabus', 'melete_map', 'melete_suggest' ] ) {
+        expect( keys.has( key ), `${ id } has ${ key }` ).toBe( true )
+      }
+
+      expect( keys.size ).toBe( SEEDED_PROFILES.length + 6 )
+    }
+
+    expect( profiles( 'a' ).filter( ( { seed_key } ) => seed_key === 'melete_questions' ) )
+      .toEqual( before )
+  } )
+
+  it( 'is quiet when everyone already has everything', () => {
+    seedUser( addUser( 'a' ), NOW )
+
+    const before = profiles( 'a' )
+
+    seedAllUsers( NOW )
+    seedAllUsers( NOW )
+
+    expect( profiles( 'a' ) ).toEqual( before )
+  } )
+
+  it( 'skips a removed user', () => {
+    addUser( 'a' )
+    getDatabase().prepare( "UPDATE users SET status = 'removed' WHERE id = 'a'" ).run()
+
+    seedAllUsers( NOW )
+
+    expect( profiles( 'a' ) ).toEqual( [] )
   } )
 } )

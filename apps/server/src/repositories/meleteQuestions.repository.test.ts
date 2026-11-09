@@ -13,14 +13,19 @@ import {
   findQuestion,
   insertQuestions,
   listDue,
+  listForConcept,
   listForNote,
   listLearningSoon,
   listNew,
   retireActiveForNote,
   saveCard,
   setState,
+  setQuestionConcept,
 } from './meleteQuestions.repository.js'
 import type { CardRow } from './meleteQuestions.repository.js'
+// Repositories
+import { insertConcept } from './meleteConcepts.repository.js'
+import { insertSection } from './meleteSections.repository.js'
 // Test support
 import { createTestUser, defaultTestAdmin } from '../test-support/auth.js'
 
@@ -44,6 +49,28 @@ const generated = ( count: number ): { prompt: string, answer: string, passage: 
   } ) )
 }
 
+describe( 'insertQuestions with concepts', () => {
+  it( 'stores the concept a question is labelled with, and null when it has none', () => {
+    const subjectId = addSubject( userId )
+    const noteId = addNote( userId, subjectId )
+    const section = insertSection( userId, { subject_id: subjectId, name: 'S', position: 0 } )
+    const concept = insertConcept( userId, {
+      subject_id: subjectId,
+      section_id: section.id,
+      name: 'C',
+      description: '',
+      position: 0,
+    } )
+    const [ first, second ] = insertQuestions( userId, noteId, 1, 'h', [
+      { prompt: 'A?', answer: 'A', passage: '', concept_id: concept.id },
+      { prompt: 'B?', answer: 'B', passage: '' },
+    ] )
+
+    expect( first?.concept_id ).toBe( concept.id )
+    expect( second?.concept_id ).toBeNull()
+  } )
+} )
+
 describe( 'insertQuestions', () => {
   it( 'stores questions in order as new, active cards with the hash and run', () => {
     const noteId = addNote( userId, addSubject( userId ) )
@@ -61,6 +88,7 @@ describe( 'insertQuestions', () => {
       body_hash: 'hash-1',
       state: 'active',
       run_id: 7,
+      concept_id: null,
       due: null,
       stability: 0,
       difficulty: 0,
@@ -426,5 +454,132 @@ describe( 'ownership', () => {
     expect( retireActiveForNote( other, noteId ) ).toBe( 0 )
     expect( findQuestion( userId, questionId ) )
       .toMatchObject( { state: 'active', reps: 0, due: past } )
+  } )
+} )
+
+describe( 'setQuestionConcept', () => {
+  const conceptFor = ( subjectId: string ): string => {
+    const section = insertSection( userId, { subject_id: subjectId, name: 'S', position: 0 } )
+
+    return insertConcept( userId, {
+      subject_id: subjectId,
+      section_id: section.id,
+      name: 'C',
+      description: '',
+      position: 0,
+    } ).id
+  }
+
+  it( 'labels a question with a concept and clears it again, keeping its card', () => {
+    const subjectId = addSubject( userId )
+    const questionId = addQuestion( userId, addNote( userId, subjectId ), { fsrsState: 'review' } )
+    const conceptId = conceptFor( subjectId )
+
+    expect( setQuestionConcept( userId, questionId, conceptId ) )
+      .toMatchObject( { concept_id: conceptId, fsrs_state: 'review' } )
+    expect( setQuestionConcept( userId, questionId, null ) )
+      .toMatchObject( { concept_id: null, fsrs_state: 'review' } )
+  } )
+
+  it( 'does not label another user\'s question', () => {
+    const subjectId = addSubject( userId )
+    const questionId = addQuestion( userId, addNote( userId, subjectId ) )
+    const other = createTestUser( { role: 'member', modules: [ 'melete' ] } ).id
+
+    expect( setQuestionConcept( other, questionId, conceptFor( subjectId ) ) ).toBeUndefined()
+    expect( findQuestion( userId, questionId )?.concept_id ).toBeNull()
+  } )
+} )
+
+describe( 'listForConcept', () => {
+  const dayStart = '2026-10-21T20:00:00.000Z'
+  const before = '2026-10-21T10:00:00.000Z'
+  const today = '2026-10-22T08:00:00.000Z'
+
+  const setup = () => {
+    const subjectId = addSubject( userId )
+    const section = insertSection( userId, { subject_id: subjectId, name: 'S', position: 0 } )
+    const conceptId = ( name: string ): string => insertConcept( userId, {
+      subject_id: subjectId,
+      section_id: section.id,
+      name,
+      description: '',
+      position: 0,
+    } ).id
+
+    return { subjectId, concept: conceptId( 'A' ), other: conceptId( 'B' ) }
+  }
+
+  const ids = ( concept: string, user = userId ): string[] => {
+    return listForConcept( user, { conceptId: concept, now, dayStart } ).map( ( { id } ) => id )
+  }
+
+  it( 'serves what is overdue, then what is not due yet, then new ones, each by due time', () => {
+    const { subjectId, concept } = setup()
+    const noteId = addNote( userId, subjectId )
+    const q = ( position: number, options: object ): string => addQuestion( userId, noteId, {
+      position,
+      conceptId: concept,
+      ...options,
+    } )
+    const newer = q( 1, { fsrsState: 'new' } )
+    const reviewed = { fsrsState: 'review', lastReview: before }
+    const later = q( 2, { ...reviewed, due: '2026-10-25T00:00:00.000Z' } )
+    const recent = q( 3, { ...reviewed, due: past } )
+    const sooner = q( 4, { ...reviewed, due: '2026-10-23T00:00:00.000Z' } )
+    const oldest = q( 5, { ...reviewed, due: '2026-10-20T00:00:00.000Z' } )
+
+    expect( ids( concept ) ).toEqual( [ oldest, recent, sooner, later, newer ] )
+  } )
+
+  it( 'leaves out a question reviewed today unless it is due again already', () => {
+    const { subjectId, concept } = setup()
+    const noteId = addNote( userId, subjectId )
+    const reviewed = addQuestion( userId, noteId, {
+      position: 1,
+      conceptId: concept,
+      fsrsState: 'review',
+      due: future,
+      lastReview: today,
+    } )
+    const learning = addQuestion( userId, noteId, {
+      position: 2,
+      conceptId: concept,
+      fsrsState: 'learning',
+      due: past,
+      lastReview: today,
+    } )
+
+    expect( ids( concept ) ).toEqual( [ learning ] )
+    expect( ids( concept ) ).not.toContain( reviewed )
+  } )
+
+  it( 'serves only active questions of enrolled notes still in the vault, of that concept', () => {
+    const { subjectId, concept, other } = setup()
+    const live = addNote( userId, subjectId )
+    const unenrolled = addNote( userId, subjectId, { enrolled: false } )
+    const missing = addNote( userId, subjectId, { missingAt: '2026-10-02T00:00:00.000Z' } )
+    const mine = addQuestion( userId, live, { conceptId: concept } )
+
+    addQuestion( userId, live, { position: 2, conceptId: concept, state: 'dropped' } )
+    addQuestion( userId, live, { position: 3, conceptId: other } )
+    addQuestion( userId, live, { position: 4 } )
+    addQuestion( userId, unenrolled, { conceptId: concept } )
+    addQuestion( userId, missing, { conceptId: concept } )
+
+    expect( ids( concept ) ).toEqual( [ mine ] )
+  } )
+
+  it( 'says which subject each question is in, and never serves another user\'s', () => {
+    const { subjectId, concept } = setup()
+    const noteId = addNote( userId, subjectId )
+
+    addQuestion( userId, noteId, { conceptId: concept } )
+
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+    expect( listForConcept( userId, { conceptId: concept, now, dayStart } )[ 0 ]?.subject_id )
+      .toBe( subjectId )
+    expect( ids( concept, other ) ).toEqual( [] )
   } )
 } )

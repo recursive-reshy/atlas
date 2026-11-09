@@ -9,14 +9,20 @@ import {
   UpdateMeleteSubjectBody,
 } from '@atlas/shared'
 // Errors
-import { ConflictError, NotFoundError } from '../errors.js'
+import { ConflictError, NotFoundError, ValidationError } from '../errors.js'
 // Melete
+import { dayStart } from '../melete/day.js'
 import { obsidianUrl } from '../melete/obsidian.js'
 import { newRemaining, reviewCounts } from '../melete/queue.js'
 import { listSubjectFolders } from '../melete/scan.js'
 import { lastSkipped } from '../melete/scanOutcome.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
+import { listConceptUsage } from '../repositories/meleteConcepts.repository.js'
+import { sumSubjectSeconds } from '../repositories/timeEntries.repository.js'
+import { periodRange, studyDay } from '../themis/periods.js'
+import { findGoal } from '../repositories/themisGoals.repository.js'
+import { listNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
 import {
   NoteRecord,
   findNote,
@@ -39,8 +45,10 @@ import {
   updateSubject as updateStoredSubject,
 } from '../repositories/meleteSubjects.repository.js'
 // Services
+import { computeConceptStats, rollUp } from '../melete/mastery.js'
+import type { ConceptStat } from '../melete/mastery.js'
 import { scanLearningRoot } from './meleteScan.service.js'
-import { getLearningRoot } from './settings.service.js'
+import { getLearningRoot, getMasteryDays } from './settings.service.js'
 import { vaultDirFor, vaultRootFor } from './vault.service.js'
 
 const requireNote = ( userId: string, id: string ): NoteRecord => {
@@ -78,7 +86,11 @@ export const toMeleteQuestion = ( question: QuestionRecord ): MeleteQuestion => 
   last_review: question.last_review,
 } )
 
-const toMeleteNote = ( note: NoteRecord, questions: QuestionRecord[] ): MeleteNote => {
+const toMeleteNote = (
+  userId: string,
+  note: NoteRecord,
+  questions: QuestionRecord[],
+): MeleteNote => {
   const active = questions.filter( ( { state } ) => state === 'active' )
 
   return {
@@ -92,22 +104,78 @@ const toMeleteNote = ( note: NoteRecord, questions: QuestionRecord[] ): MeleteNo
     question_count: active.length,
     stale: active.some( ( { body_hash } ) => body_hash !== note.body_hash ),
     missing: note.missing_at !== null,
+    mapping: note.mapping,
+    mapping_error: note.mapping_error,
+    mapping_pinned: note.mapping_pinned,
+    off_syllabus: note.off_syllabus,
+    off_syllabus_suggestion: note.off_syllabus_suggestion,
+    concept_ids: listNoteConcepts( userId, note.id ).map( ( { concept_id: id } ) => id ),
   }
 }
 
-const noteView = ( userId: string, note: NoteRecord ): GetMeleteNoteResponse => {
+export const noteView = ( userId: string, note: NoteRecord ): GetMeleteNoteResponse => {
   const questions = listForNote( userId, note.id )
 
   return {
-    note: toMeleteNote( note, questions ),
+    note: toMeleteNote( userId, note, questions ),
     questions: questions.map( toMeleteQuestion ),
     obsidian_url: obsidianUrl( vaultDirFor( userId ), note.path ),
   }
 }
 
+// The study day ends where the next one starts: 36 hours on is always inside the next day
+const dueToday = ( userId: string, subjectId: string, now: Date ): number => {
+  const endOfDay = dayStart( new Date( dayStart( now ).getTime() + 36 * 3_600_000 ) )
+  const until = new Date( endOfDay.getTime() - 1 ).toISOString()
+
+  return countBySubject( userId, until ).find( ( counts ) => counts.subject_id === subjectId )
+    ?.due ?? 0
+}
+
+// An approved syllabus's concepts with their numbers; nothing for any other status (ADR 0090)
+export const subjectConceptStats = ( userId: string, subject: SubjectRecord ): ConceptStat[] => {
+  if( subject.syllabus_status !== 'approved' ) {
+    return []
+  }
+
+  return computeConceptStats(
+    listConceptUsage( userId, subject.id ).map( ( usage ) => ( {
+      id: usage.id,
+      sectionId: usage.section_id,
+      noteCount: usage.note_count,
+      questions: usage.questions,
+    } ) ),
+    getMasteryDays( userId ),
+  )
+}
+
+// Null until the syllabus is approved and has concepts (ADR 0090); computed on every read
+const subjectNumbers = (
+  userId: string,
+  subject: SubjectRecord,
+): Pick< MeleteSubject, 'coverage' | 'mastery' | 'concept_count' > => {
+  const none = { coverage: null, mastery: null, concept_count: null }
+
+  if( subject.syllabus_status !== 'approved' ) {
+    return none
+  }
+
+  const stats = subjectConceptStats( userId, subject )
+  const totals = rollUp( stats )
+
+  return totals === null ? none : { ...totals, concept_count: stats.length }
+}
+
+// Measured and logged time on the study days of the current Monday to Sunday week (ADR 0091)
+const secondsThisWeek = ( userId: string, subjectId: string, now: Date ): number => {
+  const { from, to } = periodRange( 'week', studyDay( now ) )
+
+  return sumSubjectSeconds( userId, subjectId, from, to )
+}
+
 export const subjectName = ( folder: string ): string => folder.split( '/' ).at( -1 ) ?? folder
 
-const toMeleteSubject = (
+export const toMeleteSubject = (
   userId: string,
   subject: SubjectRecord,
   now: Date,
@@ -130,6 +198,14 @@ const toMeleteSubject = (
     due_count: counts?.due ?? 0,
     new_available: newAvailable,
     new_remaining_today: Math.min( newRemaining( userId, subject, now ), newAvailable ),
+    target_level: subject.target_level,
+    intent: subject.intent,
+    syllabus_status: subject.syllabus_status,
+    syllabus_error: subject.syllabus_error,
+    ...subjectNumbers( userId, subject ),
+    due_today: dueToday( userId, subject.id, now ),
+    seconds_this_week: secondsThisWeek( userId, subject.id, now ),
+    goal_id: subject.goal_id,
   }
 }
 
@@ -140,7 +216,7 @@ const subjectView = (
 ): GetMeleteSubjectResponse => ( {
   subject: toMeleteSubject( userId, subject, now ),
   notes: listNotesBySubject( userId, subject.id ).map( ( note ) => {
-    return toMeleteNote( note, listForNote( userId, note.id ) )
+    return toMeleteNote( userId, note, listForNote( userId, note.id ) )
   } ),
 } )
 
@@ -262,11 +338,15 @@ export const regenerateNote = ( userId: string, id: string ): GetMeleteNoteRespo
 }
 
 export const retryGeneration = ( userId: string, id: string ): GetMeleteNoteResponse => {
-  if( requireNote( userId, id ).generation !== 'failed' ) {
-    throw new ConflictError( 'Only a note whose generation failed can be retried' )
-  }
+  const note = requireNote( userId, id )
 
-  queueGeneration( userId, id )
+  if( note.generation === 'failed' ) {
+    queueGeneration( userId, id )
+  } else if( note.mapping === 'failed' ) {
+    updateNote( userId, id, { mapping: 'queued', mapping_error: null } )
+  } else {
+    throw new ConflictError( 'Only a note whose generation or mapping failed can be retried' )
+  }
 
   return noteView( userId, requireNote( userId, id ) )
 }
@@ -295,7 +375,23 @@ export const updateSubject = (
 ): MeleteSubject => {
   requireSubject( userId, id )
 
-  const updated = updateStoredSubject( userId, id, changes )
+  if( changes.goal_id !== undefined && changes.goal_id !== null ) {
+    const goal = findGoal( userId, changes.goal_id )
+
+    if( goal === undefined ) {
+      throw new NotFoundError( 'Goal not found' )
+    }
+
+    if( goal.status !== 'active' ) {
+      throw new ValidationError( 'Only an active goal can be linked' )
+    }
+  }
+
+  // A blank intent is no intent
+  const intent = changes.intent === undefined || changes.intent === null
+    ? changes.intent
+    : changes.intent.trim() || null
+  const updated = updateStoredSubject( userId, id, { ...changes, intent } )
 
   if( updated === undefined ) {
     throw new NotFoundError( 'Subject not found' )

@@ -14,6 +14,7 @@ import { MigrationError, closeDatabase, openDatabase } from './repositories/data
 // Services
 import { pruneHealth } from './services/health.service.js'
 import { recoverInterruptedJobs } from './services/jobs.service.js'
+import { seedAllUsers } from './services/seedUser.service.js'
 // Shutdown
 import { SHUTDOWN_TIMEOUT_MS, createShutdown } from './shutdown.js'
 // Worker
@@ -57,6 +58,8 @@ try {
 }
 
 pruneHealth()
+// A release may ship new prompt profiles; users made earlier get them here, once
+seedAllUsers( new Date().toISOString() )
 
 const interrupted = recoverInterruptedJobs()
 

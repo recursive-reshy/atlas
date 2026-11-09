@@ -155,9 +155,80 @@ export const claimNextGeneration = ( now: string ): OwnedNote | undefined => {
   } )
 }
 
+// A subject whose syllabus is being drafted, with its owner. `drafting` is both the queue and the
+// work in progress, so a restart needs no recovery, and the loop passes the ids it has already
+// tried this pass, so a subject that stays `drafting` is not taken again in a tight loop.
+const OwnedSubject = z.object( { id: z.string(), user_id: z.string() } )
+export type OwnedSubject = z.infer< typeof OwnedSubject >
+
+// Same users and turns as `claimNextGeneration`. A note still waiting for or making its questions
+// is not mapped yet: Generate maps it when it finishes
+export const claimNextMapping = ( now: string ): OwnedNote | undefined => {
+  return inTransaction( () => {
+    const next = getDatabase()
+      .prepare( `SELECT melete_notes.id FROM melete_notes
+        ${ eligible( 'melete_notes.user_id', 'melete' ) }
+          AND eligible_users.vault_dir IS NOT NULL
+        JOIN users ON users.id = melete_notes.user_id
+        WHERE melete_notes.mapping = 'queued' AND melete_notes.generation = 'idle'
+        ORDER BY users.last_generation_started_at IS NOT NULL, users.last_generation_started_at,
+          users.created_at, melete_notes.enrolled_at, melete_notes.rowid
+        LIMIT 1` )
+      .get()
+
+    if( next === undefined ) {
+      return undefined
+    }
+
+    const row = getDatabase()
+      .prepare( 'UPDATE melete_notes SET mapping = \'mapping\' WHERE id = ? RETURNING *' )
+      .get( z.object( { id: z.string() } ).parse( next ).id )
+    const note = OwnedNote.parse( row )
+
+    getDatabase().prepare( 'UPDATE users SET last_generation_started_at = ? WHERE id = ?' )
+      .run( now, note.user_id )
+
+    return note
+  } )
+}
+
+// Same users and turns as `claimNextGeneration`, so a draft counts as that user's turn
+export const claimNextDraft = ( now: string, tried: string[] ): OwnedSubject | undefined => {
+  return inTransaction( () => {
+    const next = getDatabase()
+      .prepare( `SELECT melete_subjects.id, melete_subjects.user_id FROM melete_subjects
+        ${ eligible( 'melete_subjects.user_id', 'melete' ) }
+          AND eligible_users.vault_dir IS NOT NULL
+        JOIN users ON users.id = melete_subjects.user_id
+        WHERE melete_subjects.syllabus_status = 'drafting'
+          AND melete_subjects.id NOT IN ( SELECT value FROM json_each( ? ) )
+        ORDER BY users.last_generation_started_at IS NOT NULL, users.last_generation_started_at,
+          users.created_at, melete_subjects.rowid
+        LIMIT 1` )
+      .get( JSON.stringify( tried ) )
+
+    if( next === undefined ) {
+      return undefined
+    }
+
+    const subject = OwnedSubject.parse( next )
+
+    getDatabase().prepare( 'UPDATE users SET last_generation_started_at = ? WHERE id = ?' )
+      .run( now, subject.user_id )
+
+    return subject
+  } )
+}
+
 export const requeueGenerating = (): number => {
   return getDatabase()
     .prepare( 'UPDATE melete_notes SET generation = \'queued\' WHERE generation = \'generating\'' )
+    .run().changes
+}
+
+export const requeueMapping = (): number => {
+  return getDatabase()
+    .prepare( 'UPDATE melete_notes SET mapping = \'queued\' WHERE mapping = \'mapping\'' )
     .run().changes
 }
 

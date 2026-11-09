@@ -25,7 +25,7 @@ const me = {
 
 describe( 'ModuleId, Role and UserStatus', () => {
   it( 'accept their values only', () => {
-    expect( ModuleId.options ).toEqual( [ 'transcriber', 'melete' ] )
+    expect( ModuleId.options ).toEqual( [ 'transcriber', 'melete', 'themis' ] )
     expect( Role.options ).toEqual( [ 'admin', 'member' ] )
     expect( UserStatus.options ).toEqual( [ 'active', 'removed' ] )
     expect( ModuleId.safeParse( 'wealth' ).success ).toBe( false )

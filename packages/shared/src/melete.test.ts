@@ -3,6 +3,7 @@ import { describe, it, expect } from 'vitest'
 import type { z } from 'zod'
 // Melete
 import {
+  ApproveMeleteSyllabusResponse,
   EnrollSubjectBody,
   GetMeleteNoteResponse,
   GetMeleteSubjectResponse,
@@ -13,18 +14,33 @@ import {
   MeleteFsrsState,
   MeleteGeneration,
   MeleteGrade,
+  MeleteMapping,
   MeleteGradeOutput,
   MeleteNote,
   MeleteQuestion,
   MeleteQuestionState,
+  MeleteApprovedQuestionsOutput,
+  GetMeleteGapsResponse,
+  MeleteMapOutput,
+  MeleteNextStep,
+  MeleteSuggestionsOutput,
+  OffSyllabusActionBody,
+  UpdateNoteConceptsBody,
   MeleteQuestionsOutput,
   MeleteRating,
   MeleteReviewCounts,
   MeleteReviewItem,
   MeleteReviewMode,
   MeleteSubject,
+  MeleteSyllabus,
+  MeleteSyllabusDiff,
+  MeleteSyllabusEdit,
+  MeleteSyllabusOutput,
+  MeleteSyllabusStatus,
+  MeleteTargetLevel,
   RecordReviewBody,
   RecordReviewResponse,
+  SaveMeleteSyllabusResponse,
   UpdateMeleteNoteBody,
   UpdateMeleteSubjectBody,
 } from './melete.js'
@@ -47,6 +63,16 @@ const subject = {
   due_count: 3,
   new_available: 5,
   new_remaining_today: 5,
+  target_level: 'working',
+  intent: null,
+  syllabus_status: 'approved',
+  syllabus_error: null,
+  coverage: 0.5,
+  mastery: 0.25,
+  concept_count: 12,
+  due_today: 5,
+  seconds_this_week: 0,
+  goal_id: null,
 }
 
 const note = {
@@ -60,6 +86,12 @@ const note = {
   question_count: 4,
   stale: false,
   missing: false,
+  mapping: 'idle',
+  mapping_error: null,
+  mapping_pinned: false,
+  off_syllabus: null,
+  off_syllabus_suggestion: null,
+  concept_ids: [],
 }
 
 const question = {
@@ -101,6 +133,15 @@ describe( 'enums', () => {
 describe( 'MeleteSubject', () => {
   it( 'parses a subject', () => {
     expect( MeleteSubject.parse( subject ) ).toEqual( subject )
+    expect( MeleteSubject.safeParse( { ...subject, due_today: -1 } ).success ).toBe( false )
+    expect( MeleteSubject.safeParse( { ...subject, seconds_this_week: 1.5 } ).success )
+      .toBe( false )
+  } )
+
+  it( 'carries the id of the goal it is linked to, or null', () => {
+    expect( MeleteSubject.parse( { ...subject, goal_id: otherId } ).goal_id ).toBe( otherId )
+    expect( MeleteSubject.safeParse( { ...subject, goal_id: 'goal' } ).success ).toBe( false )
+    expect( MeleteSubject.safeParse( { ...subject, goal_id: undefined } ).success ).toBe( false )
   } )
 
   it( 'limits new_per_day to 0..100', () => {
@@ -126,6 +167,22 @@ describe( 'MeleteNote', () => {
 
   it( 'rejects an unknown generation', () => {
     expect( accepts( MeleteNote, { ...note, generation: 'running' } ) ).toBe( false )
+  } )
+
+  it( 'carries the mapping state, the off-syllabus flag and the mapped concepts', () => {
+    const mapped = {
+      ...note,
+      mapping: 'failed',
+      mapping_error: 'Boom',
+      mapping_pinned: true,
+      off_syllabus: 'flagged',
+      off_syllabus_suggestion: 'Decorators',
+      concept_ids: [ otherId ],
+    }
+
+    expect( MeleteNote.parse( mapped ) ).toEqual( mapped )
+    expect( accepts( MeleteNote, { ...note, mapping: 'running' } ) ).toBe( false )
+    expect( accepts( MeleteNote, { ...note, off_syllabus: 'maybe' } ) ).toBe( false )
   } )
 } )
 
@@ -227,12 +284,189 @@ describe( 'MeleteQuestionsOutput', () => {
   } )
 } )
 
+describe( 'MeleteApprovedQuestionsOutput', () => {
+  const generated = { prompt: 'Why?', answer: 'Because.', passage: '', concept: 'c1' }
+  const reply = { concepts: [ 'c1' ], off_syllabus: null, questions: [ generated ] }
+
+  it( 'accepts concepts, an off-syllabus suggestion and labelled questions', () => {
+    expect( MeleteApprovedQuestionsOutput.parse( reply ) ).toEqual( reply )
+    expect( accepts( MeleteApprovedQuestionsOutput, {
+      ...reply,
+      concepts: [],
+      off_syllabus: { suggested_concept: 'Decorators' },
+    } ) ).toBe( true )
+  } )
+
+  it( 'allows at most 5 concepts and 10 questions, and needs a concept on each question', () => {
+    expect( accepts( MeleteApprovedQuestionsOutput, {
+      ...reply,
+      concepts: [ 'c1', 'c2', 'c3', 'c4', 'c5', 'c6' ],
+    } ) ).toBe( false )
+    expect( accepts( MeleteApprovedQuestionsOutput, {
+      ...reply,
+      questions: Array( 11 ).fill( generated ),
+    } ) ).toBe( false )
+    expect( accepts( MeleteApprovedQuestionsOutput, { ...reply, questions: [] } ) ).toBe( false )
+    expect( accepts( MeleteApprovedQuestionsOutput, {
+      ...reply,
+      questions: [ { prompt: 'Why?', answer: 'Because.', passage: '' } ],
+    } ) ).toBe( false )
+  } )
+} )
+
+describe( 'MeleteMapOutput', () => {
+  const reply = {
+    concepts: [ 'c1' ],
+    off_syllabus: null,
+    labels: [ { question: 1, concept: 'c1' } ],
+  }
+
+  it( 'accepts concepts, an off-syllabus suggestion and numbered labels', () => {
+    expect( MeleteMapOutput.parse( reply ) ).toEqual( reply )
+    expect( accepts( MeleteMapOutput, {
+      concepts: [],
+      off_syllabus: { suggested_concept: 'Decorators' },
+      labels: [],
+    } ) ).toBe( true )
+  } )
+
+  it( 'allows at most 5 concepts and rejects a question number below 1', () => {
+    expect( accepts( MeleteMapOutput, {
+      ...reply,
+      concepts: [ 'c1', 'c2', 'c3', 'c4', 'c5', 'c6' ],
+    } ) ).toBe( false )
+    expect( accepts( MeleteMapOutput, {
+      ...reply,
+      labels: [ { question: 0, concept: 'c1' } ],
+    } ) ).toBe( false )
+  } )
+} )
+
+describe( 'the note mapping bodies', () => {
+  it( 'takes a list of concept ids, at most 10, with none allowed', () => {
+    expect( UpdateNoteConceptsBody.parse( { concept_ids: [ id ] } ) )
+      .toEqual( { concept_ids: [ id ] } )
+    expect( accepts( UpdateNoteConceptsBody, { concept_ids: [] } ) ).toBe( true )
+    expect( accepts( UpdateNoteConceptsBody, { concept_ids: Array( 11 ).fill( id ) } ) )
+      .toBe( false )
+    expect( accepts( UpdateNoteConceptsBody, { concept_ids: [ 'nope' ] } ) ).toBe( false )
+    expect( accepts( UpdateNoteConceptsBody, {} ) ).toBe( false )
+  } )
+
+  it( 'takes dismiss, or add_concept with a section and an optional name', () => {
+    expect( OffSyllabusActionBody.parse( { action: 'dismiss' } ) ).toEqual( { action: 'dismiss' } )
+    expect( OffSyllabusActionBody.parse( { action: 'add_concept', section_id: id } ) )
+      .toEqual( { action: 'add_concept', section_id: id } )
+    expect( OffSyllabusActionBody.parse( { action: 'add_concept', section_id: id, name: 'X' } ) )
+      .toEqual( { action: 'add_concept', section_id: id, name: 'X' } )
+    expect( accepts( OffSyllabusActionBody, { action: 'add_concept' } ) ).toBe( false )
+    expect( accepts( OffSyllabusActionBody, { action: 'add_concept', section_id: id, name: '' } ) )
+      .toBe( false )
+    expect( accepts( OffSyllabusActionBody, { action: 'delete' } ) ).toBe( false )
+  } )
+} )
+
+describe( 'the gap view', () => {
+  const concept = {
+    id,
+    name: 'Generics',
+    description: '',
+    bucket: 'weak',
+    mastery: 0.25,
+    note_count: 1,
+    question_count: 4,
+  }
+  const gaps = {
+    coverage: 0.5,
+    mastery: 0.25,
+    sections: [ {
+      id: otherId,
+      name: 'Basics',
+      coverage: 0.5,
+      mastery: 0.25,
+      concepts: [ concept ],
+    } ],
+    next_step: { kind: 'review', concept_id: id },
+  }
+
+  it( 'parses sections of concepts with their buckets and a next step', () => {
+    expect( GetMeleteGapsResponse.parse( gaps ) ).toEqual( gaps )
+  } )
+
+  it( 'allows no numbers for a syllabus or a section without concepts', () => {
+    expect( accepts( GetMeleteGapsResponse, {
+      coverage: null,
+      mastery: null,
+      sections: [ { id: otherId, name: 'Empty', coverage: null, mastery: null, concepts: [] } ],
+      next_step: { kind: 'none' },
+    } ) ).toBe( true )
+  } )
+
+  it( 'rejects an unknown bucket and a mastery outside 0 to 1', () => {
+    const withConcept = ( changes: object ) => ( {
+      ...gaps,
+      sections: [ { ...gaps.sections[ 0 ], concepts: [ { ...concept, ...changes } ] } ],
+    } )
+
+    expect( accepts( GetMeleteGapsResponse, withConcept( { bucket: 'ok' } ) ) ).toBe( false )
+    expect( accepts( GetMeleteGapsResponse, withConcept( { mastery: 1.5 } ) ) ).toBe( false )
+  } )
+
+  it( 'has three kinds of next step, two of them naming a concept', () => {
+    expect( accepts( MeleteNextStep, { kind: 'cover', concept_id: id } ) ).toBe( true )
+    expect( accepts( MeleteNextStep, { kind: 'review', concept_id: id } ) ).toBe( true )
+    expect( accepts( MeleteNextStep, { kind: 'none' } ) ).toBe( true )
+    expect( accepts( MeleteNextStep, { kind: 'cover' } ) ).toBe( false )
+    expect( accepts( MeleteNextStep, { kind: 'rest' } ) ).toBe( false )
+  } )
+} )
+
+describe( 'MeleteSuggestionsOutput', () => {
+  const suggestion = {
+    title: 'The Rust Book',
+    by: 'Klabnik and Nichols',
+    kind: 'book',
+    why: 'The standard introduction.',
+    query: 'the rust programming language book',
+  }
+
+  it( 'accepts one to five suggestions', () => {
+    expect( MeleteSuggestionsOutput.parse( { suggestions: [ suggestion ] } ) )
+      .toEqual( { suggestions: [ suggestion ] } )
+    expect( accepts( MeleteSuggestionsOutput, { suggestions: Array( 5 ).fill( suggestion ) } ) )
+      .toBe( true )
+  } )
+
+  it( 'rejects none, more than five, an unknown kind and a missing query', () => {
+    const only = ( changes: object ) => ( { suggestions: [ { ...suggestion, ...changes } ] } )
+
+    expect( accepts( MeleteSuggestionsOutput, { suggestions: [] } ) ).toBe( false )
+    expect( accepts( MeleteSuggestionsOutput, { suggestions: Array( 6 ).fill( suggestion ) } ) )
+      .toBe( false )
+    expect( accepts( MeleteSuggestionsOutput, only( { kind: 'podcast' } ) ) ).toBe( false )
+    expect( accepts( MeleteSuggestionsOutput, only( { query: undefined } ) ) ).toBe( false )
+  } )
+
+  it( 'takes every kind of resource', () => {
+    for( const kind of [ 'book', 'docs', 'course', 'video', 'article', 'talk', 'other' ] ) {
+      expect( accepts( MeleteSuggestionsOutput, { suggestions: [ { ...suggestion, kind } ] } ) )
+        .toBe( true )
+    }
+  } )
+} )
+
 describe( 'API bodies', () => {
   it( 'requires at least one key in UpdateMeleteSubjectBody', () => {
     expect( accepts( UpdateMeleteSubjectBody, {} ) ).toBe( false )
     expect( accepts( UpdateMeleteSubjectBody, { auto_enroll: true } ) ).toBe( true )
     expect( accepts( UpdateMeleteSubjectBody, { new_per_day: 0 } ) ).toBe( true )
     expect( accepts( UpdateMeleteSubjectBody, { new_per_day: 101 } ) ).toBe( false )
+  } )
+
+  it( 'takes a goal id or null in UpdateMeleteSubjectBody', () => {
+    expect( accepts( UpdateMeleteSubjectBody, { goal_id: otherId } ) ).toBe( true )
+    expect( accepts( UpdateMeleteSubjectBody, { goal_id: null } ) ).toBe( true )
+    expect( accepts( UpdateMeleteSubjectBody, { goal_id: 'goal' } ) ).toBe( false )
   } )
 
   it( 'parses the enrollment bodies', () => {
@@ -331,5 +565,148 @@ describe( 'responses', () => {
     expect( GetNextReviewResponse.parse( { item: null, counts } ) )
       .toEqual( { item: null, counts } )
     expect( RecordReviewResponse.parse( { question, counts } ).counts ).toEqual( counts )
+  } )
+} )
+
+describe( 'the concept layer contracts (ADR 0089)', () => {
+  const id = '11111111-1111-4111-8111-111111111111'
+
+  it( 'knows the four target levels and five syllabus statuses', () => {
+    expect( MeleteTargetLevel.options )
+      .toEqual( [ 'awareness', 'working', 'proficient', 'expert' ] )
+    expect( MeleteSyllabusStatus.options )
+      .toEqual( [ 'none', 'drafting', 'draft', 'approved', 'failed' ] )
+    expect( MeleteMapping.options ).toEqual( [ 'idle', 'queued', 'mapping', 'failed' ] )
+  } )
+
+  it( 'adds the syllabus fields to a subject, with numbers null until approved', () => {
+    const subject = {
+      id,
+      name: 'Data Engineering',
+      folder: 'Learning/Data Engineering',
+      auto_enroll: false,
+      new_per_day: 10,
+      note_count: 0,
+      enrolled_count: 0,
+      due_count: 0,
+      new_available: 0,
+      new_remaining_today: 0,
+      target_level: null,
+      intent: null,
+      syllabus_status: 'none',
+      syllabus_error: null,
+      coverage: null,
+      mastery: null,
+      concept_count: null,
+      due_today: 0,
+      seconds_this_week: 0,
+      goal_id: null,
+    }
+
+    expect( MeleteSubject.parse( subject ) ).toEqual( subject )
+    expect( MeleteSubject.safeParse( { ...subject, syllabus_status: 'ready' } ).success )
+      .toBe( false )
+    expect( MeleteSubject.safeParse( { ...subject, coverage: 1.2 } ).success ).toBe( false )
+  } )
+
+  it( 'parses a syllabus with ids and an edit whose new rows have none', () => {
+    const syllabus = {
+      sections: [ {
+        id,
+        name: 'Basics',
+        concepts: [ { id, name: 'SQL', description: 'Queries' } ],
+      } ],
+    }
+
+    expect( MeleteSyllabus.parse( syllabus ) ).toEqual( syllabus )
+    expect( MeleteSyllabusEdit.parse( {
+      sections: [ { name: 'New', concepts: [ { name: 'Joins', description: '' } ] } ],
+    } ) ).toBeDefined()
+    expect( MeleteSyllabus.safeParse( {
+      sections: [ { name: 'No id', concepts: [] } ],
+    } ).success ).toBe( false )
+  } )
+
+  it( 'refuses an edit with more than 80 concepts or an empty section', () => {
+    const concepts = Array.from( { length: 81 }, ( _, index ) => {
+      return { name: `Concept ${ index }`, description: '' }
+    } )
+
+    expect( MeleteSyllabusEdit.safeParse( { sections: [ { name: 'Big', concepts } ] } ).success )
+      .toBe( false )
+    expect( MeleteSyllabusEdit.safeParse( {
+      sections: [ { name: 'Empty', concepts: [] } ],
+    } ).success ).toBe( false )
+    expect( MeleteSyllabusEdit.safeParse( {
+      sections: [ { name: ' ', concepts: [ { name: 'A', description: '' } ] } ],
+    } ).success ).toBe( false )
+  } )
+
+  it( 'checks the diff counts and Claude\'s syllabus output', () => {
+    expect( MeleteSyllabusDiff.parse( { renamed: 1, added: 2, removed: 0, moved: 3 } ) )
+      .toEqual( { renamed: 1, added: 2, removed: 0, moved: 3 } )
+    expect( MeleteSyllabusDiff.safeParse( {
+      renamed: -1,
+      added: 0,
+      removed: 0,
+      moved: 0,
+    } ).success ).toBe( false )
+    expect( MeleteSyllabusOutput.parse( {
+      sections: [ { name: 'A', concepts: [ { name: 'B', description: 'C' } ] } ],
+    } ) ).toBeDefined()
+    expect( MeleteSyllabusOutput.safeParse( { sections: [] } ).success ).toBe( false )
+  } )
+
+  it( 'lets a subject update carry a level or an intent of up to 500 characters', () => {
+    expect( UpdateMeleteSubjectBody.parse( { target_level: 'expert' } ) )
+      .toEqual( { target_level: 'expert' } )
+    expect( UpdateMeleteSubjectBody.parse( { intent: 'Pass the exam' } ) )
+      .toEqual( { intent: 'Pass the exam' } )
+    expect( UpdateMeleteSubjectBody.parse( { intent: null } ) ).toEqual( { intent: null } )
+    expect( UpdateMeleteSubjectBody.safeParse( { intent: 'x'.repeat( 501 ) } ).success )
+      .toBe( false )
+    expect( UpdateMeleteSubjectBody.safeParse( { target_level: 'guru' } ).success ).toBe( false )
+  } )
+} )
+
+describe( 'the syllabus responses', () => {
+  const id = '11111111-1111-4111-8111-111111111111'
+  const syllabus = {
+    sections: [ { id, name: 'Basics', concepts: [ { id, name: 'SQL', description: '' } ] } ],
+  }
+  const diff = { renamed: 1, added: 0, removed: 2, moved: 0 }
+
+  it( 'a save answers with the syllabus as stored and the diff', () => {
+    expect( SaveMeleteSyllabusResponse.parse( { syllabus, diff } ) ).toEqual( { syllabus, diff } )
+    expect( SaveMeleteSyllabusResponse.safeParse( { syllabus } ).success ).toBe( false )
+    expect( SaveMeleteSyllabusResponse.safeParse( { diff } ).success ).toBe( false )
+  } )
+
+  it( 'an approval answers with the subject', () => {
+    const subject = {
+      id,
+      name: 'Data',
+      folder: 'Learning/Data',
+      auto_enroll: false,
+      new_per_day: 10,
+      note_count: 0,
+      enrolled_count: 0,
+      due_count: 0,
+      new_available: 0,
+      new_remaining_today: 0,
+      target_level: 'working',
+      intent: null,
+      syllabus_status: 'approved',
+      syllabus_error: null,
+      coverage: null,
+      mastery: null,
+      concept_count: null,
+      due_today: 0,
+      seconds_this_week: 0,
+      goal_id: null,
+    }
+
+    expect( ApproveMeleteSyllabusResponse.parse( { subject } ) ).toEqual( { subject } )
+    expect( ApproveMeleteSyllabusResponse.safeParse( {} ).success ).toBe( false )
   } )
 } )

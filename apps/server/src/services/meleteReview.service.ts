@@ -17,6 +17,7 @@ import {
   ValidationError,
 } from '../errors.js'
 // Melete
+import { dayStart } from '../melete/day.js'
 import { isBlankAnswer } from '../melete/grading.js'
 import { obsidianUrl } from '../melete/obsidian.js'
 import {
@@ -38,6 +39,7 @@ import {
 } from '../melete/scheduler.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
+import { findConcept } from '../repositories/meleteConcepts.repository.js'
 import { findNote } from '../repositories/meleteNotes.repository.js'
 import {
   CardRow,
@@ -45,6 +47,7 @@ import {
   QuestionRecord,
   findQuestion,
   listDue,
+  listForConcept,
   listLearningSoon,
   listNew,
   saveCard,
@@ -61,13 +64,14 @@ import {
   toMeleteQuestion,
 } from './melete.service.js'
 import { scanLearningRoot } from './meleteScan.service.js'
+import { recordAnswerTime } from './time.service.js'
 import { resolveMeletePrompt } from './prompts.service.js'
 import { getLearningRoot, resolveMeleteGradingModel } from './settings.service.js'
 import { vaultDirFor } from './vault.service.js'
 // Logging
 import { logger } from '../logger.js'
 
-type NextReviewOptions = { subjectId?: string, now?: Date }
+type NextReviewOptions = { subjectId?: string, conceptId?: string, now?: Date }
 
 // A new question gets its due time when it is first served, so its age starts then; until it
 // is rated it stays `new` and, being due, comes back on a reload
@@ -109,9 +113,34 @@ const pickNext = (
     } )[ 0 ]
 }
 
+// A concept review (TRD §5.2) asks for the concept's questions even when none is due, and
+// outside the day's new-question limit, since the learner chose them. A new one is stamped like
+// any served new question.
+const pickForConcept = (
+  userId: string,
+  conceptId: string,
+  now: Date,
+): QueuedQuestion | undefined => {
+  const [ question ] = listForConcept( userId, {
+    conceptId,
+    now: now.toISOString(),
+    dayStart: dayStart( now ).toISOString(),
+  } )
+
+  if( question === undefined || question.due !== null ) {
+    return question
+  }
+
+  const served = { ...question, due: now.toISOString() }
+
+  saveCard( userId, question.id, served )
+
+  return served
+}
+
 export const getNextReview = async (
   userId: string,
-  { subjectId, now = new Date() }: NextReviewOptions = {},
+  { subjectId, conceptId, now = new Date() }: NextReviewOptions = {},
 ): Promise< GetNextReviewResponse > => {
   const learningRoot = getLearningRoot( userId )
 
@@ -121,10 +150,20 @@ export const getNextReview = async (
 
   await scanLearningRoot( userId, { now } )
 
-  const subjects = subjectId === undefined
-    ? await listSubjectsInRoot( userId, learningRoot )
-    : [ requireSubjectInRoot( userId, subjectId, learningRoot ) ]
-  const next = pickNext( userId, subjects, now )
+  const concept = conceptId === undefined ? undefined : findConcept( userId, conceptId )
+
+  if( conceptId !== undefined && concept === undefined ) {
+    throw new NotFoundError( 'Concept not found' )
+  }
+
+  const subjects = concept !== undefined
+    ? [ requireSubjectInRoot( userId, concept.subject_id, learningRoot ) ]
+    : subjectId === undefined
+      ? await listSubjectsInRoot( userId, learningRoot )
+      : [ requireSubjectInRoot( userId, subjectId, learningRoot ) ]
+  const next = concept === undefined
+    ? pickNext( userId, subjects, now )
+    : pickForConcept( userId, concept.id, now )
   const counts = reviewCounts( userId, subjects, now )
   const note = next === undefined ? undefined : findNote( userId, next.note_id )
 
@@ -243,6 +282,9 @@ export const recordReview = async (
     requireGradeRun( userId, body.grade_run_id, questionId )
   }
 
+  // requireReviewable has just found the note, so it is there
+  const subjectId = findNote( userId, question.note_id )?.subject_id ?? ''
+
   getDatabase().transaction( () => {
     const before = CardRow.parse( question )
 
@@ -262,6 +304,8 @@ export const recordReview = async (
       was_new: before.fsrs_state === 'new',
       before_state: JSON.stringify( before ),
     } )
+
+    recordAnswerTime( userId, subjectId, now )
 
     const mode = MeleteReviewMode.catch( 'typed' )
       .parse( getSetting( userId, 'melete_review_mode' ) )

@@ -46,10 +46,19 @@ test( 'the user docs are rewritten for the VM', () => {
   assert.match( phone, /\bVM\b/ )
   assert.doesNotMatch( phone, /Mnemosyne|keep the Mac awake|Prevent automatic sleeping/i )
 
-  const backups = read( 'docs/backups.md' )
-  assert.match( backups, /deploy\.md#/ )
-  assert.ok( backups.split( '\n' ).length < 25, 'backups.md is only a pointer now' )
-  assert.doesNotMatch( backups, /Mnemosyne|BACKUP_HOST_PATH/ )
+  // docs/backups.md was folded into the runbook's "Restoring the database" (1.0 cleanup)
+  assert.ok( !existsSync( join( root, 'docs/backups.md' ) ), 'docs/backups.md is gone; the runbook covers it' )
+  const deploy = read( 'docs/deploy.md' )
+  const restore = deploy.slice( deploy.indexOf( '\n## Restoring the database' ), deploy.indexOf( '\n### Scratch check' ) )
+  for( const [ topic, pattern ] of Object.entries( {
+    'what is in the replica': /TOKEN_ENCRYPTION_KEY/,
+    'the pre-migration copies': /pre-migration\//,
+    'the Mac has no replica': /atlas_data/,
+    'the Replication row': /Replication/,
+  } ) ) assert.match( restore, pattern, `Restoring the database no longer says: ${ topic }` )
+  for( const file of [ 'README.md', 'docs/README.md', 'docs/deploy.md', 'docs/phone-access.md', 'docs/google-cloud-setup.md' ] ) {
+    assert.doesNotMatch( read( file ), /\(((\.\.\/)?docs\/)?backups\.md\)/, `${ file } links the deleted backups.md` )
+  }
 } )
 
 test( 'the root CLAUDE.md describes the hosting and the deploy folder', () => {
@@ -73,7 +82,7 @@ const stale = ( file ) => read( file ).split( '\n' )
 
 test( 'the README and the CLAUDE.md files no longer describe downloading, ffmpeg or OpenAI', () => {
   assert.deepEqual(
-    [ 'README.md', 'CLAUDE.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md' ].flatMap( stale ),
+    [ 'README.md', 'CLAUDE.md', 'docs/architecture.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md' ].flatMap( stale ),
     [],
   )
 } )
@@ -95,11 +104,11 @@ test( 'the README documents the Gemini settings and YouTube-only video', () => {
 // Gemini goes through the Developer API with a key (ADR 0083): Vertex AI, Application Default
 // Credentials and the settings that went with them survive only in lines that say they are gone
 const VERTEX_WORDS = /vertex|aiplatform|application-default|application default|GOOGLE_CLOUD_PROJECT|GEMINI_LOCATION|GOOGLE_ADC_HOST_PATH|GEMINI_ACCESS_TOKEN|GOOGLE_APPLICATION_CREDENTIALS/i
-const SAYS_NOT_VERTEX = /no longer|removed|remove |disable|ignored|instead of|not Vertex|ADR 0083|upgrad|\bwere\b|refuses/i
+const SAYS_NOT_VERTEX = /no longer|removed|remove |disable|ignored|instead of|not Vertex|ADR 0083|upgrad|\bwere\b|refuses|refused/i
 
 test( 'no doc describes Vertex AI or Application Default Credentials as how Gemini works', () => {
   const offenders = [
-    'README.md', 'CLAUDE.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md',
+    'README.md', 'CLAUDE.md', 'docs/architecture.md', 'apps/server/CLAUDE.md', 'apps/web/CLAUDE.md',
     'docs/deploy.md', 'docs/google-cloud-setup.md', '.env.example', 'apps/server/.env.example',
   ].flatMap( ( file ) => read( file ).split( '\n' )
     .map( ( line, index ) => ( { line, number: index + 1 } ) )
@@ -128,9 +137,9 @@ test( 'the Google Cloud guide covers the AI Studio key and the YouTube Data API 
   assert.match( text, /Generative Language API/ )
 } )
 
-test( 'the root CLAUDE.md describes Gemini and has no ops folder row', () => {
-  const text = read( 'CLAUDE.md' )
+test( 'docs/architecture.md describes Gemini and the root CLAUDE.md has no ops folder row', () => {
+  const text = read( 'docs/architecture.md' )
   assert.match( text, /Gemini/ )
   assert.match( text, /Only YouTube|YouTube-only|YouTube only/i )
-  assert.doesNotMatch( text, /^\| `ops\/` \|/m )
+  assert.doesNotMatch( read( 'CLAUDE.md' ), /^\| `ops\/` \|/m )
 } )

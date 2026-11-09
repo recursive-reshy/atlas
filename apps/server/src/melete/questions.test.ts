@@ -1,7 +1,7 @@
 // Packages
 import { describe, it, expect } from 'vitest'
 // Melete
-import { processQuestions } from './questions.js'
+import { processApprovedQuestions, processQuestions } from './questions.js'
 
 const question = ( overrides: Record< string, string > = {} ) => ( {
   prompt: 'What is narrowing?',
@@ -96,5 +96,81 @@ describe( 'processQuestions', () => {
 
   it( 'returns an empty list when every question is dropped', () => {
     expect( processQuestions( { questions: [ question( { prompt: '' } ) ] }, body ) ).toEqual( [] )
+  } )
+} )
+
+describe( 'processApprovedQuestions', () => {
+  const concepts = [
+    { id: 'id-1', name: 'Narrowing', description: '' },
+    { id: 'id-2', name: 'Unions', description: '' },
+  ]
+  const labelled = ( overrides: Record< string, string > = {} ) => ( {
+    ...question(),
+    concept: 'c1',
+    ...overrides,
+  } )
+
+  it( 'maps the concept refs to ids and labels each question', () => {
+    const result = processApprovedQuestions( {
+      concepts: [ 'c1', 'c2' ],
+      off_syllabus: null,
+      questions: [ labelled(), labelled( { prompt: 'Second?', concept: 'c2' } ) ],
+    }, body, concepts )
+
+    expect( result.conceptIds ).toEqual( [ 'id-1', 'id-2' ] )
+    expect( result.offSyllabus ).toBeNull()
+    expect( result.questions.map( ( { concept_id: id } ) => id ) ).toEqual( [ 'id-1', 'id-2' ] )
+  } )
+
+  it( 'gives a question whose concept is not one of the note\'s the first concept', () => {
+    const result = processApprovedQuestions( {
+      concepts: [ 'c2' ],
+      off_syllabus: null,
+      questions: [ labelled( { concept: 'c1' } ), labelled( { concept: 'c9' } ) ],
+    }, body, concepts )
+
+    expect( result.questions.map( ( { concept_id: id } ) => id ) ).toEqual( [ 'id-2', 'id-2' ] )
+  } )
+
+  it( 'keeps the passage rule and the 10 question limit of processQuestions', () => {
+    const result = processApprovedQuestions( {
+      concepts: [ 'c1' ],
+      off_syllabus: null,
+      questions: [
+        labelled( { passage: 'Not in the note' } ),
+        labelled( { prompt: ' ' } ),
+        ...Array.from( { length: 11 }, () => labelled() ),
+      ],
+    }, body, concepts )
+
+    expect( result.questions ).toHaveLength( 10 )
+    expect( result.questions[ 0 ]?.passage ).toBe( '' )
+  } )
+
+  it( 'flags the note off-syllabus when it has no concept and Claude suggests one', () => {
+    const result = processApprovedQuestions( {
+      concepts: [ 'c7' ],
+      off_syllabus: { suggested_concept: '  Decorators ' },
+      questions: [ labelled() ],
+    }, body, concepts )
+
+    expect( result.conceptIds ).toEqual( [] )
+    expect( result.offSyllabus ).toBe( 'Decorators' )
+    expect( result.questions[ 0 ]?.concept_id ).toBeNull()
+  } )
+
+  it( 'ignores the suggestion when the note has concepts, or when it is blank', () => {
+    const base = { questions: [ labelled() ] }
+
+    expect( processApprovedQuestions( {
+      ...base,
+      concepts: [ 'c1' ],
+      off_syllabus: { suggested_concept: 'Decorators' },
+    }, body, concepts ).offSyllabus ).toBeNull()
+    expect( processApprovedQuestions( {
+      ...base,
+      concepts: [],
+      off_syllabus: { suggested_concept: '   ' },
+    }, body, concepts ).offSyllabus ).toBeNull()
   } )
 } )

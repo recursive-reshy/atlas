@@ -2,19 +2,31 @@
 import { readFile } from 'node:fs/promises'
 import { basename, join } from 'node:path'
 // Clients
-import { generateQuestions } from '../clients/claude.client.js'
+import { generateApprovedQuestions, generateQuestions } from '../clients/claude.client.js'
 // Errors
 import { MeleteError } from '../errors.js'
 // Melete
-import { LOCKED_INSTRUCTIONS_MELETE_QUESTIONS, buildMeleteSystemPrompt } from '../melete/prompts.js'
-import { processQuestions } from '../melete/questions.js'
+import { buildConceptList } from '../melete/conceptRefs.js'
+import {
+  LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
+  LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED,
+  buildMeleteSystemPrompt,
+} from '../melete/prompts.js'
+import { processApprovedQuestions, processQuestions } from '../melete/questions.js'
 import { recordMeleteRun } from '../melete/runs.js'
 import { bodyHash, noteTitle, splitFrontMatter } from '../melete/scan.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
 import { NoteRecord, findNote, updateNote } from '../repositories/meleteNotes.repository.js'
-import { insertQuestions, listForNote } from '../repositories/meleteQuestions.repository.js'
+import { listConcepts } from '../repositories/meleteConcepts.repository.js'
+import { setNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
+import {
+  insertQuestions,
+  listForNote,
+} from '../repositories/meleteQuestions.repository.js'
 import { findSubject } from '../repositories/meleteSubjects.repository.js'
+import type { ConceptRecord } from '../repositories/meleteConcepts.repository.js'
+import type { GeneratedQuestion } from '../repositories/meleteQuestions.repository.js'
 // Services
 import { scanLearningRoot } from './meleteScan.service.js'
 import { resolveMeletePrompt } from './prompts.service.js'
@@ -32,6 +44,29 @@ type RunDetails = {
   usage: { input_tokens: number, output_tokens: number } | undefined
   error?: string
   now: Date
+}
+
+type Processed = {
+  questions: GeneratedQuestion[]
+  usage: { input_tokens: number, output_tokens: number }
+  conceptIds: string[]
+  offSyllabus: string | null
+}
+
+type Request = { model: string, system: string, user: string, body: string }
+
+const generatePlain = async ( { body, ...request }: Request ): Promise< Processed > => {
+  const { output, usage } = await generateQuestions( request )
+
+  return { questions: processQuestions( output, body ), usage, conceptIds: [], offSyllabus: null }
+}
+
+const generateApproved = async (
+  { body, concepts, ...request }: Request & { concepts: ConceptRecord[] },
+): Promise< Processed > => {
+  const { output, usage } = await generateApprovedQuestions( request )
+
+  return { ...processApprovedQuestions( output, body, concepts ), usage }
 }
 
 const isGone = ( error: unknown ): boolean => {
@@ -143,15 +178,37 @@ export const generateForNote = async (
       return
     }
 
-    const subjectName = basename( findSubject( userId, note.subject_id )?.folder ?? '' )
-    let outcome: Awaited< ReturnType< typeof generateQuestions > >
+    const subject = findSubject( userId, note.subject_id )
+    const subjectName = basename( subject?.folder ?? '' )
+    const concepts = subject?.syllabus_status === 'approved'
+      ? listConcepts( userId, subject.id )
+      : []
+    const approved = concepts.length > 0
+    const header = `Subject: ${ subjectName }\nTitle: ${ current.title }`
+    let processed: Processed
 
     try {
-      outcome = await generateQuestions( {
-        model,
-        system: buildMeleteSystemPrompt( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS, version.guidance ),
-        user: `Subject: ${ subjectName }\nTitle: ${ current.title }\n\n${ current.body }`,
-      } )
+      processed = approved
+        ? await generateApproved( {
+          model,
+          system: buildMeleteSystemPrompt(
+            LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED,
+            version.guidance,
+          ),
+          user: [
+            header,
+            `\n## Concepts\n${ buildConceptList( concepts ) }`,
+            `\n## Note\n${ current.body }`,
+          ].join( '\n' ),
+          body: current.body,
+          concepts,
+        } )
+        : await generatePlain( {
+          model,
+          system: buildMeleteSystemPrompt( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS, version.guidance ),
+          user: `${ header }\n\n${ current.body }`,
+          body: current.body,
+        } )
     } catch( error ) {
       failNote(
         userId,
@@ -163,17 +220,17 @@ export const generateForNote = async (
       return
     }
 
-    const questions = processQuestions( outcome.output, current.body )
+    const { questions, usage, conceptIds, offSyllabus } = processed
 
     if( questions.length === 0 ) {
-      failNote( userId, noteId, 'No usable questions came back', { ...run, usage: outcome.usage } )
+      failNote( userId, noteId, 'No usable questions came back', { ...run, usage } )
 
       return
     }
 
     try {
       getDatabase().transaction( () => {
-        const runId = recordRun( userId, { ...run, usage: outcome.usage } )
+        const runId = recordRun( userId, { ...run, usage } )
         const latest = findNote( userId, noteId )
 
         // Edited during the call: these questions are stale, and the scan has queued the note
@@ -187,10 +244,26 @@ export const generateForNote = async (
         }
 
         insertQuestions( userId, noteId, runId, current.hash, questions )
-        updateNote( userId, noteId, { generation: 'idle', generation_error: null } )
+
+        // The content changed, so the mapping is Claude's again, hand pins included (ADR 0089)
+        if( approved ) {
+          setNoteConcepts( userId, noteId, conceptIds, 'claude' )
+        }
+
+        updateNote( userId, noteId, {
+          generation: 'idle',
+          generation_error: null,
+          ...approved && {
+            mapping: 'idle',
+            mapping_error: null,
+            mapping_pinned: false,
+            off_syllabus: offSyllabus === null ? null : 'flagged',
+            off_syllabus_suggestion: offSyllabus,
+          },
+        } )
       } )()
     } catch( error ) {
-      failNote( userId, noteId, messageOf( error ), { ...run, usage: outcome.usage } )
+      failNote( userId, noteId, messageOf( error ), { ...run, usage } )
     }
   } catch( error ) {
     failNote( userId, noteId, messageOf( error ) )

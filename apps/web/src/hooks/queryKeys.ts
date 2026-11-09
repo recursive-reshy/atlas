@@ -50,8 +50,15 @@ export const meleteKeys = {
   all: [ 'melete' ] as const,
   today: [ 'melete', 'today' ] as const,
   subject: ( id: string ) => [ 'melete', 'subjects', id ] as const,
+  // Under the subject key, so refreshing the subject refreshes its syllabus
+  syllabus: ( id: string ) => [ 'melete', 'subjects', id, 'syllabus' ] as const,
   note: ( id: string ) => [ 'melete', 'notes', id ] as const,
-  review: ( subjectId: string | null ) => [ 'melete', 'review', subjectId ?? 'all' ] as const,
+  review: ( subjectId: string | null, conceptId: string | null = null ): readonly string[] => {
+    const base = [ 'melete', 'review', subjectId ?? 'all' ] as const
+
+    return conceptId === null ? base : [ ...base, 'concept', conceptId ] as const
+  },
+  gaps: ( id: string ) => [ 'melete', 'subjects', id, 'gaps' ] as const,
 }
 
 export const meKeys = {
@@ -63,4 +70,11 @@ export const adminKeys = {
   all: [ 'admin' ] as const,
   users: [ 'admin', 'users' ] as const,
   usage: ( month: string | null ) => [ 'admin', 'usage', month ?? 'current' ] as const,
+}
+
+export const themisKeys = {
+  all: [ 'themis' ] as const,
+  overview: ( period: string ) => [ 'themis', 'overview', period ] as const,
+  goals: [ 'themis', 'goals' ] as const,
+  goal: ( id: string ) => [ 'themis', 'goals', id ] as const,
 }

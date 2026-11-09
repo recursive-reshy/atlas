@@ -30,7 +30,10 @@ import {
   CODING_ID,
   LINKER_ID,
   MELETE_GRADING_ID,
+  MELETE_MAP_ID,
   MELETE_QUESTIONS_ID,
+  MELETE_SUGGEST_ID,
+  MELETE_SYLLABUS_ID,
   profileFixture,
   profilesFixture,
   settingsFixture,
@@ -341,6 +344,25 @@ describe( 'PromptPanel, the Melete prompts', () => {
     expect( field() ).toHaveValue( 'Be strict about the core idea.' )
     expect( screen.getByText(
       'Instructions the app always sends for grading: You grade answers.',
+    ) ).toBeInTheDocument()
+    expect( screen.queryByText( /question generation/ ) ).not.toBeInTheDocument()
+  } )
+
+  it.each( [
+    [ MELETE_SYLLABUS_ID, 'Put the foundations first.', 'syllabus drafting', 'a syllabus' ],
+    [ MELETE_MAP_ID, 'Prefer one or two concepts.', 'mapping notes', 'a note' ],
+    [ MELETE_SUGGEST_ID, 'Prefer free resources.', 'resource suggestions', 'resources' ],
+  ] )( 'shows the concept-layer prompt %s with its own locked instructions', (
+    id,
+    guidance,
+    what,
+    verb,
+  ) => {
+    renderWithClient( <PromptPanel promptId={ id } /> )
+
+    expect( field() ).toHaveValue( guidance )
+    expect( screen.getByText(
+      new RegExp( `^Instructions the app always sends for ${ what }: You .* ${ verb }\\.$` ),
     ) ).toBeInTheDocument()
     expect( screen.queryByText( /question generation/ ) ).not.toBeInTheDocument()
   } )

@@ -36,6 +36,7 @@ import {
 } from '../melete/scheduler.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
+import { listConcepts, replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
 import { listNotesUnder } from '../repositories/meleteNotes.repository.js'
 import { CardRow, findQuestion } from '../repositories/meleteQuestions.repository.js'
 import { insertReview } from '../repositories/meleteReviews.repository.js'
@@ -422,6 +423,145 @@ const reviewable = ( options: Parameters< typeof addQuestion >[ 2 ] = {} ): stri
   )
 }
 
+describe( 'getNextReview for one concept', () => {
+  // TypeScript with concepts A and B; Rust with one
+  const concepts = () => {
+    replaceSyllabus( userId, subjectId( 'TypeScript' ), [ {
+      name: 'S',
+      concepts: [ { name: 'A', description: '' }, { name: 'B', description: '' } ],
+    } ] )
+    replaceSyllabus( userId, subjectId( 'Rust' ), [ {
+      name: 'R',
+      concepts: [ { name: 'C', description: '' } ],
+    } ] )
+
+    const [ a, b ] = listConcepts( userId, subjectId( 'TypeScript' ) )
+    const [ c ] = listConcepts( userId, subjectId( 'Rust' ) )
+
+    return { a: a?.id ?? '', b: b?.id ?? '', c: c?.id ?? '' }
+  }
+
+  it( 'serves the concept\'s questions only, overdue first and then not due yet', async () => {
+    const { a, b } = concepts()
+    const generics = noteId( GENERICS )
+    const later = addQuestion( userId, generics, {
+      position: 1,
+      conceptId: a,
+      fsrsState: 'review',
+      due: iso( 86_400 ),
+      lastReview: iso( -86_400 * 3 ),
+    } )
+    const overdue = addQuestion( userId, generics, {
+      position: 2,
+      conceptId: a,
+      fsrsState: 'review',
+      due: iso( -60 ),
+      lastReview: iso( -86_400 * 3 ),
+    } )
+
+    addQuestion( userId, generics, {
+      position: 3,
+      conceptId: b,
+      fsrsState: 'review',
+      due: iso( -600 ),
+    } )
+
+    expect( ( await getNextReview( userId, { conceptId: a, now: at( 0 ) } ) ).item?.question.id )
+      .toBe( overdue )
+
+    getDatabase().prepare( 'UPDATE melete_questions SET due = ? WHERE id = ?' )
+      .run( iso( 3600 ), overdue )
+    getDatabase().prepare( 'UPDATE melete_questions SET last_review = ? WHERE id = ?' )
+      .run( iso( -60 ), overdue )
+
+    expect( ( await getNextReview( userId, { conceptId: a, now: at( 0 ) } ) ).item?.question.id )
+      .toBe( later )
+  } )
+
+  it( 'serves a question not yet due even though the subject has nothing due', async () => {
+    const { a } = concepts()
+    const early = addQuestion( userId, noteId( GENERICS ), {
+      conceptId: a,
+      fsrsState: 'review',
+      due: iso( 5 * 86_400 ),
+      lastReview: iso( -86_400 * 2 ),
+    } )
+
+    expect( ( await getNextReview( userId, { now: at( 0 ) } ) ).item ).toBeNull()
+    expect( ( await getNextReview( userId, { conceptId: a, now: at( 0 ) } ) ).item?.question.id )
+      .toBe( early )
+  } )
+
+  it( 'serves a new question despite the day\'s new-question limit, and stamps it', async () => {
+    const { a } = concepts()
+    const fresh = addQuestion( userId, noteId( GENERICS ), { conceptId: a } )
+
+    updateSubject( userId, subjectId( 'TypeScript' ), { new_per_day: 0 } )
+
+    const { item } = await getNextReview( userId, { conceptId: a, now: at( 0 ) } )
+
+    expect( item?.question.id ).toBe( fresh )
+    expect( findQuestion( userId, fresh )?.due ).toBe( iso( 0 ) )
+  } )
+
+  it( 'ends once the concept has been gone through, with the subject\'s counts', async () => {
+    const { a } = concepts()
+
+    addQuestion( userId, noteId( GENERICS ), {
+      conceptId: a,
+      fsrsState: 'review',
+      due: iso( 86_400 ),
+      lastReview: iso( -60 ),
+    } )
+    addQuestion( userId, noteId( GENERICS ), {
+      position: 2,
+      fsrsState: 'review',
+      due: iso( -60 ),
+    } )
+
+    expect( await getNextReview( userId, { conceptId: a, now: at( 0 ) } ) )
+      .toEqual( { item: null, counts: { due: 1, new_remaining: 0, learning_soon: 0 } } )
+  } )
+
+  it( 'asks for the concept\'s subject when the subject is given too', async () => {
+    const { a, c } = concepts()
+    const mine = addQuestion( userId, noteId( GENERICS ), {
+      conceptId: a,
+      fsrsState: 'review',
+      due: iso( -60 ),
+    } )
+
+    addQuestion( userId, noteId( OWNERSHIP ), {
+      conceptId: c,
+      fsrsState: 'review',
+      due: iso( -60 ),
+    } )
+
+    const { item } = await getNextReview( userId, {
+      conceptId: a,
+      subjectId: subjectId( 'Rust' ),
+      now: at( 0 ),
+    } )
+
+    expect( item?.question.id ).toBe( mine )
+    expect( item?.note.subject_name ).toBe( 'TypeScript' )
+  } )
+
+  it( 'answers not found for an unknown concept and for another user\'s', async () => {
+    const { a } = concepts()
+    await vault.clone( 'other' )
+
+    const other = createTestUser( { vault_dir: 'other' } ).id
+
+    setSetting( other, 'melete_learning_root', 'Learning' )
+
+    await expect( getNextReview( userId, { conceptId: crypto.randomUUID(), now: at( 0 ) } ) )
+      .rejects.toThrow( NotFoundError )
+    await expect( getNextReview( other, { conceptId: a, now: at( 0 ) } ) )
+      .rejects.toThrow( NotFoundError )
+  } )
+} )
+
 describe( 'gradeAnswer', () => {
   it( 'grades the answer against the reference and records the run', async () => {
     const id = reviewable()
@@ -674,6 +814,7 @@ describe( 'recordReview', () => {
         kind,
         note_id: null,
         question_id: questionId,
+        subject_id: null,
         model: 'm',
         prompt_version_id: version.id,
         input_tokens: null,
@@ -726,6 +867,109 @@ describe( 'recordReview', () => {
   } )
 } )
 
+describe( 'measured time from recordReview (ADR 0091)', () => {
+  const exact = createScheduler( { fuzz: false } )
+  const body = { rating: 'good', mode: 'quick' } as const
+
+  const sessions = () => getDatabase().prepare( `SELECT subject_id, source, day, started_at,
+    ended_at, seconds FROM time_entries ORDER BY started_at, rowid` ).all()
+
+  const review = ( id: string, seconds: number ) => recordReview(
+    userId,
+    id,
+    body,
+    at( seconds ),
+    exact,
+  )
+
+  it( 'starts a measured session for the question\'s subject with the final card', async () => {
+    await review( reviewable(), 0 )
+
+    expect( sessions() ).toEqual( [ {
+      subject_id: subjectId( 'TypeScript' ),
+      source: 'measured',
+      day: '2026-10-22',
+      started_at: iso( 0 ),
+      ended_at: iso( 0 ),
+      seconds: 30,
+    } ] )
+  } )
+
+  it( 'extends the session for an answer within the gap', async () => {
+    await review( reviewable(), 0 )
+    await review( reviewable( { position: 2 } ), 120 )
+
+    expect( sessions() ).toEqual( [ expect.objectContaining( {
+      started_at: iso( 0 ),
+      ended_at: iso( 120 ),
+      seconds: 150,
+    } ) ] )
+  } )
+
+  it( 'starts another session after a gap of more than five minutes', async () => {
+    await review( reviewable(), 0 )
+    await review( reviewable( { position: 2 } ), 360 )
+
+    expect( sessions() ).toEqual( [
+      expect.objectContaining( { started_at: iso( 0 ), seconds: 30 } ),
+      expect.objectContaining( { started_at: iso( 360 ), seconds: 30 } ),
+    ] )
+  } )
+
+  it( 'keeps a session for each subject', async () => {
+    await review( reviewable(), 0 )
+    await review(
+      addQuestion( userId, noteId( OWNERSHIP ), { fsrsState: 'review', due: iso( -60 ) } ),
+      30,
+    )
+
+    expect( sessions().map( ( row ) => ( row as { subject_id: string } ).subject_id ).sort() )
+      .toEqual( [ subjectId( 'TypeScript' ), subjectId( 'Rust' ) ].sort() )
+  } )
+
+  it( 'follows the user\'s gap and final card settings', async () => {
+    setSetting( userId, 'melete_session_gap_minutes', 1 )
+    setSetting( userId, 'melete_final_card_seconds', 10 )
+    await review( reviewable(), 0 )
+    await review( reviewable( { position: 2 } ), 90 )
+    await review( reviewable( { position: 3 } ), 120 )
+
+    expect( sessions() ).toEqual( [
+      expect.objectContaining( { started_at: iso( 0 ), seconds: 10 } ),
+      expect.objectContaining( { started_at: iso( 90 ), ended_at: iso( 120 ), seconds: 40 } ),
+    ] )
+  } )
+
+  it( 'is one user\'s own', async () => {
+    const other = createTestUser( { modules: [ 'melete' ] } ).id
+
+    await review( reviewable(), 0 )
+
+    expect( getDatabase().prepare( 'SELECT COUNT(*) AS count FROM time_entries WHERE user_id = ?' )
+      .get( other ) ).toEqual( { count: 0 } )
+  } )
+
+  it( 'writes no time when the review is refused or cannot be stored', async () => {
+    const id = reviewable()
+
+    await expect( recordReview( userId, crypto.randomUUID(), body, at( 0 ), exact ) )
+      .rejects.toThrow( NotFoundError )
+    getDatabase().exec( `CREATE TRIGGER refuse_review BEFORE INSERT ON melete_reviews
+      BEGIN SELECT RAISE( ABORT, 'refused' ); END` )
+    await expect( recordReview( userId, id, body, at( 0 ), exact ) ).rejects.toThrow( 'refused' )
+
+    expect( sessions() ).toEqual( [] )
+  } )
+
+  it( 'is not recorded by grading an answer', async () => {
+    grade.mockResolvedValue( { output: graded, usage } )
+
+    await gradeAnswer( userId, reviewable(), { answer: 'something' }, at( 0 ) )
+
+    expect( sessions() ).toEqual( [] )
+  } )
+} )
+
 describe( 'reviews for two users', () => {
   const exact = createScheduler( { fuzz: false } )
 
@@ -738,6 +982,7 @@ describe( 'reviews for two users', () => {
       kind: 'grade',
       note_id: null,
       question_id: id,
+      subject_id: null,
       model: 'm',
       prompt_version_id: version.id,
       input_tokens: null,

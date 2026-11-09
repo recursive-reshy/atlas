@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { MeleteGeneration } from '@atlas/shared'
+import { MeleteGeneration, MeleteMapping, MeleteOffSyllabus } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
 
@@ -20,6 +20,11 @@ export const NoteRecord = z.object( {
   generation: MeleteGeneration,
   generation_error: z.string().nullable(),
   missing_at: z.string().nullable(),
+  mapping: MeleteMapping,
+  mapping_error: z.string().nullable(),
+  mapping_pinned: Flag,
+  off_syllabus: MeleteOffSyllabus.nullable(),
+  off_syllabus_suggestion: z.string().nullable(),
   created_at: z.string(),
 } )
 export type NoteRecord = z.infer< typeof NoteRecord >
@@ -41,6 +46,11 @@ const UPDATABLE = [
   'generation',
   'generation_error',
   'missing_at',
+  'mapping',
+  'mapping_error',
+  'mapping_pinned',
+  'off_syllabus',
+  'off_syllabus_suggestion',
 ] as const
 
 export type NoteChanges = Partial< Pick< NoteRecord, typeof UPDATABLE[ number ] > >
@@ -112,7 +122,11 @@ export const updateNote = (
         SET ${ columns.map( ( column ) => `${ column } = @${ column }` ).join( ', ' ) }
         WHERE id = @id AND user_id = @user_id` )
       .run( {
-        ...Object.fromEntries( columns.map( ( c ) => [ c, changes[ c ] ] ) ),
+        ...Object.fromEntries( columns.map( ( column ) => {
+          const value = changes[ column ]
+
+          return [ column, typeof value === 'boolean' ? Number( value ) : value ]
+        } ) ),
         id,
         user_id: userId,
       } )
@@ -146,4 +160,44 @@ export const setEnrolled = (
       : `UPDATE melete_notes SET enrolled = 0
         WHERE user_id = ? AND id IN ( ${ placeholders( ids ) } )` )
     .run( ...( enrolled ? [ at, userId, ...ids ] : [ userId, ...ids ] ) )
+}
+
+// Approving a syllabus maps every enrolled note again, pinned or not (TRD §4.3)
+export const queueMappingForSubject = ( userId: string, subjectId: string ): number => {
+  return getDatabase()
+    .prepare( `UPDATE melete_notes SET mapping = 'queued', mapping_error = NULL
+      WHERE user_id = ? AND subject_id = ? AND enrolled = 1 AND missing_at IS NULL` )
+    .run( userId, subjectId ).changes
+}
+
+// The automatic remaps (TRD §4.3) take enrolled notes that are still in the vault, never a
+// pinned one and never one Map is working on now; a failed one is tried again
+const AUTOMATIC = `enrolled = 1 AND missing_at IS NULL AND mapping_pinned = 0
+  AND mapping IN ( 'idle', 'failed' )`
+
+// Remap all
+export const queueMappingUnpinned = ( userId: string, subjectId: string ): number => {
+  return getDatabase()
+    .prepare( `UPDATE melete_notes SET mapping = 'queued', mapping_error = NULL
+      WHERE user_id = ? AND subject_id = ? AND ${ AUTOMATIC }` )
+    .run( userId, subjectId ).changes
+}
+
+// A concept was added: the notes that fitted none may fit it now
+export const queueMappingFlagged = ( userId: string, subjectId: string ): number => {
+  return getDatabase()
+    .prepare( `UPDATE melete_notes SET mapping = 'queued', mapping_error = NULL
+      WHERE user_id = ? AND subject_id = ? AND off_syllabus = 'flagged' AND ${ AUTOMATIC }` )
+    .run( userId, subjectId ).changes
+}
+
+export const queueMappingForNotes = ( userId: string, ids: string[] ): number => {
+  if( ids.length === 0 ) {
+    return 0
+  }
+
+  return getDatabase()
+    .prepare( `UPDATE melete_notes SET mapping = 'queued', mapping_error = NULL
+      WHERE user_id = ? AND id IN ( ${ placeholders( ids ) } ) AND ${ AUTOMATIC }` )
+    .run( userId, ...ids ).changes
 }

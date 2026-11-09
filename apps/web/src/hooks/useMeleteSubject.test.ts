@@ -14,6 +14,7 @@ import { ApiError } from '../api/apiError'
 import { getMeleteSubject } from '../api/melete.api'
 import {
   meleteNoteFixture,
+  meleteSubjectFixture,
   meleteSubjectResponseFixture,
   SUBJECT_ID,
 } from '../test-support/melete.fixture'
@@ -96,5 +97,28 @@ describe( 'useMeleteSubject', () => {
     await advance( 0 )
 
     expect( result.current.error ).toBe( 'Choose a learning root first' )
+  } )
+
+  it( 'polls while the syllabus is being drafted and stops once it is done', async () => {
+    const drafting = meleteSubjectResponseFixture( {
+      subject: meleteSubjectFixture( { syllabus_status: 'drafting' } ),
+    } )
+    const done = meleteSubjectResponseFixture( {
+      subject: meleteSubjectFixture( { syllabus_status: 'draft' } ),
+    } )
+
+    mockedGet
+      .mockResolvedValueOnce( drafting )
+      .mockResolvedValueOnce( drafting )
+      .mockResolvedValue( done )
+    renderHookWithClient( () => useMeleteSubject( SUBJECT_ID ) )
+
+    await advance( 0 )
+    await advance( POLL_INTERVAL_MS )
+    await advance( POLL_INTERVAL_MS )
+    expect( mockedGet ).toHaveBeenCalledTimes( 3 )
+
+    await advance( 10_000 )
+    expect( mockedGet ).toHaveBeenCalledTimes( 3 )
   } )
 } )

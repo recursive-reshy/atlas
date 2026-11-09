@@ -1,6 +1,6 @@
 // Guards for the release version (task 5.5): every place that states it agrees, and from 1.0 it is >= 1.0.0.
 import { strict as assert } from 'node:assert'
-import { readFileSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { test } from 'node:test'
 import { fileURLToPath } from 'node:url'
@@ -23,9 +23,12 @@ test( 'every package, the agent, its lock entry, the README and CLAUDE.md state 
   assert.match( read( 'CLAUDE.md' ), new RegExp( `The current version is \\*\\*${ version.replaceAll( '.', '\\.' ) }\\*\\*` ) )
 } )
 
-test( 'docs/README.md has a line for the current version pointing at the readiness list and ADR 0084', () => {
+test( 'docs/README.md has a line for the current version, and the Workflow paths follow it', () => {
+  const [ major, minor ] = version.split( '.' )
+  const folder = `v${ major }.${ minor }.0`
   const line = read( 'docs/README.md' ).split( '\n' ).find( ( text ) => text.startsWith( `- **v${ version }` ) )
   assert.ok( line, `no line for v${ version }` )
-  assert.match( line, /\(v1-readiness\.md\)/ )
-  assert.match( line, /0084/ )
+  assert.match( read( 'CLAUDE.md' ), new RegExp( `Read \`docs/${ folder.replaceAll( '.', '\\.' ) }/prd\\.md\`` ) )
+  assert.match( read( 'CLAUDE.md' ), new RegExp( `docs/${ folder.replaceAll( '.', '\\.' ) }/plans/checkpoint-` ) )
+  assert.ok( existsSync( join( root, 'docs', folder, 'tasks.md' ) ), `docs/${ folder }/tasks.md` )
 } )

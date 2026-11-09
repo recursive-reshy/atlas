@@ -4,9 +4,10 @@ import { z } from 'zod'
 import { getDatabase } from './database.js'
 
 export const NewMeleteRun = z.object( {
-  kind: z.enum( [ 'generate', 'grade' ] ),
+  kind: z.enum( [ 'generate', 'grade', 'syllabus', 'map', 'suggest' ] ),
   note_id: z.string().nullable(),
   question_id: z.string().nullable(),
+  subject_id: z.string().nullable(),
   model: z.string(),
   prompt_version_id: z.int(),
   input_tokens: z.int().nullable(),
@@ -24,11 +25,11 @@ export type MeleteRunRecord = z.infer< typeof MeleteRunRecord >
 export const insertRun = ( userId: string, run: NewMeleteRun ): number => {
   const { lastInsertRowid } = getDatabase()
     .prepare( `INSERT INTO melete_runs (
-        user_id, kind, note_id, question_id, model, prompt_version_id, input_tokens, output_tokens,
-        cost_usd, outcome, error, created_at
+        user_id, kind, note_id, question_id, subject_id, model, prompt_version_id,
+        input_tokens, output_tokens, cost_usd, outcome, error, created_at
       ) VALUES (
-        @user_id, @kind, @note_id, @question_id, @model, @prompt_version_id, @input_tokens,
-        @output_tokens, @cost_usd, @outcome, @error, @created_at
+        @user_id, @kind, @note_id, @question_id, @subject_id, @model, @prompt_version_id,
+        @input_tokens, @output_tokens, @cost_usd, @outcome, @error, @created_at
       )` )
     .run( { ...run, user_id: userId } )
 

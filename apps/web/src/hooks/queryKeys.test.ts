@@ -61,5 +61,8 @@ describe( 'melete query keys', () => {
     expect( meleteKeys.note( 'n1' ) ).toEqual( [ 'melete', 'notes', 'n1' ] )
     expect( meleteKeys.review( 's1' ) ).toEqual( [ 'melete', 'review', 's1' ] )
     expect( meleteKeys.review( null ) ).toEqual( [ 'melete', 'review', 'all' ] )
+    expect( meleteKeys.review( 's1', 'c1' ) )
+      .toEqual( [ 'melete', 'review', 's1', 'concept', 'c1' ] )
+    expect( meleteKeys.gaps( 's1' ) ).toEqual( [ 'melete', 'subjects', 's1', 'gaps' ] )
   } )
 } )

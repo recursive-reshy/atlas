@@ -11,13 +11,14 @@ import {
   vi,
 } from 'vitest'
 // Clients
-import { generateQuestions } from '../clients/claude.client.js'
+import { generateApprovedQuestions, generateQuestions } from '../clients/claude.client.js'
 // Errors
 import { MeleteError } from '../errors.js'
 // Melete
 import {
   DEFAULT_MELETE_QUESTIONS_GUIDANCE,
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
+  LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED,
   buildMeleteSystemPrompt,
 } from '../melete/prompts.js'
 import { bodyHash, splitFrontMatter } from '../melete/scan.js'
@@ -30,6 +31,9 @@ import {
   updateNote,
 } from '../repositories/meleteNotes.repository.js'
 import { listForNote } from '../repositories/meleteQuestions.repository.js'
+import { listConcepts, replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
+import { listNoteConcepts, setNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
+import { listSubjects, updateSubject } from '../repositories/meleteSubjects.repository.js'
 import { findRun } from '../repositories/meleteRuns.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'
 // Services
@@ -60,6 +64,7 @@ vi.mock( '../config.js', () => ( { config: configMock } ) )
 vi.mock( '../clients/claude.client.js' )
 
 const generate = vi.mocked( generateQuestions )
+const generateApproved = vi.mocked( generateApprovedQuestions )
 
 const T0 = new Date( '2026-10-22T10:00:00.000Z' )
 const GENERICS_PATH = 'Learning/TypeScript/Generics.md'
@@ -125,6 +130,7 @@ beforeEach( async () => {
   resetScanClock()
   generate.mockReset()
   generate.mockResolvedValue( reply() )
+  generateApproved.mockReset()
 } )
 
 afterEach( async () => {
@@ -483,5 +489,156 @@ describe( 'generateForNote for two users', () => {
 
     expect( generate ).not.toHaveBeenCalled()
     expect( findNote( userId, id )?.generation ).toBe( 'generating' )
+  } )
+} )
+
+describe( 'generateForNote with an approved syllabus', () => {
+  const approvedReply = ( overrides: Record< string, unknown > = {} ) => ( {
+    output: {
+      concepts: [ 'c2' ],
+      off_syllabus: null,
+      questions: [
+        {
+          prompt: 'What is a generic type?',
+          answer: 'A type with parameters.',
+          passage: PASSAGE,
+          concept: 'c2',
+        },
+        { prompt: 'Why use generics?', answer: 'To reuse code.', passage: '', concept: 'c9' },
+      ],
+      ...overrides,
+    },
+    usage,
+  } )
+
+  // Approves the subject of the claimed note with a two-concept syllabus
+  const approve = async (): Promise< { id: string, conceptIds: string[] } > => {
+    const id = await claimed()
+    const subject = listSubjects( userId ).find( ( { id: subjectId } ) => {
+      return subjectId === findNote( userId, id )?.subject_id
+    } )
+
+    if( subject === undefined ) {
+      throw new Error( 'No subject' )
+    }
+
+    replaceSyllabus( userId, subject.id, [ {
+      name: 'Basics',
+      concepts: [
+        { name: 'Types', description: 'Type annotations' },
+        { name: 'Generics', description: 'Types with parameters' },
+      ],
+    } ] )
+    updateSubject( userId, subject.id, { syllabus_status: 'approved' } )
+
+    const conceptIds = listConcepts( userId, subject.id ).map( ( { id: conceptId } ) => conceptId )
+
+    return { id, conceptIds }
+  }
+
+  beforeEach( () => {
+    generateApproved.mockResolvedValue( approvedReply() )
+  } )
+
+  it( 'sends the concept list and the approved instructions, and not the plain call', async () => {
+    const { id } = await approve()
+
+    await generateForNote( userId, id, T0 )
+
+    const { version } = resolveMeletePrompt( userId, 'melete_questions' )
+
+    expect( generate ).not.toHaveBeenCalled()
+    expect( generateApproved ).toHaveBeenCalledWith( {
+      model: 'claude-sonnet-5-5',
+      system: buildMeleteSystemPrompt(
+        LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED,
+        version.guidance,
+      ),
+      user: [
+        'Subject: TypeScript',
+        'Title: Generics in TypeScript',
+        '',
+        '## Concepts',
+        'c1: Types — Type annotations',
+        'c2: Generics — Types with parameters',
+        '',
+        '## Note',
+        GENERICS_BODY,
+      ].join( '\n' ),
+    } )
+  } )
+
+  it( 'maps the note to its concepts as Claude\'s, and labels each question', async () => {
+    const { id, conceptIds } = await approve()
+
+    updateNote( userId, id, { mapping_pinned: true } )
+    await generateForNote( userId, id, T0 )
+
+    expect( listNoteConcepts( userId, id ) ).toEqual( [
+      { note_id: id, concept_id: conceptIds[ 1 ], source: 'claude' },
+    ] )
+    // c9 is not one of the note's concepts: it gets the note's first
+    expect( listForNote( userId, id ).map( ( { concept_id: conceptId } ) => conceptId ) )
+      .toEqual( [ conceptIds[ 1 ], conceptIds[ 1 ] ] )
+    expect( findNote( userId, id ) ).toMatchObject( {
+      generation: 'idle',
+      mapping: 'idle',
+      mapping_pinned: false,
+      off_syllabus: null,
+      off_syllabus_suggestion: null,
+    } )
+  } )
+
+  it( 'replaces an earlier mapping, hand ones too, since the content changed', async () => {
+    const { id, conceptIds } = await approve()
+
+    setNoteConcepts( userId, id, [ conceptIds[ 0 ] ?? '' ], 'hand' )
+    await generateForNote( userId, id, T0 )
+
+    expect( listNoteConcepts( userId, id ).map( ( { concept_id: conceptId, source } ) => {
+      return [ conceptId, source ]
+    } ) ).toEqual( [ [ conceptIds[ 1 ], 'claude' ] ] )
+  } )
+
+  it( 'flags a note that fits no concept, with the suggestion, and labels nothing', async () => {
+    const { id } = await approve()
+
+    generateApproved.mockResolvedValue( approvedReply( {
+      concepts: [],
+      off_syllabus: { suggested_concept: 'Decorators' },
+    } ) )
+    await generateForNote( userId, id, T0 )
+
+    expect( findNote( userId, id ) ).toMatchObject( {
+      off_syllabus: 'flagged',
+      off_syllabus_suggestion: 'Decorators',
+    } )
+    expect( listNoteConcepts( userId, id ) ).toEqual( [] )
+    expect( listForNote( userId, id ) ).toHaveLength( 2 )
+    expect( listForNote( userId, id ).every( ( { concept_id: conceptId } ) => conceptId === null ) )
+      .toBe( true )
+  } )
+
+  it( 'uses the plain call and writes no mapping while the syllabus is not approved', async () => {
+    const id = await claimed()
+
+    await generateForNote( userId, id, T0 )
+
+    expect( generateApproved ).not.toHaveBeenCalled()
+    expect( generate ).toHaveBeenCalledTimes( 1 )
+    expect( listNoteConcepts( userId, id ) ).toEqual( [] )
+    expect( listForNote( userId, id ).every( ( { concept_id: conceptId } ) => conceptId === null ) )
+      .toBe( true )
+  } )
+
+  it( 'records the run and fails the note when the approved call fails', async () => {
+    const { id } = await approve()
+
+    generateApproved.mockRejectedValue( new MeleteError( 'Overloaded', { usage } ) )
+    await generateForNote( userId, id, T0 )
+
+    expect( findNote( userId, id ) )
+      .toMatchObject( { generation: 'failed', generation_error: 'Overloaded' } )
+    expect( runs() ).toMatchObject( [ { kind: 'generate', outcome: 'failed' } ] )
   } )
 } )

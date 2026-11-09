@@ -26,7 +26,7 @@ beforeEach( () => {
   ] )
 } )
 
-type Modules = ( 'transcriber' | 'melete' )[]
+type Modules = ( 'transcriber' | 'melete' | 'themis' )[]
 
 const unknown = (): string => crypto.randomUUID()
 
@@ -47,6 +47,11 @@ const MELETE_ROUTES = [
   `/api/melete/subjects/${ unknown() }`,
   `/api/melete/notes/${ unknown() }`,
   '/api/melete/review/next',
+]
+
+const THEMIS_ROUTES = [
+  '/api/themis/overview',
+  `/api/themis/goals/${ unknown() }`,
 ]
 
 const SHARED_ROUTES = [
@@ -114,6 +119,22 @@ describe( 'the Melete routes', () => {
   } )
 } )
 
+describe( 'the Themis routes', () => {
+  it.each( THEMIS_ROUTES )( '%s is a 404 without the Themis module', async ( path ) => {
+    const others = createTestUser( { modules: [ 'transcriber', 'melete' ] } )
+
+    expect( await statusOf( others, path ) ).toBe( 404 )
+    expect( await statusOf( createTestUser( { modules: [] } ), path ) ).toBe( 404 )
+  } )
+
+  it( 'opens to a user with the module and to the admin', async () => {
+    expect( await statusOf( createTestUser( { modules: [ 'themis' ] } ), '/api/themis/overview' ) )
+      .toBe( 200 )
+    expect( await statusOf( createTestUser( { role: 'admin' } ), '/api/themis/overview' ) )
+      .toBe( 200 )
+  } )
+} )
+
 describe( 'the shared routes', () => {
   it.each( SHARED_ROUTES )( '%s answers every user, whatever their modules', async ( path ) => {
     const sets: Modules[] = [ [], [ 'transcriber' ], [ 'melete' ] ]
@@ -137,8 +158,14 @@ describe( 'the shared routes', () => {
     expect( new Set( await list( [ 'transcriber' ] ) ) )
       .toEqual( new Set( [ 'summary', 'linker' ] ) )
     expect( new Set( await list( [ 'melete' ] ) ) )
-      .toEqual( new Set( [ 'melete_questions', 'melete_grading' ] ) )
-    expect( new Set( await list( [ 'transcriber', 'melete' ] ) ).size ).toBe( 4 )
+      .toEqual( new Set( [
+        'melete_questions',
+        'melete_grading',
+        'melete_syllabus',
+        'melete_map',
+        'melete_suggest',
+      ] ) )
+    expect( new Set( await list( [ 'transcriber', 'melete' ] ) ).size ).toBe( 7 )
     expect( await list( [] ) ).toEqual( [] )
   } )
 

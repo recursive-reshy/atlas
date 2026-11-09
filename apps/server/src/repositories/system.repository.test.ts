@@ -15,10 +15,13 @@ import { saveAccount, setAccountStatus } from './gmailAccount.repository.js'
 import { insertSource } from './gmailSources.repository.js'
 import type { StoredGmailSource } from './gmailSources.repository.js'
 import { findNote } from './meleteNotes.repository.js'
+import { findSubject, updateSubject } from './meleteSubjects.repository.js'
 import { setModules } from './userModules.repository.js'
 import { findUserById, updateUser } from './users.repository.js'
 import { getDatabase } from './database.js'
 import {
+  claimNextDraft,
+  claimNextMapping,
   claimNextGeneration,
   claimNextJob,
   deleteHealthExcept,
@@ -28,6 +31,7 @@ import {
   markInterruptedJobs,
   markInterruptedLinkingJobs,
   requeueGenerating,
+  requeueMapping,
 } from './system.repository.js'
 // Test support
 import { addNote, addSubject } from '../test-support/meleteData.fixture.js'
@@ -771,6 +775,194 @@ describe( 'claimNextGeneration', () => {
 
       expect( claimNextGeneration( at( 0 ) )?.id ).toBe( note )
     } )
+  } )
+} )
+
+const drafting = ( userId: string, folder = 'Learning/Data' ): string => {
+  const id = addSubject( userId, folder )
+
+  updateSubject( userId, id, { target_level: 'working', syllabus_status: 'drafting' } )
+
+  return id
+}
+
+describe( 'claimNextDraft', () => {
+  it( 'returns undefined when no subject is drafting', () => {
+    const userId = melete()
+    const id = addSubject( userId )
+
+    updateSubject( userId, id, { syllabus_status: 'draft' } )
+    addSubject( userId, 'Learning/Other' )
+
+    expect( claimNextDraft( at( 0 ), [] ) ).toBeUndefined()
+  } )
+
+  it( 'claims a drafting subject and says whose it is, leaving it drafting', () => {
+    const userId = melete()
+    const id = drafting( userId )
+
+    expect( claimNextDraft( at( 0 ), [] ) ).toEqual( { id, user_id: userId } )
+    expect( findSubject( userId, id )?.syllabus_status ).toBe( 'drafting' )
+  } )
+
+  it( 'skips the subjects it is told it has already tried', () => {
+    const userId = melete()
+    const first = drafting( userId, 'Learning/A' )
+    const second = drafting( userId, 'Learning/B' )
+    const claimed = claimNextDraft( at( 0 ), [] )?.id
+
+    expect( [ first, second ] ).toContain( claimed )
+    expect( claimNextDraft( at( 1 ), [ claimed ?? '' ] )?.id )
+      .toBe( claimed === first ? second : first )
+    expect( claimNextDraft( at( 2 ), [ first, second ] ) ).toBeUndefined()
+  } )
+
+  it( 'stamps the owner with the time, as a claimed note does', () => {
+    const userId = melete()
+
+    drafting( userId )
+    claimNextDraft( at( 7 ), [] )
+
+    expect( stampOf( userId, 'last_generation_started_at' ) ).toBe( at( 7 ) )
+    expect( stampOf( userId, 'last_job_started_at' ) ).toBeNull()
+  } )
+
+  it( 'takes turns between users', () => {
+    const first = melete()
+    const second = melete()
+    const firstOne = drafting( first, 'Learning/A' )
+    const firstTwo = drafting( first, 'Learning/B' )
+    const theirs = drafting( second )
+    const tried: string[] = []
+    const order = [ 0, 1, 2 ].map( ( minute ) => {
+      const id = claimNextDraft( at( minute ), tried )?.id ?? ''
+
+      tried.push( id )
+
+      return id
+    } )
+
+    expect( order[ 1 ] ).toBe( theirs )
+    expect( new Set( [ order[ 0 ], order[ 2 ] ] ) ).toEqual( new Set( [ firstOne, firstTwo ] ) )
+  } )
+
+  describe( 'who is eligible', () => {
+    it( 'never claims for a user with no vault, and resumes once they choose one', () => {
+      const userId = melete( null )
+      const id = drafting( userId )
+
+      expect( claimNextDraft( at( 0 ), [] ) ).toBeUndefined()
+
+      getDatabase().prepare( 'UPDATE users SET vault_dir = \'chosen\' WHERE id = ?' ).run( userId )
+
+      expect( claimNextDraft( at( 1 ), [] )?.id ).toBe( id )
+    } )
+
+    it( 'never claims for a member without the Melete module', () => {
+      const userId = melete()
+
+      drafting( userId )
+      setModules( userId, [ 'transcriber' ] )
+
+      expect( claimNextDraft( at( 0 ), [] ) ).toBeUndefined()
+
+      setModules( userId, [ 'melete' ] )
+
+      expect( claimNextDraft( at( 1 ), [] ) ).toBeDefined()
+    } )
+
+    it( 'never claims for a removed user', () => {
+      const userId = melete()
+
+      drafting( userId )
+      updateUser( userId, { status: 'removed' } )
+
+      expect( claimNextDraft( at( 0 ), [] ) ).toBeUndefined()
+    } )
+  } )
+} )
+
+describe( 'claimNextMapping', () => {
+  const queued = { mapping: 'queued' }
+
+  it( 'returns undefined when nothing is queued for mapping', () => {
+    const userId = melete()
+
+    addNote( userId, addSubject( userId ), { mapping: 'idle' } )
+    addNote( userId, addSubject( userId, 'Learning/B' ), { mapping: 'failed' } )
+
+    expect( claimNextMapping( at( 0 ) ) ).toBeUndefined()
+  } )
+
+  it( 'claims the oldest enrolled note, marks it mapping and says whose it is', () => {
+    const userId = melete()
+    const subjectId = addSubject( userId )
+    const enrolled = ( enrolledAt: string ): string => {
+      return addNote( userId, subjectId, { ...queued, enrolledAt } )
+    }
+    const later = enrolled( '2026-10-02T00:00:00.000Z' )
+    const earlier = enrolled( '2026-10-01T00:00:00.000Z' )
+
+    expect( claimNextMapping( at( 0 ) ) )
+      .toMatchObject( { id: earlier, mapping: 'mapping', user_id: userId } )
+    expect( findNote( userId, earlier )?.mapping ).toBe( 'mapping' )
+    expect( claimNextMapping( at( 1 ) ) ).toMatchObject( { id: later } )
+    expect( claimNextMapping( at( 2 ) ) ).toBeUndefined()
+  } )
+
+  it( 'waits for a note that is still queued for or making its questions', () => {
+    const userId = melete()
+    const subjectId = addSubject( userId )
+
+    addNote( userId, subjectId, { ...queued, generation: 'queued' } )
+    addNote( userId, subjectId, { ...queued, generation: 'generating' } )
+
+    expect( claimNextMapping( at( 0 ) ) ).toBeUndefined()
+  } )
+
+  it( 'takes the same turns between users as generation, and stamps the owner', () => {
+    const first = melete()
+    const second = melete()
+    const firstSubject = addSubject( first )
+    const firstNotes = [ '2026-10-01', '2026-10-02' ].map( ( day ) => {
+      return addNote( first, firstSubject, { ...queued, enrolledAt: `${ day }T00:00:00.000Z` } )
+    } )
+    const theirs = addNote(
+      second,
+      addSubject( second ),
+      { ...queued, enrolledAt: '2026-10-09T00:00:00.000Z' },
+    )
+
+    expect( [ 0, 1, 2 ].map( ( minute ) => claimNextMapping( at( minute ) )?.id ) )
+      .toEqual( [ firstNotes[ 0 ], theirs, firstNotes[ 1 ] ] )
+    expect( stampOf( first, 'last_generation_started_at' ) ).toBe( at( 2 ) )
+  } )
+
+  it( 'never claims for a user with no vault, and resumes once they choose one', () => {
+    const userId = melete( null )
+    const note = addNote( userId, addSubject( userId ), queued )
+
+    expect( claimNextMapping( at( 0 ) ) ).toBeUndefined()
+
+    getDatabase().prepare( 'UPDATE users SET vault_dir = \'chosen\' WHERE id = ?' ).run( userId )
+
+    expect( claimNextMapping( at( 1 ) )?.id ).toBe( note )
+  } )
+} )
+
+describe( 'requeueMapping', () => {
+  it( 'moves mapping notes of every user back to queued and reports how many', () => {
+    const first = createTestUser().id
+    const second = createTestUser().id
+    const stuck = addNote( first, addSubject( first ), { mapping: 'mapping' } )
+    const alsoStuck = addNote( second, addSubject( second ), { mapping: 'mapping' } )
+    const failed = addNote( first, addSubject( first, 'Learning/Other' ), { mapping: 'failed' } )
+
+    expect( requeueMapping() ).toBe( 2 )
+    expect( findNote( first, stuck )?.mapping ).toBe( 'queued' )
+    expect( findNote( second, alsoStuck )?.mapping ).toBe( 'queued' )
+    expect( findNote( first, failed )?.mapping ).toBe( 'failed' )
+    expect( requeueMapping() ).toBe( 0 )
   } )
 } )
 

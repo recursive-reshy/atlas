@@ -28,6 +28,7 @@ export const QuestionRecord = CardRow.extend( {
   body_hash: z.string(),
   state: MeleteQuestionState,
   run_id: z.int(),
+  concept_id: z.string().nullable(),
   created_at: z.string(),
 } )
 export type QuestionRecord = z.infer< typeof QuestionRecord >
@@ -35,7 +36,13 @@ export type QuestionRecord = z.infer< typeof QuestionRecord >
 export const QueuedQuestion = QuestionRecord.extend( { subject_id: z.string() } )
 export type QueuedQuestion = z.infer< typeof QueuedQuestion >
 
-export type GeneratedQuestion = { prompt: string, answer: string, passage: string }
+export type GeneratedQuestion = {
+  prompt: string
+  answer: string
+  passage: string
+  // Set only for an approved syllabus (ADR 0089)
+  concept_id?: string | null
+}
 
 const SubjectCounts = z.object( {
   subject_id: z.string(),
@@ -74,8 +81,8 @@ export const insertQuestions = (
   return db.transaction( () => {
     const insert = db.prepare( `INSERT INTO melete_questions (
         id, user_id, note_id, position, prompt, answer, passage, body_hash, state, run_id,
-        created_at
-      ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ? )` )
+        concept_id, created_at
+      ) VALUES ( ?, ?, ?, ?, ?, ?, ?, ?, 'active', ?, ?, ? )` )
     const createdAt = new Date().toISOString()
     const ids = questions.map( ( question, index ) => {
       const id = crypto.randomUUID()
@@ -90,6 +97,7 @@ export const insertQuestions = (
         question.passage,
         bodyHash,
         runId,
+        question.concept_id ?? null,
         createdAt,
       )
 
@@ -187,6 +195,22 @@ export const listLearningSoon = (
     .all( userId, ...subjectIds, until ) )
 }
 
+// A concept review (TRD §5.2): what is overdue, then what is not due yet, then questions never
+// asked. A question already reviewed today is left for another day unless it is due again, so a
+// review of the concept ends after one pass.
+export const listForConcept = (
+  userId: string,
+  { conceptId, now, dayStart }: { conceptId: string, now: string, dayStart: string },
+): QueuedQuestion[] => {
+  return parseQueued( getDatabase()
+    .prepare( `SELECT ${ QUEUED_COLUMNS } ${ REVIEWABLE }
+      AND q.concept_id = ?
+      AND ( q.due IS NULL OR q.due <= ? OR q.last_review IS NULL OR q.last_review < ? )
+      ORDER BY CASE WHEN q.due IS NULL THEN 2 WHEN q.due <= ? THEN 0 ELSE 1 END,
+        q.due, n.enrolled_at, n.path, q.position` )
+    .all( userId, conceptId, now, dayStart, now ) )
+}
+
 export const countBySubject = ( userId: string, now: string ): SubjectCounts[] => {
   return z.array( SubjectCounts ).parse( getDatabase()
     .prepare( `SELECT s.id AS subject_id,
@@ -202,4 +226,17 @@ export const countBySubject = ( userId: string, now: string ): SubjectCounts[] =
       GROUP BY s.id
       ORDER BY lower( s.folder ), s.folder` )
     .all( { now, userId } ) )
+}
+
+// A relabel never touches the card, so the FSRS state survives a remap
+export const setQuestionConcept = (
+  userId: string,
+  id: string,
+  conceptId: string | null,
+): QuestionRecord | undefined => {
+  getDatabase()
+    .prepare( 'UPDATE melete_questions SET concept_id = ? WHERE id = ? AND user_id = ?' )
+    .run( conceptId, id, userId )
+
+  return findQuestion( userId, id )
 }

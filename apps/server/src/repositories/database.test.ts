@@ -440,6 +440,11 @@ const BASELINE_COLUMNS: Record< string, string[] > = {
     'auto_enroll',
     'new_per_day',
     'created_at',
+    'target_level',
+    'intent',
+    'syllabus_status',
+    'syllabus_error',
+    'goal_id',
   ],
   melete_notes: [
     'id',
@@ -456,6 +461,11 @@ const BASELINE_COLUMNS: Record< string, string[] > = {
     'generation_error',
     'missing_at',
     'created_at',
+    'mapping',
+    'mapping_error',
+    'mapping_pinned',
+    'off_syllabus',
+    'off_syllabus_suggestion',
   ],
   melete_questions: [
     'id',
@@ -478,6 +488,7 @@ const BASELINE_COLUMNS: Record< string, string[] > = {
     'fsrs_state',
     'last_review',
     'created_at',
+    'concept_id',
   ],
   melete_reviews: [
     'id',
@@ -506,6 +517,51 @@ const BASELINE_COLUMNS: Record< string, string[] > = {
     'outcome',
     'error',
     'created_at',
+    'subject_id',
+  ],
+  melete_sections: [ 'id', 'user_id', 'subject_id', 'position', 'name', 'created_at' ],
+  melete_concepts: [
+    'id',
+    'user_id',
+    'subject_id',
+    'section_id',
+    'position',
+    'name',
+    'description',
+    'created_at',
+  ],
+  melete_note_concepts: [ 'user_id', 'note_id', 'concept_id', 'source' ],
+  themis_areas: [ 'id', 'user_id', 'name', 'position', 'created_at' ],
+  themis_goals: [
+    'id',
+    'user_id',
+    'area_id',
+    'name',
+    'position',
+    'target_date',
+    'status',
+    'status_changed_at',
+    'outcome',
+    'metric_unit',
+    'metric_target',
+    'checkin_cadence',
+    'created_at',
+  ],
+  themis_metric_updates: [ 'id', 'user_id', 'goal_id', 'value', 'note', 'at' ],
+  themis_checkins: [ 'id', 'user_id', 'goal_id', 'period_start', 'rating', 'note', 'created_at' ],
+  time_entries: [
+    'id',
+    'user_id',
+    'source',
+    'subject_id',
+    'goal_id',
+    'day',
+    'started_at',
+    'ended_at',
+    'seconds',
+    'note',
+    'created_at',
+    'updated_at',
   ],
   users: [
     'id',
@@ -547,7 +603,14 @@ const BASELINE_INDEXES = [
   'melete_reviews_question',
   'melete_reviews_day',
   'melete_runs_note',
+  'melete_concepts_subject',
+  'melete_note_concepts_concept',
+  'melete_questions_concept',
   'transcription_runs_user',
+  'themis_areas_name',
+  'themis_goals_area',
+  'time_entries_day',
+  'time_entries_open',
 ]
 
 describe( 'the baseline schema', () => {
@@ -596,7 +659,7 @@ describe( 'the baseline schema', () => {
       .all()
       .map( ( row ) => ( row as { name: string } ).name )
 
-    expect( view ).toEqual( [ 'eligible_users', 'usage_events' ] )
+    expect( view.sort() ).toEqual( [ 'eligible_users', 'usage_events' ] )
   } )
 
   it( 'seeds nothing itself', () => {

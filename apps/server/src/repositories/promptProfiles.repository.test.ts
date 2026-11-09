@@ -245,6 +245,9 @@ describe( 'profile purposes', () => {
     expect( findProfileBySeedKey( userId, 'coding' )?.name ).toBe( 'Coding' )
     expect( findProfileBySeedKey( userId, 'melete_questions' )?.purpose ).toBe( 'melete_questions' )
     expect( findProfileBySeedKey( userId, 'melete_grading' )?.purpose ).toBe( 'melete_grading' )
+    expect( findProfileBySeedKey( userId, 'melete_syllabus' )?.purpose ).toBe( 'melete_syllabus' )
+    expect( findProfileBySeedKey( userId, 'melete_map' )?.purpose ).toBe( 'melete_map' )
+    expect( findProfileBySeedKey( userId, 'melete_suggest' )?.purpose ).toBe( 'melete_suggest' )
     expect( findProfileBySeedKey( userId, 'nope' ) ).toBeUndefined()
   } )
 
@@ -317,6 +320,8 @@ describe( 'the Melete profiles', () => {
       .toEqual( [ 'Melete questions' ] )
     expect( listActiveProfiles( userId, 'melete_grading' ).map( ( { name } ) => name ) )
       .toEqual( [ 'Melete grading' ] )
+    expect( listActiveProfiles( userId, 'melete_syllabus' ).map( ( { name } ) => name ) )
+      .toEqual( [ 'Melete syllabus' ] )
     expect( listActiveProfiles( userId ).map( ( { name } ) => name ) )
       .not.toContain( 'Melete questions' )
   } )

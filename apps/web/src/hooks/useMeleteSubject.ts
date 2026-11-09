@@ -23,7 +23,11 @@ export function useMeleteSubject( subjectId: string ): MeleteSubjectState {
     queryKey: meleteKeys.subject( subjectId ),
     queryFn: () => getMeleteSubject( subjectId ),
     refetchInterval: ( query ) => {
-      return query.state.data?.notes.some( isGenerating ) === true ? POLL_INTERVAL_MS : false
+      const current = query.state.data
+      const isBusy = current?.notes.some( isGenerating ) === true
+        || current?.subject.syllabus_status === 'drafting'
+
+      return isBusy ? POLL_INTERVAL_MS : false
     },
   } )
 

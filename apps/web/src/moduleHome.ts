@@ -3,6 +3,7 @@ import type { ModuleId } from '@atlas/shared'
 
 // In drawer order: the first one a user has is where they land.
 const MODULE_HOMES: Record< ModuleId, string > = {
+  themis: '/themis',
   transcriber: '/',
   melete: '/melete',
 }

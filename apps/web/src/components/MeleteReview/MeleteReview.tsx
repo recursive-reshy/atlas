@@ -20,7 +20,10 @@ const COLUMN_SX = { width: '100%', maxWidth: '40rem', mx: 'auto' } as const
 
 export function MeleteReview(): ReactElement {
   const [ params ] = useSearchParams()
-  const { item, counts, isLoading, error } = useNextReview( params.get( 'subject' ) )
+  const { item, counts, isLoading, error } = useNextReview(
+    params.get( 'subject' ),
+    params.get( 'concept' ),
+  )
   const { settings, isLoading: isLoadingSettings } = useSettings()
   const dropQuestion = useDropQuestion()
   const [ done, setDone ] = useState( 0 )

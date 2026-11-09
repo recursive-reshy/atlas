@@ -73,6 +73,41 @@ describe( 'MeleteSettings', () => {
     expect( mutate ).toHaveBeenCalledWith( { melete_grading_model: 'claude-sonnet-5-5' } )
   } )
 
+  it( 'shows the saved syllabus, mapping and suggestion models', () => {
+    vi.mocked( useSettings ).mockReturnValue( settingsState( {
+      settings: {
+        ...settingsFixture().settings,
+        melete_syllabus_model: 'claude-opus-5-5',
+        melete_map_model: 'claude-sonnet-5-5',
+        melete_suggest_model: 'claude-opus-5-5',
+      },
+    } ) )
+    renderWithClient( <MeleteSettings /> )
+
+    expect( screen.getByRole( 'combobox', { name: 'Syllabus model' } ) )
+      .toHaveTextContent( 'Claude Opus 5.5' )
+    expect( screen.getByRole( 'combobox', { name: 'Mapping model' } ) )
+      .toHaveTextContent( 'Claude Sonnet 5.5' )
+    expect( screen.getByRole( 'combobox', { name: 'Suggestion model' } ) )
+      .toHaveTextContent( 'Claude Opus 5.5' )
+  } )
+
+  it.each( [
+    [ 'Syllabus model', 'melete_syllabus_model', 'claude-opus-5-5', 'Claude Opus 5.5' ],
+    [ 'Mapping model', 'melete_map_model', 'claude-opus-5-5', 'Claude Opus 5.5' ],
+    [ 'Suggestion model', 'melete_suggest_model', 'claude-sonnet-5-5', 'Claude Sonnet 5.5' ],
+  ] )( 'saves a new %s', async ( label, key, id, name ) => {
+    vi.mocked( useSettings ).mockReturnValue( settingsState( {
+      settings: { ...settingsFixture().settings, [ key ]: 'claude-haiku-5-5' },
+      updateSettings: mutationStub( { mutate } ),
+    } ) )
+    renderWithClient( <MeleteSettings /> )
+
+    await pick( label, name )
+
+    expect( mutate ).toHaveBeenCalledWith( { [ key ]: id } )
+  } )
+
   it( 'keeps a saved model that is not in the list selectable', () => {
     vi.mocked( useSettings ).mockReturnValue( settingsState( {
       settings: { ...settingsFixture().settings, melete_question_model: 'claude-haiku-5-5' },
@@ -97,5 +132,101 @@ describe( 'MeleteSettings', () => {
     renderWithClient( <MeleteSettings /> )
 
     expect( screen.getByRole( 'alert' ) ).toHaveTextContent( 'Unknown model' )
+  } )
+
+  describe( 'the mastery days', () => {
+    const field = () => {
+      return screen.getByRole( 'spinbutton', { name: 'Days until a question counts as known' } )
+    }
+
+    it( 'shows the saved number', () => {
+      vi.mocked( useSettings ).mockReturnValue( settingsState( {
+        settings: { ...settingsFixture().settings, melete_mastery_days: 30 },
+      } ) )
+      renderWithClient( <MeleteSettings /> )
+
+      expect( field() ).toHaveValue( 30 )
+    } )
+
+    it( 'saves a new number when the field loses focus', async () => {
+      const user = userEvent.setup()
+
+      renderWithClient( <MeleteSettings /> )
+      await user.clear( field() )
+      await user.type( field(), '45' )
+      await user.tab()
+
+      expect( mutate ).toHaveBeenCalledWith( { melete_mastery_days: 45 } )
+    } )
+
+    it.each( [ '6', '91', '', '20.5' ] )( 'does not save "%s", and restores it', async ( text ) => {
+      const user = userEvent.setup()
+
+      renderWithClient( <MeleteSettings /> )
+      await user.clear( field() )
+
+      if( text !== '' ) {
+        await user.type( field(), text )
+      }
+
+      await user.tab()
+
+      expect( mutate ).not.toHaveBeenCalled()
+      expect( field() ).toHaveValue( 21 )
+    } )
+
+    it( 'does not save an unchanged number', async () => {
+      const user = userEvent.setup()
+
+      renderWithClient( <MeleteSettings /> )
+      await user.click( field() )
+      await user.tab()
+
+      expect( mutate ).not.toHaveBeenCalled()
+    } )
+  } )
+
+  describe( 'the session settings', () => {
+    it( 'shows the saved gap and final card credit', () => {
+      renderWithClient( <MeleteSettings /> )
+
+      expect( screen.getByRole(
+        'spinbutton',
+        { name: 'Minutes without an answer that end a session' },
+      ) ).toHaveValue( 5 )
+      expect( screen.getByRole( 'spinbutton', { name: 'Seconds counted for the last card' } ) )
+        .toHaveValue( 30 )
+    } )
+
+    it( 'saves the gap, from 1 to 30 minutes', async () => {
+      const user = userEvent.setup()
+
+      renderWithClient( <MeleteSettings /> )
+
+      const field = screen.getByRole(
+        'spinbutton',
+        { name: 'Minutes without an answer that end a session' },
+      )
+
+      await user.clear( field )
+      await user.type( field, '10' )
+      await user.tab()
+
+      expect( mutate ).toHaveBeenCalledWith( { melete_session_gap_minutes: 10 } )
+    } )
+
+    it( 'saves the final card credit, which may be 0', async () => {
+      const user = userEvent.setup()
+
+      renderWithClient( <MeleteSettings /> )
+
+      const field = screen.getByRole( 'spinbutton', { name: 'Seconds counted for the last card' } )
+
+      await user.clear( field )
+      await user.type( field, '0' )
+      await user.tab()
+
+      expect( mutate ).toHaveBeenCalledWith( { melete_final_card_seconds: 0 } )
+    } )
   } )
 } )

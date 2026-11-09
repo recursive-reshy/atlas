@@ -24,6 +24,9 @@ import {
 // Melete
 import {
   DEFAULT_MELETE_GRADING_GUIDANCE,
+  DEFAULT_MELETE_MAP_GUIDANCE,
+  DEFAULT_MELETE_SUGGEST_GUIDANCE,
+  DEFAULT_MELETE_SYLLABUS_GUIDANCE,
   DEFAULT_MELETE_QUESTIONS_GUIDANCE,
 } from '../melete/prompts.js'
 // Services
@@ -430,6 +433,36 @@ describe( 'the linker profile', () => {
   } )
 } )
 
+describe( 'resolveMeletePrompt for the concept layer', () => {
+  it.each( [
+    [ 'melete_syllabus', DEFAULT_MELETE_SYLLABUS_GUIDANCE ],
+    [ 'melete_map', DEFAULT_MELETE_MAP_GUIDANCE ],
+    [ 'melete_suggest', DEFAULT_MELETE_SUGGEST_GUIDANCE ],
+  ] as const )( 'returns the %s profile with its default guidance', ( purpose, guidance ) => {
+    const { profile, version } = resolveMeletePrompt( userId, purpose )
+
+    expect( profile.purpose ).toBe( purpose )
+    expect( profile.can_reset ).toBe( true )
+    expect( version.guidance ).toBe( guidance )
+    expect( version.id ).toBe( profile.current_version.id )
+  } )
+
+  it.each( [ 'melete_syllabus', 'melete_map', 'melete_suggest' ] as const )(
+    'keeps the %s profile fixed and resettable',
+    ( purpose ) => {
+      const id = listProfiles( userId, purpose )[ 0 ]?.id ?? ''
+
+      expect( () => renameProfile( userId, id, 'Other' ) ).toThrow( ConflictError )
+      expect( () => deleteProfile( userId, id ) ).toThrow( ConflictError )
+
+      saveVersion( userId, id, 'Be brief.' )
+
+      expect( resetProfile( userId, id ).current_version ).toMatchObject( { source: 'reset' } )
+      expect( () => assertActiveProfile( userId, id ) ).toThrow( ValidationError )
+    },
+  )
+} )
+
 describe( 'listProfiles by purpose', () => {
   it( 'lists summary profiles unless told otherwise', () => {
     expect( listProfiles( userId ).every( ( { purpose } ) => purpose === 'summary' ) ).toBe( true )
@@ -452,6 +485,9 @@ describe( 'listProfiles by purpose', () => {
         [ 'Linker', 'linker' ],
         [ 'Melete questions', 'melete_questions' ],
         [ 'Melete grading', 'melete_grading' ],
+        [ 'Melete syllabus', 'melete_syllabus' ],
+        [ 'Melete mapping', 'melete_map' ],
+        [ 'Melete suggestions', 'melete_suggest' ],
       ] )
   } )
 } )
@@ -500,6 +536,14 @@ describe( 'the Melete profiles', () => {
   } )
 } )
 
+const MELETE_PURPOSES = [
+  'melete_questions',
+  'melete_grading',
+  'melete_syllabus',
+  'melete_map',
+  'melete_suggest',
+]
+
 describe( 'profiles by module', () => {
   const purposes = ( id: string ): string[] => {
     return [ ...new Set( listProfiles( id, 'all' ).map( ( { purpose } ) => purpose ) ) ]
@@ -511,10 +555,9 @@ describe( 'profiles by module', () => {
     const nothing = createTestUser( { modules: [] } ).id
 
     expect( purposes( transcriber ) ).toEqual( [ 'summary', 'linker' ] )
-    expect( purposes( melete ) ).toEqual( [ 'melete_questions', 'melete_grading' ] )
+    expect( purposes( melete ) ).toEqual( MELETE_PURPOSES )
     expect( purposes( nothing ) ).toEqual( [] )
-    expect( purposes( userId ) )
-      .toEqual( [ 'summary', 'linker', 'melete_questions', 'melete_grading' ] )
+    expect( purposes( userId ) ).toEqual( [ 'summary', 'linker', ...MELETE_PURPOSES ] )
   } )
 
   it( 'lists nothing for a purpose the user\'s modules do not cover', () => {
@@ -530,7 +573,7 @@ describe( 'profiles by module', () => {
     const transcriber = createTestUser( { modules: [ 'transcriber' ] } ).id
     const mine = listProfiles( transcriber, 'summary' )[ 0 ]?.id ?? ''
 
-    expect( summary ).toBe( 2 )
+    expect( summary ).toBe( 5 )
     expect( () => findProfile( melete, mine ) ).toThrow( NotFoundError )
     expect( () => findProfile( transcriber, mine ) ).not.toThrow()
   } )
@@ -540,7 +583,7 @@ describe( 'profiles by module', () => {
 
     expect( () => createProfile( melete, { name: 'Mine', guidance: 'x' } ) )
       .toThrow( NotFoundError )
-    expect( purposes( melete ) ).toEqual( [ 'melete_questions', 'melete_grading' ] )
+    expect( purposes( melete ) ).toEqual( MELETE_PURPOSES )
   } )
 
   it( 'still resolves a prompt the user\'s own module needs', () => {

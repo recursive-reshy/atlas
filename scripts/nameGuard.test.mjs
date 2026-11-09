@@ -15,6 +15,9 @@ const HISTORY = [
   /^docs\/v0\.(?!10\.0\/)\d+(\.\d+)?\//,
   /^docs\/v0\.10\.0\//,
   /^docs\/decisions\/(00[0-6]\d|007[0-3])-/,
+  // 1.1 planning docs and its ADRs (0089 on) describe Mnemosyne as one of three modules
+  /^docs\/v1\.1\.0\//,
+  /^docs\/decisions\/(0089|009\d)-/,
 ]
 
 // Files that name the module (label), the `mnemosyne` tag or the `Mnemosyne` default folder, or

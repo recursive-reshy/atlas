@@ -6,11 +6,21 @@ import { Guidance } from '@atlas/shared'
 // Melete
 import {
   DEFAULT_MELETE_GRADING_GUIDANCE,
+  DEFAULT_MELETE_MAP_GUIDANCE,
   DEFAULT_MELETE_QUESTIONS_GUIDANCE,
+  DEFAULT_MELETE_SUGGEST_GUIDANCE,
+  DEFAULT_MELETE_SYLLABUS_GUIDANCE,
   LOCKED_INSTRUCTIONS_MELETE_GRADING,
+  LOCKED_INSTRUCTIONS_MELETE_MAP,
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
+  LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED,
+  LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
+  LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
   MELETE_GRADING_SEED_KEY,
+  MELETE_MAP_SEED_KEY,
   MELETE_QUESTIONS_SEED_KEY,
+  MELETE_SUGGEST_SEED_KEY,
+  MELETE_SYLLABUS_SEED_KEY,
   buildMeleteGradingUser,
   buildMeleteSystemPrompt,
 } from './prompts.js'
@@ -19,6 +29,9 @@ describe( 'the seed keys', () => {
   it( 'match the prompt purposes', () => {
     expect( MELETE_QUESTIONS_SEED_KEY ).toBe( 'melete_questions' )
     expect( MELETE_GRADING_SEED_KEY ).toBe( 'melete_grading' )
+    expect( MELETE_SYLLABUS_SEED_KEY ).toBe( 'melete_syllabus' )
+    expect( MELETE_MAP_SEED_KEY ).toBe( 'melete_map' )
+    expect( MELETE_SUGGEST_SEED_KEY ).toBe( 'melete_suggest' )
   } )
 } )
 
@@ -36,6 +49,30 @@ describe( 'LOCKED_INSTRUCTIONS_MELETE_QUESTIONS', () => {
     'at most 10',
   ] )( 'says %s', ( phrase ) => {
     expect( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS.toLowerCase() ).toContain( phrase.toLowerCase() )
+  } )
+} )
+
+describe( 'LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED', () => {
+  it( 'starts with a first line that tells it apart from the plain form', () => {
+    expect( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED.split( '\n' )[ 0 ] )
+      .toBe( 'You write active-recall questions from one study note and place the note in a syllabus.' )
+  } )
+
+  it( 'keeps the question rules of the plain form', () => {
+    expect( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED.toLowerCase() )
+      .toContain( 'copied verbatim from the note' )
+    expect( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED.toLowerCase() ).toContain( 'at most 10' )
+  } )
+
+  it.each( [
+    'concepts: the refs',
+    'at most 5',
+    'off_syllabus',
+    'concept: the ref',
+    'only the refs you were given',
+  ] )( 'says %s', ( phrase ) => {
+    expect( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED.toLowerCase() )
+      .toContain( phrase.toLowerCase() )
   } )
 } )
 
@@ -122,5 +159,72 @@ describe( 'buildMeleteGradingUser', () => {
 
     expect( user ).not.toContain( 'Passage' )
     expect( user ).toContain( '## Reference answer\nRefining a union type inside a branch.\n\n## Learner' )
+  } )
+} )
+
+describe( 'the concept-layer locked instructions (ADR 0089, 0093)', () => {
+  const all = {
+    syllabus: LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
+    map: LOCKED_INSTRUCTIONS_MELETE_MAP,
+    suggest: LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
+    questions: LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
+    grading: LOCKED_INSTRUCTIONS_MELETE_GRADING,
+  }
+
+  it( 'each start with a first line no other prompt has', () => {
+    const firstLines = Object.values( all ).map( ( text ) => text.split( '\n' )[ 0 ] )
+
+    expect( new Set( firstLines ).size ).toBe( firstLines.length )
+    expect( LOCKED_INSTRUCTIONS_MELETE_SYLLABUS.split( '\n' )[ 0 ] )
+      .toBe( 'You draft a syllabus for a subject a learner is studying.' )
+    expect( LOCKED_INSTRUCTIONS_MELETE_MAP.split( '\n' )[ 0 ] )
+      .toBe( 'You map a study note and its questions onto the concepts of a syllabus.' )
+    expect( LOCKED_INSTRUCTIONS_MELETE_SUGGEST.split( '\n' )[ 0 ] )
+      .toBe( 'You suggest learning resources for one concept of a syllabus.' )
+  } )
+
+  it.each( [
+    'awareness',
+    '8–12',
+    'working knowledge',
+    '15–25',
+    'proficient',
+    '25–40',
+    'expert',
+    '40–60',
+    'at most 80',
+    'sections',
+    'one line',
+  ] )( 'the syllabus prompt says %s', ( phrase ) => {
+    expect( LOCKED_INSTRUCTIONS_MELETE_SYLLABUS.toLowerCase() ).toContain( phrase.toLowerCase() )
+  } )
+
+  it.each( [
+    'c1',
+    'off-syllabus',
+    'never create or drop',
+    'only the concept refs',
+  ] )( 'the map prompt says %s', ( phrase ) => {
+    expect( LOCKED_INSTRUCTIONS_MELETE_MAP.toLowerCase() ).toContain( phrase.toLowerCase() )
+  } )
+
+  it.each( [
+    '3 to 5',
+    'never write a url',
+    'search query',
+    'from your own knowledge',
+  ] )( 'the suggest prompt says %s', ( phrase ) => {
+    expect( LOCKED_INSTRUCTIONS_MELETE_SUGGEST.toLowerCase() ).toContain( phrase.toLowerCase() )
+  } )
+
+  it( 'have default guidance that passes the guidance rules and names no file or URL', () => {
+    for( const guidance of [
+      DEFAULT_MELETE_SYLLABUS_GUIDANCE,
+      DEFAULT_MELETE_MAP_GUIDANCE,
+      DEFAULT_MELETE_SUGGEST_GUIDANCE,
+    ] ) {
+      expect( Guidance.safeParse( guidance ).success ).toBe( true )
+      expect( guidance ).not.toMatch( /https?:/ )
+    }
   } )
 } )

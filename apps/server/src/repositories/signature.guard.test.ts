@@ -15,15 +15,23 @@ import * as health from './health.repository.js'
 import * as jobStore from './jobStore.repository.js'
 import * as linkRuns from './linkRuns.repository.js'
 import * as linkSuggestions from './linkSuggestions.repository.js'
+import * as meleteConcepts from './meleteConcepts.repository.js'
+import * as meleteNoteConcepts from './meleteNoteConcepts.repository.js'
 import * as meleteNotes from './meleteNotes.repository.js'
 import * as meleteQuestions from './meleteQuestions.repository.js'
 import * as meleteReviews from './meleteReviews.repository.js'
 import * as meleteRuns from './meleteRuns.repository.js'
+import * as meleteSections from './meleteSections.repository.js'
 import * as meleteSubjects from './meleteSubjects.repository.js'
 import * as postings from './postings.repository.js'
 import * as promptProfiles from './promptProfiles.repository.js'
 import * as settings from './settings.repository.js'
 import * as summaryRuns from './summaryRuns.repository.js'
+import * as themisAreas from './themisAreas.repository.js'
+import * as themisCheckins from './themisCheckins.repository.js'
+import * as themisGoals from './themisGoals.repository.js'
+import * as themisMetrics from './themisMetrics.repository.js'
+import * as timeEntries from './timeEntries.repository.js'
 import * as transcriptionRuns from './transcriptionRuns.repository.js'
 import * as userModules from './userModules.repository.js'
 
@@ -46,15 +54,23 @@ const DATA_REPOSITORIES: Record< string, Record< string, unknown > > = {
   jobStore,
   linkRuns,
   linkSuggestions,
+  meleteConcepts,
+  meleteNoteConcepts,
   meleteNotes,
   meleteQuestions,
   meleteReviews,
   meleteRuns,
+  meleteSections,
   meleteSubjects,
   postings,
   promptProfiles,
   settings,
   summaryRuns,
+  themisAreas,
+  themisCheckins,
+  themisGoals,
+  themisMetrics,
+  timeEntries,
   transcriptionRuns,
   userModules,
 }

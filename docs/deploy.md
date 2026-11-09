@@ -356,7 +356,13 @@ Rotating `token-encryption-key` signs everyone out and breaks every stored Gmail
 
 ## Restoring the database
 
-Litestream keeps the database in the bucket, a second at a time, with a week of history. A restore loses what had not reached the bucket yet, so expect to lose **seconds to a minute** of writes. There are three procedures: a check that costs nothing and touches nothing, the disaster case, and a restore to an earlier moment. Each of the first two ends in a record table; fill in a row every time you run it.
+There is no backup button. [Litestream](https://litestream.io) copies the database to the bucket within about a second of every change, takes a snapshot every day and keeps seven days of history (ADR 0076). A restore loses what had not reached the bucket yet, so expect to lose **seconds to a minute** of writes.
+
+- **The replica holds** everything in `atlas.db`: jobs and drafts, prompt profiles, settings, feeds, Gmail sources and the encrypted Gmail tokens, usage and cost records, Melete questions and reviews, and users. It is useless without `TOKEN_ENCRYPTION_KEY`, which lives in Secret Manager and never in the bucket.
+- **The vaults are not in the bucket.** Obsidian Sync holds them.
+- **Before an upgrade changes the database's structure,** the app copies the file to `pre-migration/` next to it (`/srv/atlas/data/pre-migration/` on the VM); [Rolling back](#rolling-back) uses those copies.
+- **On the Mac,** Docker runs without Litestream, so there is no replica. The database is in the `atlas_data` Docker volume; copy it out yourself if you care about it.
+- **Check that replication works** in Settings → Sources, on the **Replication** row (admin only): it fails when Litestream reports sync errors, and shows the time of the last sync it saw. There are three procedures: a check that costs nothing and touches nothing, the disaster case, and a restore to an earlier moment. Each of the first two ends in a record table; fill in a row every time you run it.
 
 ### Scratch check
 Any time. Production is untouched: the copy goes to a temporary folder, is read, and is deleted. On the VM:
@@ -476,10 +482,6 @@ The Status panel (Settings → Sources) shows the Agent, Transcription (Gemini),
 - **Transcription (Gemini) is Failing, or a video job fails at transcribing.** Read the row's error or the job's. A 400 "API key not valid" or a 403 means `gemini-api-key` is wrong, was restricted to a different API, or `generativelanguage.googleapis.com` is not enabled for the key's project (the key must belong to a project with billing on); a 404 on the model check means `GEMINI_MODEL` names a model that does not exist; a 429 or 5xx is retried once after ten seconds and then reported. Check the secret reached the container without printing it: `dc exec app sh -c 'test -n "$GEMINI_API_KEY" && echo set'`.
 - **"Only public YouTube videos are supported" or "Video not found or not public".** The YouTube Data API says the video is private, unlisted, members-only or gone. Gemini can read only public videos. A 403 from the YouTube Data API itself means the `youtube-api-key` secret is wrong, the API is not enabled, or the key is restricted to a different API.
 - **A long video's transcript is marked cut short, or the job fails.** Gemini writes at most about 65,000 tokens and takes roughly 45 minutes of video with audio. A cut-short transcript is kept and says so in the review screen; a video over the limit fails with Gemini's own message. Nothing is split into parts (clipping a YouTube link bills the full audio each time, ADR 0081).
-
-## Upgrading from the OpenAI and yt-dlp build
-
-The first 0.10.0 deploy used OpenAI and yt-dlp with a PO token provider, then Gemini on Vertex AI with the service account. Neither is used any more (ADRs 0081, 0083), so after deploying this release: add `GEMINI_MODEL` to `atlas.env` (and remove `GOOGLE_CLOUD_PROJECT` if you added it), create the `youtube-api-key` and `gemini-api-key` secrets (above) and give the service account access to both. If you granted `roles/aiplatform.user` to the service account, remove it (`gcloud projects remove-iam-policy-binding`), and disable `aiplatform.googleapis.com` if nothing else uses it. Deploy with `--files`; the `atlas` service starts Compose with `--remove-orphans`, so the old `pot-provider` container goes and the database moves to schema 13 (a copy goes to `pre-migration/`; a job that was downloading or converting fails with "Interrupted by upgrade"). Once a video job has worked, disable and then delete the old `openai-api-key` secret (`gcloud secrets versions disable` on each version, later `gcloud secrets delete`) and revoke the key in OpenAI's dashboard. YouTube videos must be public: private, unlisted, members-only and age-restricted ones fail, and so do other video sites.
 
 ## Shutting down the old project
 

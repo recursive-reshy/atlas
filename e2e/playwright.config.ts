@@ -12,12 +12,12 @@ export default defineConfig( {
   projects: [
     {
       name: 'chromium',
-      testIgnore: /melete\.spec\.ts/,
+      testIgnore: /melete.*\.spec\.ts/,
       use: { ...devices[ 'Desktop Chrome' ] },
     },
     {
       name: 'melete',
-      testMatch: /melete\.spec\.ts/,
+      testMatch: /melete.*\.spec\.ts/,
       use: { ...devices[ 'Pixel 7' ] },
     },
   ],

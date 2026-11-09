@@ -25,7 +25,7 @@ beforeEach( () => {
 } )
 
 describe( 'useMeleteProfiles', () => {
-  it( 'asks for every purpose and keeps only the two Melete prompts', async () => {
+  it( 'asks for every purpose and keeps only the five Melete prompts', async () => {
     const linker = profileFixture( { id: LINKER_ID, name: 'Linker', purpose: 'linker' } )
     vi.mocked( listProfiles ).mockResolvedValue(
       [ ...profilesFixture(), linker, ...meleteProfilesFixture() ],

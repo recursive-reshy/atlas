@@ -70,12 +70,17 @@ beforeEach( () => {
 describe( 'MeleteReview', () => {
   it( 'reviews the subject in the URL, or everything without one', () => {
     renderPage()
-    expect( mocks.next ).toHaveBeenCalledWith( SUBJECT_ID )
+    expect( mocks.next ).toHaveBeenCalledWith( SUBJECT_ID, null )
   } )
 
   it( 'reviews every subject when the URL names none', () => {
     renderPage( '/melete/review' )
-    expect( mocks.next ).toHaveBeenCalledWith( null )
+    expect( mocks.next ).toHaveBeenCalledWith( null, null )
+  } )
+
+  it( 'reviews one concept when the URL names it', () => {
+    renderPage( '/melete/review?concept=c-1' )
+    expect( mocks.next ).toHaveBeenCalledWith( null, 'c-1' )
   } )
 
   it( 'shows the subject, the question and what is left', () => {

@@ -26,6 +26,16 @@ export const meleteSubjectFixture = ( overrides: Partial< MeleteSubject > = {} )
     due_count: 4,
     new_available: 6,
     new_remaining_today: 5,
+    target_level: null,
+    intent: null,
+    syllabus_status: 'none',
+    syllabus_error: null,
+    coverage: null,
+    mastery: null,
+    concept_count: null,
+    due_today: 6,
+    seconds_this_week: 0,
+    goal_id: null,
     ...overrides,
   }
 }
@@ -42,6 +52,12 @@ export const meleteNoteFixture = ( overrides: Partial< MeleteNote > = {} ): Mele
     question_count: 4,
     stale: false,
     missing: false,
+    mapping: 'idle',
+    mapping_error: null,
+    mapping_pinned: false,
+    off_syllabus: null,
+    off_syllabus_suggestion: null,
+    concept_ids: [],
     ...overrides,
   }
 }

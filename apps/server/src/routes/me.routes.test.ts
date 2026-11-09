@@ -50,7 +50,7 @@ describe( 'GET /api/me', () => {
       id: admin.id,
       email: 'boss@example.com',
       role: 'admin',
-      modules: [ 'transcriber', 'melete' ],
+      modules: [ 'transcriber', 'melete', 'themis' ],
       vault_dir: null,
     } )
   } )

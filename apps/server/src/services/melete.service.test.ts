@@ -22,8 +22,14 @@ import {
   updateNote,
 } from '../repositories/meleteNotes.repository.js'
 import { findQuestion } from '../repositories/meleteQuestions.repository.js'
+import { getDatabase } from '../repositories/database.js'
+import { listConcepts, replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
+import { setNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
 import { insertReview } from '../repositories/meleteReviews.repository.js'
-import { listSubjects } from '../repositories/meleteSubjects.repository.js'
+import {
+  listSubjects,
+  updateSubject as updateStoredSubject,
+} from '../repositories/meleteSubjects.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'
 import { clearVaultDir } from '../repositories/users.repository.js'
 // Services
@@ -387,6 +393,60 @@ describe( 'getToday', () => {
     expect( today.totals ).toEqual( { due: 1, new_remaining: 1, learning_soon: 0 } )
   } )
 
+  it( 'counts what is due before the study day ends as due today', async () => {
+    const generics = noteId( GENERICS )
+
+    await setSubjectEnrolled( userId, subjectId( 'TypeScript' ), true, at( 1 ) )
+    // 18:00 in Singapore: the study day ends at 04:00 tomorrow, 10 hours on
+    addQuestion( userId, generics, { fsrsState: 'review', due: at( -60 ).toISOString() } )
+    addQuestion( userId, generics, {
+      position: 2,
+      fsrsState: 'review',
+      due: at( 3600 ).toISOString(),
+    } )
+    addQuestion( userId, generics, {
+      position: 3,
+      fsrsState: 'review',
+      due: at( 10 * 3600 - 1 ).toISOString(),
+    } )
+    addQuestion( userId, generics, {
+      position: 4,
+      fsrsState: 'review',
+      due: at( 10 * 3600 ).toISOString(),
+    } )
+
+    const { subjects } = await getToday( userId, at( 2 ) )
+    const typescript = subjects.find( ( { name } ) => name === 'TypeScript' )
+    const rust = subjects.find( ( { name } ) => name === 'Rust' )
+
+    expect( typescript ).toMatchObject( { due_count: 1, due_today: 3, seconds_this_week: 0 } )
+    expect( rust ).toMatchObject( { due_count: 0, due_today: 0, seconds_this_week: 0 } )
+  } )
+
+  it( 'adds up the subject\'s time in the current Monday to Sunday study week', async () => {
+    const entry = ( subject: string, source: string, day: string, seconds: number ): void => {
+      getDatabase().prepare( `INSERT INTO time_entries
+        ( id, user_id, source, subject_id, day, seconds, created_at, updated_at )
+        VALUES ( ?, ?, ?, ?, ?, ?, 'x', 'x' )` )
+        .run( crypto.randomUUID(), userId, source, subject, day, seconds )
+    }
+    const typescript = subjectId( 'TypeScript' )
+
+    // T0 is Thursday 2026-10-22; the week runs 10-19 to 10-25
+    entry( typescript, 'measured', '2026-10-18', 100 )
+    entry( typescript, 'measured', '2026-10-19', 200 )
+    entry( typescript, 'logged', '2026-10-22', 1000 )
+    entry( typescript, 'measured', '2026-10-25', 400 )
+    entry( typescript, 'measured', '2026-10-26', 800 )
+    entry( subjectId( 'Rust' ), 'measured', '2026-10-20', 50 )
+
+    const { subjects } = await getToday( userId, at( 2 ) )
+
+    expect( subjects.find( ( { name } ) => name === 'TypeScript' )?.seconds_this_week )
+      .toBe( 1600 )
+    expect( subjects.find( ( { name } ) => name === 'Rust' )?.seconds_this_week ).toBe( 50 )
+  } )
+
   it( 'takes the day\'s new questions already reviewed off what is remaining', async () => {
     const generics = noteId( GENERICS )
     await setSubjectEnrolled( userId, subjectId( 'TypeScript' ), true, at( 1 ) )
@@ -471,6 +531,102 @@ describe( 'getSubject', () => {
       question_count: 1,
       stale: false,
       missing: false,
+    } )
+  } )
+
+  it( 'carries each note\'s mapping state and mapped concepts', async () => {
+    const id = noteId( GENERICS )
+    const subject = subjectId( 'TypeScript' )
+
+    replaceSyllabus( userId, subject, [ {
+      name: 'Basics',
+      concepts: [ { name: 'Generics', description: '' } ],
+    } ] )
+
+    const [ concept ] = listConcepts( userId, subject )
+
+    setNoteConcepts( userId, id, [ concept?.id ?? '' ], 'hand' )
+    updateNote( userId, id, {
+      mapping: 'failed',
+      mapping_error: 'Boom',
+      mapping_pinned: true,
+      off_syllabus: 'flagged',
+      off_syllabus_suggestion: 'Decorators',
+    } )
+
+    const { notes } = await getSubject( userId, subject )
+
+    expect( notes.find( ( note ) => note.id === id ) ).toMatchObject( {
+      mapping: 'failed',
+      mapping_error: 'Boom',
+      mapping_pinned: true,
+      off_syllabus: 'flagged',
+      off_syllabus_suggestion: 'Decorators',
+      concept_ids: [ concept?.id ],
+    } )
+    expect( notes.find( ( note ) => note.id !== id )?.concept_ids ).toEqual( [] )
+  } )
+
+  describe( 'coverage and mastery', () => {
+    // Two concepts; the Generics note, enrolled, is mapped to the first, whose one question has
+    // been reviewed with a stability of 10.5 days
+    const mapped = () => {
+      const id = subjectId( 'TypeScript' )
+      const note = noteId( GENERICS )
+
+      replaceSyllabus( userId, id, [ {
+        name: 'Basics',
+        concepts: [ { name: 'A', description: '' }, { name: 'B', description: '' } ],
+      } ] )
+      getDatabase().prepare( 'UPDATE melete_notes SET enrolled = 1 WHERE id = ?' ).run( note )
+
+      const [ first ] = listConcepts( userId, id )
+
+      setNoteConcepts( userId, note, [ first?.id ?? '' ], 'claude' )
+      addQuestion( userId, note, { conceptId: first?.id, reps: 3, stability: 10.5 } )
+
+      return id
+    }
+    it( 'is null while the syllabus is not approved', async () => {
+      const id = mapped()
+      const { subject } = await getSubject( userId, id )
+
+      expect( subject ).toMatchObject( { coverage: null, mastery: null, concept_count: null } )
+    } )
+
+    it( 'is computed from the mapped notes and their questions once approved', async () => {
+      const id = mapped()
+
+      updateStoredSubject( userId, id, { syllabus_status: 'approved' } )
+
+      const { subject } = await getSubject( userId, id )
+
+      expect( subject.concept_count ).toBe( 2 )
+      expect( subject.coverage ).toBeCloseTo( 0.5 )
+      // (10.5 / 21 + 0) / 2
+      expect( subject.mastery ).toBeCloseTo( 0.25 )
+    } )
+
+    it( 'follows the user\'s mastery days', async () => {
+      const id = mapped()
+
+      updateStoredSubject( userId, id, { syllabus_status: 'approved' } )
+      setSetting( userId, 'melete_mastery_days', 14 )
+
+      expect( ( await getSubject( userId, id ) ).subject.mastery ).toBeCloseTo( 0.375 )
+    } )
+
+    it( 'is null for an approved syllabus with no concepts, and shown on Today too', async () => {
+      const id = subjectId( 'TypeScript' )
+
+      updateStoredSubject( userId, id, { syllabus_status: 'approved' } )
+
+      expect( ( await getSubject( userId, id ) ).subject )
+        .toMatchObject( { coverage: null, mastery: null, concept_count: null } )
+
+      const found = ( await getToday( userId ) ).subjects.find( ( { id: other } ) => other === id )
+
+      expect( found ).toMatchObject( { coverage: null, mastery: null, concept_count: null } )
     } )
   } )
 

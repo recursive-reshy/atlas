@@ -76,7 +76,7 @@ export function MeleteToday(): ReactElement {
         disabled={ due + newRemaining === 0 }
         sx={ { minHeight: 48 } }
       >
-        Start review
+        Review all due
       </Button>
       { today.subjects.length === 0 && (
         <Typography color="text.secondary">

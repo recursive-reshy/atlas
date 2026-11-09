@@ -14,10 +14,16 @@ export interface NextReviewState {
 }
 
 // No polling: the item is fetched on mount and again after each recorded review.
-export function useNextReview( subjectId: string | null ): NextReviewState {
+// A concept review (`conceptId`) is the queue of that one concept, outside the day's limits.
+export function useNextReview(
+  subjectId: string | null,
+  conceptId?: string | null,
+): NextReviewState {
   const { data, error, isPending } = useQuery( {
-    queryKey: meleteKeys.review( subjectId ),
-    queryFn: () => getNextReview( subjectId ),
+    queryKey: meleteKeys.review( subjectId, conceptId ?? null ),
+    queryFn: () => conceptId == null
+      ? getNextReview( subjectId )
+      : getNextReview( subjectId, conceptId ),
     gcTime: 0,
   } )
 

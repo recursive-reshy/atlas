@@ -9,10 +9,16 @@ import Typography from '@mui/material/Typography'
 // App
 import { useModels } from '#src/hooks/useModels'
 import { useSettings } from '#src/hooks/useSettings'
+import { NumberSettingField } from '../NumberSettingField'
 
 interface ModelSelectProps {
   label: string
-  settingKey: 'melete_question_model' | 'melete_grading_model'
+  settingKey:
+    | 'melete_question_model'
+    | 'melete_grading_model'
+    | 'melete_syllabus_model'
+    | 'melete_map_model'
+    | 'melete_suggest_model'
 }
 
 function ModelSelect( { label, settingKey }: ModelSelectProps ): ReactElement {
@@ -56,6 +62,27 @@ export function MeleteSettings(): ReactElement {
       ) }
       <ModelSelect label="Question model" settingKey="melete_question_model" />
       <ModelSelect label="Grading model" settingKey="melete_grading_model" />
+      <ModelSelect label="Syllabus model" settingKey="melete_syllabus_model" />
+      <ModelSelect label="Mapping model" settingKey="melete_map_model" />
+      <ModelSelect label="Suggestion model" settingKey="melete_suggest_model" />
+      <NumberSettingField
+        settingKey="melete_mastery_days"
+        label="Days until a question counts as known"
+        min={ 7 }
+        max={ 90 }
+      />
+      <NumberSettingField
+        settingKey="melete_session_gap_minutes"
+        label="Minutes without an answer that end a session"
+        min={ 1 }
+        max={ 30 }
+      />
+      <NumberSettingField
+        settingKey="melete_final_card_seconds"
+        label="Seconds counted for the last card"
+        min={ 0 }
+        max={ 120 }
+      />
       <Typography role="status" variant="body2" color="text.secondary">
         { updateSettings.isSuccess ? 'Saved' : '' }
       </Typography>

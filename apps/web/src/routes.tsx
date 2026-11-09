@@ -18,6 +18,8 @@ import { SettingsIndexRedirect } from './components/SettingsIndexRedirect'
 import { SettingsLayout } from './components/SettingsLayout'
 import { SignInPage } from './components/SignInPage'
 import { SourcesTab } from './components/SourcesTab'
+import { ThemisGoal } from './components/ThemisGoal'
+import { ThemisHome } from './components/ThemisHome'
 
 export const routes: RouteObject[] = [
   { path: '/signin', element: <SignInPage /> },
@@ -28,6 +30,13 @@ export const routes: RouteObject[] = [
       {
         element: <App />,
         children: [
+          {
+            element: <RequireModule module="themis" />,
+            children: [
+              { path: 'themis', element: <ThemisHome /> },
+              { path: 'themis/goals/:goalId', element: <ThemisGoal /> },
+            ],
+          },
           {
             element: <RequireModule module="transcriber" />,
             children: [

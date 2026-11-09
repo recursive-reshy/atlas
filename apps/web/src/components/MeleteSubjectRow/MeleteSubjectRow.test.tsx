@@ -31,4 +31,59 @@ describe( 'MeleteSubjectRow', () => {
     expect( screen.getByRole( 'link', { name: 'Review TypeScript' } ) )
       .toHaveAttribute( 'aria-disabled', 'true' )
   } )
+
+  describe( 'the syllabus', () => {
+    const approved = ( overrides = {} ) => meleteSubjectFixture( {
+      syllabus_status: 'approved',
+      target_level: 'working',
+      coverage: 2 / 3,
+      mastery: 0.25,
+      concept_count: 12,
+      ...overrides,
+    } )
+
+    it.each( [ 'none', 'drafting', 'draft', 'failed' ] as const )(
+      'invites setting one up while it is %s',
+      ( status ) => {
+        renderWithClient( <MeleteSubjectRow subject={ meleteSubjectFixture( {
+          syllabus_status: status,
+        } ) } /> )
+
+        expect( screen.getByRole( 'link', { name: 'Set up syllabus' } ) )
+          .toHaveAttribute( 'href', `/melete/subjects/${ SUBJECT_ID }?tab=syllabus` )
+        expect( screen.queryByRole( 'progressbar' ) ).not.toBeInTheDocument()
+      },
+    )
+
+    it( 'shows the level and coverage and mastery as two bars once approved', () => {
+      renderWithClient( <MeleteSubjectRow subject={ approved() } /> )
+
+      expect( screen.getByText( 'Working knowledge' ) ).toBeInTheDocument()
+      expect( screen.getByRole( 'progressbar', { name: 'TypeScript coverage' } ) )
+        .toHaveAttribute( 'aria-valuenow', '67' )
+      expect( screen.getByRole( 'progressbar', { name: 'TypeScript mastery' } ) )
+        .toHaveAttribute( 'aria-valuenow', '25' )
+      expect( screen.getByText( 'Coverage 67%' ) ).toBeInTheDocument()
+      expect( screen.getByText( 'Mastery 25%' ) ).toBeInTheDocument()
+      expect( screen.queryByRole( 'link', { name: 'Set up syllabus' } ) ).not.toBeInTheDocument()
+    } )
+
+    it( 'shows no bars for an approved syllabus without concepts', () => {
+      const subject = approved( { coverage: null, mastery: null } )
+
+      renderWithClient( <MeleteSubjectRow subject={ subject } /> )
+
+      expect( screen.queryByRole( 'progressbar' ) ).not.toBeInTheDocument()
+    } )
+  } )
+
+  it( 'shows what is due today and the time studied this week', () => {
+    renderWithClient( <MeleteSubjectRow subject={ meleteSubjectFixture( {
+      due_today: 7,
+      seconds_this_week: 65 * 60,
+    } ) } /> )
+
+    expect( screen.getByText( '7 due today · 1 h 5 min this week' ) ).toBeInTheDocument()
+  } )
 } )
+
