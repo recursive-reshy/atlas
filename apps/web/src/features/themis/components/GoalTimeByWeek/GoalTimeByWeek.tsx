@@ -7,6 +7,7 @@ import Typography from '@mui/material/Typography'
 import type { ThemisWeekTime } from '@atlas/shared'
 // App
 import { formatStudyTime } from '#src/lib/formatStudyTime'
+import { timeSplitCaption } from '#src/features/themis/timeSplit'
 import { TimeBar } from '../TimeBar'
 
 interface GoalTimeByWeekProps {
@@ -14,9 +15,13 @@ interface GoalTimeByWeekProps {
   weeks: ThemisWeekTime[]
 }
 
+const total = ( { measured, logged, calendar }: ThemisWeekTime ): number => (
+  measured + logged + calendar
+)
+
 // Twelve weeks of a goal's time, newest first, each bar sized against the busiest week
 export function GoalTimeByWeek( { weeks }: GoalTimeByWeekProps ): ReactElement {
-  const busiest = Math.max( 0, ...weeks.map( ( { measured, logged } ) => measured + logged ) )
+  const busiest = Math.max( 0, ...weeks.map( ( week ) => total( week ) ) )
   const rows = busiest === 0 ? [] : [ ...weeks ].reverse()
 
   return (
@@ -24,20 +29,25 @@ export function GoalTimeByWeek( { weeks }: GoalTimeByWeekProps ): ReactElement {
       <Typography component="h2" variant="h6">Time by week</Typography>
       { busiest === 0 && <Typography color="text.secondary">No time yet</Typography> }
       <Stack component="ul" spacing={ 1.5 } sx={ { listStyle: 'none', m: 0, p: 0 } }>
-        { rows.map( ( { week_start: start, measured, logged } ) => (
-          <Stack component="li" key={ start } aria-label={ `Week of ${ start }` } spacing={ 0.5 }>
+        { rows.map( ( week ) => (
+          <Stack
+            component="li"
+            key={ week.week_start }
+            aria-label={ `Week of ${ week.week_start }` }
+            spacing={ 0.5 }
+          >
             <Stack direction="row" sx={ { justifyContent: 'space-between' } }>
-              <Typography variant="body2">{ start }</Typography>
-              <Typography variant="body2">{ formatStudyTime( measured + logged ) }</Typography>
+              <Typography variant="body2">{ week.week_start }</Typography>
+              <Typography variant="body2">{ formatStudyTime( total( week ) ) }</Typography>
             </Stack>
             <TimeBar
-              measured={ measured }
-              logged={ logged }
-              scale={ ( measured + logged ) / busiest }
+              measured={ week.measured }
+              logged={ week.logged }
+              calendar={ week.calendar }
+              scale={ total( week ) / busiest }
             />
             <Typography variant="caption" color="text.secondary">
-              { `${ formatStudyTime( measured ) } measured` }
-              { ` · ${ formatStudyTime( logged ) } logged` }
+              { timeSplitCaption( week ) }
             </Typography>
           </Stack>
         ) ) }

@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { overviewFixture } from '#src/features/themis/fixtures/themis.fixture'
+import { overviewFixture, timeFixture } from '#src/features/themis/fixtures/themis.fixture'
 import { TimeByArea } from './TimeByArea'
 
 const show = ( onPeriodChange = vi.fn(), period: 'week' | 'month' | 'quarter' = 'week' ) => {
@@ -80,5 +80,23 @@ describe( 'TimeByArea', () => {
     await userEvent.click( screen.getByRole( 'button', { name: 'Week' } ) )
 
     expect( onPeriodChange ).not.toHaveBeenCalled()
+  } )
+} )
+
+describe( 'TimeByArea, calendar time', () => {
+  const withCalendar = [ {
+    ...overviewFixture().areas[ 0 ],
+    time: timeFixture( 3600, 1800, 1800 ),
+  } ]
+
+  it( 'adds the calendar share to the bar and the text', () => {
+    render( <TimeByArea areas={ withCalendar } period="week" onPeriodChange={ vi.fn() } /> )
+
+    const career = screen.getByRole( 'listitem', { name: 'Career' } )
+
+    expect( within( career ).getByText( '2 h' ) ).toBeInTheDocument()
+    expect( within( career ).getByText( '1 h measured · 30 min logged · 30 min calendar' ) )
+      .toBeInTheDocument()
+    expect( within( career ).getByRole( 'img', { name: 'Calendar 25%' } ) ).toBeInTheDocument()
   } )
 } )

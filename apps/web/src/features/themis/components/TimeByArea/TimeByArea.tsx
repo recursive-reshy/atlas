@@ -9,6 +9,7 @@ import Typography from '@mui/material/Typography'
 import type { ThemisOverviewArea, ThemisPeriod } from '@atlas/shared'
 // App
 import { formatStudyTime } from '#src/lib/formatStudyTime'
+import { timeSplitCaption } from '#src/features/themis/timeSplit'
 import { TimeBar } from '../TimeBar'
 
 interface TimeByAreaProps {
@@ -23,7 +24,7 @@ const PERIODS: { value: ThemisPeriod, label: string }[] = [
   { value: 'quarter', label: 'Quarter' },
 ]
 
-// Measured and logged as two shades; each area's bar is sized against the busiest area
+// Measured, logged and calendar as three shades; each area's bar is sized against the busiest area
 export function TimeByArea( { areas, period, onPeriodChange }: TimeByAreaProps ): ReactElement {
   const busiest = Math.max( 0, ...areas.map( ( { time } ) => time.seconds ) )
 
@@ -62,10 +63,14 @@ export function TimeByArea( { areas, period, onPeriodChange }: TimeByAreaProps )
                 <Typography variant="body2">{ name }</Typography>
                 <Typography variant="body2">{ formatStudyTime( time.seconds ) }</Typography>
               </Stack>
-              <TimeBar measured={ time.measured } logged={ time.logged } scale={ width } />
+              <TimeBar
+                measured={ time.measured }
+                logged={ time.logged }
+                calendar={ time.calendar }
+                scale={ width }
+              />
               <Typography variant="caption" color="text.secondary">
-                { `${ formatStudyTime( time.measured ) } measured` }
-                { ` · ${ formatStudyTime( time.logged ) } logged` }
+                { timeSplitCaption( time ) }
               </Typography>
             </Stack>
           )
