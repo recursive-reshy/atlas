@@ -37,7 +37,7 @@ A hardening and tidy-up release: no new features. Built from `prd.md` and `trd.m
 ---
 
 ## Checkpoint B: Security fixes
-**Plan:** ⬜ `plans/checkpoint-b.md`
+**Plan:** ✅ [`plans/checkpoint-b.md`](plans/checkpoint-b.md)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
