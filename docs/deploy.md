@@ -446,10 +446,36 @@ The `atlas` service starts by itself on boot; the external IP may change, which 
 
 ## Adding a second user
 
-1. In `compose.prod.yml`, copy the `sync-naresh` block, rename it (for example `sync-alex`), change `VAULT_DIR` and the two paths to `alex`, and declare `sync-alex-config` under `volumes:`. Commit it.
-2. Re-run bootstrap with `SYNC_USERS="naresh alex"` so `/srv/atlas/vaults/alex` exists with the right owner, then send the new files and deploy with `--files` (steps 2 and 5).
+Adding a user needs no change in the app: the admin adds them in Settings → Admin and picks their modules. The one manual step is their Obsidian sync container, which is a block you add to `compose.prod.yml` by hand (one per person, nothing generates it). For a user named `alex` (lowercase letters, digits and `-` only, the same name as their vault folder):
+
+1. In `compose.prod.yml`, add this service under `services:`, next to `sync-naresh`:
+
+   ```yaml
+     sync-alex:
+       image: ${REGISTRY}/sync:${ATLAS_VERSION}
+       environment:
+         VAULT_DIR: alex
+       volumes:
+         - ${VAULTS_HOST_PATH}/alex:/vault
+         - sync-status:/status
+         - sync-alex-config:/home/node/.config/obsidian-headless
+       restart: unless-stopped
+   ```
+
+   and declare its config volume at the end of the top-level `volumes:` list, after `sync-naresh-config:`:
+
+   ```yaml
+     sync-alex-config:
+   ```
+
+   Commit it. Only the name `alex` (four times: the service, `VAULT_DIR`, the host path, the volume) differs from the `sync-naresh` block.
+2. Re-run bootstrap with every user in `SYNC_USERS`, the existing ones too (`SYNC_USERS="naresh alex"`), so `/srv/atlas/vaults/alex` exists with the right owner; bootstrap refuses a name with anything but `a-z`, `0-9` and `-`. Then send the new files and deploy with `--files` (steps 2 and 5).
 3. Do step 6 for `sync-alex` with their Obsidian account. They need their own Obsidian Sync subscription.
 4. Add them in Settings → Admin, share the VM's Tailscale node with them ([`phone-access.md`](phone-access.md#sharing-the-app-with-another-person)), and they choose the `alex` vault when they first sign in.
+
+## Freeing a released vault folder
+
+Deleting a user, or resetting their vault in Settings → Admin, moves their folder to `/srv/atlas/vaults/.released/<folder>-<YYYYMMDDTHHmmss>` so the other user is never offered it (ADR 0097). To give it back, move it out by hand and restore its name: `sudo mv /srv/atlas/vaults/.released/alex-20261110T090503 /srv/atlas/vaults/alex`. Delete old ones when you no longer need them; nothing does it for you.
 
 ## Release checks (memory and the rest)
 

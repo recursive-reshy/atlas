@@ -6,6 +6,8 @@ import {
   randomBytes,
   timingSafeEqual,
 } from 'node:crypto'
+// Packages
+import { z } from 'zod'
 // Shared
 import { ModuleId } from '@atlas/shared'
 import type { Me } from '@atlas/shared'
@@ -39,13 +41,15 @@ export const OAUTH_COOKIE_MAX_AGE_MS = 10 * 60 * 1000
 
 type SignInFailure = 'not_allowed' | 'expired' | 'failed'
 
-type Pending = {
-  state: string
-  verifier: string
-  returnTo: string
-  origin: string
-  exp: number
-}
+const Pending = z.object( {
+  state: z.string(),
+  verifier: z.string(),
+  returnTo: z.string(),
+  origin: z.string(),
+  exp: z.number(),
+} )
+
+type Pending = z.infer< typeof Pending >
 
 let client: GoogleSignInClient | undefined
 
@@ -130,9 +134,13 @@ const readPending = ( cookie: string | undefined, now: Date ): Pending | SignInF
   }
 
   try {
-    const pending = JSON.parse( Buffer.from( payload, 'base64url' ).toString() ) as Pending
+    const parsed = Pending.safeParse( JSON.parse( Buffer.from( payload, 'base64url' ).toString() ) )
 
-    return pending.exp < now.getTime() ? 'expired' : pending
+    if( !parsed.success ) {
+      return 'failed'
+    }
+
+    return parsed.data.exp < now.getTime() ? 'expired' : parsed.data
   } catch{
     return 'failed'
   }

@@ -34,16 +34,18 @@ import { setStatus } from '../repositories/linkSuggestions.repository.js'
 // Services
 import {
   completeAcquisition,
-  completeLinking,
   completeSummary,
   failJob,
   failSummary,
-  listLinkSuggestions,
   markStatus,
   queueJob,
+} from '../services/jobs.service.js'
+import {
+  completeLinking,
+  listLinkSuggestions,
   recordLinkRun,
   recordLinkSuggestions,
-} from '../services/jobs.service.js'
+} from '../services/jobLinking.service.js'
 // Formatters
 import { formatMarkdown } from '../formatters/markdown.formatter.js'
 import { formatTxt } from '../formatters/txt.formatter.js'
@@ -195,6 +197,19 @@ describe( 'GET /api/jobs', () => {
     expect( response.status ).toBe( 200 )
     expect( jobs.map( ( { id } ) => id ) ).toEqual( [ second.id, first.id ] )
     expect( JSON.stringify( response.body ) ).not.toContain( 'transcript"' )
+  } )
+
+  it( 'lists a job in review without its draft, which the detail read still carries', async () => {
+    const id = await seedJobAt( 'ready_for_review' )
+
+    const listed = ( await request( app ).get( '/api/jobs' ) ).body as { jobs: object[] }
+    const detail = ( await request( app ).get( `/api/jobs/${ id }` ) ).body as {
+      job: { note_markdown: string | null }
+    }
+
+    expect( listed.jobs ).toHaveLength( 1 )
+    expect( listed.jobs[ 0 ] ).not.toHaveProperty( 'note_markdown' )
+    expect( detail.job.note_markdown ).toContain( '## Summary' )
   } )
 
   it( 'leaves out failed jobs', async () => {

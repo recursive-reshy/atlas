@@ -10,8 +10,8 @@ import {
 // App
 import { renderWithRouter } from './renderWithRouter'
 
-vi.mock( '#src/api/gmail.api' )
-vi.mock( '#src/components/SettingsLayout', () => ( {
+vi.mock( '../features/gmail/api/gmail.api' )
+vi.mock( '../features/settings/components/SettingsLayout', () => ( {
   SettingsLayout: () => <h2>Settings</h2>,
 } ) )
 

@@ -11,11 +11,17 @@ import {
 import { memberFixture } from '#src/test-support/me.fixture'
 import { renderWithRouter } from '#src/test-support/renderWithRouter'
 
-vi.mock( '#src/components/MeleteToday', () => ( { MeleteToday: () => <p>melete today</p> } ) )
-vi.mock( '#src/components/HomePage', () => ( { HomePage: () => <p>home page</p> } ) )
-vi.mock( '#src/components/ThemisHome', () => ( { ThemisHome: () => <p>themis home</p> } ) )
-vi.mock( '#src/components/ThemisGoal', () => ( { ThemisGoal: () => <p>themis goal</p> } ) )
-vi.mock( '#src/components/AppShell', () => ( {
+vi.mock( './features/melete/components/MeleteToday', () => (
+  { MeleteToday: () => <p>melete today</p> }
+) )
+vi.mock( './features/jobs/components/HomePage', () => ( { HomePage: () => <p>home page</p> } ) )
+vi.mock( './features/themis/components/ThemisHome', () => (
+  { ThemisHome: () => <p>themis home</p> }
+) )
+vi.mock( './features/themis/components/ThemisGoal', () => (
+  { ThemisGoal: () => <p>themis goal</p> }
+) )
+vi.mock( './app/AppShell', () => ( {
   AppShell: ( { children }: { children: unknown } ) => <>{ children as never }</>,
 } ) )
 

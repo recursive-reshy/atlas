@@ -6,6 +6,7 @@ import {
   vi,
   beforeEach,
 } from 'vitest'
+import express from 'express'
 import request from 'supertest'
 // Shared
 import { HealthResponse } from '@atlas/shared'
@@ -130,4 +131,42 @@ describe( 'GET /api/health', () => {
   it( 'needs no session', async () => {
     expect( ( await request( app ).get( '/api/health' ) ).status ).toBe( 200 )
   } )
+} )
+
+// supertest connects from loopback; this puts another peer address on the socket
+const asPeer = ( address: string ): express.Express => {
+  const wrapper = express()
+
+  wrapper.use( ( req, _res, next ) => {
+    Object.defineProperty( req.socket, 'remoteAddress', { value: address, configurable: true } )
+    next()
+  } )
+  wrapper.use( app )
+
+  return wrapper
+}
+
+describe( 'GET /api/health peers', () => {
+  it.each( [
+    '127.0.0.1',
+    '::1',
+    '::ffff:127.0.0.1',
+    '10.1.2.3',
+    '172.18.0.4',
+    '192.168.65.1',
+    '::ffff:192.168.65.1',
+    'fd00::5',
+  ] )( 'answers a trusted peer (%s)', async ( address ) => {
+    expect( ( await request( asPeer( address ) ).get( '/api/health' ) ).status ).toBe( 200 )
+  } )
+
+  it.each( [ '8.8.8.8', '203.0.113.9', '100.100.1.1', '169.254.1.1', '2606:4700::1' ] )(
+    'answers 404 to anyone else (%s)',
+    async ( address ) => {
+      const response = await request( asPeer( address ) ).get( '/api/health' )
+
+      expect( response.status ).toBe( 404 )
+      expect( response.body ).toEqual( { error: 'Not Found' } )
+    },
+  )
 } )

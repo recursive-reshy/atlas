@@ -16,8 +16,8 @@ import {
   queueJob,
   regenerateSummary,
   retrySummary,
-  updateDraft,
 } from '../services/jobs.service.js'
+import { updateDraft } from '../services/jobDraft.service.js'
 // Repositories
 import { clearJobs, insertJob, updateJob } from '../repositories/jobStore.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'

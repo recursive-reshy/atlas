@@ -158,7 +158,8 @@ describe( 'summarizeSource', () => {
 
     expect( request.messages ).toEqual( [ {
       role: 'user',
-      content: `# ${ input.document.meta.title }\n\n${ transcriptFixture.text }`,
+      content: '<source_content>\n'
+        + `# ${ input.document.meta.title }\n\n${ transcriptFixture.text }\n</source_content>`,
     } ] )
   } )
 
@@ -257,7 +258,8 @@ describe( 'summarizeSource for an article', () => {
 
     expect( request.messages ).toEqual( [ {
       role: 'user',
-      content: '# The Quiet Compounding of Small Habits\n\n## What to do\n\nDo it daily.',
+      content: '<source_content>\n# The Quiet Compounding of Small Habits\n\n'
+        + '## What to do\n\nDo it daily.\n</source_content>',
     } ] )
   } )
 

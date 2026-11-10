@@ -1,5 +1,7 @@
 // Shared
 import type { MeleteMapOutput } from '@atlas/shared'
+// Summarizer
+import { wrapSourceContent } from '../summarizer/sourceContent.js'
 // Melete
 import { buildConceptList, conceptRefs, resolveRefs } from './conceptRefs.js'
 import type { RefConcept } from './conceptRefs.js'
@@ -25,7 +27,7 @@ export const buildMapUser = ( { concepts, body, questions, fixedIds }: MapInput 
     ...fixed === undefined
       ? []
       : [ `## Fixed concepts\nThe note's concepts are already set: ${ fixed.join( ', ' ) }.` ],
-    `## Note\n${ body }`,
+    `## Note\n${ wrapSourceContent( body ) }`,
     questions.length === 0
       ? '## Questions\nNo questions yet.'
       : `## Questions\n${ questions.map( ( { prompt, answer }, index ) => {

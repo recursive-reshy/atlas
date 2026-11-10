@@ -11,6 +11,7 @@ export default defineConfig( {
       GEMINI_API_KEY: 'test-gemini-api-key',
       YOUTUBE_API_KEY: 'test-youtube-key',
       LOG_LEVEL: 'silent',
+      FETCH_ALLOW_PRIVATE: '1',
       ADMIN_EMAIL: 'admin@example.com',
       APP_ORIGINS: 'http://localhost:3100',
       GOOGLE_CLIENT_ID: 'test-client-id',

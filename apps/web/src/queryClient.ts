@@ -3,8 +3,8 @@ import { MutationCache, QueryCache, QueryClient } from '@tanstack/react-query'
 // Shared
 import { VAULT_MISSING_MESSAGE } from '@atlas/shared'
 // App
-import { ApiError } from './api/apiError'
-import { meKeys } from './hooks/queryKeys'
+import { ApiError } from './lib/apiError'
+import { meKeys } from './lib/queryKeys'
 
 export const createQueryClient = (): QueryClient => {
   // A 401 from any request means the session ended, and the 409 "vault folder is missing" means the

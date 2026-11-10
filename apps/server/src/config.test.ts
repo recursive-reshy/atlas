@@ -4,7 +4,12 @@ import { join } from 'node:path'
 // Packages
 import { describe, it, expect } from 'vitest'
 // Config
-import { assertTestSigninAllowed, ignoredEnv, loadConfig } from './config.js'
+import {
+  assertFetchAllowPrivateAllowed,
+  assertTestSigninAllowed,
+  ignoredEnv,
+  loadConfig,
+} from './config.js'
 
 const key = Buffer.alloc( 32, 7 ).toString( 'base64' )
 const google = {
@@ -49,6 +54,7 @@ describe( 'loadConfig', () => {
       appOrigins: [ 'http://localhost:3100' ],
       sessionDays: 30,
       e2eTestSignin: false,
+      fetchAllowPrivate: false,
       vaultsPath: '/vaults',
       litestreamMetricsUrl: null,
       vaultSyncStatusDir: null,
@@ -113,6 +119,7 @@ describe( 'loadConfig', () => {
       adminEmail: 'admin@example.com',
       appOrigins: [ 'http://localhost:3100' ],
       e2eTestSignin: false,
+      fetchAllowPrivate: false,
       sessionDays: 30,
       vaultsPath: '/Users/x/Vaults',
       litestreamMetricsUrl: 'http://litestream:9090/metrics',
@@ -599,5 +606,22 @@ describe( 'assertTestSigninAllowed', () => {
     expect( () => assertTestSigninAllowed( { E2E_TEST_SIGNIN: '1', NODE_ENV: 'production' } ) )
       .toThrow( /E2E_TEST_SIGNIN/ )
     expect( () => assertTestSigninAllowed( { E2E_TEST_SIGNIN: '1' } ) ).toThrow( /E2E_TEST_SIGNIN/ )
+  } )
+} )
+
+describe( 'FETCH_ALLOW_PRIVATE', () => {
+  it( 'is off by default and on only for 1', () => {
+    expect( loadConfig( base ).fetchAllowPrivate ).toBe( false )
+    expect( loadConfig( { ...base, FETCH_ALLOW_PRIVATE: '1' } ).fetchAllowPrivate ).toBe( true )
+    expect( () => loadConfig( { ...base, FETCH_ALLOW_PRIVATE: 'yes' } ) )
+      .toThrow( /FETCH_ALLOW_PRIVATE/ )
+  } )
+
+  it( 'refuses to start outside NODE_ENV=test', () => {
+    expect( () => assertFetchAllowPrivateAllowed( { NODE_ENV: 'production' } ) ).not.toThrow()
+    expect( () => assertFetchAllowPrivateAllowed( { FETCH_ALLOW_PRIVATE: '1', NODE_ENV: 'test' } ) )
+      .not.toThrow()
+    expect( () => assertFetchAllowPrivateAllowed( { FETCH_ALLOW_PRIVATE: '1' } ) )
+      .toThrow( /FETCH_ALLOW_PRIVATE/ )
   } )
 } )

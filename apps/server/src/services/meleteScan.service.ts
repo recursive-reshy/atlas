@@ -32,6 +32,8 @@ import { SubjectRecord, upsertSubject } from '../repositories/meleteSubjects.rep
 // Services
 import { getLearningRoot } from './settings.service.js'
 import { vaultRootFor } from './vault.service.js'
+// Worker
+import { wakeGenerator } from '../worker/wake.js'
 
 type ScanOptions = { force?: boolean, now?: Date }
 
@@ -83,7 +85,9 @@ const applyScan = (
   changed: ReadFile[],
   skipped: string[],
   now: string,
-): void => {
+): boolean => {
+  // Whether any note was queued for generation, so the caller can wake the generator
+  let queued = false
   const subjects = new Map< string, SubjectRecord >(
     subjectFolders.map( ( folder ) => [ folder, upsertSubject( userId, folder ) ] ),
   )
@@ -126,6 +130,7 @@ const applyScan = (
 
     if( edited && note.enrolled ) {
       retireActiveForNote( userId, note.id )
+      queued = true
     }
   }
 
@@ -187,6 +192,8 @@ const applyScan = (
         enrolled_at: subject.auto_enroll ? now : null,
         generation: subject.auto_enroll ? 'queued' : 'idle',
       } )
+
+      queued ||= subject.auto_enroll
     }
   }
 
@@ -195,6 +202,8 @@ const applyScan = (
       updateNote( userId, note.id, { missing_at: now } )
     }
   }
+
+  return queued
 }
 
 const runScan = async ( userId: string, learningRoot: string, now: Date ): Promise< void > => {
@@ -246,8 +255,8 @@ const runScan = async ( userId: string, learningRoot: string, now: Date ): Promi
 
   const skippedPaths = [ ...skipped ].sort()
 
-  getDatabase().transaction( () => {
-    applyScan(
+  const queued = getDatabase().transaction( () => {
+    return applyScan(
       userId,
       learningRoot,
       subjectFolders,
@@ -257,6 +266,10 @@ const runScan = async ( userId: string, learningRoot: string, now: Date ): Promi
       now.toISOString(),
     )
   } )()
+
+  if( queued ) {
+    wakeGenerator()
+  }
 
   rememberSkipped( userId, skippedPaths )
 

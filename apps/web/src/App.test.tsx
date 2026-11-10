@@ -9,23 +9,23 @@ import {
   vi,
 } from 'vitest'
 // App
-import { getGmailAccount } from './api/gmail.api'
-import { useJob } from './hooks/useJob'
-import { useMeleteToday } from './hooks/useMeleteToday'
-import { useNextReview } from './hooks/useNextReview'
-import { useSettings } from './hooks/useSettings'
-import { gmailAccountFixture } from '#src/test-support/gmail.fixture'
-import { jobFixture } from '#src/test-support/job.fixture'
-import { meleteTodayFixture } from '#src/test-support/melete.fixture'
+import { getGmailAccount } from './features/gmail/api/gmail.api'
+import { useJob } from './features/jobs/hooks/useJob'
+import { useMeleteToday } from './features/melete/hooks/useMeleteToday'
+import { useNextReview } from './features/melete/hooks/useNextReview'
+import { useSettings } from './features/settings/hooks/useSettings'
+import { gmailAccountFixture } from './features/gmail/fixtures/gmail.fixture'
+import { jobFixture } from './features/jobs/fixtures/job.fixture'
+import { meleteTodayFixture } from './features/melete/fixtures/melete.fixture'
 import { settingsState } from '#src/test-support/hookStates'
 import { renderWithRouter } from '#src/test-support/renderWithRouter'
 
-vi.mock( './api/gmail.api' )
-vi.mock( './hooks/useJob' )
-vi.mock( './hooks/useMeleteToday' )
-vi.mock( './hooks/useNextReview' )
-vi.mock( './hooks/useSettings' )
-vi.mock( './components/SettingsLayout', () => ( {
+vi.mock( './features/gmail/api/gmail.api' )
+vi.mock( './features/jobs/hooks/useJob' )
+vi.mock( './features/melete/hooks/useMeleteToday' )
+vi.mock( './features/melete/hooks/useNextReview' )
+vi.mock( './features/settings/hooks/useSettings' )
+vi.mock( './features/settings/components/SettingsLayout', () => ( {
   SettingsLayout: () => <h2>Settings</h2>,
 } ) )
 

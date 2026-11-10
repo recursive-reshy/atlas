@@ -8,9 +8,9 @@ import {
 // Packages
 import type { QueryClient } from '@tanstack/react-query'
 // App
-import { ApiError } from './api/apiError'
+import { ApiError } from './lib/apiError'
 import { VAULT_MISSING_MESSAGE } from '@atlas/shared'
-import { meKeys } from './hooks/queryKeys'
+import { meKeys } from './lib/queryKeys'
 import { createQueryClient } from './queryClient'
 
 describe( 'createQueryClient', () => {

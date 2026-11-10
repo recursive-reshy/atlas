@@ -50,6 +50,8 @@ import type { ConceptStat } from '../melete/mastery.js'
 import { scanLearningRoot } from './meleteScan.service.js'
 import { getLearningRoot, getMasteryDays } from './settings.service.js'
 import { vaultDirFor, vaultRootFor } from './vault.service.js'
+// Worker
+import { wakeGenerator } from '../worker/wake.js'
 
 const requireNote = ( userId: string, id: string ): NoteRecord => {
   const note = findNote( userId, id )
@@ -237,6 +239,7 @@ export const requireSubjectInRoot = (
 
 const queueGeneration = ( userId: string, noteId: string ): void => {
   updateNote( userId, noteId, { generation: 'queued', generation_error: null } )
+  wakeGenerator()
 }
 
 // Questions made from an older body are retired, and a note with none left to review is queued
@@ -344,6 +347,7 @@ export const retryGeneration = ( userId: string, id: string ): GetMeleteNoteResp
     queueGeneration( userId, id )
   } else if( note.mapping === 'failed' ) {
     updateNote( userId, id, { mapping: 'queued', mapping_error: null } )
+    wakeGenerator()
   } else {
     throw new ConflictError( 'Only a note whose generation or mapping failed can be retried' )
   }

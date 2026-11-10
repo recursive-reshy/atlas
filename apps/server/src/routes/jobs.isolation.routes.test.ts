@@ -20,13 +20,15 @@ import { findJobById } from '../repositories/jobStore.repository.js'
 // Services
 import {
   completeAcquisition,
-  completeLinking,
   completeSummary,
   markStatus,
   queueJob,
+} from '../services/jobs.service.js'
+import {
+  completeLinking,
   recordLinkRun,
   recordLinkSuggestions,
-} from '../services/jobs.service.js'
+} from '../services/jobLinking.service.js'
 import { resolveLinkerPrompt } from '../services/prompts.service.js'
 // Test support
 import { createTestUser, signedInRequest } from '../test-support/auth.js'

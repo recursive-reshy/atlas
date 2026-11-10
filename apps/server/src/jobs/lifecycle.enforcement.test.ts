@@ -17,22 +17,22 @@ import { ConflictError } from '../errors.js'
 import { clearJobs, insertJob } from '../repositories/jobStore.repository.js'
 // Services
 import {
-  acceptSuggestions,
   completeAcquisition,
-  completeLinking,
   completeSummary,
   failJob,
-  failLinking,
   failSummary,
   markStatus,
   regenerateSummary,
-  rejectSuggestions,
   retrySummary,
-  runLinking,
-  saveJob,
-  submitPastedText,
-  updateDraft,
 } from '../services/jobs.service.js'
+import {
+  acceptSuggestions,
+  completeLinking,
+  failLinking,
+  rejectSuggestions,
+  runLinking,
+} from '../services/jobLinking.service.js'
+import { saveJob, submitPastedText, updateDraft } from '../services/jobDraft.service.js'
 // Clients
 import { writeNote } from '../clients/vault.client.js'
 // Formatters

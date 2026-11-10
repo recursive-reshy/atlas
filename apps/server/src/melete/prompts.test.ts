@@ -150,7 +150,9 @@ describe( 'buildMeleteGradingUser', () => {
       'Narrowing refines a union type.',
       '',
       '## Learner\'s answer',
+      '<learner_answer>',
       'Making a type smaller.',
+      '</learner_answer>',
     ].join( '\n' ) )
   } )
 

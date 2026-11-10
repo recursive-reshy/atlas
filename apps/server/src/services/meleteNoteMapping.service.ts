@@ -17,6 +17,8 @@ import { listSections } from '../repositories/meleteSections.repository.js'
 import { findSubject } from '../repositories/meleteSubjects.repository.js'
 // Services
 import { noteView } from './melete.service.js'
+// Worker
+import { wakeGenerator } from '../worker/wake.js'
 
 const requireNote = ( userId: string, noteId: string ): NoteRecord => {
   const note = findNote( userId, noteId )
@@ -57,6 +59,10 @@ const pinByHand = ( userId: string, note: NoteRecord, conceptIds: string[] ): vo
     off_syllabus: null,
     off_syllabus_suggestion: null,
   } )
+
+  if( queue ) {
+    wakeGenerator()
+  }
 }
 
 export const setNoteConceptsByHand = (

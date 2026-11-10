@@ -63,6 +63,8 @@ import { resolveMeleteSyllabusModel } from './settings.service.js'
 import { vaultRootFor } from './vault.service.js'
 // Logging
 import { logger } from '../logger.js'
+// Worker
+import { wakeGenerator } from '../worker/wake.js'
 
 const NEEDS_LEVEL = 'Choose a target level first'
 
@@ -94,6 +96,8 @@ export const requestSyllabusDraft = (
   if( queued === undefined ) {
     throw new NotFoundError( 'Subject not found' )
   }
+
+  wakeGenerator()
 
   return toMeleteSubject( userId, queued, now )
 }
@@ -345,6 +349,8 @@ export const approveSyllabus = (
     throw new NotFoundError( 'Subject not found' )
   }
 
+  wakeGenerator()
+
   return toMeleteSubject( userId, approved, now )
 }
 
@@ -356,5 +362,9 @@ export const remapSyllabus = ( userId: string, subjectId: string ): { queued: nu
     throw new ConflictError( 'Only an approved syllabus can be mapped again' )
   }
 
-  return { queued: queueMappingUnpinned( userId, subjectId ) }
+  const queued = queueMappingUnpinned( userId, subjectId )
+
+  wakeGenerator()
+
+  return { queued }
 }

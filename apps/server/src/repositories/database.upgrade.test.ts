@@ -606,3 +606,77 @@ describe( 'migration 16 (stored schema 16, Themis and time, ADRs 0085, 0091, 009
     expect( db.pragma( 'integrity_check', { simple: true } ) ).toBe( 'ok' )
   } )
 } )
+
+describe( 'migration 17 (stored schema 17, modules defined once, ADR 0101)', () => {
+  const ADMIN = '00000000-0000-4000-8000-000000000001'
+  const MEMBER = '00000000-0000-4000-8000-000000000002'
+
+  const migrated = (): void => {
+    openSeeded( 16 )
+    runMigrations( getDatabase(), migrations )
+  }
+
+  afterEach( () => {
+    closeDatabase()
+  } )
+
+  it( 'keeps both users\' modules, in their order', () => {
+    openSeeded( 16 )
+
+    const before = rows( 'SELECT user_id, module FROM user_modules ORDER BY rowid' )
+
+    runMigrations( getDatabase(), migrations )
+
+    expect( rows( 'SELECT user_id, module FROM user_modules ORDER BY rowid' ) ).toEqual( before )
+    expect( listModules( MEMBER ) ).toEqual( [ 'transcriber', 'melete', 'themis' ] )
+  } )
+
+  it( 'no longer lists the modules in the schema: the application validates them', () => {
+    migrated()
+
+    const { sql } = getDatabase()
+      .prepare( 'SELECT sql FROM sqlite_master WHERE name = ?' ).get( 'user_modules' ) as {
+      sql: string
+    }
+
+    expect( sql ).not.toMatch( /CHECK/ )
+    getDatabase().prepare( 'INSERT INTO user_modules ( user_id, module ) VALUES ( ?, ? )' )
+      .run( ADMIN, 'metis' )
+    expect( rows( `SELECT module FROM user_modules WHERE user_id = '${ ADMIN }'` ) )
+      .toEqual( [ { module: 'metis' } ] )
+  } )
+
+  it( 'lists an active member once per module they have, and no module by name', () => {
+    migrated()
+
+    const view = rows( 'SELECT user_id, module FROM eligible_users ORDER BY user_id, module' )
+
+    expect( view ).toEqual( [
+      { user_id: MEMBER, module: 'melete' },
+      { user_id: MEMBER, module: 'themis' },
+      { user_id: MEMBER, module: 'transcriber' },
+    ] )
+
+    const { sql } = getDatabase()
+      .prepare( 'SELECT sql FROM sqlite_master WHERE name = ?' ).get( 'eligible_users' ) as {
+      sql: string
+    }
+
+    expect( sql ).not.toMatch( /transcriber|melete|themis/ )
+  } )
+
+  it( 'leaves out a member who is not active', () => {
+    migrated()
+    getDatabase().prepare( 'UPDATE users SET status = \'removed\' WHERE id = ?' ).run( MEMBER )
+
+    expect( rows( 'SELECT user_id FROM eligible_users' ) ).toEqual( [] )
+  } )
+
+  it( 'still removes a deleted user\'s modules with the user', () => {
+    migrated()
+    getDatabase().prepare( 'DELETE FROM users WHERE id = ?' ).run( MEMBER )
+
+    expect( rows( 'SELECT user_id FROM user_modules' ) ).toEqual( [] )
+    expect( getDatabase().pragma( 'foreign_key_check' ) ).toEqual( [] )
+  } )
+} )

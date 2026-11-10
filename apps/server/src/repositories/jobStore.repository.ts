@@ -4,9 +4,11 @@ import { statusesWhere } from '../jobs/lifecycle.js'
 import { getDatabase } from './database.js'
 import {
   SELECT_JOB,
+  SELECT_JOB_LIST,
   StoredJob,
   marks,
   toRow,
+  toListedJob,
   toStoredJob,
 } from './jobRows.js'
 
@@ -74,11 +76,11 @@ export const listActiveJobs = ( userId: string ): StoredJob[] => {
   const statuses = statusesWhere( 'active' )
 
   return getDatabase()
-    .prepare( `${ SELECT_JOB }
+    .prepare( `${ SELECT_JOB_LIST }
       WHERE jobs.user_id = ? AND jobs.status IN ( ${ marks( statuses ) } )
       ORDER BY jobs.created_at DESC, jobs.rowid DESC` )
     .all( userId, ...statuses )
-    .map( toStoredJob )
+    .map( toListedJob )
 }
 
 export const deleteJob = ( userId: string, id: string ): boolean => {

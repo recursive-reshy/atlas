@@ -11,7 +11,7 @@ import type { RenderResult } from '@testing-library/react'
 // Shared
 import type { Me } from '@atlas/shared'
 // App
-import { meKeys } from '#src/hooks/queryKeys'
+import { meKeys } from '../lib/queryKeys'
 import { createQueryClient } from '#src/queryClient'
 import { routes } from '#src/routes'
 import { meFixture } from '#src/test-support/me.fixture'

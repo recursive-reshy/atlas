@@ -1,6 +1,8 @@
 // Shared
 import type { MeleteSyllabusOutput, MeleteTargetLevel } from '@atlas/shared'
 import { MELETE_MAX_CONCEPTS } from '@atlas/shared'
+// Summarizer
+import { wrapSourceContent } from '../summarizer/sourceContent.js'
 // Repositories
 import type { DraftSection } from '../repositories/meleteConcepts.repository.js'
 
@@ -77,9 +79,9 @@ export const buildSyllabusUser = ( { name, level, intent, notes }: SyllabusInput
       ? [ 'No notes yet.' ]
       : [
         'Notes already in the folder:',
-        ...shown.map( ( { title, opening } ) => {
+        wrapSourceContent( shown.map( ( { title, opening } ) => {
           return opening === '' ? `- ${ title }` : `- ${ title }: ${ opening }`
-        } ),
+        } ).join( '\n' ) ),
       ],
   ].join( '\n' )
 }

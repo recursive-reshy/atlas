@@ -713,7 +713,7 @@ describe( 'the baseline schema', () => {
         .toEqual( { count: 2 } )
     } )
 
-    it( 'limits user_modules to the known modules and removes them with the user', () => {
+    it( 'keeps a module once per user, names none itself, and removes them with the user', () => {
       insertUser( 'a', 'member' )
 
       const add = getDatabase()
@@ -722,7 +722,7 @@ describe( 'the baseline schema', () => {
       add.run( 'a', 'melete' )
 
       expect( () => add.run( 'a', 'melete' ) ).toThrow( /UNIQUE|PRIMARY/ )
-      expect( () => add.run( 'a', 'wealth' ) ).toThrow( /CHECK/ )
+      expect( () => add.run( 'a', 'wealth' ) ).not.toThrow()
 
       getDatabase().prepare( 'DELETE FROM users WHERE id = ?' ).run( 'a' )
 
@@ -741,7 +741,7 @@ describe( 'the baseline schema', () => {
         .toEqual( { count: 0 } )
     } )
 
-    it( 'lists a user once per module in eligible_users, and the admin for every module', () => {
+    it( 'lists an active member once per module they have in eligible_users, not the admin', () => {
       insertUser( 'a', 'admin' )
       insertUser( 'b', 'member' )
       insertUser( 'c', 'member', 'removed' )
@@ -752,11 +752,7 @@ describe( 'the baseline schema', () => {
         .prepare( 'SELECT user_id, module FROM eligible_users ORDER BY user_id, module' )
         .all()
 
-      expect( rows ).toEqual( [
-        { user_id: 'a', module: 'melete' },
-        { user_id: 'a', module: 'transcriber' },
-        { user_id: 'b', module: 'melete' },
-      ] )
+      expect( rows ).toEqual( [ { user_id: 'b', module: 'melete' } ] )
     } )
   } )
 

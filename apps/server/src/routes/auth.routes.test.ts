@@ -1,5 +1,9 @@
 // Node
-import { createHash } from 'node:crypto'
+import {
+  createHash,
+  createHmac,
+  hkdfSync,
+} from 'node:crypto'
 // Packages
 import request from 'supertest'
 import {
@@ -12,6 +16,7 @@ import {
 } from 'vitest'
 // App
 import { app } from '../app.js'
+import { config } from '../config.js'
 // Logging
 import { logger } from '../logger.js'
 // Repositories
@@ -79,7 +84,13 @@ const cookieValue = ( response: request.Response, name: string ): string => {
   return line?.slice( name.length + 1 ).split( ';' )[ 0 ] ?? ''
 }
 
-type Pending = { state: string, verifier: string, returnTo: string, origin: string }
+type Pending = {
+  state: string
+  verifier: string
+  returnTo: string
+  origin: string
+  exp: number
+}
 
 const payloadOf = ( value: string ): Pending => {
   return JSON.parse( Buffer.from( value.split( '.' )[ 0 ] ?? '', 'base64url' ).toString() ) as never
@@ -411,6 +422,45 @@ describe( 'GET /api/auth/callback', () => {
       } ) ).toString( 'base64url' )
 
       expectRefused( await callback( { state, cookie: `${ swapped }.${ signature }` } ), 'failed' )
+    } )
+
+    describe( 'a correctly signed payload of the wrong shape', () => {
+      const signed = ( payload: unknown ): string => {
+        const body = Buffer.from( JSON.stringify( payload ) ).toString( 'base64url' )
+        const key = Buffer.from( hkdfSync(
+          'sha256',
+          config.gmail.encryptionKey,
+          Buffer.alloc( 0 ),
+          'atlas-oauth-cookie',
+          32,
+        ) )
+
+        return `${ body }.${ createHmac( 'sha256', key ).update( body ).digest( 'base64url' ) }`
+      }
+
+      it.each( [
+        [ 'a string expiry', ( pending: Pending ) => ( { ...pending, exp: '99999999999999' } ) ],
+        [ 'a missing verifier', ( pending: Pending ) => ( { ...pending, verifier: undefined } ) ],
+        [ 'a numeric returnTo', ( pending: Pending ) => ( { ...pending, returnTo: 5 } ) ],
+        [ 'an array', () => [ 1, 2 ] ],
+        [ 'null', () => null ],
+      ] )( 'fails for %s', async ( _name, shape ) => {
+        const { state, cookie } = await begin()
+        const pending = { ...payloadOf( cookie ), exp: Date.now() + 60_000 }
+
+        expectRefused( await callback( { state, cookie: signed( shape( pending ) ) } ), 'failed' )
+      } )
+
+      it( 'still accepts the right shape signed the same way', async () => {
+        const { state, cookie } = await begin()
+        const pending = { ...payloadOf( cookie ), exp: Date.now() + 60_000 }
+
+        identify( 'admin@example.com' )
+
+        const response = await callback( { state, cookie: signed( pending ) } )
+
+        expect( cookiesOf( response ).join( ';' ) ).toContain( 'atlas_session=' )
+      } )
     } )
 
     it( 'fails for garbage in the cookie', async () => {

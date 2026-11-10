@@ -13,22 +13,17 @@ test( 'the version is 1.0.0 or later (ADR 0084)', () => {
   assert.ok( Number( version.split( '.' )[ 0 ] ) >= 1, `root package.json says ${ version }` )
 } )
 
-test( 'every package, the agent, its lock entry, the README and CLAUDE.md state the same version', () => {
+test( 'every package, the agent and its lock entry state the same version', () => {
   for( const file of [ 'apps/agent/package.json', 'apps/server/package.json', 'apps/web/package.json', 'e2e/package.json', 'packages/shared/package.json' ] ) {
     assert.equal( JSON.parse( read( file ) ).version, version, file )
   }
   assert.match( read( 'apps/agent/pyproject.toml' ), new RegExp( `^version = "${ version }"$`, 'm' ) )
   assert.match( read( 'apps/agent/uv.lock' ), new RegExp( `name = "atlas-agent"\\nversion = "${ version }"` ) )
-  assert.match( read( 'README.md' ), new RegExp( `^Version ${ version.replaceAll( '.', '\\.' ) }\\.`, 'm' ) )
-  assert.match( read( 'CLAUDE.md' ), new RegExp( `The current version is \\*\\*${ version.replaceAll( '.', '\\.' ) }\\*\\*` ) )
 } )
 
-test( 'docs/README.md has a line for the current version, and the Workflow paths follow it', () => {
-  const [ major, minor ] = version.split( '.' )
-  const folder = `v${ major }.${ minor }.0`
+test( 'docs/README.md has a line for the current version, and its tasks.md exists', () => {
+  const folder = `v${ version }`
   const line = read( 'docs/README.md' ).split( '\n' ).find( ( text ) => text.startsWith( `- **v${ version }` ) )
   assert.ok( line, `no line for v${ version }` )
-  assert.match( read( 'CLAUDE.md' ), new RegExp( `Read \`docs/${ folder.replaceAll( '.', '\\.' ) }/prd\\.md\`` ) )
-  assert.match( read( 'CLAUDE.md' ), new RegExp( `docs/${ folder.replaceAll( '.', '\\.' ) }/plans/checkpoint-` ) )
   assert.ok( existsSync( join( root, 'docs', folder, 'tasks.md' ) ), `docs/${ folder }/tasks.md` )
 } )

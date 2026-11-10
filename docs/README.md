@@ -2,9 +2,10 @@
 
 ## Plans
 
-Each version has its own folder. The current version is 1.1.0. User guides: [deploy.md](deploy.md) (hosting on a VM, including backups and restore), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md). How the app works: [architecture.md](architecture.md).
+Each version has its own folder. The current version is 1.1.1. User guides: [deploy.md](deploy.md) (hosting on a VM, including backups and restore), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md). How the app works: [architecture.md](architecture.md).
 
-- **v1.1.0 (in progress):** [PRD](v1.1.0/prd.md) · [TRD](v1.1.0/trd.md) · [Tasks](v1.1.0/tasks.md) · [Release notes](v1.1.0/release-notes.md) · checkpoint plans in `v1.1.0/plans/`
+- **v1.1.1 (in progress):** [PRD](v1.1.1/prd.md) · [TRD](v1.1.1/trd.md) · [Tasks](v1.1.1/tasks.md) · [Release notes](v1.1.1/release-notes.md) · checkpoint plans in `v1.1.1/plans/`
+- **v1.1.0 (done):** [PRD](v1.1.0/prd.md) · [TRD](v1.1.0/trd.md) · [Tasks](v1.1.0/tasks.md) · [Release notes](v1.1.0/release-notes.md) · checkpoint plans in `v1.1.0/plans/`
 - **v1.0.0:** the same code as 0.11.0 with the version raised and no migration; the promise is [ADR 0084](decisions/0084-stability-promise-from-1-0.md), the checklist is [1.0 readiness](v1-readiness.md)
   - **Docs cleanup (after 1.0):** the architecture moved out of the root `CLAUDE.md` into [architecture.md](architecture.md), `backups.md` was folded into the runbook's "Restoring the database", the 0.10 upgrade section left the runbook, and the Git rules now use release branches. The user guides are [deploy.md](deploy.md), [phone-access.md](phone-access.md) and [google-cloud-setup.md](google-cloud-setup.md).
 - **v0.11.0 (done):** [PRD](v0.11.0/prd.md) · [TRD](v0.11.0/trd.md) · [Tasks](v0.11.0/tasks.md) · [Release notes](v0.11.0/release-notes.md) · checkpoint plans in `v0.11.0/plans/` · [1.0 readiness](v1-readiness.md)
@@ -123,6 +124,13 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0093](decisions/0093-resource-suggestions-without-search.md) | Resource suggestions from Claude's own knowledge, with search queries instead of links | Accepted |
 | [0094](decisions/0094-note-concepts-carry-user-id.md) | `melete_note_concepts` carries a `user_id`, so the schema guard needs no exception | Accepted |
 | [0095](decisions/0095-themis-goals-list-route.md) | `GET /api/themis/goals` lists every goal, so achieved and dropped goals stay reachable | Accepted |
+| [0096](decisions/0096-address-guard-for-fetched-urls.md) | Fetched URLs are refused when they resolve to a private address | Accepted |
+| [0097](decisions/0097-released-vault-folders.md) | A released vault folder is moved aside, so no one else can claim it | Accepted |
+| [0098](decisions/0098-web-source-grouped-by-feature.md) | The web source is grouped by feature | Accepted |
+| [0099](decisions/0099-schema-sql-in-files.md) | The schema SQL lives in files | Accepted |
+| [0100](decisions/0100-loops-wake-on-queue.md) | The worker and the Melete generator wake when work is queued | Accepted |
+| [0101](decisions/0101-modules-defined-once.md) | A module is defined once, in `ModuleId` | Accepted |
+| [0102](decisions/0102-job-list-omits-the-draft.md) | The job list omits the draft | Accepted |
 
 ## Template for new ADRs
 

@@ -1,5 +1,10 @@
 // Node
 import {
+  existsSync,
+  mkdirSync,
+  renameSync,
+} from 'node:fs'
+import {
   lstat,
   mkdir,
   readdir,
@@ -12,6 +17,8 @@ import { VaultDir } from '@atlas/shared'
 import type { VaultChoice } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
+// Logging
+import { logger } from '../logger.js'
 // Errors
 import {
   ConflictError,
@@ -72,6 +79,41 @@ export const listUnclaimedVaults = async ( userId: string ): Promise< VaultChoic
     .filter( ( name ) => VaultDir.safeParse( name ).success )
 
   return { folders: folders.sort(), can_create: config.vaultCreateEnabled }
+}
+
+const stamp = ( now: Date ): string => {
+  return now.toISOString().replace( /\.\d+Z$/, '' ).replace( /[-:]/g, '' )
+}
+
+// Moves a folder nobody owns any more to .released/, which listUnclaimedVaults never offers
+// (ADR 0097). Called after the database change; a failure is logged, never thrown.
+export const releaseVaultFolder = ( vaultDir: string | null, now: Date = new Date() ): void => {
+  if( vaultDir === null ) {
+    return
+  }
+
+  const from = join( config.vaultsPath, vaultDir )
+
+  try {
+    if( !existsSync( from ) ) {
+      return
+    }
+
+    const releasedDir = join( config.vaultsPath, '.released' )
+
+    mkdirSync( releasedDir, { recursive: true } )
+
+    const name = `${ vaultDir }-${ stamp( now ) }`
+    let target = join( releasedDir, name )
+
+    for( let n = 2; existsSync( target ); n += 1 ) {
+      target = join( releasedDir, `${ name }-${ n }` )
+    }
+
+    renameSync( from, target )
+  } catch( err ) {
+    logger.error( { err, vault_dir: vaultDir }, 'Could not move a released vault folder aside' )
+  }
 }
 
 // A real folder directly in the vaults folder: not a file and not a symlink

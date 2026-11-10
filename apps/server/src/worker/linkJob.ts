@@ -6,14 +6,13 @@ import { requestLinks } from '../clients/agent.client.js'
 // Repositories
 import { findUserById } from '../repositories/users.repository.js'
 // Services
+import { defaultFolderFor, findJob } from '../services/jobs.service.js'
 import {
   completeLinking,
-  defaultFolderFor,
   failLinking,
-  findJob,
   recordLinkRun,
   recordLinkSuggestions,
-} from '../services/jobs.service.js'
+} from '../services/jobLinking.service.js'
 import { vaultRootFor } from '../services/vault.service.js'
 import { resolveLinkerPrompt } from '../services/prompts.service.js'
 import { resolveLinkingModel } from '../services/settings.service.js'

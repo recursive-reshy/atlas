@@ -15,7 +15,12 @@ import {
   queueJob,
 } from '../services/jobs.service.js'
 // Repositories
-import { clearJobs, updateJob } from '../repositories/jobStore.repository.js'
+import {
+  clearJobs,
+  insertJob,
+  updateJob,
+  type StoredJob,
+} from '../repositories/jobStore.repository.js'
 import { setModules } from '../repositories/userModules.repository.js'
 import { updateUser } from '../repositories/users.repository.js'
 // Worker
@@ -55,6 +60,30 @@ const useRealisticRunJob = (): void => {
     events.push( `end:${ id }` )
   } )
 }
+
+const storedJob = (): StoredJob => ( {
+  id: '',
+  url: 'https://www.youtube.com/watch?v=abc',
+  status: 'queued',
+  error: null,
+  created_at: new Date().toISOString(),
+  updated_at: new Date().toISOString(),
+  title: null,
+  note_markdown: null,
+  target_folder: null,
+  expires_at: null,
+  saved_path: null,
+  summary_model: null,
+  prompt_profile_id: null,
+  source_document: null,
+  link_state: null,
+  link_error: null,
+  source_type: 'video',
+  feed_id: null,
+  feed_name: null,
+  gmail_source_id: null,
+  gmail_source_name: null,
+} )
 
 const queue = async (): Promise< string > => {
   return ( await queueJob( userId, { url: 'https://www.youtube.com/watch?v=abc' } ) ).id
@@ -158,9 +187,46 @@ describe( 'startWorker', () => {
     expect( runJobMock ).not.toHaveBeenCalled()
 
     const id = await queue()
+    await vi.advanceTimersByTimeAsync( 15_000 )
+
+    expect( runJobMock ).toHaveBeenCalledWith( userId, id )
+  } )
+
+  it( 'starts a job in the same tick it is queued, without waiting for the poll', async () => {
+    stopWorker = startWorker()
+    await vi.advanceTimersByTimeAsync( 0 )
+    expect( runJobMock ).not.toHaveBeenCalled()
+
+    const id = await queue()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( runJobMock ).toHaveBeenCalledWith( userId, id )
+  } )
+
+  it( 'still finds a job queued by a path that does not wake it, on the 15 s poll', async () => {
+    stopWorker = startWorker()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    const id = crypto.randomUUID()
+    insertJob( userId, { ...storedJob(), id } )
+
+    await vi.advanceTimersByTimeAsync( 14_000 )
+    expect( runJobMock ).not.toHaveBeenCalled()
+
     await vi.advanceTimersByTimeAsync( 1000 )
 
     expect( runJobMock ).toHaveBeenCalledWith( userId, id )
+  } )
+
+  it( 'ignores a wake after the stop function is called', async () => {
+    stopWorker = startWorker()
+    await vi.advanceTimersByTimeAsync( 0 )
+    await stopWorker()
+
+    await queue()
+    await vi.advanceTimersByTimeAsync( 20_000 )
+
+    expect( runJobMock ).not.toHaveBeenCalled()
   } )
 
   it( 'runs a job queued during a run in the same pass', async () => {
@@ -189,7 +255,7 @@ describe( 'startWorker', () => {
 
     markStatus( userId, broken, 'transcribing' )
     const later = await queue()
-    await vi.advanceTimersByTimeAsync( 1000 )
+    await vi.advanceTimersByTimeAsync( 15_000 )
 
     expect( runJobMock ).toHaveBeenCalledWith( userId, later )
   } )
@@ -203,7 +269,7 @@ describe( 'startWorker', () => {
     await vi.advanceTimersByTimeAsync( 0 )
     expect( runJobMock ).toHaveBeenCalledTimes( 1 )
 
-    await vi.advanceTimersByTimeAsync( 1000 )
+    await vi.advanceTimersByTimeAsync( 15_000 )
 
     expect( runJobMock ).toHaveBeenCalledTimes( 2 )
     expect( findJob( userId, id ).status ).toBe( 'queued' )
@@ -330,7 +396,7 @@ describe( 'startWorker for two users', () => {
     expect( findJob( member, theirs ).status ).toBe( 'queued' )
 
     setModules( member, [ 'transcriber' ] )
-    await vi.advanceTimersByTimeAsync( 2000 )
+    await vi.advanceTimersByTimeAsync( 15_000 )
 
     expect( runJobMock.mock.calls ).toEqual( [ [ member, theirs ] ] )
   } )
@@ -347,7 +413,7 @@ describe( 'startWorker for two users', () => {
     expect( runJobMock ).not.toHaveBeenCalled()
 
     updateUser( member, { status: 'active' } )
-    await vi.advanceTimersByTimeAsync( 2000 )
+    await vi.advanceTimersByTimeAsync( 15_000 )
 
     expect( runJobMock.mock.calls ).toEqual( [ [ member, theirs ] ] )
   } )

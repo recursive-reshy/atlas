@@ -1,5 +1,7 @@
 // Packages
 import { z } from 'zod'
+// Shared
+import { ModuleId } from '@atlas/shared'
 // Lifecycle
 import { statusesWhere } from '../jobs/lifecycle.js'
 // Repositories
@@ -8,7 +10,13 @@ import { SELECT_FEED, toOwnedFeed } from './feedRows.js'
 import type { OwnedFeed } from './feedRows.js'
 import { SELECT_SOURCE, toOwnedSource } from './gmailSourceRows.js'
 import type { OwnedGmailSource } from './gmailSourceRows.js'
-import { SELECT_JOB, marks, toOwnedJob } from './jobRows.js'
+import {
+  SELECT_JOB,
+  SELECT_JOB_LIST,
+  marks,
+  toListedOwnedJob,
+  toOwnedJob,
+} from './jobRows.js'
 import type { OwnedJob } from './jobRows.js'
 import { HealthRecord } from './health.repository.js'
 import { NoteRecord } from './meleteNotes.repository.js'
@@ -16,9 +24,20 @@ import { NoteRecord } from './meleteNotes.repository.js'
 // The only queries without a user (ADR 0062): the loops that serve every user. Each row says
 // whose it is. Work for the loops that run on someone's behalf is only for eligible users
 // (ADR 0064): active, with the module on (the admin always), and for vault work a chosen vault.
-const eligible = ( ownerColumn: string, module: 'transcriber' | 'melete' ): string => {
-  return `JOIN eligible_users ON eligible_users.user_id = ${ ownerColumn }
-    AND eligible_users.module = '${ module }'`
+// The admin has every module the application knows and no stored rows (ADR 0101): the view holds
+// members only, so the admin's rows come from ModuleId. The list is a literal built from that
+// constant, not user input.
+const ADMIN_MODULES = JSON.stringify( ModuleId.options )
+
+const eligible = ( ownerColumn: string, module: ModuleId ): string => {
+  return `JOIN (
+      SELECT user_id, module, vault_dir FROM eligible_users
+      UNION ALL
+      SELECT users.id, modules.value, users.vault_dir
+      FROM users, json_each( '${ ADMIN_MODULES }' ) modules
+      WHERE users.role = 'admin' AND users.status = 'active'
+    ) eligible ON eligible.user_id = ${ ownerColumn }
+    AND eligible.module = '${ module }'`
 }
 
 // Round-robin: the eligible user whose last start was longest ago goes next, users who never
@@ -81,11 +100,11 @@ export const listExpiredJobs = ( now: string ): OwnedJob[] => {
   const statuses = statusesWhere( 'expires' )
 
   return getDatabase()
-    .prepare( `${ SELECT_JOB }
+    .prepare( `${ SELECT_JOB_LIST }
       WHERE jobs.status IN ( ${ marks( statuses ) } )
         AND jobs.expires_at IS NOT NULL AND jobs.expires_at <= ?` )
     .all( ...statuses, now )
-    .map( toOwnedJob )
+    .map( toListedOwnedJob )
 }
 
 const cutoffFor = ( now: string, intervalMinutes: number ): string => {
@@ -131,7 +150,7 @@ export const claimNextGeneration = ( now: string ): OwnedNote | undefined => {
     const next = getDatabase()
       .prepare( `SELECT melete_notes.id FROM melete_notes
         ${ eligible( 'melete_notes.user_id', 'melete' ) }
-          AND eligible_users.vault_dir IS NOT NULL
+          AND eligible.vault_dir IS NOT NULL
         JOIN users ON users.id = melete_notes.user_id
         WHERE melete_notes.generation = 'queued'
         ORDER BY users.last_generation_started_at IS NOT NULL, users.last_generation_started_at,
@@ -168,7 +187,7 @@ export const claimNextMapping = ( now: string ): OwnedNote | undefined => {
     const next = getDatabase()
       .prepare( `SELECT melete_notes.id FROM melete_notes
         ${ eligible( 'melete_notes.user_id', 'melete' ) }
-          AND eligible_users.vault_dir IS NOT NULL
+          AND eligible.vault_dir IS NOT NULL
         JOIN users ON users.id = melete_notes.user_id
         WHERE melete_notes.mapping = 'queued' AND melete_notes.generation = 'idle'
         ORDER BY users.last_generation_started_at IS NOT NULL, users.last_generation_started_at,
@@ -198,7 +217,7 @@ export const claimNextDraft = ( now: string, tried: string[] ): OwnedSubject | u
     const next = getDatabase()
       .prepare( `SELECT melete_subjects.id, melete_subjects.user_id FROM melete_subjects
         ${ eligible( 'melete_subjects.user_id', 'melete' ) }
-          AND eligible_users.vault_dir IS NOT NULL
+          AND eligible.vault_dir IS NOT NULL
         JOIN users ON users.id = melete_subjects.user_id
         WHERE melete_subjects.syllabus_status = 'drafting'
           AND melete_subjects.id NOT IN ( SELECT value FROM json_each( ? ) )

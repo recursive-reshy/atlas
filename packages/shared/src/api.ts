@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Job
-import { Job } from './job.js'
+import { Job, JobListItem } from './job.js'
 // Source
 import { detectSourceType, videoRefusal } from './detectSourceType.js'
 import {
@@ -49,7 +49,7 @@ export const GetJobResponse = z.object( {
 export type GetJobResponse = z.infer< typeof GetJobResponse >
 
 export const ListJobsResponse = z.object( {
-  jobs: z.array( Job ),
+  jobs: z.array( JobListItem ),
 } )
 export type ListJobsResponse = z.infer< typeof ListJobsResponse >
 

@@ -34,6 +34,8 @@ services:
       # Mounts POST /api/test/session, which the server only allows under NODE_ENV=test (TRD §11.4)
       NODE_ENV: test
       E2E_TEST_SIGNIN: "1"
+      # The fakes sit on the Compose network, which the address guard refuses (ADR 0096)
+      FETCH_ALLOW_PRIVATE: "1"
       APP_ORIGINS: http://localhost:3101
       GOOGLE_CLIENT_ID: e2e
       GOOGLE_CLIENT_SECRET: e2e
