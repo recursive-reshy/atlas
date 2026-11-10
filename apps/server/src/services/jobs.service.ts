@@ -59,6 +59,8 @@ import { assertKnownModel } from './models.service.js'
 import { assertActiveProfile } from './prompts.service.js'
 import { isLinkingEnabled } from './settings.service.js'
 import { vaultRootFor } from './vault.service.js'
+// Worker
+import { wakeWorker } from '../worker/wake.js'
 // Logging
 import { logger } from '../logger.js'
 
@@ -358,6 +360,7 @@ export const queueJob = async (
   }
 
   insertJob( userId, job )
+  wakeWorker()
 
   return toPublicJob( userId, job )
 }
@@ -495,7 +498,11 @@ export const retrySummary = ( userId: string, id: string ): Job => {
 
   assertFrom( job, 'summary_failed', 'summarizing' )
 
-  return moveTo( userId, job, 'summarizing', { error: null } )
+  const retried = moveTo( userId, job, 'summarizing', { error: null } )
+
+  wakeWorker()
+
+  return retried
 }
 
 export const regenerateSummary = async (
@@ -511,13 +518,17 @@ export const regenerateSummary = async (
 
   supersedePending( userId, id )
 
-  return moveTo( userId, job, 'summarizing', {
+  const regenerated = moveTo( userId, job, 'summarizing', {
     summary_model: choices.model ?? job.summary_model,
     prompt_profile_id: choices.profile_id ?? job.prompt_profile_id,
     error: null,
     link_state: null,
     link_error: null,
   } )
+
+  wakeWorker()
+
+  return regenerated
 }
 
 

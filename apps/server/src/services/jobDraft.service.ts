@@ -17,6 +17,8 @@ import { deleteJob, type StoredJob } from '../repositories/jobStore.repository.j
 import { setLastFolder } from '../repositories/promptProfiles.repository.js'
 // Sources
 import { articleFromText } from '../sources/text.js'
+// Worker
+import { wakeWorker } from '../worker/wake.js'
 // Services
 import {
   assertFrom,
@@ -52,11 +54,15 @@ export const submitPastedText = (
 
   const document = articleFromText( { url: job.url, text, title, origin: 'pasted' } )
 
-  return moveTo( userId, job, 'summarizing', {
+  const summarizing = moveTo( userId, job, 'summarizing', {
     source_document: document,
     title: document.meta.title,
     error: null,
   } )
+
+  wakeWorker()
+
+  return summarizing
 }
 
 const today = (): string => new Date().toISOString().slice( 0, 10 )

@@ -12,9 +12,10 @@ import { getDatabase } from '../repositories/database.js'
 import { findNote, updateNote } from '../repositories/meleteNotes.repository.js'
 import { findSubject, updateSubject } from '../repositories/meleteSubjects.repository.js'
 // Services
+import { retryGeneration } from '../services/melete.service.js'
 import { generateForNote } from '../services/meleteGeneration.service.js'
 import { mapForNote } from '../services/meleteMapping.service.js'
-import { draftForSubject } from '../services/meleteSyllabus.service.js'
+import { draftForSubject, requestSyllabusDraft } from '../services/meleteSyllabus.service.js'
 // Worker
 import { startMeleteGenerator } from './meleteGenerator.js'
 // Logging
@@ -33,7 +34,14 @@ beforeEach( () => {
 
 vi.mock( '../services/meleteGeneration.service.js' )
 vi.mock( '../services/meleteMapping.service.js' )
-vi.mock( '../services/meleteSyllabus.service.js' )
+// Only the drafting is replaced: requesting a draft is the real call, and it wakes the loop
+vi.mock( '../services/meleteSyllabus.service.js', async ( importOriginal ) => {
+  const original = await importOriginal<
+    typeof import( '../services/meleteSyllabus.service.js' )
+  >()
+
+  return { ...original, draftForSubject: vi.fn() }
+} )
 
 const generateMock = vi.mocked( generateForNote )
 const draftMock = vi.mocked( draftForSubject )
@@ -146,6 +154,44 @@ describe( 'startMeleteGenerator', () => {
     expect( generateMock ).not.toHaveBeenCalled()
 
     const id = queued( '2026-10-01T00:00:00.000Z' )
+    await vi.advanceTimersByTimeAsync( 15_000 )
+
+    expect( generateMock ).toHaveBeenCalledWith( userId, id )
+  } )
+
+  it( 'generates a note the moment it is retried, without waiting for the poll', async () => {
+    const id = addNote( userId, subjectId, { generation: 'failed' } )
+
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+    expect( generateMock ).not.toHaveBeenCalled()
+
+    retryGeneration( userId, id )
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( generateMock ).toHaveBeenCalledWith( userId, id )
+  } )
+
+  it( 'drafts a syllabus the moment it is requested', async () => {
+    updateSubject( userId, subjectId, { target_level: 'working' } )
+
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    requestSyllabusDraft( userId, subjectId )
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    expect( draftMock ).toHaveBeenCalledWith( userId, subjectId )
+  } )
+
+  it( 'still finds a note queued by a path that does not wake it, on the 15 s poll', async () => {
+    stopGenerator = startMeleteGenerator()
+    await vi.advanceTimersByTimeAsync( 0 )
+
+    const id = queued( '2026-10-01T00:00:00.000Z' )
+    await vi.advanceTimersByTimeAsync( 14_000 )
+    expect( generateMock ).not.toHaveBeenCalled()
+
     await vi.advanceTimersByTimeAsync( 1000 )
 
     expect( generateMock ).toHaveBeenCalledWith( userId, id )
@@ -202,7 +248,7 @@ describe( 'startMeleteGenerator', () => {
     generateMock.mockRejectedValueOnce( new Error( 'database is locked' ) )
     stopGenerator = startMeleteGenerator()
     await vi.advanceTimersByTimeAsync( 0 )
-    await vi.advanceTimersByTimeAsync( 1000 )
+    await vi.advanceTimersByTimeAsync( 15_000 )
 
     expect( error ).toHaveBeenCalledTimes( 1 )
     expect( generateMock ).toHaveBeenNthCalledWith( 1, userId, first )
@@ -276,7 +322,7 @@ describe( 'startMeleteGenerator for two users', () => {
     expect( findNote( other, theirs )?.generation ).toBe( 'queued' )
 
     getDatabase().prepare( 'UPDATE users SET vault_dir = \'chosen\' WHERE id = ?' ).run( other )
-    await vi.advanceTimersByTimeAsync( 2000 )
+    await vi.advanceTimersByTimeAsync( 15_000 )
 
     expect( generateMock.mock.calls ).toEqual( [ [ other, theirs ] ] )
   } )
@@ -341,7 +387,7 @@ describe( 'startMeleteGenerator, syllabus drafts (ADR 0089)', () => {
 
     expect( draftMock ).not.toHaveBeenCalled()
 
-    await vi.advanceTimersByTimeAsync( 1000 )
+    await vi.advanceTimersByTimeAsync( 15_000 )
 
     expect( draftMock ).toHaveBeenCalledWith( userId, id )
   } )
@@ -383,7 +429,7 @@ describe( 'startMeleteGenerator, syllabus drafts (ADR 0089)', () => {
     draftMock.mockRejectedValueOnce( new Error( 'database is locked' ) )
     stopGenerator = startMeleteGenerator()
     await vi.advanceTimersByTimeAsync( 0 )
-    await vi.advanceTimersByTimeAsync( 1000 )
+    await vi.advanceTimersByTimeAsync( 15_000 )
 
     expect( error ).toHaveBeenCalledTimes( 1 )
     expect( generateMock ).toHaveBeenCalledWith( userId, note )
@@ -455,7 +501,7 @@ describe( 'mapping in the Melete loop', () => {
     mapMock.mockRejectedValueOnce( new Error( 'database is locked' ) )
     stopGenerator = startMeleteGenerator()
     await vi.advanceTimersByTimeAsync( 0 )
-    await vi.advanceTimersByTimeAsync( 1000 )
+    await vi.advanceTimersByTimeAsync( 15_000 )
 
     expect( error ).toHaveBeenCalledTimes( 1 )
     expect( mapMock ).toHaveBeenNthCalledWith( 1, userId, first )

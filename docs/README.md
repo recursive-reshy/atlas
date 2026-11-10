@@ -128,6 +128,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0097](decisions/0097-released-vault-folders.md) | A released vault folder is moved aside, so no one else can claim it | Accepted |
 | [0098](decisions/0098-web-source-grouped-by-feature.md) | The web source is grouped by feature | Accepted |
 | [0099](decisions/0099-schema-sql-in-files.md) | The schema SQL lives in files | Accepted |
+| [0100](decisions/0100-loops-wake-on-queue.md) | The worker and the Melete generator wake when work is queued | Accepted |
 
 ## Template for new ADRs
 

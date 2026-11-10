@@ -25,6 +25,8 @@ import {
 } from '../repositories/linkSuggestions.repository.js'
 // Summarizer
 import { estimateCostUsd } from '../summarizer/pricing.js'
+// Worker
+import { wakeWorker } from '../worker/wake.js'
 // Services
 import { updateDraft } from './jobDraft.service.js'
 import {
@@ -103,7 +105,7 @@ export const runLinking = ( userId: string, id: string, body: RunLinkingBody ): 
     throw new ConflictError( 'Linking isn\'t configured' )
   }
 
-  return inTransaction( () => {
+  const linking = inTransaction( () => {
     if( body.note_markdown !== undefined ) {
       updateDraft( userId, id, { note_markdown: body.note_markdown } )
     }
@@ -115,6 +117,10 @@ export const runLinking = ( userId: string, id: string, body: RunLinkingBody ): 
       link_error: null,
     } )
   } )
+
+  wakeWorker()
+
+  return linking
 }
 
 // Every id must be a pending suggestion of this job; the first one that isn't is named
