@@ -12,7 +12,7 @@ import {
   LinkRequest,
   LinkResponse,
   LinkSuggestion,
-  LinkUsage,
+  AgentUsage,
 } from './agent.js'
 
 const examplesPath = fileURLToPath(
@@ -23,7 +23,7 @@ const schemas: Record< string, z.ZodType > = {
   LinkNote,
   LinkRequest,
   LinkSuggestion,
-  LinkUsage,
+  AgentUsage,
   LinkResponse,
   InstructionsResponse,
 }

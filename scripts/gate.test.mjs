@@ -55,7 +55,9 @@ test( 'the step list covers every package test, lint and typecheck script', () =
     }
   }
   assert.ok( STEPS.some( ( s ) => s.folder === 'root' ), 'root tests' )
-  assert.ok( STEPS.every( ( s ) => s.kind !== 'contract' ), 'no contract step until the generator exists (TRD 4.2)' )
+  const contract = STEPS.filter( ( s ) => s.kind === 'contract' )
+  assert.equal( contract.length, 1, 'one contract step (ADR 0104)' )
+  assert.deepEqual( contract[ 0 ].args, [ 'scripts/contractCheck.mjs' ] )
 } )
 
 test( 'root scripts call the gate', () => {

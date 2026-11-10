@@ -28,12 +28,13 @@ export const STEPS = [
   pnpm( 'e2e', '@atlas/e2e', 'test:fakes', 'test', 'test:fakes' ),
   pnpm( 'e2e', '@atlas/e2e', 'lint', 'lint' ),
   pnpm( 'e2e', '@atlas/e2e', 'typecheck', 'typecheck' ),
+  { folder: 'contract', name: 'agent contract is current', kind: 'contract', command: 'node', args: [ 'scripts/contractCheck.mjs' ] },
   { folder: 'root', name: 'root scripts and deploy tests', kind: 'test', command: 'node', args: [ '--test', 'scripts/*.test.mjs', 'deploy/**/*.test.mjs' ] },
 ]
 
 export const FOLDERS = [ 'shared', 'server', 'web', 'agent', 'e2e', 'root' ]
 
-// `agent` or `shared` also selects the contract step (ADR 0104); there is none until the generator exists.
+// `agent` or `shared` also selects the contract step (ADR 0104).
 export const selectSteps = ( steps, { only, tests } = {} ) => {
   if( only ) {
     const unknown = only.filter( ( name ) => !FOLDERS.includes( name ) )
