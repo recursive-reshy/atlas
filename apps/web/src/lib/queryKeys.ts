@@ -83,4 +83,6 @@ export const calendarKeys = {
   all: [ 'calendar' ] as const,
   status: [ 'calendar', 'status' ] as const,
   choices: [ 'calendar', 'choices' ] as const,
+  drafts: [ 'calendar', 'drafts' ] as const,
+  rules: [ 'calendar', 'rules' ] as const,
 }

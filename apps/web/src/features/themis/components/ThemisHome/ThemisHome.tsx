@@ -91,6 +91,15 @@ export function ThemisHome(): ReactElement {
         period={ period }
         onPeriodChange={ ( next ) => setParams( { period: next } ) }
       />
+      { overview.calendar_status !== 'not_configured' && (
+        <Link
+          component={ RouterLink }
+          to="/themis/calendar"
+          sx={ { minHeight: 44, display: 'inline-flex', alignItems: 'center' } }
+        >
+          Calendar time
+        </Link>
+      ) }
       { overview.areas.map( ( area ) => (
         <AreaSection
           key={ area.id }

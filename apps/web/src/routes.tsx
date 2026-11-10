@@ -20,6 +20,7 @@ import { SettingsIndexRedirect } from './features/settings/components/SettingsIn
 import { SettingsLayout } from './features/settings/components/SettingsLayout'
 import { SignInPage } from './app/SignInPage'
 import { SourcesTab } from './features/settings/components/SourcesTab'
+import { ThemisCalendar } from './features/themis/components/ThemisCalendar'
 import { ThemisGoal } from './features/themis/components/ThemisGoal'
 import { ThemisHome } from './features/themis/components/ThemisHome'
 
@@ -37,6 +38,7 @@ export const routes: RouteObject[] = [
             children: [
               { index: true, element: <HomeScreen /> },
               { path: 'themis', element: <ThemisHome /> },
+              { path: 'themis/calendar', element: <ThemisCalendar /> },
               { path: 'themis/goals/:goalId', element: <ThemisGoal /> },
             ],
           },

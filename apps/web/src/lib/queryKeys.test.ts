@@ -73,5 +73,7 @@ describe( 'calendar query keys', () => {
     expect( calendarKeys.all ).toEqual( [ 'calendar' ] )
     expect( calendarKeys.status ).toEqual( [ 'calendar', 'status' ] )
     expect( calendarKeys.choices ).toEqual( [ 'calendar', 'choices' ] )
+    expect( calendarKeys.drafts ).toEqual( [ 'calendar', 'drafts' ] )
+    expect( calendarKeys.rules ).toEqual( [ 'calendar', 'rules' ] )
   } )
 } )

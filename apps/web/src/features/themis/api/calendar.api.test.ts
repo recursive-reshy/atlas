@@ -10,13 +10,23 @@ import {
 // App
 import { calendarChoicesFixture, calendarFixture } from '../fixtures/calendar.fixture'
 import {
+  approveDraft,
+  approveMatched,
+  createRule,
+  deleteRule,
   disconnectCalendar,
+  dismissDraft,
   getCalendar,
   listCalendars,
+  listDrafts,
+  listRules,
   selectCalendar,
   startCalendarConnect,
   syncCalendar,
+  updateDraft,
+  updateRule,
 } from './calendar.api'
+import { draftFixture, ruleFixture } from '../fixtures/calendarReview.fixture'
 
 const fetchMock = vi.fn()
 
@@ -128,6 +138,97 @@ describe( 'disconnectCalendar', () => {
 
     expect( fetchMock ).toHaveBeenCalledWith(
       `/api/calendar?remove_time=${ removeTime }`,
+      expect.objectContaining( { method: 'DELETE' } ),
+    )
+  } )
+} )
+
+const json = ( body: unknown, status = 200 ): Response => (
+  new Response( JSON.stringify( body ), { status } )
+)
+const jsonInit = ( method: string, body: unknown ): RequestInit => ( {
+  method,
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify( body ),
+} )
+
+describe( 'drafts', () => {
+  it( 'lists them', async () => {
+    fetchMock.mockResolvedValue( json( { drafts: [ draftFixture() ] } ) )
+
+    await expect( listDrafts() ).resolves.toEqual( [ draftFixture() ] )
+    expect( fetchMock ).toHaveBeenCalledWith( '/api/calendar/drafts', undefined )
+  } )
+
+  it( 'patches one and returns it', async () => {
+    fetchMock.mockResolvedValue( json( { draft: draftFixture() } ) )
+
+    await expect( updateDraft( 'd1', { note: 'Standup' } ) ).resolves.toEqual( draftFixture() )
+    expect( fetchMock ).toHaveBeenCalledWith(
+      '/api/calendar/drafts/d1',
+      jsonInit( 'PATCH', { note: 'Standup' } ),
+    )
+  } )
+
+  it( 'approves one and returns what was recorded', async () => {
+    const recorded = { time_entry_id: null, recorded_seconds: 0 }
+
+    fetchMock.mockResolvedValue( json( recorded ) )
+
+    await expect( approveDraft( 'd1' ) ).resolves.toEqual( recorded )
+    expect( fetchMock.mock.calls[ 0 ][ 0 ] ).toBe( '/api/calendar/drafts/d1/approve' )
+  } )
+
+  it( 'approves everything matched by a rule and returns the count', async () => {
+    fetchMock.mockResolvedValue( json( { approved: 3 } ) )
+
+    await expect( approveMatched() ).resolves.toBe( 3 )
+    expect( fetchMock.mock.calls[ 0 ][ 0 ] ).toBe( '/api/calendar/drafts/approve-matched' )
+  } )
+
+  it( 'dismisses one', async () => {
+    fetchMock.mockResolvedValue( new Response( null, { status: 204 } ) )
+
+    await dismissDraft( 'd1' )
+    expect( fetchMock ).toHaveBeenCalledWith(
+      '/api/calendar/drafts/d1/dismiss',
+      expect.objectContaining( { method: 'POST' } ),
+    )
+  } )
+} )
+
+describe( 'rules', () => {
+  it( 'lists them', async () => {
+    fetchMock.mockResolvedValue( json( { rules: [ ruleFixture() ] } ) )
+
+    await expect( listRules() ).resolves.toEqual( [ ruleFixture() ] )
+  } )
+
+  it( 'creates one', async () => {
+    const body = { phrase: 'standup', goal_id: '7e000000-0000-4000-8000-000000000001' }
+
+    fetchMock.mockResolvedValue( json( { rule: ruleFixture() }, 201 ) )
+
+    await expect( createRule( body ) ).resolves.toEqual( ruleFixture() )
+    expect( fetchMock ).toHaveBeenCalledWith( '/api/calendar/rules', jsonInit( 'POST', body ) )
+  } )
+
+  it( 'updates one', async () => {
+    fetchMock.mockResolvedValue( json( { rule: ruleFixture() } ) )
+
+    await expect( updateRule( 'r1', { position: 0 } ) ).resolves.toEqual( ruleFixture() )
+    expect( fetchMock ).toHaveBeenCalledWith(
+      '/api/calendar/rules/r1',
+      jsonInit( 'PATCH', { position: 0 } ),
+    )
+  } )
+
+  it( 'deletes one', async () => {
+    fetchMock.mockResolvedValue( new Response( null, { status: 204 } ) )
+
+    await deleteRule( 'r1' )
+    expect( fetchMock ).toHaveBeenCalledWith(
+      '/api/calendar/rules/r1',
       expect.objectContaining( { method: 'DELETE' } ),
     )
   } )

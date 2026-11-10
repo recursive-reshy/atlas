@@ -24,6 +24,9 @@ vi.mock( './features/home/components/HomeScreen', () => (
 vi.mock( './features/themis/components/ThemisHome', () => (
   { ThemisHome: () => <p>themis home</p> }
 ) )
+vi.mock( './features/themis/components/ThemisCalendar', () => (
+  { ThemisCalendar: () => <p>themis calendar</p> }
+) )
 vi.mock( './features/themis/components/ThemisGoal', () => (
   { ThemisGoal: () => <p>themis goal</p> }
 ) )
@@ -138,5 +141,20 @@ describe( 'routes and the gate', () => {
 
     expect( location().pathname ).toBe( '/transcriber' )
     expect( screen.queryByText( 'themis home' ) ).not.toBeInTheDocument()
+  } )
+
+  it( 'serves the calendar review to a user with Themis', () => {
+    const me = memberFixture( { modules: [ 'themis' ] } )
+    const { location } = renderWithRouter( '/themis/calendar', { me } )
+
+    expect( location().pathname ).toBe( '/themis/calendar' )
+    expect( screen.getByText( 'themis calendar' ) ).toBeInTheDocument()
+  } )
+
+  it( 'keeps a member without Themis off the calendar review', () => {
+    const me = memberFixture( { modules: [ 'transcriber' ] } )
+    const { location } = renderWithRouter( '/themis/calendar', { me } )
+
+    expect( location().pathname ).toBe( '/transcriber' )
   } )
 } )
