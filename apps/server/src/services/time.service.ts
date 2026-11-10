@@ -1,9 +1,9 @@
 // Shared
 import type {
+  EditTimeEntryBody,
   LogTimeBody,
   ModuleId,
   TimeEntry,
-  UpdateTimeEntryBody,
 } from '@atlas/shared'
 // Errors
 import { ConflictError, NotFoundError, ValidationError } from '../errors.js'
@@ -14,6 +14,7 @@ import { nextSession } from '../time/session.js'
 import { findSubject } from '../repositories/meleteSubjects.repository.js'
 import { findGoal } from '../repositories/themisGoals.repository.js'
 import {
+  deleteCalendarEntry,
   deleteLoggedEntry,
   extendMeasuredEntry,
   findTimeEntry,
@@ -21,8 +22,10 @@ import {
   insertMeasuredEntry,
   latestMeasuredEntry,
   listTimeEntries,
+  updateCalendarEntry,
   updateLoggedEntry,
 } from '../repositories/timeEntries.repository.js'
+import type { TimeEntryRecord } from '../repositories/timeEntries.repository.js'
 // Services
 import { getFinalCardSeconds, getSessionGapMinutes } from './settings.service.js'
 
@@ -62,7 +65,11 @@ const requireValidDay = ( day: string, now: Date ): void => {
 
 // A subject needs Melete and a goal needs Themis, both the user's own; otherwise it is as if
 // it did not exist
-const requireTarget = ( userId: string, modules: ModuleId[], body: LogTimeBody ): void => {
+const requireTarget = (
+  userId: string,
+  modules: ModuleId[],
+  body: { subject_id?: string, goal_id?: string },
+): void => {
   const found = body.subject_id === undefined
     ? modules.includes( 'themis' ) && findGoal( userId, body.goal_id ?? '' ) !== undefined
     : modules.includes( 'melete' ) && findSubject( userId, body.subject_id ) !== undefined
@@ -92,35 +99,54 @@ export const logTime = (
   } )
 }
 
-const requireLogged = ( userId: string, id: string ): void => {
+// A logged or calendar entry can be edited and deleted; a measured one is left as the answers
+// made it (ADRs 0091, 0108)
+const requireEditable = ( userId: string, id: string ): TimeEntryRecord => {
   const entry = findTimeEntry( userId, id )
 
   if( entry === undefined ) {
     throw new NotFoundError( 'Time entry not found' )
   }
 
-  if( entry.source !== 'logged' ) {
+  if( entry.source === 'measured' ) {
     throw new ConflictError( 'Measured time can\'t be changed' )
   }
+
+  return entry
 }
 
 export const changeTimeEntry = (
   userId: string,
+  modules: ModuleId[],
   id: string,
-  body: UpdateTimeEntryBody,
+  body: EditTimeEntryBody,
   now = new Date(),
 ): TimeEntry => {
-  requireLogged( userId, id )
+  const existing = requireEditable( userId, id )
+  const retarget = body.subject_id !== undefined || body.goal_id !== undefined
+
+  if( retarget && existing.source === 'logged' ) {
+    throw new ValidationError( 'The target can\'t change: log it again against the right one' )
+  }
 
   if( body.day !== undefined ) {
     requireValidDay( body.day, now )
   }
 
-  const entry = updateLoggedEntry( userId, id, {
+  if( retarget ) {
+    requireTarget( userId, modules, body )
+  }
+
+  const changes = {
     day: body.day,
     note: body.note,
     seconds: body.minutes === undefined ? undefined : body.minutes * 60,
-  } )
+  }
+  const entry = existing.source === 'logged'
+    ? updateLoggedEntry( userId, id, changes )
+    : updateCalendarEntry( userId, id, retarget
+      ? { ...changes, subject_id: body.subject_id ?? null, goal_id: body.goal_id ?? null }
+      : changes )
 
   if( entry === undefined ) {
     throw new NotFoundError( 'Time entry not found' )
@@ -130,8 +156,11 @@ export const changeTimeEntry = (
 }
 
 export const removeTimeEntry = ( userId: string, id: string ): void => {
-  requireLogged( userId, id )
-  deleteLoggedEntry( userId, id )
+  if( requireEditable( userId, id ).source === 'logged' ) {
+    deleteLoggedEntry( userId, id )
+  } else {
+    deleteCalendarEntry( userId, id )
+  }
 }
 
 export const listEntries = ( userId: string, from: string, to: string ): TimeEntry[] => {

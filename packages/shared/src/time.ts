@@ -49,6 +49,23 @@ export const UpdateTimeEntryBody = z.strictObject( {
 )
 export type UpdateTimeEntryBody = z.infer< typeof UpdateTimeEntryBody >
 
+// What /api/time-entries/:id accepts: a logged entry's target can't change, a calendar entry's
+// can (ADR 0108), and the service refuses a target for a logged one.
+export const EditTimeEntryBody = z.strictObject( {
+  minutes: Minutes.optional(),
+  day: CalendarDate.optional(),
+  note: Note.nullable().optional(),
+  subject_id: z.uuid().optional(),
+  goal_id: z.uuid().optional(),
+} ).refine(
+  ( body ) => body.subject_id === undefined || body.goal_id === undefined,
+  { message: 'Give a subject_id or a goal_id, not both' },
+).refine(
+  ( body ) => Object.values( body ).some( ( value ) => value !== undefined ),
+  { message: 'Provide minutes, day, note or a target' },
+)
+export type EditTimeEntryBody = z.infer< typeof EditTimeEntryBody >
+
 export const ListTimeEntriesQuery = z.strictObject( {
   from: CalendarDate,
   to: CalendarDate,

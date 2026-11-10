@@ -2,14 +2,20 @@
 import { describe, expect, it } from 'vitest'
 // Local
 import {
+  ApproveCalendarDraftResponse,
+  ApproveMatchedResponse,
   CalendarConnectionStatus,
+  CalendarDraft,
+  CalendarDraftResponse,
   CalendarRuleResponse,
   ConnectCalendarResponse,
   CreateCalendarRuleBody,
   GetCalendarResponse,
+  ListCalendarDraftsResponse,
   ListCalendarRulesResponse,
   ListCalendarsResponse,
   SelectCalendarBody,
+  UpdateCalendarDraftBody,
   UpdateCalendarRuleBody,
 } from './calendar.js'
 
@@ -125,5 +131,65 @@ describe( 'calendar rules', () => {
 
     expect( ListCalendarRulesResponse.parse( { rules: [ rule ] } ).rules ).toEqual( [ rule ] )
     expect( CalendarRuleResponse.parse( { rule } ).rule.phrase ).toBe( 'Gym' )
+  } )
+} )
+
+describe( 'calendar drafts', () => {
+  const id = '3f2b8c1e-6d1a-4b8e-9a53-0c1d2e3f4a5b'
+  const goal = '4f2b8c1e-6d1a-4b8e-9a53-0c1d2e3f4a5b'
+
+  const draft = {
+    id,
+    title: 'Gym',
+    started_at: '2026-11-09T07:00:00.000Z',
+    ended_at: '2026-11-09T08:00:00.000Z',
+    day: '2026-11-09',
+    seconds: 3600,
+    subject_id: null,
+    goal_id: goal,
+    assigned_by: 'rule',
+    rule_phrase: 'gym',
+    note: null,
+    overlap_seconds: 1500,
+    counts_seconds: 2100,
+  }
+
+  it( 'lists drafts with their overlap and what they count', () => {
+    expect( ListCalendarDraftsResponse.parse( { drafts: [ draft ] } ).drafts[ 0 ] ).toEqual( draft )
+    expect( CalendarDraftResponse.parse( { draft } ).draft.counts_seconds ).toBe( 2100 )
+  } )
+
+  it( 'accepts a draft with nothing assigned', () => {
+    const bare = { ...draft, goal_id: null, assigned_by: null, rule_phrase: null }
+
+    expect( CalendarDraft.parse( bare ).assigned_by ).toBeNull()
+    expect( CalendarDraft.safeParse( { ...draft, assigned_by: 'robot' } ).success ).toBe( false )
+  } )
+
+  it( 'edits the target, the times and the note', () => {
+    expect( UpdateCalendarDraftBody.parse( { goal_id: goal } ) ).toEqual( { goal_id: goal } )
+    expect( UpdateCalendarDraftBody.parse( {
+      started_at: '2026-11-09T07:30:00.000Z',
+      ended_at: '2026-11-09T08:00:00.000Z',
+      note: null,
+    } ).note ).toBeNull()
+    expect( UpdateCalendarDraftBody.parse( { note: ' Leg day ' } ).note ).toBe( 'Leg day' )
+  } )
+
+  it( 'refuses an empty body, two targets, a bad time or a note over 500 characters', () => {
+    expect( UpdateCalendarDraftBody.safeParse( {} ).success ).toBe( false )
+    expect( UpdateCalendarDraftBody.safeParse( { goal_id: goal, subject_id: id } ).success )
+      .toBe( false )
+    expect( UpdateCalendarDraftBody.safeParse( { started_at: 'yesterday' } ).success ).toBe( false )
+    expect( UpdateCalendarDraftBody.safeParse( { note: 'x'.repeat( 501 ) } ).success ).toBe( false )
+    expect( UpdateCalendarDraftBody.safeParse( { title: 'Renamed' } ).success ).toBe( false )
+  } )
+
+  it( 'answers an approval with the recorded seconds and the entry, if one was made', () => {
+    expect( ApproveCalendarDraftResponse.parse( { time_entry_id: id, recorded_seconds: 2100 } ) )
+      .toEqual( { time_entry_id: id, recorded_seconds: 2100 } )
+    expect( ApproveCalendarDraftResponse.parse( { time_entry_id: null, recorded_seconds: 0 } )
+      .time_entry_id ).toBeNull()
+    expect( ApproveMatchedResponse.parse( { approved: 3 } ).approved ).toBe( 3 )
   } )
 } )

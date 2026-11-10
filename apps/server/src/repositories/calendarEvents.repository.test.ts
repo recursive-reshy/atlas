@@ -10,12 +10,16 @@ import {
   countEvents,
   deleteDrafts,
   deleteEvents,
+  findDraft,
   insertDraft,
+  listDrafts,
   listEventsForSync,
   listRuleAssignable,
   removeImported,
   setRuleAssignment,
+  settleDraft,
   updateDraftEvent,
+  updateDraftFields,
 } from './calendarEvents.repository.js'
 import { getDatabase } from './database.js'
 import type { NewDraft } from './calendarEvents.repository.js'
@@ -244,5 +248,105 @@ describe( 'sync writes', () => {
 
     expect( ids() ).toEqual( [ 'theirs' ] )
     expect( () => deleteEvents( userId, [] ) ).not.toThrow()
+  } )
+} )
+
+describe( 'drafts for review', () => {
+  const addAt = ( id: string, started: string, user = userId ): void => {
+    insertEvent( id, 'draft', { user } )
+    getDatabase().prepare( 'UPDATE calendar_events SET started_at = ? WHERE id = ?' )
+      .run( started, id )
+  }
+
+  it( 'lists the user\'s drafts newest first, with the phrase of the rule behind them', () => {
+    getDatabase().prepare( `INSERT INTO calendar_rules ( id, user_id, phrase, subject_id, goal_id,
+      position, created_at, updated_at ) VALUES ( 'r1', ?, 'gym', ?, NULL, 0, ?, ? )` )
+      .run( userId, subjectId, AT, AT )
+    addAt( 'old', '2026-11-01T07:00:00.000Z' )
+    addAt( 'new', '2026-11-09T07:00:00.000Z' )
+    insertEvent( 'approved', 'approved' )
+    addAt( 'theirs', '2026-11-05T07:00:00.000Z', createTestUser().id )
+    setRuleAssignment( userId, 'new', { rule_id: 'r1', subject_id: subjectId, goal_id: null } )
+
+    const drafts = listDrafts( userId )
+
+    expect( drafts.map( ( { id } ) => id ) ).toEqual( [ 'new', 'old' ] )
+    expect( drafts[ 0 ] ).toMatchObject( {
+      title: 'Gym',
+      subject_id: subjectId,
+      assigned_by: 'rule',
+      rule_phrase: 'gym',
+      note: null,
+    } )
+    expect( drafts[ 1 ]?.rule_phrase ).toBeNull()
+  } )
+
+  it( 'finds a draft of the user, and nothing settled or another user\'s', () => {
+    insertEvent( 'd', 'draft' )
+    insertEvent( 'a', 'approved' )
+
+    expect( findDraft( userId, 'd' )?.id ).toBe( 'd' )
+    expect( findDraft( userId, 'a' ) ).toBeUndefined()
+    expect( findDraft( createTestUser().id, 'd' ) ).toBeUndefined()
+  } )
+
+  it( 'edits the fields given and leaves the rest', () => {
+    insertEvent( 'd', 'draft' )
+    updateDraftFields( userId, 'd', {
+      subject_id: subjectId,
+      goal_id: null,
+      assigned_by: 'hand',
+      rule_id: null,
+    } )
+    updateDraftFields( userId, 'd', {
+      started_at: '2026-11-09T07:30:00.000Z',
+      day: '2026-11-09',
+      seconds: 1800,
+      note: 'Leg day',
+    } )
+
+    expect( findDraft( userId, 'd' ) ).toMatchObject( {
+      subject_id: subjectId,
+      assigned_by: 'hand',
+      started_at: '2026-11-09T07:30:00.000Z',
+      seconds: 1800,
+      note: 'Leg day',
+      title: 'Gym',
+    } )
+
+    updateDraftFields( userId, 'd', { note: null } )
+    expect( findDraft( userId, 'd' )?.note ).toBeNull()
+  } )
+
+  it( 'does not edit another user\'s draft or a settled one', () => {
+    insertEvent( 'theirs', 'draft', { user: createTestUser().id } )
+    insertEvent( 'done', 'approved' )
+
+    updateDraftFields( userId, 'theirs', { note: 'x' } )
+    updateDraftFields( userId, 'done', { note: 'x' } )
+
+    expect( getDatabase()
+      .prepare( 'SELECT note FROM calendar_events WHERE note IS NOT NULL' ).all() )
+      .toEqual( [] )
+  } )
+
+  it( 'settles a draft as approved with its time entry, or dismissed', () => {
+    insertEvent( 'a', 'draft' )
+    insertEvent( 'b', 'draft' )
+    getDatabase().prepare( `INSERT INTO time_entries ( id, user_id, source, subject_id, goal_id,
+      day, started_at, ended_at, seconds, note, created_at, updated_at )
+      VALUES ( 'te', ?, 'calendar', ?, NULL, '2026-11-09', NULL, NULL, 60, NULL, ?, ? )` )
+      .run( userId, subjectId, AT, AT )
+
+    settleDraft( userId, 'a', 'approved', 'te' )
+    settleDraft( userId, 'b', 'dismissed', null )
+
+    expect( getDatabase()
+      .prepare( 'SELECT id, status, time_entry_id FROM calendar_events ORDER BY id' ).all() )
+      .toEqual( [
+        { id: 'a', status: 'approved', time_entry_id: 'te' },
+        { id: 'b', status: 'dismissed', time_entry_id: null },
+      ] )
+    expect( findDraft( userId, 'a' ) ).toBeUndefined()
   } )
 } )

@@ -128,35 +128,118 @@ export const insertLoggedEntry = ( userId: string, entry: NewLoggedEntry ): Time
   return TimeEntryRecord.parse( findTimeEntry( userId, id ) )
 }
 
-// Only a logged entry can be edited; a measured one is left as the answers made it
-export const updateLoggedEntry = (
+type EntryChanges = {
+  day?: string
+  seconds?: number
+  note?: string | null
+  // Set together: a target is replaced as a pair, never merged
+  subject_id?: string | null
+  goal_id?: string | null
+}
+
+const CHANGEABLE = [ 'day', 'seconds', 'note', 'subject_id', 'goal_id' ] as const
+
+// Only the source named can be edited; a measured entry is left as the answers made it
+const updateEntryOfSource = (
+  source: 'logged' | 'calendar',
   userId: string,
   id: string,
-  changes: { day?: string, seconds?: number, note?: string | null },
+  changes: EntryChanges,
 ): TimeEntryRecord | undefined => {
-  const db = getDatabase()
-  const columns = ( [ 'day', 'seconds', 'note' ] as const )
-    .filter( ( column ) => changes[ column ] !== undefined )
+  const columns = CHANGEABLE.filter( ( column ) => changes[ column ] !== undefined )
 
   if( columns.length > 0 ) {
-    db.prepare( `UPDATE time_entries
+    getDatabase().prepare( `UPDATE time_entries
       SET ${ columns.map( ( column ) => `${ column } = @${ column }` ).join( ', ' ) },
         updated_at = @now
-      WHERE id = @id AND user_id = @user_id AND source = 'logged'` )
+      WHERE id = @id AND user_id = @user_id AND source = '${ source }'` )
       .run( { ...changes, id, user_id: userId, now: new Date().toISOString() } )
   }
 
   const entry = findTimeEntry( userId, id )
 
-  return entry?.source === 'logged' ? entry : undefined
+  return entry?.source === source ? entry : undefined
 }
 
-export const deleteLoggedEntry = ( userId: string, id: string ): boolean => {
+const deleteEntryOfSource = (
+  source: 'logged' | 'calendar',
+  userId: string,
+  id: string,
+): boolean => {
   const { changes } = getDatabase()
-    .prepare( 'DELETE FROM time_entries WHERE id = ? AND user_id = ? AND source = \'logged\'' )
+    .prepare( `DELETE FROM time_entries WHERE id = ? AND user_id = ? AND source = '${ source }'` )
     .run( id, userId )
 
   return changes > 0
+}
+
+export const updateLoggedEntry = (
+  userId: string,
+  id: string,
+  changes: { day?: string, seconds?: number, note?: string | null },
+): TimeEntryRecord | undefined => updateEntryOfSource( 'logged', userId, id, changes )
+
+export const deleteLoggedEntry = ( userId: string, id: string ): boolean => {
+  return deleteEntryOfSource( 'logged', userId, id )
+}
+
+export type NewCalendarEntry = {
+  subject_id: string | null
+  goal_id: string | null
+  day: string
+  started_at: string
+  ended_at: string
+  seconds: number
+  note: string | null
+}
+
+// An approved calendar event's time (ADR 0108); owned by Atlas from then on
+export const insertCalendarEntry = ( userId: string, entry: NewCalendarEntry ): TimeEntryRecord => {
+  const id = crypto.randomUUID()
+  const now = new Date().toISOString()
+
+  getDatabase()
+    .prepare( `INSERT INTO time_entries (
+        id, user_id, source, subject_id, goal_id, day, started_at, ended_at, seconds, note,
+        created_at, updated_at
+      ) VALUES (
+        @id, @user_id, 'calendar', @subject_id, @goal_id, @day, @started_at, @ended_at, @seconds,
+        @note, @now, @now
+      )` )
+    .run( { ...entry, id, user_id: userId, now } )
+
+  return TimeEntryRecord.parse( findTimeEntry( userId, id ) )
+}
+
+export const updateCalendarEntry = (
+  userId: string,
+  id: string,
+  changes: EntryChanges,
+): TimeEntryRecord | undefined => updateEntryOfSource( 'calendar', userId, id, changes )
+
+export const deleteCalendarEntry = ( userId: string, id: string ): boolean => {
+  return deleteEntryOfSource( 'calendar', userId, id )
+}
+
+// The measured entries of a subject, or of every subject linked to a goal, that touch the window
+export const measuredIntervals = (
+  userId: string,
+  target: { subject_id?: string, goal_id?: string },
+  window: { started_at: string, ended_at: string },
+): { started_at: string, ended_at: string }[] => {
+  return z.array( z.object( { started_at: z.string(), ended_at: z.string() } ) )
+    .parse( getDatabase().prepare( `SELECT t.started_at, t.ended_at
+      FROM time_entries t JOIN melete_subjects s ON s.id = t.subject_id
+      WHERE t.user_id = @user_id AND t.source = 'measured'
+        AND ( s.id = @subject_id OR s.goal_id = @goal_id )
+        AND t.started_at < @window_end AND t.ended_at > @window_start
+      ORDER BY t.started_at` ).all( {
+      user_id: userId,
+      subject_id: target.subject_id ?? null,
+      goal_id: target.goal_id ?? null,
+      window_start: window.started_at,
+      window_end: window.ended_at,
+    } ) )
 }
 
 // Newest day first

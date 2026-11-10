@@ -100,3 +100,53 @@ export const SyncCalendarQuery = z.object( {
   if_older_than: z.coerce.number().int().min( 0 ).max( 86_400 ).optional(),
 } )
 export type SyncCalendarQuery = z.infer< typeof SyncCalendarQuery >
+
+// A calendar event waiting for review (ADR 0108). `overlap_seconds` is what measured Melete time
+// already covers; `counts_seconds` is what approval would record.
+export const CalendarDraft = z.object( {
+  id: z.uuid(),
+  title: z.string(),
+  started_at: z.iso.datetime(),
+  ended_at: z.iso.datetime(),
+  day: CalendarDate,
+  seconds: z.int().min( 1 ),
+  subject_id: z.uuid().nullable(),
+  goal_id: z.uuid().nullable(),
+  assigned_by: z.enum( [ 'rule', 'hand' ] ).nullable(),
+  rule_phrase: z.string().nullable(),
+  note: z.string().nullable(),
+  overlap_seconds: z.int().min( 0 ),
+  counts_seconds: z.int().min( 0 ),
+} )
+export type CalendarDraft = z.infer< typeof CalendarDraft >
+
+export const ListCalendarDraftsResponse = z.object( { drafts: z.array( CalendarDraft ) } )
+export type ListCalendarDraftsResponse = z.infer< typeof ListCalendarDraftsResponse >
+
+export const CalendarDraftResponse = z.object( { draft: CalendarDraft } )
+export type CalendarDraftResponse = z.infer< typeof CalendarDraftResponse >
+
+export const UpdateCalendarDraftBody = z.strictObject( {
+  subject_id: z.uuid().optional(),
+  goal_id: z.uuid().optional(),
+  started_at: z.iso.datetime().optional(),
+  ended_at: z.iso.datetime().optional(),
+  note: z.string().trim().min( 1 ).max( 500 ).nullable().optional(),
+} ).refine(
+  ( body ) => body.subject_id === undefined || body.goal_id === undefined,
+  { message: 'Give a subject_id or a goal_id, not both' },
+).refine(
+  ( body ) => Object.values( body ).some( ( value ) => value !== undefined ),
+  { message: 'Change at least one field' },
+)
+export type UpdateCalendarDraftBody = z.infer< typeof UpdateCalendarDraftBody >
+
+// `time_entry_id` is null when measured time already covered the whole event
+export const ApproveCalendarDraftResponse = z.object( {
+  time_entry_id: z.uuid().nullable(),
+  recorded_seconds: z.int().min( 0 ),
+} )
+export type ApproveCalendarDraftResponse = z.infer< typeof ApproveCalendarDraftResponse >
+
+export const ApproveMatchedResponse = z.object( { approved: z.int().min( 0 ) } )
+export type ApproveMatchedResponse = z.infer< typeof ApproveMatchedResponse >

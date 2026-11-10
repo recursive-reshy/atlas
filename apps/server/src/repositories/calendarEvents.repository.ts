@@ -129,3 +129,91 @@ export const deleteEvents = ( userId: string, ids: string[] ): void => {
     remove.run( id, userId )
   }
 }
+
+export type DraftRecord = {
+  id: string
+  title: string
+  started_at: string
+  ended_at: string
+  day: string
+  seconds: number
+  subject_id: string | null
+  goal_id: string | null
+  assigned_by: 'rule' | 'hand' | null
+  rule_phrase: string | null
+  note: string | null
+}
+
+const DRAFT_COLUMNS = `e.id, e.title, e.started_at, e.ended_at, e.day, e.seconds, e.subject_id,
+  e.goal_id, e.assigned_by, r.phrase AS rule_phrase, e.note`
+
+// The drafts waiting for review, newest first
+export const listDrafts = ( userId: string ): DraftRecord[] => {
+  return getDatabase().prepare( `SELECT ${ DRAFT_COLUMNS } FROM calendar_events e
+    LEFT JOIN calendar_rules r ON r.id = e.rule_id
+    WHERE e.user_id = ? AND e.status = 'draft' ORDER BY e.started_at DESC, e.id` )
+    .all( userId ) as DraftRecord[]
+}
+
+export const findDraft = ( userId: string, id: string ): DraftRecord | undefined => {
+  return getDatabase().prepare( `SELECT ${ DRAFT_COLUMNS } FROM calendar_events e
+    LEFT JOIN calendar_rules r ON r.id = e.rule_id
+    WHERE e.id = ? AND e.user_id = ? AND e.status = 'draft'` )
+    .get( id, userId ) as DraftRecord | undefined
+}
+
+export type DraftFields = {
+  // An assignment is written as a whole: target, who made it and the rule behind it
+  subject_id?: string | null
+  goal_id?: string | null
+  assigned_by?: 'rule' | 'hand' | null
+  rule_id?: string | null
+  started_at?: string
+  ended_at?: string
+  day?: string
+  seconds?: number
+  note?: string | null
+}
+
+const DRAFT_FIELDS = [
+  'subject_id',
+  'goal_id',
+  'assigned_by',
+  'rule_id',
+  'started_at',
+  'ended_at',
+  'day',
+  'seconds',
+  'note',
+] as const
+
+export const updateDraftFields = ( userId: string, id: string, fields: DraftFields ): void => {
+  const given = DRAFT_FIELDS.filter( ( field ) => fields[ field ] !== undefined )
+
+  if( given.length === 0 ) {
+    return
+  }
+
+  getDatabase().prepare( `UPDATE calendar_events
+    SET ${ given.map( ( field ) => `${ field } = @${ field }` ).join( ', ' ) }, updated_at = @now
+    WHERE id = @id AND user_id = @user_id AND status = 'draft'` )
+    .run( { ...fields, id, user_id: userId, now: new Date().toISOString() } )
+}
+
+// Approved keeps the time entry it made, if any; the event stays as a marker either way
+export const settleDraft = (
+  userId: string,
+  id: string,
+  status: 'approved' | 'dismissed',
+  timeEntryId: string | null,
+): void => {
+  getDatabase().prepare( `UPDATE calendar_events
+    SET status = @status, time_entry_id = @time_entry_id, updated_at = @now
+    WHERE id = @id AND user_id = @user_id AND status = 'draft'` ).run( {
+    status,
+    time_entry_id: timeEntryId,
+    now: new Date().toISOString(),
+    id,
+    user_id: userId,
+  } )
+}
