@@ -12,7 +12,7 @@ import { Link as RouterLink } from 'react-router'
 import type { Job } from '@atlas/shared'
 // App
 import { formatExpiry } from '#src/lib/expiry'
-import { FeedChip } from '#src/components/FeedChip'
+import { FeedChip } from '#src/features/feeds/components/FeedChip'
 import { GmailSourceChip } from '#src/components/GmailSourceChip'
 
 const STATUS_LABELS = {

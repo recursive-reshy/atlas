@@ -13,7 +13,7 @@ import { useJobs } from '#src/features/jobs/hooks/useJobs'
 import { useModels } from '#src/hooks/useModels'
 import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
 import { useSettings } from '#src/hooks/useSettings'
-import { Inbox } from '#src/components/Inbox'
+import { Inbox } from '#src/features/inbox/components/Inbox'
 import { JobList } from '../JobList'
 import { SubmitForm } from '../SubmitForm'
 

@@ -27,7 +27,7 @@ vi.mock( '#src/features/jobs/hooks/useJobs' )
 vi.mock( '#src/hooks/useSettings' )
 vi.mock( '#src/hooks/useModels' )
 vi.mock( '#src/hooks/usePromptProfiles' )
-vi.mock( '#src/components/Inbox', () => ( { Inbox: () => <p>inbox</p> } ) )
+vi.mock( '#src/features/inbox/components/Inbox', () => ( { Inbox: () => <p>inbox</p> } ) )
 
 const mockedCreateJob = vi.mocked( createJob )
 const mockedUseJobs = vi.mocked( useJobs )

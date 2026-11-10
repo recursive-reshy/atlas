@@ -3,7 +3,7 @@ import type { ReactElement } from 'react'
 // Packages
 import Stack from '@mui/material/Stack'
 // App
-import { FeedSettings } from '../FeedSettings'
+import { FeedSettings } from '#src/features/feeds/components/FeedSettings'
 import { GmailSettings } from '../GmailSettings'
 import { StatusPanel } from '../StatusPanel'
 
