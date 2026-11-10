@@ -1,5 +1,3 @@
-// Node
-import { randomBytes } from 'node:crypto'
 // Packages
 import { auth, gmail } from '@googleapis/gmail'
 import type { gmail_v1 } from '@googleapis/gmail'
@@ -16,8 +14,9 @@ import type { StoredGmailAccount } from '../repositories/gmailAccount.repository
 import { deleteHealth } from '../repositories/health.repository.js'
 // Services
 import { recordCheck } from '../services/health.service.js'
-// Gmail
-import { TokenDecryptError, decryptToken, encryptToken } from './tokenCipher.js'
+// Google
+import { createOAuthStateStore } from '../google/oauthState.js'
+import { TokenDecryptError, decryptToken, encryptToken } from '../google/tokenCipher.js'
 // Logging
 import { logger } from '../logger.js'
 
@@ -28,8 +27,6 @@ const connectionOf = ( userId: string ): { kind: 'gmail_connection', id: string 
   return { kind: 'gmail_connection', id: userId }
 }
 
-const STATE_TTL_MS = 10 * 60 * 1000
-const MAX_STATES = 20
 const UNREADABLE_REASON = 'The stored Gmail access can\'t be read; reconnect'
 const REVOKED_REASON = 'Google no longer accepts Atlas\'s access '
   + '(revoked, expired, or the app is in Testing)'
@@ -79,9 +76,7 @@ export class MissingScopeError extends Error {
 type GmailConfig = NonNullable< typeof config.gmail >
 type OAuthClient = InstanceType< typeof auth.OAuth2 >
 
-type PendingConsent = { userId: string, origin: string, expiresAt: number }
-
-const states = new Map< string, PendingConsent >()
+const states = createOAuthStateStore()
 const cached = new Map< string, { key: string, client: gmail_v1.Gmail } >()
 
 const requireConfig = (): GmailConfig => {
@@ -103,13 +98,7 @@ const callbackFor = ( origin: string ): string => `${ origin }/api/gmail/oauth/c
 
 export const createConsentUrl = ( userId: string, origin: string ): string => {
   const oauth = buildOAuthClient( requireConfig(), callbackFor( origin ) )
-  const state = randomBytes( 32 ).toString( 'hex' )
-
-  states.set( state, { userId, origin, expiresAt: Date.now() + STATE_TTL_MS } )
-
-  while( states.size > MAX_STATES ) {
-    states.delete( states.keys().next().value! )
-  }
+  const state = states.create( userId, origin )
 
   return oauth.generateAuthUrl( {
     access_type: 'offline',
@@ -120,25 +109,18 @@ export const createConsentUrl = ( userId: string, origin: string ): string => {
   } )
 }
 
-// A state belongs to the user who asked for it, and to the origin they asked from
-const consumeState = ( userId: string, state: string ): PendingConsent => {
-  const pending = states.get( state )
-
-  states.delete( state )
-
-  if( pending === undefined || pending.expiresAt < Date.now() || pending.userId !== userId ) {
-    throw new OAuthStateError()
-  }
-
-  return pending
-}
-
 export const completeConsent = async (
   userId: string,
   { code, state }: { code: string, state: string },
 ): Promise< void > => {
   const settings = requireConfig()
-  const { origin } = consumeState( userId, state )
+  const pending = states.consume( userId, state )
+
+  if( pending === undefined ) {
+    throw new OAuthStateError()
+  }
+
+  const { origin } = pending
 
   const oauth = buildOAuthClient( settings, callbackFor( origin ) )
   const { tokens } = await oauth.getToken( code )
