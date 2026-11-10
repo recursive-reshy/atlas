@@ -577,6 +577,20 @@ describe( 'listActiveJobs', () => {
     ] )
   } )
 
+  it( 'leaves out the transcript and the draft, which findJobById still returns', () => {
+    const job = buildJob( {
+      status: 'ready_for_review',
+      source_document: { kind: 'video', ...transcriptFixture },
+      note_markdown: '---\ntitle: "A talk"\n---\n\nBody\n',
+    } )
+    insertJob( userId, job )
+
+    expect( listActiveJobs( userId ) ).toEqual( [
+      { ...job, source_document: null, note_markdown: null },
+    ] )
+    expect( findJobById( userId, job.id ) ).toEqual( job )
+  } )
+
   it( 'returns an empty list for an empty store', () => {
     expect( listActiveJobs( userId ) ).toEqual( [] )
   } )

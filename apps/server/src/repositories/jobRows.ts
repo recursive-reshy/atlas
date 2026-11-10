@@ -17,15 +17,14 @@ export type StoredJob = z.infer< typeof StoredJob >
 // A job with its owner, for the background loops that look across users
 export type OwnedJob = StoredJob & { user_id: string }
 
-const JobRow = z.object( {
+// A row without the two large columns: what the list and the loops' expiry read need
+const ListRow = z.object( {
   id: z.string(),
   user_id: z.string(),
   url: z.string(),
   status: z.string(),
   error: z.string().nullable(),
   title: z.string().nullable(),
-  source_document: z.string().nullable(),
-  note_markdown: z.string().nullable(),
   target_folder: z.string().nullable(),
   summary_model: z.string().nullable(),
   prompt_profile_id: z.string().nullable(),
@@ -42,11 +41,28 @@ const JobRow = z.object( {
   updated_at: z.string(),
 } )
 
-export const SELECT_JOB = `SELECT jobs.*, feeds.name AS feed_name,
-    gmail_sources.name AS gmail_source_name
-  FROM jobs
+const JobRow = ListRow.extend( {
+  source_document: z.string().nullable(),
+  note_markdown: z.string().nullable(),
+} )
+
+// The transcript and the draft can be large, so only the reads that return them select them
+const LIST_COLUMNS = `jobs.id, jobs.user_id, jobs.url, jobs.status, jobs.error, jobs.title,
+    jobs.target_folder, jobs.summary_model, jobs.prompt_profile_id, jobs.link_state,
+    jobs.link_error, jobs.source_type, jobs.feed_id, jobs.gmail_source_id, jobs.saved_path,
+    jobs.expires_at, jobs.created_at, jobs.updated_at,
+    feeds.name AS feed_name, gmail_sources.name AS gmail_source_name`
+
+const FROM_JOB = `FROM jobs
     LEFT JOIN feeds ON feeds.id = jobs.feed_id
     LEFT JOIN gmail_sources ON gmail_sources.id = jobs.gmail_source_id`
+
+export const SELECT_JOB_LIST = `SELECT ${ LIST_COLUMNS }
+  ${ FROM_JOB }`
+
+export const SELECT_JOB = `SELECT ${ LIST_COLUMNS },
+    jobs.source_document, jobs.note_markdown
+  ${ FROM_JOB }`
 
 // Statuses are bound parameters, never concatenated into the SQL
 export const marks = ( statuses: string[] ): string => statuses.map( () => '?' ).join( ', ' )
@@ -61,6 +77,15 @@ export const toStoredJob = ( raw: unknown ): StoredJob => {
       ? null
       : JSON.parse( row.source_document ) as unknown,
   } )
+}
+
+// A listed job has no transcript and no draft: both are null, and it must never be written back
+export const toListedJob = ( raw: unknown ): StoredJob => {
+  return StoredJob.parse( { ...ListRow.parse( raw ), source_document: null, note_markdown: null } )
+}
+
+export const toListedOwnedJob = ( raw: unknown ): OwnedJob => {
+  return { ...toListedJob( raw ), user_id: ListRow.parse( raw ).user_id }
 }
 
 export const toOwnedJob = ( raw: unknown ): OwnedJob => {

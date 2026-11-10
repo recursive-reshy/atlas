@@ -8,7 +8,13 @@ import { SELECT_FEED, toOwnedFeed } from './feedRows.js'
 import type { OwnedFeed } from './feedRows.js'
 import { SELECT_SOURCE, toOwnedSource } from './gmailSourceRows.js'
 import type { OwnedGmailSource } from './gmailSourceRows.js'
-import { SELECT_JOB, marks, toOwnedJob } from './jobRows.js'
+import {
+  SELECT_JOB,
+  SELECT_JOB_LIST,
+  marks,
+  toListedOwnedJob,
+  toOwnedJob,
+} from './jobRows.js'
 import type { OwnedJob } from './jobRows.js'
 import { HealthRecord } from './health.repository.js'
 import { NoteRecord } from './meleteNotes.repository.js'
@@ -81,11 +87,11 @@ export const listExpiredJobs = ( now: string ): OwnedJob[] => {
   const statuses = statusesWhere( 'expires' )
 
   return getDatabase()
-    .prepare( `${ SELECT_JOB }
+    .prepare( `${ SELECT_JOB_LIST }
       WHERE jobs.status IN ( ${ marks( statuses ) } )
         AND jobs.expires_at IS NOT NULL AND jobs.expires_at <= ?` )
     .all( ...statuses, now )
-    .map( toOwnedJob )
+    .map( toListedOwnedJob )
 }
 
 const cutoffFor = ( now: string, intervalMinutes: number ): string => {
