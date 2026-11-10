@@ -27,6 +27,7 @@
   "dependencies": {
     "@anthropic-ai/sdk": "^1.6.0",
     "@atlas/shared": "workspace:*",
+    "@googleapis/calendar": "20.1.0",
     "@googleapis/gmail": "22.0.2",
     "@mozilla/readability": "0.6.0",
     "better-sqlite3": "^13.0.3",

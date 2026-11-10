@@ -217,6 +217,9 @@ importers:
       '@atlas/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      '@googleapis/calendar':
+        specifier: 20.1.0
+        version: 20.1.0
       '@googleapis/gmail':
         specifier: 22.0.2
         version: 22.0.2
@@ -972,6 +975,10 @@ packages:
 
   '@floating-ui/utils@0.2.12':
     resolution: {integrity: sha512-HpCo8tmWzLVad5s2d19EhAz5zqrrQ6s69qd6moPMQvkOuSwDT1YgRfWSVuc4ennqrgv3OHppiOGMQ7oC13yIww==}
+
+  '@googleapis/calendar@20.1.0':
+    resolution: {integrity: sha512-bPO9wts48OAEhJn5UfgPC4FuyW/D6ufUzdXx0JHfeJIqg+O5bHvX/TenaAdbJuGhluhn5FLlyl6HzuhE4rFJqw==}
+    engines: {node: '>=22.0.0'}
 
   '@googleapis/gmail@22.0.2':
     resolution: {integrity: sha512-/Yg6UwLZaI74jY4Q8RhAFlEw4q+71c47oKlqr3ArGTG4HERa0S5NgzmTjECcV720tATnz9bpIvAnJ91VVnNHVA==}
@@ -4805,6 +4812,12 @@ snapshots:
       tabbable: 6.5.0
 
   '@floating-ui/utils@0.2.12': {}
+
+  '@googleapis/calendar@20.1.0':
+    dependencies:
+      googleapis-common: 9.3.1
+    transitivePeerDependencies:
+      - supports-color
 
   '@googleapis/gmail@22.0.2':
     dependencies:

@@ -5,6 +5,7 @@ import { join } from 'node:path'
 import { describe, it, expect } from 'vitest'
 // Config
 import {
+  assertCalendarApiBaseUrlAllowed,
   assertFetchAllowPrivateAllowed,
   assertTestSigninAllowed,
   ignoredEnv,
@@ -61,6 +62,7 @@ describe( 'loadConfig', () => {
       vaultCreateEnabled: true,
       agent: null,
       agentSyllabusTimeoutMs: 200_000,
+      calendar: { redirectUri: null, lookbackDays: 14, apiBaseUrl: null },
       timeZone: 'Asia/Singapore',
       melete: {
         requestRetention: 0.9,
@@ -128,6 +130,7 @@ describe( 'loadConfig', () => {
       vaultCreateEnabled: false,
       agent: null,
       agentSyllabusTimeoutMs: 200_000,
+      calendar: { redirectUri: null, lookbackDays: 14, apiBaseUrl: null },
       timeZone: 'Europe/London',
       melete: {
         requestRetention: 0.85,
@@ -630,6 +633,53 @@ describe( 'assertTestSigninAllowed', () => {
     expect( () => assertTestSigninAllowed( { E2E_TEST_SIGNIN: '1', NODE_ENV: 'production' } ) )
       .toThrow( /E2E_TEST_SIGNIN/ )
     expect( () => assertTestSigninAllowed( { E2E_TEST_SIGNIN: '1' } ) ).toThrow( /E2E_TEST_SIGNIN/ )
+  } )
+} )
+
+describe( 'the calendar settings (ADR 0108)', () => {
+  it( 'are off by default: no redirect, 14 days back, the real Calendar API', () => {
+    expect( loadConfig( base ).calendar )
+      .toEqual( { redirectUri: null, lookbackDays: 14, apiBaseUrl: null } )
+    expect( loadConfig( {
+      ...base,
+      CALENDAR_REDIRECT_URI: '',
+      CALENDAR_LOOKBACK_DAYS: '',
+    } ).calendar ).toEqual( { redirectUri: null, lookbackDays: 14, apiBaseUrl: null } )
+  } )
+
+  it( 'read the redirect, the look-back and the API host', () => {
+    expect( loadConfig( {
+      ...base,
+      CALENDAR_REDIRECT_URI: 'https://atlas.example/api/calendar/oauth/callback',
+      CALENDAR_LOOKBACK_DAYS: '30',
+      CALENDAR_API_BASE_URL: 'http://fakes:4000',
+    } ).calendar ).toEqual( {
+      redirectUri: 'https://atlas.example/api/calendar/oauth/callback',
+      lookbackDays: 30,
+      apiBaseUrl: 'http://fakes:4000',
+    } )
+  } )
+
+  it.each( [ '0', '91', '-1', '1.5', 'week' ] )( 'refuse a look-back of %s', ( value ) => {
+    expect( () => loadConfig( { ...base, CALENDAR_LOOKBACK_DAYS: value } ) )
+      .toThrow( /CALENDAR_LOOKBACK_DAYS/ )
+  } )
+
+  it( 'refuse a redirect that is not a URL', () => {
+    expect( () => loadConfig( { ...base, CALENDAR_REDIRECT_URI: 'callback' } ) )
+      .toThrow( /CALENDAR_REDIRECT_URI/ )
+  } )
+} )
+
+describe( 'CALENDAR_API_BASE_URL', () => {
+  it( 'refuses to start outside NODE_ENV=test', () => {
+    expect( () => assertCalendarApiBaseUrlAllowed( { NODE_ENV: 'production' } ) ).not.toThrow()
+    expect( () => assertCalendarApiBaseUrlAllowed( {
+      CALENDAR_API_BASE_URL: 'http://fakes:4000',
+      NODE_ENV: 'test',
+    } ) ).not.toThrow()
+    expect( () => assertCalendarApiBaseUrlAllowed( { CALENDAR_API_BASE_URL: 'http://fakes:4000' } ) )
+      .toThrow( /CALENDAR_API_BASE_URL/ )
   } )
 } )
 
