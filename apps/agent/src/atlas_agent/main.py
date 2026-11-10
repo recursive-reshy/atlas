@@ -21,12 +21,23 @@ from atlas_agent.contract.link import (
     LinkRequest,
     LinkResponse
 )
+from atlas_agent.contract.syllabus import (
+    DraftedSyllabus,
+    FailedSyllabus,
+    SyllabusOutcome,
+    SyllabusRequest,
+    SyllabusResponse
+)
 from atlas_agent.linker.instructions import build_instructions
 from atlas_agent.linker.loop import run_linker
 from atlas_agent.logging_setup import configure_logging, job_id_var
+from atlas_agent.syllabus.instructions import LOCKED_INSTRUCTIONS as SYLLABUS_INSTRUCTIONS
+from atlas_agent.syllabus.run import run_syllabus
 from atlas_agent.vault.paths import UnknownVaultError
 
 logger = logging.getLogger( "atlas_agent" )
+
+AgentResponse = LinkedResponse | FailedLinkResponse | DraftedSyllabus | FailedSyllabus
 
 def create_secret_check( settings: Settings ) -> Callable[ [ str | None ], Awaitable[ None ] ]:
     expected = f"Bearer {settings.agent_secret}".encode()
@@ -65,16 +76,16 @@ def create_app( settings: Settings, claude: ClaudeClient ) -> FastAPI:
                 "status": response.status_code,
                 "duration_ms": round( duration )
             }
-            link_response: LinkedResponse | FailedLinkResponse | None = getattr( request.state, "link_response", None )
+            agent_response: AgentResponse | None = getattr( request.state, "agent_response", None )
 
-            if link_response is not None:
-                usage = link_response.usage
+            if agent_response is not None:
+                usage = agent_response.usage
                 line = (
-                    f"{line} outcome={link_response.outcome.value} tool_calls={usage.tool_calls} "
+                    f"{line} outcome={agent_response.outcome.value} tool_calls={usage.tool_calls} "
                     f"input_tokens={usage.input_tokens} output_tokens={usage.output_tokens}"
                 )
                 fields.update(
-                    outcome = link_response.outcome.value,
+                    outcome = agent_response.outcome.value,
                     tool_calls = usage.tool_calls,
                     input_tokens = usage.input_tokens,
                     output_tokens = usage.output_tokens
@@ -111,9 +122,27 @@ def create_app( settings: Settings, claude: ClaudeClient ) -> FastAPI:
         except UnknownVaultError:
             return JSONResponse( status_code = 422, content = { "error": "unknown_vault" } )
 
-        request.state.link_response = link_response
+        request.state.agent_response = link_response
 
         return link_response
+
+    @v1.get( "/syllabus/instructions" )
+    def read_syllabus_instructions() -> InstructionsResponse:
+        return InstructionsResponse( instructions = SYLLABUS_INSTRUCTIONS )
+
+    @v1.post( "/syllabus", response_model = SyllabusResponse )
+    async def create_syllabus(
+        syllabus_request: SyllabusRequest,
+        request: Request
+    ) -> DraftedSyllabus | FailedSyllabus | JSONResponse:
+        try:
+            syllabus_response = await run_syllabus( syllabus_request, settings, claude )
+        except UnknownVaultError:
+            return JSONResponse( status_code = 422, content = { "error": "unknown_vault" } )
+
+        request.state.agent_response = syllabus_response
+
+        return syllabus_response
 
     app.include_router( v1 )
 
@@ -129,22 +158,24 @@ def create_app( settings: Settings, claude: ClaudeClient ) -> FastAPI:
             plural = "" if len( errors ) == 1 else "s"
             reason = f"Invalid request: {len( errors )} error{plural}, first at {location}"
 
-        link_response = FailedLinkResponse(
-            outcome = LinkOutcome.FAILED,
-            reason = reason,
-            suggestions = [],
-            usage = AgentUsage(
-                input_tokens = 0,
-                output_tokens = 0,
-                cache_read_input_tokens = 0,
-                cache_creation_input_tokens = 0,
-                tool_calls = 0,
-                turns = 0
-            )
+        usage = AgentUsage(
+            input_tokens = 0,
+            output_tokens = 0,
+            cache_read_input_tokens = 0,
+            cache_creation_input_tokens = 0,
+            tool_calls = 0,
+            turns = 0
         )
-        request.state.link_response = link_response
+        failed: AgentResponse
 
-        return JSONResponse( content = link_response.model_dump( mode = "json" ) )
+        if request.url.path == "/v1/syllabus":
+            failed = FailedSyllabus( outcome = SyllabusOutcome.FAILED, reason = reason, usage = usage )
+        else:
+            failed = FailedLinkResponse( outcome = LinkOutcome.FAILED, reason = reason, suggestions = [], usage = usage )
+
+        request.state.agent_response = failed
+
+        return JSONResponse( content = failed.model_dump( mode = "json" ) )
 
     return app
 

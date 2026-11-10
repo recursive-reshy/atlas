@@ -96,3 +96,24 @@ def test_log_level_defaults_to_info_and_ignores_case_and_empty( fixture_vault: P
 def test_an_unknown_log_level_names_the_variable( fixture_vault: Path ) -> None:
     with pytest.raises( ConfigError, match = "LOG_LEVEL" ):
         load_settings( make_environ( fixture_vault, LOG_LEVEL = "loud" ) )
+
+def test_syllabus_limits_have_the_documented_defaults( fixture_vault: Path ) -> None:
+    settings = load_settings( make_environ( fixture_vault ) )
+
+    assert settings.syllabus_max_turns == 16
+    assert settings.syllabus_max_tool_calls == 40
+    assert settings.syllabus_max_output_tokens == 8192
+    assert settings.syllabus_timeout_seconds == 180
+
+def test_syllabus_limits_are_read_from_syllabus_variables( fixture_vault: Path ) -> None:
+    settings = load_settings(
+        make_environ( fixture_vault, SYLLABUS_MAX_TURNS = "4", SYLLABUS_TIMEOUT_SECONDS = "60", AGENT_MAX_TURNS = "7" )
+    )
+
+    assert settings.syllabus_max_turns == 4
+    assert settings.syllabus_timeout_seconds == 60
+    assert settings.max_turns == 7
+
+def test_an_invalid_syllabus_limit_names_the_variable( fixture_vault: Path ) -> None:
+    with pytest.raises( ConfigError, match = "SYLLABUS_MAX_TOOL_CALLS" ):
+        load_settings( make_environ( fixture_vault, SYLLABUS_MAX_TOOL_CALLS = "0" ) )

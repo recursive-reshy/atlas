@@ -1,15 +1,15 @@
 # apps/agent
 
-Stateless Python 3.14 / FastAPI service that reads the Obsidian vaults (read-only) and runs Claude tool-use agents for the Express server. Its one endpoint, `POST /v1/link`, proposes wikilinks for a new note (ADRs 0042, 0043). The root `CLAUDE.md` covers workflow and git. The original design is `docs/v0.7.0/trd.md` §2–3; the code is the truth for today.
+Stateless Python 3.14 / FastAPI service that reads the Obsidian vaults (read-only) and runs Claude tool-use agents for the Express server. `POST /v1/link` proposes wikilinks for a new note (ADRs 0042, 0043); `POST /v1/syllabus` drafts a Melete syllabus by reading one subject folder (ADR 0105). Both run on the shared runner (`runner.py`) and the vault toolset (`vault/toolset.py`). The root `CLAUDE.md` covers workflow and git. The original design is `docs/v0.7.0/trd.md` §2–3; the code is the truth for today.
 
 ## Hard boundaries
 
 - **No state.** Never write to disk; no caches or module-level mutable globals. Settings are read once in `create_app()` and passed down.
 - **Vaults are read-only**, in code and in tests. A request names its vault by `vault_dir`; `vault_for( settings, vault_dir )` in `vault/paths.py` resolves it to a real folder directly inside `VAULTS_ROOT` (no symlink, nothing outside) or raises `UnknownVaultError` (422 `{ "error": "unknown_vault" }`). Every path a tool opens goes through `vault/paths.py` and stays inside that vault. Tests use `tests/fixtures/vault/` copied to a temporary `VAULTS_ROOT`; never a real vault.
-- **The contract (`src/atlas_agent/contract/`) changes only when a task says so**, in one commit with: `uv run python -m atlas_agent.contract.export`, the regenerated `schema/link_contract.json`, `schema/examples/`, and the Zod mirror `packages/shared/src/agent.generated.ts`, which `pnpm --filter @atlas/shared generate:agent` writes (never edit it by hand; ADR 0104).
+- **The contract (`src/atlas_agent/contract/`) changes only when a task says so**, in one commit with: `uv run python -m atlas_agent.contract.export`, the regenerated `schema/link_contract.json` and `schema/syllabus_contract.json`, `schema/examples/`, and the Zod mirror `packages/shared/src/agent.generated.ts`, which `pnpm --filter @atlas/shared generate:agent` writes (never edit it by hand; ADR 0104).
 - **No model choice.** The model comes in the request; never hardcode or default one.
-- **One response shape.** Authorized `/v1/link` answers 200 with a `LinkResponse`; a bad request or any agent failure is `outcome: failed` with a reason, never FastAPI's default 422. Only a missing or wrong secret is 401; the one 422 is a well-formed `vault_dir` naming no vault.
-- **`linker/instructions.py` is Naresh's locked prompt**; change it only when a task says to. Editable guidance arrives in the request.
+- **One response shape.** Authorized `/v1/link` answers 200 with a `LinkResponse` and `/v1/syllabus` with a `SyllabusResponse`; a bad request or any agent failure is `outcome: failed` with a reason, never FastAPI's default 422. Only a missing or wrong secret is 401; the one 422 is a well-formed `vault_dir` naming no vault.
+- **`linker/instructions.py` and `syllabus/instructions.py` are Naresh's locked prompts**; change them only when a task says to. The syllabus agent's tools are rooted at the subject folder, so it cannot read outside it. Editable guidance arrives in the request.
 - **Logs are JSON** (`logging_setup.py`); variable parts go in `extra`. Never log the note body, the guidance, `AGENT_SECRET` or `ANTHROPIC_API_KEY`.
 - **Dependencies** are added with `uv add` / `uv add --dev`, never by editing `pyproject.toml` by hand, and only when the TRD or an ADR names them. Never `uv init`.
 
