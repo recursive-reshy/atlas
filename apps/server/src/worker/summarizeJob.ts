@@ -3,9 +3,9 @@ import {
   completeSummary,
   failSummary,
   findJob,
-  getSource,
   recordSummaryRun,
 } from '../services/jobs.service.js'
+import { getSource } from '../services/jobRender.service.js'
 import { resolvePrompt } from '../services/prompts.service.js'
 import { getDefaultModel } from '../services/settings.service.js'
 // Clients

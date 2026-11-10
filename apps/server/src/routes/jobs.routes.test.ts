@@ -34,16 +34,18 @@ import { setStatus } from '../repositories/linkSuggestions.repository.js'
 // Services
 import {
   completeAcquisition,
-  completeLinking,
   completeSummary,
   failJob,
   failSummary,
-  listLinkSuggestions,
   markStatus,
   queueJob,
+} from '../services/jobs.service.js'
+import {
+  completeLinking,
+  listLinkSuggestions,
   recordLinkRun,
   recordLinkSuggestions,
-} from '../services/jobs.service.js'
+} from '../services/jobLinking.service.js'
 // Formatters
 import { formatMarkdown } from '../formatters/markdown.formatter.js'
 import { formatTxt } from '../formatters/txt.formatter.js'

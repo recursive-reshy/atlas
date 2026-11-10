@@ -1,45 +1,24 @@
 // Shared
 import {
-  AcceptLinkSuggestionsBody,
   CreateJobBody,
-  DownloadFormat,
   Job,
   JobStatus,
-  LinkSuggestion,
-  LinkSuggestionsResponse,
-  LinkUsage,
-  RejectLinkSuggestionsBody,
-  RunLinkingBody,
-  StoredLinkSuggestion,
   SummaryUsage,
-  NoteParseError,
   ArticleSource,
   SourceDocument,
-  SubmitPastedTextBody,
-  UpdateDraftBody,
-  VideoSource,
-  applyLockedProperties,
   detectSourceType,
   videoRefusal,
-  lockedPropertiesFor,
-  parseFolderPath,
-  parseNote,
-  serializeNote,
 } from '@atlas/shared'
 // Clients
 import type { TokenUsage } from '../clients/claude.client.js'
-import { existingFolderSync, writeNote } from '../clients/vault.client.js'
+import { existingFolderSync } from '../clients/vault.client.js'
 // Config
 import { config } from '../config.js'
 // Errors
 import { ConflictError, NotFoundError, ValidationError } from '../errors.js'
 // Formatters
-import { transcriptFilename } from '../formatters/filename.js'
-import { formatMarkdown } from '../formatters/markdown.formatter.js'
 import { formatNote } from '../formatters/note.formatter.js'
-import { formatTxt } from '../formatters/txt.formatter.js'
 // Repositories
-import { inTransaction } from '../repositories/database.js'
 import {
   StoredJob,
   deleteJob,
@@ -48,20 +27,13 @@ import {
   listActiveJobs,
   updateJob,
 } from '../repositories/jobStore.repository.js'
-import { insertLinkRun, summarizeLinkUsage } from '../repositories/linkRuns.repository.js'
-import {
-  findSuggestions,
-  insertSuggestions,
-  listSuggestions,
-  setStatus,
-  supersedePending,
-} from '../repositories/linkSuggestions.repository.js'
+import { summarizeLinkUsage } from '../repositories/linkRuns.repository.js'
+import { supersedePending } from '../repositories/linkSuggestions.repository.js'
 import { findFeedById } from '../repositories/feeds.repository.js'
 import { findSourceById } from '../repositories/gmailSources.repository.js'
 import {
   findProfileById,
   findVersionById,
-  setLastFolder,
 } from '../repositories/promptProfiles.repository.js'
 import { insertSummaryRun, listRunsForJob } from '../repositories/summaryRuns.repository.js'
 import { insertTranscriptionRun } from '../repositories/transcriptionRuns.repository.js'
@@ -96,21 +68,12 @@ export interface TranscriptionAttempt {
 
 export type StepStatus = 'fetching' | 'transcribing'
 
-const transcriptFormats = {
-  md: { contentType: 'text/markdown; charset=utf-8', formatter: formatMarkdown },
-  txt: { contentType: 'text/plain; charset=utf-8', formatter: formatTxt },
-} as const
 
-type RenderedTranscript = {
-  filename: string
-  contentType: string
-  body: string
-}
 
-const downloadableStatuses: JobStatus[] = [ 'ready_for_review', 'summary_failed' ]
+export const downloadableStatuses: JobStatus[] = [ 'ready_for_review', 'summary_failed' ]
 const HOUR_MS = 3_600_000
 
-const expiryFromNow = (): string => {
+export const expiryFromNow = (): string => {
   return new Date( Date.now() + config.reviewTtlHours * HOUR_MS ).toISOString()
 }
 
@@ -170,7 +133,7 @@ export const defaultFolderFor = (
   return config.defaultNoteFolder
 }
 
-const toPublicJob = ( userId: string, job: StoredJob ): Job => {
+export const toPublicJob = ( userId: string, job: StoredJob ): Job => {
   return {
     id: job.id,
     url: job.url,
@@ -200,18 +163,8 @@ const toPublicJob = ( userId: string, job: StoredJob ): Job => {
   }
 }
 
-const toTranscript = (
-  id: string,
-  document: SourceDocument,
-): Pick< VideoSource, 'meta' | 'text' > => {
-  if( document.kind !== 'video' ) {
-    throw new Error( `Job ${ id } is an article, not a video` )
-  }
 
-  return { meta: document.meta, text: document.text }
-}
-
-const requireJob = ( userId: string, id: string ): StoredJob => {
+export const requireJob = ( userId: string, id: string ): StoredJob => {
   const job = findJobById( userId, id )
 
   if( job === undefined ) {
@@ -231,7 +184,7 @@ const expiryFor = ( job: StoredJob, status: JobStatus ): string | null => {
 }
 
 // The table refuses; this logs the refusal, then lets the ConflictError through
-const assertMove = ( job: StoredJob, to: JobStatus ): void => {
+export const assertMove = ( job: StoredJob, to: JobStatus ): void => {
   try {
     assertTableMove( job, to )
   } catch( error ) {
@@ -240,7 +193,7 @@ const assertMove = ( job: StoredJob, to: JobStatus ): void => {
   }
 }
 
-const moveTo = (
+export const moveTo = (
   userId: string,
   job: StoredJob,
   status: JobStatus,
@@ -268,7 +221,7 @@ const conflict = ( from: JobStatus, to: JobStatus ): ConflictError => {
 
 // The table says which moves exist; a function that makes one move also names the single
 // status it starts from, because the same target can be reached from others
-const assertFrom = ( job: StoredJob, from: JobStatus, to: JobStatus ): void => {
+export const assertFrom = ( job: StoredJob, from: JobStatus, to: JobStatus ): void => {
   if( job.status !== from ) {
     throw conflict( job.status, to )
   }
@@ -409,7 +362,11 @@ export const completeSummary = (
 
   assertFrom( job, 'summarizing', 'ready_for_review' )
 
-  const document = getSource( userId, id )
+  if( job.source_document === null ) {
+    throw new Error( `Job ${ id } has no transcript` )
+  }
+
+  const document = job.source_document
 
   const linking = config.agent !== null && isLinkingEnabled( userId )
 
@@ -427,59 +384,9 @@ export const completeSummary = (
   } )
 }
 
-export const completeLinking = ( userId: string, id: string ): Job => {
-  const job = requireJob( userId, id )
 
-  assertFrom( job, 'linking', 'ready_for_review' )
 
-  return moveTo( userId, job, 'ready_for_review', { link_state: 'linked', link_error: null } )
-}
 
-export const failLinking = ( userId: string, id: string, message: string ): Job => {
-  const job = requireJob( userId, id )
-
-  assertFrom( job, 'linking', 'ready_for_review' )
-
-  return moveTo( userId, job, 'ready_for_review', { link_state: 'failed', link_error: message } )
-}
-
-export const recordLinkRun = (
-  userId: string,
-  jobId: string,
-  run: {
-    model: string
-    promptVersionId: number
-    usage: LinkUsage | undefined
-    error?: string
-  },
-): number => {
-  const inputTokens = run.usage?.input_tokens ?? null
-  const outputTokens = run.usage?.output_tokens ?? null
-
-  return insertLinkRun( userId, {
-    job_id: jobId,
-    model: run.model,
-    prompt_version_id: run.promptVersionId,
-    input_tokens: inputTokens,
-    output_tokens: outputTokens,
-    cache_read_input_tokens: run.usage?.cache_read_input_tokens ?? null,
-    cache_creation_input_tokens: run.usage?.cache_creation_input_tokens ?? null,
-    tool_calls: run.usage?.tool_calls ?? null,
-    cost_usd: estimateCostUsd( run.model, inputTokens, outputTokens ),
-    outcome: run.error === undefined ? 'succeeded' : 'failed',
-    error: run.error ?? null,
-    created_at: new Date().toISOString(),
-  } )
-}
-
-export const recordLinkSuggestions = (
-  userId: string,
-  jobId: string,
-  runId: number,
-  suggestions: LinkSuggestion[],
-): void => {
-  insertSuggestions( userId, runId, jobId, suggestions )
-}
 
 export const recordSummaryRun = (
   userId: string,
@@ -556,92 +463,11 @@ export const regenerateSummary = async (
   } )
 }
 
-export const listLinkSuggestions = ( userId: string, id: string ): StoredLinkSuggestion[] => {
-  requireJob( userId, id )
 
-  return listSuggestions( userId, id )
-}
 
-export const runLinking = ( userId: string, id: string, body: RunLinkingBody ): Job => {
-  const job = requireJob( userId, id )
 
-  assertFrom( job, 'ready_for_review', 'linking' )
 
-  if( config.agent === null ) {
-    throw new ConflictError( 'Linking isn\'t configured' )
-  }
 
-  return inTransaction( () => {
-    if( body.note_markdown !== undefined ) {
-      updateDraft( userId, id, { note_markdown: body.note_markdown } )
-    }
-
-    supersedePending( userId, id )
-
-    return moveTo( userId, requireJob( userId, id ), 'linking', {
-      link_state: 'pending',
-      link_error: null,
-    } )
-  } )
-}
-
-// Every id must be a pending suggestion of this job; the first one that isn't is named
-const assertPendingSuggestions = ( userId: string, jobId: string, ids: string[] ): void => {
-  const found = new Map(
-    findSuggestions( userId, jobId, ids ).map( ( stored ) => [ stored.id, stored ] ),
-  )
-
-  for( const suggestionId of ids ) {
-    if( found.get( suggestionId )?.status !== 'pending' ) {
-      throw new ConflictError( `Link suggestion ${ suggestionId } is not pending` )
-    }
-  }
-}
-
-export const acceptSuggestions = (
-  userId: string,
-  id: string,
-  body: AcceptLinkSuggestionsBody,
-): LinkSuggestionsResponse => {
-  const job = requireJob( userId, id )
-
-  assertFrom( job, 'ready_for_review', 'ready_for_review' )
-
-  assertPendingSuggestions( userId, id, body.ids )
-
-  return inTransaction( () => {
-    const updated = updateDraft( userId, id, { note_markdown: body.note_markdown } )
-
-    setStatus( userId, body.ids, 'accepted', new Date().toISOString() )
-
-    return { job: updated, suggestions: listSuggestions( userId, id ) }
-  } )
-}
-
-export const rejectSuggestions = (
-  userId: string,
-  id: string,
-  body: RejectLinkSuggestionsBody,
-): LinkSuggestionsResponse => {
-  const job = requireJob( userId, id )
-
-  assertFrom( job, 'ready_for_review', 'ready_for_review' )
-
-  assertPendingSuggestions( userId, id, body.ids )
-  setStatus( userId, body.ids, 'rejected', new Date().toISOString() )
-
-  return { job: toPublicJob( userId, job ), suggestions: listSuggestions( userId, id ) }
-}
-
-export const discardJob = ( userId: string, id: string ): void => {
-  const job = requireJob( userId, id )
-
-  if( !downloadableStatuses.includes( job.status ) ) {
-    throw new ConflictError( `Cannot discard a job that is ${ job.status }` )
-  }
-
-  deleteJob( userId, id )
-}
 
 export const deleteExpiredJobs = (): number => {
   const expired = listExpiredJobs( new Date().toISOString() )
@@ -653,35 +479,7 @@ export const deleteExpiredJobs = (): number => {
   return expired.length
 }
 
-export const getSource = ( userId: string, id: string ): SourceDocument => {
-  const job = requireJob( userId, id )
 
-  if( job.source_document === null ) {
-    throw new Error( `Job ${ id } has no transcript` )
-  }
-
-  return job.source_document
-}
-
-export const submitPastedText = (
-  userId: string,
-  id: string,
-  { text, title }: SubmitPastedTextBody,
-): Job => {
-  const job = requireJob( userId, id )
-
-  if( job.source_type !== 'article' || job.status !== 'failed' ) {
-    throw new ConflictError( 'Pasted text can only continue a failed article job' )
-  }
-
-  const document = articleFromText( { url: job.url, text, title, origin: 'pasted' } )
-
-  return moveTo( userId, job, 'summarizing', {
-    source_document: document,
-    title: document.meta.title,
-    error: null,
-  } )
-}
 
 export const failJob = ( userId: string, id: string, message: string ): Job => {
   const job = requireJob( userId, id )
@@ -697,137 +495,7 @@ export const recoverInterruptedJobs = (): number => {
     + markInterruptedLinkingJobs( message, now, expiryFromNow() )
 }
 
-export const findSource = ( userId: string, id: string ): SourceDocument => {
-  const job = requireJob( userId, id )
 
-  if( !downloadableStatuses.includes( job.status ) ) {
-    throw new ConflictError( 'Transcript not ready' )
-  }
 
-  if( job.source_document === null ) {
-    throw new Error( `Job ${ id } is ${ job.status } but has no transcript` )
-  }
 
-  return job.source_document
-}
 
-const today = (): string => new Date().toISOString().slice( 0, 10 )
-
-export const updateDraft = ( userId: string, id: string, body: UpdateDraftBody ): Job => {
-  const job = requireJob( userId, id )
-
-  assertFrom( job, 'ready_for_review', 'ready_for_review' )
-
-  if( job.source_document === null ) {
-    throw new Error( `Job ${ id } is ${ job.status } but has no transcript` )
-  }
-
-  const changes: Partial< StoredJob > = { expires_at: expiryFromNow() }
-
-  if( body.note_markdown !== undefined ) {
-    let created = today()
-
-    try {
-      if( job.note_markdown !== null ) {
-        created = parseNote( job.note_markdown ).properties.created
-      }
-
-      const note = applyLockedProperties(
-        parseNote( body.note_markdown ),
-        lockedPropertiesFor( job.source_document, created ),
-      )
-
-      changes.note_markdown = serializeNote( note )
-      changes.title = note.properties.title
-    } catch( error ) {
-      if( !( error instanceof NoteParseError ) ) {
-        throw error
-      }
-
-      throw new ValidationError( `front-matter invalid: ${ error.message }` )
-    }
-  }
-
-  if( body.target_folder !== undefined ) {
-    if( body.target_folder !== null ) {
-      try {
-        parseFolderPath( body.target_folder )
-      } catch( error ) {
-        throw new ValidationError( error instanceof Error ? error.message : 'Invalid folder' )
-      }
-    }
-
-    changes.target_folder = body.target_folder
-  }
-
-  return moveTo( userId, job, job.status, changes )
-}
-
-export const saveJob = async ( userId: string, id: string ): Promise< string > => {
-  const job = requireJob( userId, id )
-
-  assertMove( job, 'saved' )
-
-  if( job.source_document === null ) {
-    throw new Error( `Job ${ id } is ${ job.status } but has no transcript` )
-  }
-
-  if( job.note_markdown === null ) {
-    throw new ConflictError( 'The job has no draft to save' )
-  }
-
-  const note = applyLockedProperties(
-    parseNote( job.note_markdown ),
-    lockedPropertiesFor( job.source_document, today() ),
-  )
-
-  const folder = job.target_folder ?? defaultFolderFor( userId, job )
-
-  const savedPath = await writeNote(
-    vaultRootFor( userId ),
-    folder,
-    note.properties.title,
-    serializeNote( note ),
-  )
-
-  if( job.prompt_profile_id !== null ) {
-    setLastFolder( userId, job.prompt_profile_id, folder )
-  }
-
-  moveTo( userId, job, 'saved', {
-    saved_path: savedPath,
-    title: note.properties.title,
-    source_document: null,
-  } )
-
-  return savedPath
-}
-
-export const renderTranscript = (
-  userId: string,
-  id: string,
-  format: DownloadFormat,
-): RenderedTranscript => {
-  const document = findSource( userId, id )
-
-  if( document.kind === 'article' ) {
-    if( format !== 'md' ) {
-      throw new ConflictError( 'Only Markdown is available for articles' )
-    }
-
-    return {
-      filename: transcriptFilename( document.meta.title, format ),
-      contentType: transcriptFormats.md.contentType,
-      body: `# ${ document.meta.title }\n\n${ document.meta.source }\n\n${ document.markdown }`,
-    }
-  }
-
-  const transcript = toTranscript( id, document )
-  const { contentType, formatter } = transcriptFormats[ format ]
-
-  return {
-    filename: transcriptFilename( transcript.meta.title, format ),
-    contentType,
-    body: formatter( transcript ),
-  }
-}

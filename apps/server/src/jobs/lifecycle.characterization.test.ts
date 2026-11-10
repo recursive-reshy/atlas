@@ -27,28 +27,32 @@ import {
 } from '../repositories/jobStore.repository.js'
 // Services
 import {
-  acceptSuggestions,
   completeAcquisition,
-  completeLinking,
   completeSummary,
   deleteExpiredJobs,
-  discardJob,
   failJob,
-  failLinking,
   failSummary,
   claimNextJob,
-  findSource,
   listJobs,
   markStatus,
   recoverInterruptedJobs,
   regenerateSummary,
-  rejectSuggestions,
   retrySummary,
+} from '../services/jobs.service.js'
+import {
+  acceptSuggestions,
+  completeLinking,
+  failLinking,
+  rejectSuggestions,
   runLinking,
+} from '../services/jobLinking.service.js'
+import {
+  discardJob,
   saveJob,
   submitPastedText,
   updateDraft,
-} from '../services/jobs.service.js'
+} from '../services/jobDraft.service.js'
+import { findSource } from '../services/jobRender.service.js'
 // Clients
 import { writeNote } from '../clients/vault.client.js'
 // Formatters
