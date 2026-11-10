@@ -14,6 +14,7 @@ import {
   describe,
   expect,
   it,
+  onTestFinished,
   vi,
 } from 'vitest'
 // Errors
@@ -30,6 +31,8 @@ import { listSubjects, updateSubject } from '../repositories/meleteSubjects.repo
 import { setSetting } from '../repositories/settings.repository.js'
 // Services
 import { resetScanClock, scanLearningRoot } from './meleteScan.service.js'
+// Worker
+import { onGeneratorWake } from '../worker/wake.js'
 // Test support
 import { addQuestion } from '../test-support/meleteData.fixture.js'
 import {
@@ -429,6 +432,55 @@ describe( 'auto-enrol', () => {
       generation: 'idle',
     } )
     expect( noteAt( 'Learning/TypeScript/Generics.md' ).enrolled ).toBe( false )
+  } )
+} )
+
+describe( 'waking the generator', () => {
+  const woken = (): ( () => number ) => {
+    const listener = vi.fn()
+    const off = onGeneratorWake( listener )
+
+    onTestFinished( off )
+
+    return () => listener.mock.calls.length
+  }
+
+  it( 'wakes it in the same tick when auto-enrol queues a new note', async () => {
+    await scan()
+    updateSubject( userId, subjectId( 'Learning/TypeScript' ), { auto_enroll: true } )
+    const wakes = woken()
+
+    await vault.write(
+      'Learning/TypeScript/Mapped Types.md',
+      CONDITIONAL_NOTE.replace( 'Cond', 'Map' ),
+    )
+    await scan( 1 )
+    await Promise.resolve()
+
+    expect( wakes() ).toBe( 1 )
+  } )
+
+  it( 'wakes it when an enrolled note changes and is queued again', async () => {
+    await scan()
+    enroll( noteAt( 'Learning/Rust/Ownership.md' ).id )
+    const wakes = woken()
+
+    await vault.write( 'Learning/Rust/Ownership.md', `${ OWNERSHIP_NOTE }\nBorrowing too.\n` )
+    await scan( 1 )
+    await Promise.resolve()
+
+    expect( wakes() ).toBe( 1 )
+  } )
+
+  it( 'leaves it asleep when a scan queues nothing', async () => {
+    await scan()
+    const wakes = woken()
+
+    await vault.write( 'Learning/Rust/Lifetimes.md', '# Lifetimes\n' )
+    await scan( 1 )
+    await Promise.resolve()
+
+    expect( wakes() ).toBe( 0 )
   } )
 } )
 
