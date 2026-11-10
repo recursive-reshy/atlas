@@ -81,4 +81,6 @@ export const themisKeys = {
 
 export const calendarKeys = {
   all: [ 'calendar' ] as const,
+  status: [ 'calendar', 'status' ] as const,
+  choices: [ 'calendar', 'choices' ] as const,
 }

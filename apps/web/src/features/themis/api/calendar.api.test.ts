@@ -8,7 +8,15 @@ import {
   vi,
 } from 'vitest'
 // App
-import { startCalendarConnect, syncCalendar } from './calendar.api'
+import { calendarChoicesFixture, calendarFixture } from '../fixtures/calendar.fixture'
+import {
+  disconnectCalendar,
+  getCalendar,
+  listCalendars,
+  selectCalendar,
+  startCalendarConnect,
+  syncCalendar,
+} from './calendar.api'
 
 const fetchMock = vi.fn()
 
@@ -74,5 +82,53 @@ describe( 'syncCalendar', () => {
     fetchMock.mockResolvedValue( new Response( JSON.stringify( { added: 'many' } ) ) )
 
     await expect( syncCalendar() ).rejects.toThrow( 'Unexpected response' )
+  } )
+} )
+
+describe( 'getCalendar', () => {
+  it( 'reads the connection', async () => {
+    fetchMock.mockResolvedValue( new Response( JSON.stringify( calendarFixture() ) ) )
+
+    await expect( getCalendar() ).resolves.toEqual( calendarFixture() )
+    expect( fetchMock ).toHaveBeenCalledWith( '/api/calendar', undefined )
+  } )
+} )
+
+describe( 'listCalendars', () => {
+  it( 'returns the calendars to choose from', async () => {
+    fetchMock.mockResolvedValue(
+      new Response( JSON.stringify( { calendars: calendarChoicesFixture() } ) ),
+    )
+
+    await expect( listCalendars() ).resolves.toEqual( calendarChoicesFixture() )
+    expect( fetchMock ).toHaveBeenCalledWith( '/api/calendar/calendars', undefined )
+  } )
+} )
+
+describe( 'selectCalendar', () => {
+  it( 'puts the choice and returns the new status', async () => {
+    const body = { calendar_id: 'work@example.com', import_from: '2026-11-01' }
+
+    fetchMock.mockResolvedValue( new Response( JSON.stringify( calendarFixture() ) ) )
+
+    await expect( selectCalendar( body ) ).resolves.toEqual( calendarFixture() )
+    expect( fetchMock ).toHaveBeenCalledWith( '/api/calendar/selection', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify( body ),
+    } )
+  } )
+} )
+
+describe( 'disconnectCalendar', () => {
+  it.each( [ true, false ] )( 'deletes with remove_time=%s', async ( removeTime ) => {
+    fetchMock.mockResolvedValue( new Response( null, { status: 204 } ) )
+
+    await disconnectCalendar( removeTime )
+
+    expect( fetchMock ).toHaveBeenCalledWith(
+      `/api/calendar?remove_time=${ removeTime }`,
+      expect.objectContaining( { method: 'DELETE' } ),
+    )
   } )
 } )

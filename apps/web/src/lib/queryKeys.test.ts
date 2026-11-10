@@ -71,5 +71,7 @@ describe( 'melete query keys', () => {
 describe( 'calendar query keys', () => {
   it( 'nests every key under the calendar key', () => {
     expect( calendarKeys.all ).toEqual( [ 'calendar' ] )
+    expect( calendarKeys.status ).toEqual( [ 'calendar', 'status' ] )
+    expect( calendarKeys.choices ).toEqual( [ 'calendar', 'choices' ] )
   } )
 } )

@@ -1,7 +1,38 @@
 // Shared
-import { ConnectCalendarResponse, SyncCalendarResponse } from '@atlas/shared'
+import {
+  ConnectCalendarResponse,
+  GetCalendarResponse,
+  ListCalendarsResponse,
+  SyncCalendarResponse,
+} from '@atlas/shared'
+import type { CalendarChoice, SelectCalendarBody } from '@atlas/shared'
 // App
-import { request } from '#src/lib/request'
+import { request, send } from '#src/lib/request'
+
+export const getCalendar = async (): Promise< GetCalendarResponse > => {
+  return request( '/api/calendar', GetCalendarResponse )
+}
+
+export const listCalendars = async (): Promise< CalendarChoice[] > => {
+  const { calendars } = await request( '/api/calendar/calendars', ListCalendarsResponse )
+
+  return calendars
+}
+
+export const selectCalendar = async (
+  body: SelectCalendarBody,
+): Promise< GetCalendarResponse > => {
+  return request( '/api/calendar/selection', GetCalendarResponse, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify( body ),
+  } )
+}
+
+// Imported time is kept unless `removeTime` is true
+export const disconnectCalendar = async ( removeTime: boolean ): Promise< void > => {
+  await send( `/api/calendar?remove_time=${ removeTime }`, { method: 'DELETE' } )
+}
 
 export const startCalendarConnect = async (): Promise< string > => {
   const { url } = await request(
