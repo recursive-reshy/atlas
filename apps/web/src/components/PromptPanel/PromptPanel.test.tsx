@@ -38,7 +38,7 @@ import {
   profilesFixture,
   settingsFixture,
   versionFixture,
-} from '#src/test-support/summarizer.fixture'
+} from '#src/features/jobs/fixtures/summarizer.fixture'
 import { PromptPanel } from './PromptPanel'
 
 vi.mock( '#src/hooks/useSettings' )

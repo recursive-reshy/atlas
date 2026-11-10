@@ -24,7 +24,7 @@ import {
   CODING_ID,
   profileFixture,
   profilesFixture,
-} from '../test-support/summarizer.fixture'
+} from '../features/jobs/fixtures/summarizer.fixture'
 import { promptKeys } from '../lib/queryKeys'
 import { usePromptProfiles } from './usePromptProfiles'
 

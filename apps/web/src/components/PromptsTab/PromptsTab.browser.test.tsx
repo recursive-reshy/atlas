@@ -26,7 +26,7 @@ import {
 } from '#src/test-support/hookStates'
 import { createQueryClient } from '#src/queryClient'
 import { meFixture } from '#src/test-support/me.fixture'
-import { CODING_ID } from '#src/test-support/summarizer.fixture'
+import { CODING_ID } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { theme } from '#src/theme'
 import { PromptsTab } from './PromptsTab'
 

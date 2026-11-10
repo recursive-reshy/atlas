@@ -10,7 +10,7 @@ import {
 } from 'vitest'
 // App
 import { renderWithClient } from '#src/test-support/renderWithClient'
-import { CODING_ID, profilesFixture } from '#src/test-support/summarizer.fixture'
+import { CODING_ID, profilesFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { FeedFields } from './FeedFields'
 
 const setup = ( overrides: Partial< Parameters< typeof FeedFields >[ 0 ] > = {} ) => {

@@ -11,7 +11,7 @@ import {
 // App
 import { FEED_ID, feedFixture } from '#src/test-support/feed.fixture'
 import { renderWithClient } from '#src/test-support/renderWithClient'
-import { CODING_ID, profilesFixture } from '#src/test-support/summarizer.fixture'
+import { CODING_ID, profilesFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { FeedList } from './FeedList'
 
 const NOW = Date.parse( '2026-10-18T10:00:00.000Z' )

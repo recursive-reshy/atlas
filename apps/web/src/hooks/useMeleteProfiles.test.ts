@@ -14,7 +14,7 @@ import {
   meleteProfilesFixture,
   profileFixture,
   profilesFixture,
-} from '../test-support/summarizer.fixture'
+} from '../features/jobs/fixtures/summarizer.fixture'
 import { promptKeys } from '../lib/queryKeys'
 import { useMeleteProfiles } from './useMeleteProfiles'
 

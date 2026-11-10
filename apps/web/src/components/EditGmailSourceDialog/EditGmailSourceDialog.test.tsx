@@ -19,7 +19,7 @@ import {
   gmailSourceFixture,
 } from '#src/test-support/gmail.fixture'
 import { renderWithClient } from '#src/test-support/renderWithClient'
-import { CODING_ID, profilesFixture } from '#src/test-support/summarizer.fixture'
+import { CODING_ID, profilesFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { EditGmailSourceDialog } from './EditGmailSourceDialog'
 
 vi.mock( '#src/api/gmail.api' )

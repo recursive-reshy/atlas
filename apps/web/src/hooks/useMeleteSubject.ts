@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { MeleteNote, MeleteSubject } from '@atlas/shared'
 // App
 import { getMeleteSubject } from '../api/melete.api'
-import { POLL_INTERVAL_MS } from './useJob'
+import { POLL_INTERVAL_MS } from '../features/jobs/hooks/useJob'
 import { meleteKeys } from '../lib/queryKeys'
 
 export interface MeleteSubjectState {

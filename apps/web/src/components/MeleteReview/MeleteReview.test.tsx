@@ -23,7 +23,7 @@ import {
   SUBJECT_ID,
 } from '#src/test-support/melete.fixture'
 import { settingsState } from '#src/test-support/hookStates'
-import { settingsFixture } from '#src/test-support/summarizer.fixture'
+import { settingsFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { mutationStub } from '#src/test-support/mutationStub'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { MeleteReview } from './MeleteReview'

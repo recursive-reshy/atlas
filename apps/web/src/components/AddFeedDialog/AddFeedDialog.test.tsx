@@ -13,7 +13,7 @@ import {
 import { ApiError } from '#src/lib/apiError'
 import { previewFeed } from '#src/api/feeds.api'
 import { renderWithClient } from '#src/test-support/renderWithClient'
-import { CODING_ID, profilesFixture } from '#src/test-support/summarizer.fixture'
+import { CODING_ID, profilesFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { AddFeedDialog } from './AddFeedDialog'
 
 vi.mock( '#src/api/feeds.api' )

@@ -13,7 +13,7 @@ import { ApiError } from '../lib/apiError'
 import { listInbox, summarizeInbox } from '../api/inbox.api'
 import { feedItemFixture, ITEM_ID } from '../test-support/feed.fixture'
 import { GMAIL_ITEM_ID, gmailItemFixture } from '../test-support/gmail.fixture'
-import { jobFixture } from '../test-support/job.fixture'
+import { jobFixture } from '../features/jobs/fixtures/job.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import {
   feedKeys,

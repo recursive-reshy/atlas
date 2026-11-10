@@ -10,7 +10,7 @@ import {
 import { ApiError } from '../lib/apiError'
 import { listModels } from '../api/models.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { modelsFixture } from '../test-support/summarizer.fixture'
+import { modelsFixture } from '../features/jobs/fixtures/summarizer.fixture'
 import { modelKeys } from '../lib/queryKeys'
 import { useModels } from './useModels'
 

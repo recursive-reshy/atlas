@@ -10,7 +10,7 @@ import {
 // App
 import { ITEM_ID, feedItemFixture } from '../test-support/feed.fixture'
 import { GMAIL_ITEM_ID, gmailItemFixture } from '../test-support/gmail.fixture'
-import { jobFixture } from '../test-support/job.fixture'
+import { jobFixture } from '../features/jobs/fixtures/job.fixture'
 import { dismissInbox, listInbox, summarizeInbox } from './inbox.api'
 
 const fetchMock = vi.fn()

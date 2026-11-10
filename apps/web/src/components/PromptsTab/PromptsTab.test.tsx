@@ -27,7 +27,7 @@ import {
   BUSINESS_ID,
   CODING_ID,
   MELETE_QUESTIONS_ID,
-} from '#src/test-support/summarizer.fixture'
+} from '#src/features/jobs/fixtures/summarizer.fixture'
 
 vi.mock( '#src/api/gmail.api' )
 vi.mock( '#src/hooks/useSettings' )

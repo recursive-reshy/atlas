@@ -12,7 +12,7 @@ import {
 import { ApiError } from '../lib/apiError'
 import { getSettings, updateSettings } from '../api/settings.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { settingsFixture } from '../test-support/summarizer.fixture'
+import { settingsFixture } from '../features/jobs/fixtures/summarizer.fixture'
 import { meleteKeys, settingsKeys } from '../lib/queryKeys'
 import { useSettings } from './useSettings'
 

@@ -15,7 +15,7 @@ import { listGmailLabels } from '#src/api/gmail.api'
 import { previewGmailSource } from '#src/api/gmailSources.api'
 import { gmailLabelFixture, gmailPreviewFixture } from '#src/test-support/gmail.fixture'
 import { renderWithClient } from '#src/test-support/renderWithClient'
-import { CODING_ID, profilesFixture } from '#src/test-support/summarizer.fixture'
+import { CODING_ID, profilesFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { AddGmailSourceDialog } from './AddGmailSourceDialog'
 
 vi.mock( '#src/api/gmail.api' )

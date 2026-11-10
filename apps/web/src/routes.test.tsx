@@ -12,7 +12,7 @@ import { memberFixture } from '#src/test-support/me.fixture'
 import { renderWithRouter } from '#src/test-support/renderWithRouter'
 
 vi.mock( '#src/components/MeleteToday', () => ( { MeleteToday: () => <p>melete today</p> } ) )
-vi.mock( '#src/components/HomePage', () => ( { HomePage: () => <p>home page</p> } ) )
+vi.mock( './features/jobs/components/HomePage', () => ( { HomePage: () => <p>home page</p> } ) )
 vi.mock( '#src/components/ThemisHome', () => ( { ThemisHome: () => <p>themis home</p> } ) )
 vi.mock( '#src/components/ThemisGoal', () => ( { ThemisGoal: () => <p>themis goal</p> } ) )
 vi.mock( './app/AppShell', () => ( {

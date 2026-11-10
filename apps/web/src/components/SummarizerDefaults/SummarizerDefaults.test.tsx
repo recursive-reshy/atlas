@@ -20,7 +20,7 @@ import {
   modelsFixture,
   profilesFixture,
   settingsFixture,
-} from '#src/test-support/summarizer.fixture'
+} from '#src/features/jobs/fixtures/summarizer.fixture'
 import { SummarizerDefaults } from './SummarizerDefaults'
 
 vi.mock( '#src/hooks/useSettings' )

@@ -15,7 +15,7 @@ import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
 import { useSettings } from '#src/hooks/useSettings'
 import { modelsState, profilesState, settingsState } from '#src/test-support/hookStates'
 import { renderWithClient } from '#src/test-support/renderWithClient'
-import { CODING_ID } from '#src/test-support/summarizer.fixture'
+import { CODING_ID } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { SummarizeItemsDialog } from './SummarizeItemsDialog'
 
 vi.mock( '#src/hooks/useSettings' )

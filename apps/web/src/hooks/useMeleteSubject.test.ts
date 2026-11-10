@@ -19,7 +19,7 @@ import {
   SUBJECT_ID,
 } from '../test-support/melete.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { POLL_INTERVAL_MS } from './useJob'
+import { POLL_INTERVAL_MS } from '../features/jobs/hooks/useJob'
 import { useMeleteSubject } from './useMeleteSubject'
 
 vi.mock( '../api/melete.api' )

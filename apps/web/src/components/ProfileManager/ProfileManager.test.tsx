@@ -20,7 +20,7 @@ import {
   CODING_ID,
   profileFixture,
   profilesFixture,
-} from '#src/test-support/summarizer.fixture'
+} from '#src/features/jobs/fixtures/summarizer.fixture'
 import { ProfileManager } from './ProfileManager'
 
 vi.mock( '#src/hooks/useSettings' )

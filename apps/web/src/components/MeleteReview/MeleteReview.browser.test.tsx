@@ -26,7 +26,7 @@ import { createQueryClient } from '#src/queryClient'
 import { settingsState } from '#src/test-support/hookStates'
 import { meleteQuestionFixture, meleteReviewItemFixture } from '#src/test-support/melete.fixture'
 import { mutationStub } from '#src/test-support/mutationStub'
-import { settingsFixture } from '#src/test-support/summarizer.fixture'
+import { settingsFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { theme } from '#src/theme'
 import { MeleteReview } from './MeleteReview'
 

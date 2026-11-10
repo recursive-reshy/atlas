@@ -10,7 +10,7 @@ import {
 import { ApiError } from '../lib/apiError'
 import { listVersions } from '../api/prompts.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { CODING_ID, versionFixture } from '../test-support/summarizer.fixture'
+import { CODING_ID, versionFixture } from '../features/jobs/fixtures/summarizer.fixture'
 import { usePromptVersions } from './usePromptVersions'
 
 vi.mock( '../api/prompts.api' )

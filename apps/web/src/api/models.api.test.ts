@@ -8,7 +8,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { modelsFixture } from '../test-support/summarizer.fixture'
+import { modelsFixture } from '../features/jobs/fixtures/summarizer.fixture'
 import { listModels } from './models.api'
 
 const fetchMock = vi.fn()

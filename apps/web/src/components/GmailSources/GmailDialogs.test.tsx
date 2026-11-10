@@ -14,7 +14,7 @@ import type { GmailSourcesState } from '#src/hooks/useGmailSources'
 import { SOURCE_ID, gmailSourceFixture } from '#src/test-support/gmail.fixture'
 import { mutationStub } from '#src/test-support/mutationStub'
 import { renderWithClient } from '#src/test-support/renderWithClient'
-import { profilesFixture } from '#src/test-support/summarizer.fixture'
+import { profilesFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { GmailDialogs } from './GmailDialogs'
 
 vi.mock( '../AddGmailSourceDialog', () => ( {

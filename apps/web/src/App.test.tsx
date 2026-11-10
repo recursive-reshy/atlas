@@ -10,18 +10,18 @@ import {
 } from 'vitest'
 // App
 import { getGmailAccount } from './api/gmail.api'
-import { useJob } from './hooks/useJob'
+import { useJob } from './features/jobs/hooks/useJob'
 import { useMeleteToday } from './hooks/useMeleteToday'
 import { useNextReview } from './hooks/useNextReview'
 import { useSettings } from './hooks/useSettings'
 import { gmailAccountFixture } from '#src/test-support/gmail.fixture'
-import { jobFixture } from '#src/test-support/job.fixture'
+import { jobFixture } from './features/jobs/fixtures/job.fixture'
 import { meleteTodayFixture } from '#src/test-support/melete.fixture'
 import { settingsState } from '#src/test-support/hookStates'
 import { renderWithRouter } from '#src/test-support/renderWithRouter'
 
 vi.mock( './api/gmail.api' )
-vi.mock( './hooks/useJob' )
+vi.mock( './features/jobs/hooks/useJob' )
 vi.mock( './hooks/useMeleteToday' )
 vi.mock( './hooks/useNextReview' )
 vi.mock( './hooks/useSettings' )

@@ -9,7 +9,7 @@ import {
   modelsFixture,
   profilesFixture,
   settingsFixture,
-} from './summarizer.fixture'
+} from '../features/jobs/fixtures/summarizer.fixture'
 
 type SettingsState = ReturnType< typeof useSettings >
 type ModelsState = ReturnType< typeof useModels >

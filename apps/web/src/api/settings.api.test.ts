@@ -8,7 +8,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { settingsFixture } from '../test-support/summarizer.fixture'
+import { settingsFixture } from '../features/jobs/fixtures/summarizer.fixture'
 import { ApiError } from '../lib/apiError'
 import { getSettings, updateSettings } from './settings.api'
 

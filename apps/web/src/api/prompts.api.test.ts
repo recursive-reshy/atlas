@@ -13,7 +13,7 @@ import {
   profileFixture,
   profilesFixture,
   versionFixture,
-} from '../test-support/summarizer.fixture'
+} from '../features/jobs/fixtures/summarizer.fixture'
 import {
   createProfile,
   deleteProfile,

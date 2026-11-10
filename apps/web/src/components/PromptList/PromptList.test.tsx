@@ -11,7 +11,7 @@ import {
   MELETE_QUESTIONS_ID,
   meleteProfilesFixture,
   profilesFixture,
-} from '#src/test-support/summarizer.fixture'
+} from '#src/features/jobs/fixtures/summarizer.fixture'
 import { PromptList } from './PromptList'
 
 const setup = (

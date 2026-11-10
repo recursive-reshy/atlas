@@ -14,7 +14,7 @@ import { useSettings } from '#src/hooks/useSettings'
 import { settingsState } from '#src/test-support/hookStates'
 import { mutationStub } from '#src/test-support/mutationStub'
 import { renderWithClient } from '#src/test-support/renderWithClient'
-import { settingsFixture } from '#src/test-support/summarizer.fixture'
+import { settingsFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { NumberSettingField } from './NumberSettingField'
 
 vi.mock( '#src/hooks/useSettings' )

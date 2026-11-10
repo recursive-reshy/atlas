@@ -12,7 +12,7 @@ import {
 // App
 import { usePromptVersions } from '#src/hooks/usePromptVersions'
 import { renderWithClient } from '#src/test-support/renderWithClient'
-import { BUSINESS_ID, versionFixture } from '#src/test-support/summarizer.fixture'
+import { BUSINESS_ID, versionFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { PromptHistory } from './PromptHistory'
 
 vi.mock( '#src/hooks/usePromptVersions' )
