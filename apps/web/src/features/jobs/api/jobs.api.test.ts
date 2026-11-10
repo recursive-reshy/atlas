@@ -1,4 +1,5 @@
 // Shared
+import { JobListItem } from '@atlas/shared'
 import type { DownloadFormat } from '@atlas/shared'
 // Vitest
 import {
@@ -178,7 +179,8 @@ describe( 'listJobs', () => {
   it( 'requests the list and returns the parsed jobs', async () => {
     fetchMock.mockResolvedValue( jsonResponse( { jobs: [ jobFixture() ] }, 200 ) )
 
-    await expect( listJobs() ).resolves.toEqual( [ jobFixture() ] )
+    // A listed job has no draft (ADR 0102), so the parsed item lacks note_markdown
+    await expect( listJobs() ).resolves.toEqual( [ JobListItem.parse( jobFixture() ) ] )
     expect( fetchMock.mock.calls[ 0 ]?.[ 0 ] ).toBe( '/api/jobs' )
     expect( fetchMock.mock.calls[ 0 ]?.[ 1 ] ).toBeUndefined()
   } )
