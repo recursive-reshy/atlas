@@ -1,6 +1,6 @@
 # 0043. Agent contract: Pydantic is the source, Zod mirrors it, shared examples catch drift
 
-- Status: Accepted
+- Status: Accepted; hand-mirror clause superseded by 0104
 - Date: 2026-10-21
 
 ## Context

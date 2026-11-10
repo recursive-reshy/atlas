@@ -2,9 +2,10 @@
 
 ## Plans
 
-Each version has its own folder. The current version is 1.1.1. User guides: [deploy.md](deploy.md) (hosting on a VM, including backups and restore), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md). How the app works: [architecture.md](architecture.md).
+Each version has its own folder. The current version is 1.2.0. User guides: [deploy.md](deploy.md) (hosting on a VM, including backups and restore), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md). How the app works: [architecture.md](architecture.md).
 
-- **v1.1.1 (in progress):** [PRD](v1.1.1/prd.md) · [TRD](v1.1.1/trd.md) · [Tasks](v1.1.1/tasks.md) · [Release notes](v1.1.1/release-notes.md) · checkpoint plans in `v1.1.1/plans/`
+- **v1.2.0 (in progress):** [PRD](v1.2.0/prd.md) · [TRD](v1.2.0/trd.md) · [Tasks](v1.2.0/tasks.md) · checkpoint plans in `v1.2.0/plans/`
+- **v1.1.1 (done):** [PRD](v1.1.1/prd.md) · [TRD](v1.1.1/trd.md) · [Tasks](v1.1.1/tasks.md) · [Release notes](v1.1.1/release-notes.md) · checkpoint plans in `v1.1.1/plans/`
 - **v1.1.0 (done):** [PRD](v1.1.0/prd.md) · [TRD](v1.1.0/trd.md) · [Tasks](v1.1.0/tasks.md) · [Release notes](v1.1.0/release-notes.md) · checkpoint plans in `v1.1.0/plans/`
 - **v1.0.0:** the same code as 0.11.0 with the version raised and no migration; the promise is [ADR 0084](decisions/0084-stability-promise-from-1-0.md), the checklist is [1.0 readiness](v1-readiness.md)
   - **Docs cleanup (after 1.0):** the architecture moved out of the root `CLAUDE.md` into [architecture.md](architecture.md), `backups.md` was folded into the runbook's "Restoring the database", the 0.10 upgrade section left the runbook, and the Git rules now use release branches. The user guides are [deploy.md](deploy.md), [phone-access.md](phone-access.md) and [google-cloud-setup.md](google-cloud-setup.md).
@@ -71,7 +72,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0040](decisions/0040-newsletters-whole-body.md) | Newsletters: convert the whole cleaned body, not Readability's best block | Accepted |
 | [0041](decisions/0041-defer-job-alert-intake.md) | Defer job-alert intake and the Freelance jobs page to a later version | Accepted |
 | [0042](decisions/0042-vault-agent-service.md) | A stateless Python vault agent service, with the vault mounted read-only | Accepted |
-| [0043](decisions/0043-agent-contract.md) | Agent contract: Pydantic is the source, Zod mirrors it, shared examples catch drift | Accepted |
+| [0043](decisions/0043-agent-contract.md) | Agent contract: Pydantic is the source, Zod mirrors it, shared examples catch drift | Accepted; hand-mirror clause superseded by 0104 |
 | [0044](decisions/0044-wikilinks-concepts-and-agent-loop.md) | Wikilinks: links only from the new note, concept links, text-tool search and computed kinds | Accepted |
 | [0045](decisions/0045-per-link-review.md) | Per-link review: shared insertion functions and one transaction per accept | Accepted |
 | [0046](decisions/0046-linker-prompt-and-settings.md) | Linker prompt as a prompt profile with a purpose; locked instructions owned by the agent service | Accepted |
@@ -83,7 +84,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0052](decisions/0052-data-router-and-settings-routes.md) | A data router, Settings as routed tabs, and one unsaved-changes guard | Accepted |
 | [0053](decisions/0053-e2e-smoke-test.md) | End-to-end smoke test: the real Compose stack against local fakes, driven by Playwright | Accepted |
 | [0054](decisions/0054-modules-share-the-vault-own-their-data.md) | Modules share the vault read-only and own their data | Accepted (amended by 0072) |
-| [0055](decisions/0055-melete-in-express.md) | Melete's Claude calls run in Express, not the agent service | Accepted |
+| [0055](decisions/0055-melete-in-express.md) | Melete's Claude calls run in Express, not the agent service | Accepted; narrowed by 0103 |
 | [0056](decisions/0056-fsrs-scheduling.md) | FSRS scheduling with ts-fsrs | Accepted |
 | [0057](decisions/0057-note-identity-and-scans.md) | Note identity: path plus body hash, on-demand scans | Accepted |
 | [0058](decisions/0058-melete-data-and-generator-loop.md) | Melete's data model and generator loop | Accepted |
@@ -131,6 +132,13 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0100](decisions/0100-loops-wake-on-queue.md) | The worker and the Melete generator wake when work is queued | Accepted |
 | [0101](decisions/0101-modules-defined-once.md) | A module is defined once, in `ModuleId` | Accepted |
 | [0102](decisions/0102-job-list-omits-the-draft.md) | The job list omits the draft | Accepted |
+| [0103](decisions/0103-where-a-claude-call-lives.md) | Where a Claude call lives: Express or the agent service | Accepted |
+| [0104](decisions/0104-generated-agent-contract-mirror.md) | The agent contract's Zod mirror is generated in-repo | Accepted |
+| [0105](decisions/0105-agent-runner-and-syllabus-agent.md) | A shared agent runner, and syllabus drafting as the second agent | Accepted |
+| [0106](decisions/0106-test-gate-runs-everything.md) | The test gate runs every step and reports all failures | Accepted |
+| [0107](decisions/0107-anthropic-typescript-sdk-1.md) | Express moves to `@anthropic-ai/sdk` 1.x | Accepted |
+| [0108](decisions/0108-google-calendar-time-source.md) | Google Calendar is a reviewed time source for Themis | Accepted |
+| [0109](decisions/0109-home-screen.md) | A Home screen at `/`; the transcriber moves to `/transcriber` | Accepted |
 
 ## Template for new ADRs
 
