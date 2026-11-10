@@ -9,7 +9,9 @@ import {
 import {
   countEvents,
   deleteDrafts,
+  listRuleAssignable,
   removeImported,
+  setRuleAssignment,
 } from './calendarEvents.repository.js'
 import { getDatabase } from './database.js'
 // Test support
@@ -113,5 +115,53 @@ describe( 'countEvents', () => {
     expect( countEvents( userId, 'draft' ) ).toBe( 2 )
     expect( countEvents( userId, 'approved' ) ).toBe( 1 )
     expect( countEvents( userId, 'dismissed' ) ).toBe( 0 )
+  } )
+} )
+
+describe( 'rule assignment', () => {
+  const setHand = ( id: string ): void => {
+    getDatabase().prepare( `UPDATE calendar_events
+      SET assigned_by = 'hand', subject_id = ? WHERE id = ?` ).run( subjectId, id )
+  }
+
+  const rowOf = ( id: string ) => getDatabase()
+    .prepare( 'SELECT subject_id, goal_id, assigned_by, rule_id FROM calendar_events WHERE id = ?' )
+    .get( id )
+
+  it( 'lists the drafts a rule may assign: unassigned or by rule, not by hand or settled', () => {
+    insertEvent( 'free', 'draft' )
+    insertEvent( 'by-rule', 'draft' )
+    insertEvent( 'by-hand', 'draft' )
+    insertEvent( 'approved', 'approved' )
+    insertEvent( 'theirs', 'draft', { user: createTestUser().id } )
+    getDatabase().prepare( 'UPDATE calendar_events SET assigned_by = \'rule\' WHERE id = ?' )
+      .run( 'by-rule' )
+    setHand( 'by-hand' )
+
+    expect( listRuleAssignable( userId ).map( ( { id } ) => id ).sort() )
+      .toEqual( [ 'by-rule', 'free' ] )
+    expect( listRuleAssignable( userId )[ 0 ] ).toHaveProperty( 'title', 'Gym' )
+  } )
+
+  it( 'assigns by a rule, then clears the assignment', () => {
+    getDatabase().prepare( `INSERT INTO calendar_rules ( id, user_id, phrase, subject_id, goal_id,
+      position, created_at, updated_at ) VALUES ( 'r1', ?, 'gym', ?, NULL, 0, ?, ? )` )
+      .run( userId, subjectId, AT, AT )
+    insertEvent( 'e1', 'draft' )
+
+    setRuleAssignment( userId, 'e1', { rule_id: 'r1', subject_id: subjectId, goal_id: null } )
+    expect( rowOf( 'e1' ) )
+      .toEqual( { subject_id: subjectId, goal_id: null, assigned_by: 'rule', rule_id: 'r1' } )
+
+    setRuleAssignment( userId, 'e1', null )
+    expect( rowOf( 'e1' ) )
+      .toEqual( { subject_id: null, goal_id: null, assigned_by: null, rule_id: null } )
+  } )
+
+  it( 'never touches another user\'s event', () => {
+    insertEvent( 'theirs', 'draft', { user: createTestUser().id } )
+    setRuleAssignment( userId, 'theirs', { rule_id: null, subject_id: subjectId, goal_id: null } )
+
+    expect( rowOf( 'theirs' ) ).toMatchObject( { assigned_by: null } )
   } )
 } )

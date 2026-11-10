@@ -42,3 +42,46 @@ export const SelectCalendarBody = z.strictObject( {
   import_from: CalendarDate,
 } )
 export type SelectCalendarBody = z.infer< typeof SelectCalendarBody >
+
+// Title rules (ADR 0108): a phrase contained in an event's title, case-insensitively, assigns
+// the event to a subject or a goal; the first rule by position wins.
+export const CalendarRule = z.object( {
+  id: z.uuid(),
+  phrase: z.string(),
+  subject_id: z.uuid().nullable(),
+  goal_id: z.uuid().nullable(),
+  position: z.int().min( 0 ),
+} )
+export type CalendarRule = z.infer< typeof CalendarRule >
+
+export const ListCalendarRulesResponse = z.object( { rules: z.array( CalendarRule ) } )
+export type ListCalendarRulesResponse = z.infer< typeof ListCalendarRulesResponse >
+
+export const CalendarRuleResponse = z.object( { rule: CalendarRule } )
+export type CalendarRuleResponse = z.infer< typeof CalendarRuleResponse >
+
+const Phrase = z.string().trim().min( 1 ).max( 100 )
+
+export const CreateCalendarRuleBody = z.strictObject( {
+  phrase: Phrase,
+  subject_id: z.uuid().optional(),
+  goal_id: z.uuid().optional(),
+} ).refine(
+  ( body ) => ( body.subject_id === undefined ) !== ( body.goal_id === undefined ),
+  { message: 'Give a subject_id or a goal_id, not both' },
+)
+export type CreateCalendarRuleBody = z.infer< typeof CreateCalendarRuleBody >
+
+export const UpdateCalendarRuleBody = z.strictObject( {
+  phrase: Phrase.optional(),
+  subject_id: z.uuid().optional(),
+  goal_id: z.uuid().optional(),
+  position: z.int().min( 0 ).optional(),
+} ).refine(
+  ( body ) => body.subject_id === undefined || body.goal_id === undefined,
+  { message: 'Give a subject_id or a goal_id, not both' },
+).refine(
+  ( body ) => Object.keys( body ).length > 0,
+  { message: 'Change at least one field' },
+)
+export type UpdateCalendarRuleBody = z.infer< typeof UpdateCalendarRuleBody >

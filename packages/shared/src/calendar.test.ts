@@ -3,10 +3,14 @@ import { describe, expect, it } from 'vitest'
 // Local
 import {
   CalendarConnectionStatus,
+  CalendarRuleResponse,
   ConnectCalendarResponse,
+  CreateCalendarRuleBody,
   GetCalendarResponse,
+  ListCalendarRulesResponse,
   ListCalendarsResponse,
   SelectCalendarBody,
+  UpdateCalendarRuleBody,
 } from './calendar.js'
 
 describe( 'CalendarConnectionStatus', () => {
@@ -70,5 +74,56 @@ describe( 'SelectCalendarBody', () => {
       import_from: '2026-11-09',
       extra: 1,
     } ).success ).toBe( false )
+  } )
+} )
+
+describe( 'calendar rules', () => {
+  const subject = '3f2b8c1e-6d1a-4b8e-9a53-0c1d2e3f4a5b'
+  const goal = '4f2b8c1e-6d1a-4b8e-9a53-0c1d2e3f4a5b'
+
+  it( 'creates a rule with a phrase and exactly one target', () => {
+    expect( CreateCalendarRuleBody.parse( { phrase: ' Gym ', subject_id: subject } ) )
+      .toEqual( { phrase: 'Gym', subject_id: subject } )
+    expect( CreateCalendarRuleBody.parse( { phrase: 'Gym', goal_id: goal } ).goal_id ).toBe( goal )
+    expect( CreateCalendarRuleBody.safeParse( { phrase: 'Gym' } ).success ).toBe( false )
+    expect( CreateCalendarRuleBody.safeParse( {
+      phrase: 'Gym',
+      subject_id: subject,
+      goal_id: goal,
+    } ).success ).toBe( false )
+  } )
+
+  it( 'keeps the phrase between 1 and 100 characters and refuses extra keys', () => {
+    const make = ( phrase: string ) => CreateCalendarRuleBody
+      .safeParse( { phrase, goal_id: goal } ).success
+
+    expect( make( '  ' ) ).toBe( false )
+    expect( make( 'x'.repeat( 101 ) ) ).toBe( false )
+    expect( make( 'x'.repeat( 100 ) ) ).toBe( true )
+    expect( CreateCalendarRuleBody.safeParse( { phrase: 'a', goal_id: goal, x: 1 } ).success )
+      .toBe( false )
+  } )
+
+  it( 'updates the phrase, one new target or the position, and something at least', () => {
+    expect( UpdateCalendarRuleBody.parse( { phrase: 'Run' } ) ).toEqual( { phrase: 'Run' } )
+    expect( UpdateCalendarRuleBody.parse( { goal_id: goal } ).goal_id ).toBe( goal )
+    expect( UpdateCalendarRuleBody.parse( { position: 0 } ).position ).toBe( 0 )
+    expect( UpdateCalendarRuleBody.safeParse( {} ).success ).toBe( false )
+    expect( UpdateCalendarRuleBody.safeParse( { subject_id: subject, goal_id: goal } ).success )
+      .toBe( false )
+    expect( UpdateCalendarRuleBody.safeParse( { position: -1 } ).success ).toBe( false )
+  } )
+
+  it( 'lists rules with their target and position', () => {
+    const rule = {
+      id: subject,
+      phrase: 'Gym',
+      subject_id: null,
+      goal_id: goal,
+      position: 0,
+    }
+
+    expect( ListCalendarRulesResponse.parse( { rules: [ rule ] } ).rules ).toEqual( [ rule ] )
+    expect( CalendarRuleResponse.parse( { rule } ).rule.phrase ).toBe( 'Gym' )
   } )
 } )
