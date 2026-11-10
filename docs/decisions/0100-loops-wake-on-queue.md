@@ -9,7 +9,7 @@ The job worker and the Melete generator each poll the database every second, so 
 ## Decision
 - `worker/wake.ts` is a leaf module with a small emitter (`node:events`, no dependency): `wakeWorker()`, `wakeGenerator()`, and `onWorkerWake( fn )` / `onGeneratorWake( fn )`, each returning an unsubscribe function. A wake is delivered in a microtask, so it never runs inside the caller's database transaction.
 - The services call it after they queue work: `queueJob`, `retrySummary`, `regenerateSummary`, `runLinking` and `submitPastedText` wake the worker; enrolling a note, regenerating or retrying its questions, requesting or approving a syllabus, remapping, and pinning a note's concepts by hand wake the generator.
-- Each loop runs a pass when woken and still polls every 15 seconds, so work queued by a path that does not wake (a scan, another process, a restart) is found within 15 seconds. A wake that arrives while a pass is running sets a flag, and one more pass runs when the current one ends.
+- Each loop runs a pass when woken and still polls every 15 seconds, so work queued by a path that does not wake (a scan, another process, a restart) is found within 15 seconds. A wake that arrives while a pass is running is ignored: the pass loops until a claim finds nothing, so it takes work queued meanwhile. The one gap is a wake between that last empty claim and the pass ending; the 15 second poll is the backstop for it.
 - Unchanged: one pass at a time, restart recovery (`recoverInterruptedJobs`, `requeueGenerating`, `requeueMapping`), and the stop function, which clears the timer, unsubscribes, ignores later wakes and awaits the current pass.
 
 ## Consequences

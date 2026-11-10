@@ -25,7 +25,6 @@ const POLL_INTERVAL_MS = 15_000
 export const startMeleteGenerator = (): ( () => Promise< void > ) => {
   let busy = false
   let stopped = false
-  let pending = false
   let currentPass: Promise< void > | undefined
 
   // A note left generating by a restart would otherwise never be picked up
@@ -94,25 +93,13 @@ export const startMeleteGenerator = (): ( () => Promise< void > ) => {
   }
 
   const startPass = (): void => {
-    if( stopped ) {
-      return
-    }
-
-    // A wake during a pass means work arrived after the pass last looked: run one more
-    if( busy ) {
-      pending = true
-
+    if( busy || stopped ) {
       return
     }
 
     busy = true
     currentPass = runPass().finally( () => {
       busy = false
-
-      if( pending ) {
-        pending = false
-        startPass()
-      }
     } )
   }
 
