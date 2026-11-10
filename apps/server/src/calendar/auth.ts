@@ -97,7 +97,15 @@ const requireConfig = (): Settings => {
 }
 
 const buildOAuthClient = ( { google }: Settings, redirectUri?: string ): OAuthClient => {
-  return new auth.OAuth2( google.clientId, google.clientSecret, redirectUri )
+  // The e2e fake also answers the token refresh; unset in production
+  const { apiBaseUrl } = config.calendar
+
+  return new auth.OAuth2( {
+    clientId: google.clientId,
+    clientSecret: google.clientSecret,
+    redirectUri,
+    ...apiBaseUrl === null ? {} : { endpoints: { oauth2TokenUrl: `${ apiBaseUrl }/token` } },
+  } )
 }
 
 const buildClient = ( oauth: OAuthClient ): calendar_v3.Calendar => calendar( {

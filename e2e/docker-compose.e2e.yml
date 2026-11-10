@@ -40,6 +40,10 @@ services:
       GOOGLE_CLIENT_ID: e2e
       GOOGLE_CLIENT_SECRET: e2e
       TOKEN_ENCRYPTION_KEY: ${TOKEN_ENCRYPTION_KEY:?run e2e/run.sh}
+      # Calendar: the fakes answer the Calendar API and the token refresh (the consent screen is
+      # not in e2e; home-calendar.spec.ts seeds a connected account instead)
+      CALENDAR_REDIRECT_URI: http://localhost:3101/api/calendar/oauth/callback
+      CALENDAR_API_BASE_URL: http://fakes:4000
     depends_on:
       fakes:
         condition: service_healthy

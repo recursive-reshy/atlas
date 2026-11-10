@@ -16,13 +16,14 @@ E2E_ADMIN_VAULT="$VAULTS_HOST_PATH/admin"
 mkdir "$E2E_ADMIN_VAULT" "$VAULTS_HOST_PATH/member"
 # The v1.1 specs each have their own user and their own copy of the study note, so they never
 # share a review queue with melete.spec.ts
-mkdir "$VAULTS_HOST_PATH/learner" "$VAULTS_HOST_PATH/planner"
+mkdir "$VAULTS_HOST_PATH/learner" "$VAULTS_HOST_PATH/planner" "$VAULTS_HOST_PATH/calendar"
 AGENT_SECRET="$( openssl rand -hex 32 )"
 TOKEN_ENCRYPTION_KEY="$( openssl rand -base64 32 )"
 printf '# Existing note\n\nA note that was already in the vault.\n' > "$E2E_ADMIN_VAULT/Existing note.md"
 node "$ROOT/e2e/fakes/seedVault.mjs" "$E2E_ADMIN_VAULT"
 node "$ROOT/e2e/fakes/seedVault.mjs" "$VAULTS_HOST_PATH/learner"
 node "$ROOT/e2e/fakes/seedVault.mjs" "$VAULTS_HOST_PATH/planner"
+node "$ROOT/e2e/fakes/seedVault.mjs" "$VAULTS_HOST_PATH/calendar"
 
 chmod -R 777 "$VAULTS_HOST_PATH"
 

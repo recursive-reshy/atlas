@@ -45,7 +45,7 @@ const mocks = vi.hoisted( () => ( {
   setCredentials: vi.fn(),
   revokeToken: vi.fn(),
   getPrimary: vi.fn(),
-  oauthInstances: [] as { redirectUri: string }[],
+  oauthInstances: [] as { redirectUri: string, endpoints?: Record< string, unknown > }[],
   calendarOptions: [] as Record< string, unknown >[],
 } ) )
 
@@ -53,8 +53,11 @@ vi.mock( '@googleapis/calendar', () => {
   class MockOAuth2 {
     redirectUri: string
 
-    constructor( _id: string, _secret: string, redirectUri: string ) {
-      this.redirectUri = redirectUri
+    endpoints?: Record< string, unknown >
+
+    constructor( options: { redirectUri: string, endpoints?: Record< string, unknown > } ) {
+      this.redirectUri = options.redirectUri
+      this.endpoints = options.endpoints
       mocks.oauthInstances.push( this )
     }
 
@@ -238,6 +241,23 @@ describe( 'getCalendarClient', () => {
     getCalendarClient( userId )
 
     expect( mocks.calendarOptions.at( -1 ) ).toMatchObject( { rootUrl: 'http://fakes:4000' } )
+  } )
+
+  it( 'refreshes tokens at Google\'s own endpoint by default', () => {
+    connect()
+    getCalendarClient( userId )
+
+    expect( mocks.oauthInstances.at( -1 )?.endpoints ).toBeUndefined()
+  } )
+
+  it( 'refreshes tokens at the test host when CALENDAR_API_BASE_URL is set', () => {
+    configMock.calendar = { ...configMock.calendar, apiBaseUrl: 'http://fakes:4000' }
+    connect()
+    getCalendarClient( userId )
+
+    expect( mocks.oauthInstances.at( -1 )?.endpoints ).toEqual( {
+      oauth2TokenUrl: 'http://fakes:4000/token',
+    } )
   } )
 
   it( 'marks the connection broken when the stored token can\'t be decrypted', () => {

@@ -1,3 +1,4 @@
+import { URLSearchParams } from 'node:url'
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { route } from './server.mjs'
@@ -349,5 +350,70 @@ describe( 'POST /v1/messages with tools (the syllabus agent, v1.2)', () => {
 
     assert.equal( response.status, 400 )
     assert.match( JSON.parse( response.body ).error.message, /submit/ )
+  } )
+} )
+
+describe( 'the Calendar API', () => {
+  const CAL = '/calendar/v3/calendars/e2e-cal/events'
+  const at = ( minutes ) => new Date( Date.UTC( 2026, 10, 10, 9, minutes ) ).toISOString()
+  const event = ( id, summary, from, to ) => ( {
+    id,
+    summary,
+    start: { dateTime: at( from ) },
+    end: { dateTime: at( to ) },
+  } )
+  const events = [
+    event( 'a', 'Standup', 0, 15 ),
+    event( 'b', 'Dentist', 60, 90 ),
+    event( 'c', 'Study block', 120, 180 ),
+  ]
+  const list = ( query ) => JSON.parse(
+    route( 'GET', CAL, '', new URLSearchParams( query ) ).body,
+  )
+
+  it( 'answers the token refresh with an access token', () => {
+    const response = route( 'POST', '/token', 'grant_type=refresh_token' )
+
+    assert.equal( response.status, 200 )
+    assert.equal( JSON.parse( response.body ).token_type, 'Bearer' )
+    assert.ok( JSON.parse( response.body ).access_token )
+  } )
+
+  it( 'lists one calendar, and answers its entry', () => {
+    const all = JSON.parse( route( 'GET', '/calendar/v3/users/me/calendarList' ).body )
+    const one = route( 'GET', '/calendar/v3/users/me/calendarList/e2e-cal' )
+
+    assert.deepEqual( all.items.map( ( { id } ) => id ), [ 'e2e-cal' ] )
+    assert.equal( all.items[ 0 ].primary, true )
+    assert.equal( JSON.parse( one.body ).id, 'e2e-cal' )
+    assert.equal( route( 'GET', '/calendar/v3/users/me/calendarList/other' ).status, 404 )
+  } )
+
+  it( 'has no events until the spec sets them, then serves them in two pages', () => {
+    assert.deepEqual( list( {} ).items, [] )
+    assert.equal( route( 'PUT', '/__calendar/events', JSON.stringify( events ) ).status, 204 )
+
+    const first = list( {} )
+
+    assert.deepEqual( first.items.map( ( { id } ) => id ), [ 'a', 'b' ] )
+    assert.ok( first.nextPageToken )
+
+    const second = list( { pageToken: first.nextPageToken } )
+
+    assert.deepEqual( second.items.map( ( { id } ) => id ), [ 'c' ] )
+    assert.equal( second.nextPageToken, undefined )
+  } )
+
+  it( 'keeps only the events that overlap timeMin and timeMax', () => {
+    route( 'PUT', '/__calendar/events', JSON.stringify( events ) )
+
+    const found = list( { timeMin: at( 80 ), timeMax: at( 130 ) } )
+
+    assert.deepEqual( found.items.map( ( { id } ) => id ), [ 'b', 'c' ] )
+  } )
+
+  it( 'answers 404 for another calendar and 400 for a bad events body', () => {
+    assert.equal( route( 'GET', '/calendar/v3/calendars/other/events' ).status, 404 )
+    assert.equal( route( 'PUT', '/__calendar/events', 'nope' ).status, 400 )
   } )
 } )

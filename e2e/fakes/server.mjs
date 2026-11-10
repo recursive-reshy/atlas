@@ -1,5 +1,5 @@
 import { createServer } from 'node:http'
-import { fileURLToPath } from 'node:url'
+import { URLSearchParams, fileURLToPath } from 'node:url'
 import {
   ARTICLE,
   ARTICLE_2,
@@ -153,7 +153,91 @@ const answerMessages = ( rawBody ) => {
   )
 }
 
-export const route = ( method, path, body = '' ) => {
+// The Calendar API the server reads when CALENDAR_API_BASE_URL points here. One calendar; the
+// events are whatever the running spec last PUT to /__calendar/events (never a clock of ours).
+const CALENDAR_ID = 'e2e-cal'
+const CALENDAR_PAGE = 2
+const CALENDAR_ENTRY = { id: CALENDAR_ID, summary: 'E2E calendar', primary: true }
+let calendarEvents = []
+
+const notFound = ( what ) => json( 404, { error: { code: 404, message: `${ what } not found` } } )
+
+const listCalendarEvents = ( query ) => {
+  const from = Date.parse( query.get( 'timeMin' ) ?? '' )
+  const to = Date.parse( query.get( 'timeMax' ) ?? '' )
+  const found = calendarEvents.filter( ( { start, end } ) => (
+    ( Number.isNaN( to ) || Date.parse( start.dateTime ) < to )
+    && ( Number.isNaN( from ) || Date.parse( end.dateTime ) > from )
+  ) )
+  const offset = Number( query.get( 'pageToken' ) ?? 0 )
+  const next = offset + CALENDAR_PAGE
+
+  return json( 200, {
+    kind: 'calendar#events',
+    items: found.slice( offset, next ),
+    ...next < found.length ? { nextPageToken: String( next ) } : {},
+  } )
+}
+
+const setCalendarEvents = ( body ) => {
+  try {
+    const parsed = JSON.parse( body )
+
+    if( !Array.isArray( parsed ) ) {
+      return refuse( 'events must be an array' )
+    }
+
+    calendarEvents = parsed
+
+    return { status: 204, headers: {}, body: '' }
+  } catch {
+    return refuse( 'events must be JSON' )
+  }
+}
+
+const calendarRoute = ( method, path, body, query ) => {
+  if( method === 'POST' && path === '/token' ) {
+    return json( 200, { access_token: 'e2e-access', expires_in: 3600, token_type: 'Bearer' } )
+  }
+
+  if( method === 'PUT' && path === '/__calendar/events' ) {
+    return setCalendarEvents( body )
+  }
+
+  if( method !== 'GET' ) {
+    return undefined
+  }
+
+  if( path === '/calendar/v3/users/me/calendarList' ) {
+    return json( 200, { items: [ CALENDAR_ENTRY ] } )
+  }
+
+  const entry = /^\/calendar\/v3\/users\/me\/calendarList\/([^/]+)$/.exec( path )
+
+  if( entry ) {
+    return decodeURIComponent( entry[ 1 ] ) === CALENDAR_ID
+      ? json( 200, CALENDAR_ENTRY )
+      : notFound( 'calendar' )
+  }
+
+  const events = /^\/calendar\/v3\/calendars\/([^/]+)\/events$/.exec( path )
+
+  if( events ) {
+    return decodeURIComponent( events[ 1 ] ) === CALENDAR_ID
+      ? listCalendarEvents( query )
+      : notFound( 'calendar' )
+  }
+
+  return undefined
+}
+
+export const route = ( method, path, body = '', query = new URLSearchParams() ) => {
+  const calendar = calendarRoute( method, path, body, query )
+
+  if( calendar ) {
+    return calendar
+  }
+
   if( method === 'GET' ) {
     if( path === '/article' ) {
       return text( 'text/html; charset=utf-8', ARTICLE )
@@ -221,8 +305,8 @@ const readBody = async ( request ) => {
 const start = ( port ) => {
   const server = createServer( ( request, response ) => {
     void readBody( request ).then( ( body ) => {
-      const { pathname } = new URL( request.url ?? '/', 'http://fakes' )
-      const result = route( request.method ?? 'GET', pathname, body )
+      const { pathname, searchParams } = new URL( request.url ?? '/', 'http://fakes' )
+      const result = route( request.method ?? 'GET', pathname, body, searchParams )
 
       response.writeHead( result.status, result.headers )
       response.end( result.body )
