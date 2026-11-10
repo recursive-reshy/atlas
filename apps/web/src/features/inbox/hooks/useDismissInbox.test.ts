@@ -12,7 +12,7 @@ import {
 import { ApiError } from '#src/lib/apiError'
 import { dismissInbox } from '../api/inbox.api'
 import { ITEM_ID } from '#src/features/feeds/fixtures/feed.fixture'
-import { GMAIL_ITEM_ID } from '#src/test-support/gmail.fixture'
+import { GMAIL_ITEM_ID } from '#src/features/gmail/fixtures/gmail.fixture'
 import { renderHookWithClient } from '#src/test-support/renderWithClient'
 import { feedKeys, gmailKeys, inboxKeys } from '#src/lib/queryKeys'
 import { useDismissInbox } from './useDismissInbox'

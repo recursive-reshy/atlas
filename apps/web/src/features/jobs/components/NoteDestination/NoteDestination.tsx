@@ -3,9 +3,9 @@ import type { ReactElement } from 'react'
 // Packages
 import Alert from '@mui/material/Alert'
 // App
-import { useFolders } from '#src/hooks/useFolders'
+import { useFolders } from '#src/features/vault/hooks/useFolders'
 import { FilenamePreview } from '../FilenamePreview'
-import { FolderPicker } from '#src/components/FolderPicker'
+import { FolderPicker } from '#src/features/vault/components/FolderPicker'
 
 interface NoteDestinationProps {
   title: string

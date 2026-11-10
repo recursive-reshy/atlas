@@ -9,7 +9,7 @@ import {
 } from 'vitest'
 // App
 import { ITEM_ID, feedItemFixture } from '#src/features/feeds/fixtures/feed.fixture'
-import { GMAIL_ITEM_ID, gmailItemFixture } from '#src/test-support/gmail.fixture'
+import { GMAIL_ITEM_ID, gmailItemFixture } from '#src/features/gmail/fixtures/gmail.fixture'
 import { jobFixture } from '#src/features/jobs/fixtures/job.fixture'
 import { dismissInbox, listInbox, summarizeInbox } from './inbox.api'
 

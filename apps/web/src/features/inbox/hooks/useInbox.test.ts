@@ -15,7 +15,7 @@ import {
 import { ApiError } from '#src/lib/apiError'
 import { listInbox } from '../api/inbox.api'
 import { feedItemFixture } from '#src/features/feeds/fixtures/feed.fixture'
-import { gmailItemFixture } from '#src/test-support/gmail.fixture'
+import { gmailItemFixture } from '#src/features/gmail/fixtures/gmail.fixture'
 import { renderHookWithClient } from '#src/test-support/renderWithClient'
 import { INBOX_POLL_MS, useInbox } from './useInbox'
 

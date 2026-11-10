@@ -10,13 +10,13 @@ import {
   vi,
 } from 'vitest'
 // App
-import { useFolders } from '#src/hooks/useFolders'
+import { useFolders } from '#src/features/vault/hooks/useFolders'
 import { useSettings } from '#src/hooks/useSettings'
 import { settingsState } from '#src/test-support/hookStates'
 import { mutationStub } from '#src/test-support/mutationStub'
 import { LearningRootSetup } from './LearningRootSetup'
 
-vi.mock( '#src/hooks/useFolders' )
+vi.mock( '#src/features/vault/hooks/useFolders' )
 vi.mock( '#src/hooks/useSettings' )
 
 const mockedUseFolders = vi.mocked( useFolders )

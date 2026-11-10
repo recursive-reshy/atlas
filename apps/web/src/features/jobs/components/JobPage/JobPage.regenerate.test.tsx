@@ -20,7 +20,7 @@ import {
   regenerateSummary,
   updateDraft,
 } from '#src/features/jobs/api/jobs.api'
-import { useFolders } from '#src/hooks/useFolders'
+import { useFolders } from '#src/features/vault/hooks/useFolders'
 import { useModels } from '#src/hooks/useModels'
 import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
 import { useSettings } from '#src/hooks/useSettings'
@@ -33,7 +33,7 @@ import { JobPage } from './JobPage'
 // The real useJob runs here, so the page follows the cache the way it does in the app.
 vi.mock( '#src/features/jobs/api/jobs.api' )
 vi.mock( '#src/features/jobs/hooks/useSource' )
-vi.mock( '#src/hooks/useFolders' )
+vi.mock( '#src/features/vault/hooks/useFolders' )
 vi.mock( '#src/hooks/useModels' )
 vi.mock( '#src/hooks/useSettings' )
 vi.mock( '#src/hooks/usePromptProfiles' )

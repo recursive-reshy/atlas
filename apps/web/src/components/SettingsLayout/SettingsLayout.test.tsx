@@ -10,14 +10,14 @@ import {
   vi,
 } from 'vitest'
 // App
-import { getGmailAccount } from '#src/api/gmail.api'
+import { getGmailAccount } from '#src/features/gmail/api/gmail.api'
 import { useSettings } from '#src/hooks/useSettings'
-import { gmailAccountFixture } from '#src/test-support/gmail.fixture'
+import { gmailAccountFixture } from '#src/features/gmail/fixtures/gmail.fixture'
 import { settingsState } from '#src/test-support/hookStates'
 import { memberFixture } from '#src/test-support/me.fixture'
 import { renderWithRouter } from '#src/test-support/renderWithRouter'
 
-vi.mock( '#src/api/gmail.api' )
+vi.mock( '#src/features/gmail/api/gmail.api' )
 vi.mock( '#src/hooks/useSettings' )
 vi.mock( '../PromptsTab', () => ( { PromptsTab: () => <p>prompts content</p> } ) )
 vi.mock( '../ModelsTab', () => ( { ModelsTab: () => <p>models content</p> } ) )

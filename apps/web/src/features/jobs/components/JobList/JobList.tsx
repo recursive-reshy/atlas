@@ -13,7 +13,7 @@ import type { Job } from '@atlas/shared'
 // App
 import { formatExpiry } from '#src/lib/expiry'
 import { FeedChip } from '#src/features/feeds/components/FeedChip'
-import { GmailSourceChip } from '#src/components/GmailSourceChip'
+import { GmailSourceChip } from '#src/features/gmail/components/GmailSourceChip'
 
 const STATUS_LABELS = {
   queued: 'Queued',

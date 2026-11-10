@@ -5,7 +5,7 @@ import Alert from '@mui/material/Alert'
 import { Outlet } from 'react-router'
 // App
 import { useMe } from '../useMe'
-import { ChooseVault } from '#src/components/ChooseVault'
+import { ChooseVault } from '#src/features/vault/components/ChooseVault'
 import { GatePage } from '../GatePage'
 import { NoModules } from '../NoModules'
 import { SignIn } from '../SignIn'

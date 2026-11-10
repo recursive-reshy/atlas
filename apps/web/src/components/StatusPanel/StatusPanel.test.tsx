@@ -13,7 +13,7 @@ import {
 // Shared
 import type { StatusRow } from '@atlas/shared'
 // App
-import { GMAIL_CONNECT_URL } from '#src/api/gmail.api'
+import { GMAIL_CONNECT_URL } from '#src/features/gmail/api/gmail.api'
 import { useHealthErrors } from '#src/hooks/useHealthErrors'
 import { useRefreshStatus } from '#src/hooks/useRefreshStatus'
 import { useStatus } from '#src/hooks/useStatus'

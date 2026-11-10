@@ -10,7 +10,7 @@ import Typography from '@mui/material/Typography'
 // Shared
 import type { StatusRow } from '@atlas/shared'
 // App
-import { GMAIL_CONNECT_URL } from '#src/api/gmail.api'
+import { GMAIL_CONNECT_URL } from '#src/features/gmail/api/gmail.api'
 
 interface RowControlsProps {
   row: StatusRow

@@ -11,9 +11,9 @@ import DialogContentText from '@mui/material/DialogContentText'
 import DialogTitle from '@mui/material/DialogTitle'
 import Stack from '@mui/material/Stack'
 // App
-import { useFolders } from '#src/hooks/useFolders'
+import { useFolders } from '#src/features/vault/hooks/useFolders'
 import { useSettings } from '#src/hooks/useSettings'
-import { FolderPicker } from '../FolderPicker'
+import { FolderPicker } from '#src/features/vault/components/FolderPicker'
 
 interface LearningRootSetupProps {
   currentRoot: string | null

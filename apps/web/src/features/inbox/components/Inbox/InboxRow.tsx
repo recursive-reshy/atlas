@@ -17,7 +17,7 @@ import type { InboxItem } from '@atlas/shared'
 // App
 import { formatDate } from '#src/lib/formatDate'
 import { FeedChip } from '#src/features/feeds/components/FeedChip'
-import { GmailSourceChip } from '#src/components/GmailSourceChip'
+import { GmailSourceChip } from '#src/features/gmail/components/GmailSourceChip'
 
 const ITEM_SX = {
   flexWrap: 'wrap',

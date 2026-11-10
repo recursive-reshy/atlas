@@ -11,14 +11,14 @@ import {
 } from 'vitest'
 // App
 import { AppShell } from './AppShell'
-import { getGmailAccount } from '#src/api/gmail.api'
+import { getGmailAccount } from '#src/features/gmail/api/gmail.api'
 import { useMe } from '../useMe'
-import { gmailAccountFixture } from '#src/test-support/gmail.fixture'
+import { gmailAccountFixture } from '#src/features/gmail/fixtures/gmail.fixture'
 import { meFixture } from '#src/test-support/me.fixture'
 import { mockMatchMedia } from '#src/test-support/matchMedia'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 
-vi.mock( '#src/api/gmail.api' )
+vi.mock( '#src/features/gmail/api/gmail.api' )
 vi.mock( '../useMe' )
 
 const hamburger = (): HTMLElement => screen.getByRole( 'button', { name: /navigation$/ } )

@@ -10,10 +10,10 @@ import {
   vi,
 } from 'vitest'
 // App
-import { useFolders } from '#src/hooks/useFolders'
+import { useFolders } from '#src/features/vault/hooks/useFolders'
 import { NoteDestination } from './NoteDestination'
 
-vi.mock( '#src/hooks/useFolders' )
+vi.mock( '#src/features/vault/hooks/useFolders' )
 
 const mockedUseFolders = vi.mocked( useFolders )
 

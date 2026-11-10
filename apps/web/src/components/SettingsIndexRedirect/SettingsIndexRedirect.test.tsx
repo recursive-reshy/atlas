@@ -14,7 +14,7 @@ import { settingsState } from '#src/test-support/hookStates'
 import { memberFixture } from '#src/test-support/me.fixture'
 import { renderWithRouter } from '#src/test-support/renderWithRouter'
 
-vi.mock( '#src/api/gmail.api' )
+vi.mock( '#src/features/gmail/api/gmail.api' )
 vi.mock( '#src/hooks/useSettings' )
 vi.mock( '../PromptsTab', () => ( { PromptsTab: () => <p>prompts content</p> } ) )
 vi.mock( '../SourcesTab', () => ( { SourcesTab: () => <p>sources content</p> } ) )

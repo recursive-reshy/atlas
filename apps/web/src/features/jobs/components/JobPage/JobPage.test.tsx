@@ -22,7 +22,7 @@ import {
   submitPastedText,
 } from '#src/features/jobs/api/jobs.api'
 import { useJob } from '#src/features/jobs/hooks/useJob'
-import { useFolders } from '#src/hooks/useFolders'
+import { useFolders } from '#src/features/vault/hooks/useFolders'
 import { useSource } from '#src/features/jobs/hooks/useSource'
 import type { JobState } from '#src/features/jobs/hooks/useJob'
 import { jobFixture } from '#src/features/jobs/fixtures/job.fixture'
@@ -31,7 +31,7 @@ import { JobPage } from './JobPage'
 
 vi.mock( '#src/features/jobs/hooks/useJob' )
 vi.mock( '#src/features/jobs/hooks/useSource' )
-vi.mock( '#src/hooks/useFolders' )
+vi.mock( '#src/features/vault/hooks/useFolders' )
 vi.mock( '#src/features/jobs/api/jobs.api', async ( importOriginal ) => ( {
   ...await importOriginal< typeof import( '#src/features/jobs/api/jobs.api' ) >(),
   createJob: vi.fn(),

@@ -14,7 +14,9 @@ import { SourcesTab } from './SourcesTab'
 vi.mock( '#src/features/feeds/components/FeedSettings', () => (
   { FeedSettings: () => <p>feeds</p> }
 ) )
-vi.mock( '../GmailSettings', () => ( { GmailSettings: () => <p>gmail</p> } ) )
+vi.mock( '#src/features/gmail/components/GmailSettings', () => (
+  { GmailSettings: () => <p>gmail</p> }
+) )
 vi.mock( '../StatusPanel', () => ( { StatusPanel: () => <p>status</p> } ) )
 
 describe( 'SourcesTab', () => {

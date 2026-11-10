@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import Stack from '@mui/material/Stack'
 // App
 import { FeedSettings } from '#src/features/feeds/components/FeedSettings'
-import { GmailSettings } from '../GmailSettings'
+import { GmailSettings } from '#src/features/gmail/components/GmailSettings'
 import { StatusPanel } from '../StatusPanel'
 
 export function SourcesTab(): ReactElement {

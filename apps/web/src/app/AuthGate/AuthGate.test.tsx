@@ -23,7 +23,7 @@ import { AuthGate } from './AuthGate'
 
 vi.mock( '../useMe' )
 vi.mock( '../SignIn', () => ( { SignIn: () => <p>sign in screen</p> } ) )
-vi.mock( '#src/components/ChooseVault', () => ( {
+vi.mock( '#src/features/vault/components/ChooseVault', () => ( {
   ChooseVault: ( { missingVault = null }: { missingVault?: string | null } ) => (
     <p>choose vault screen{ missingVault === null ? '' : ` (missing: ${ missingVault })` }</p>
   ),

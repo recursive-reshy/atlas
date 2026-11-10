@@ -10,11 +10,11 @@ import {
   vi,
 } from 'vitest'
 // App
-import { getGmailAccount } from '#src/api/gmail.api'
+import { getGmailAccount } from '#src/features/gmail/api/gmail.api'
 import { useMeleteProfiles } from '#src/hooks/useMeleteProfiles'
 import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
 import { useSettings } from '#src/hooks/useSettings'
-import { gmailAccountFixture } from '#src/test-support/gmail.fixture'
+import { gmailAccountFixture } from '#src/features/gmail/fixtures/gmail.fixture'
 import {
   meleteProfilesState,
   profilesState,
@@ -29,7 +29,7 @@ import {
   MELETE_QUESTIONS_ID,
 } from '#src/features/jobs/fixtures/summarizer.fixture'
 
-vi.mock( '#src/api/gmail.api' )
+vi.mock( '#src/features/gmail/api/gmail.api' )
 vi.mock( '#src/hooks/useSettings' )
 vi.mock( '#src/hooks/usePromptProfiles' )
 vi.mock( '#src/hooks/useMeleteProfiles' )

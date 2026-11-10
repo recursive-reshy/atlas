@@ -17,7 +17,7 @@ import {
   acceptLinkSuggestions,
   listLinkSuggestions,
 } from '#src/features/jobs/api/linkSuggestions.api'
-import { useFolders } from '#src/hooks/useFolders'
+import { useFolders } from '#src/features/vault/hooks/useFolders'
 import { useModels } from '#src/hooks/useModels'
 import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
 import { useSettings } from '#src/hooks/useSettings'
@@ -31,7 +31,7 @@ import { ReviewScreen } from './ReviewScreen'
 vi.mock( '#src/features/jobs/api/jobs.api' )
 vi.mock( '#src/features/jobs/api/linkSuggestions.api' )
 vi.mock( '#src/features/jobs/hooks/useSource' )
-vi.mock( '#src/hooks/useFolders' )
+vi.mock( '#src/features/vault/hooks/useFolders' )
 vi.mock( '#src/hooks/useModels' )
 vi.mock( '#src/hooks/useSettings' )
 vi.mock( '#src/hooks/usePromptProfiles' )

@@ -5,7 +5,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // App
 import { FeedChip } from '#src/features/feeds/components/FeedChip'
-import { GmailSourceChip } from '#src/components/GmailSourceChip'
+import { GmailSourceChip } from '#src/features/gmail/components/GmailSourceChip'
 
 interface JobHeadingProps {
   title: string
