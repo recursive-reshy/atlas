@@ -28,7 +28,7 @@ const isUniqueLocalIpv6 = ( address: string ): boolean => {
 // published port, Tailscale Serve's included, as coming from its gateway (192.168.65.1 observed),
 // so loopback alone would never match. Compose publishes the port on 127.0.0.1 only, so nothing
 // else on a private network can reach it directly (ADR 0071).
-const isTrustedProxy = ( req: Request ): boolean => {
+export const isTrustedProxy = ( req: Request ): boolean => {
   const address = req.socket.remoteAddress ?? ''
   const unmapped = MAPPED_IPV4.exec( address )?.[ 1 ] ?? address
 
