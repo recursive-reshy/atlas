@@ -42,6 +42,11 @@ describe( 'keywords', () => {
       { type: 'string', pattern: '^a/b$' },
       'z.string().regex( /^a\\/b$/ )',
     ],
+    [
+      'a pattern with a slash inside a character class, which needs no escape',
+      { type: 'string', pattern: '^[^/.](/[^/]+)*$' },
+      'z.string().regex( /^[^/.](\\/[^/]+)*$/ )',
+    ],
     [ 'an integer', { type: 'integer' }, 'z.number().int()' ],
     [ 'null', { type: 'null' }, 'z.null()' ],
     [ 'a constant string', { type: 'string', const: 'linked' }, 'z.literal( \'linked\' )' ],

@@ -13,6 +13,7 @@ from atlas_agent.contract.link import (
     LinkResponse,
     LinkSuggestion
 )
+from atlas_agent.contract.syllabus import SyllabusRequest, SyllabusResponse
 
 EXAMPLES_PATH = Path( __file__ ).parents[ 2 ] / "schema" / "examples"
 
@@ -22,7 +23,9 @@ MODELS: dict[ str, type[ BaseModel ] ] = {
     "LinkSuggestion": LinkSuggestion,
     "AgentUsage": AgentUsage,
     "LinkResponse": LinkResponse,
-    "InstructionsResponse": InstructionsResponse
+    "InstructionsResponse": InstructionsResponse,
+    "SyllabusRequest": SyllabusRequest,
+    "SyllabusResponse": SyllabusResponse
 }
 
 REQUIRED_VALID = [
@@ -31,7 +34,12 @@ REQUIRED_VALID = [
     "link-response-linked.json",
     "link-response-linked-empty.json",
     "link-response-failed.json",
-    "instructions-response.json"
+    "instructions-response.json",
+    "syllabus-request.json",
+    "syllabus-request-no-intent.json",
+    "syllabus-response-drafted.json",
+    "syllabus-response-failed.json",
+    "syllabus-instructions-response.json"
 ]
 
 REQUIRED_INVALID = [
@@ -42,7 +50,13 @@ REQUIRED_INVALID = [
     "link-response-unknown-kind.json",
     "link-response-failed-no-reason.json",
     "link-response-failed-with-suggestions.json",
-    "link-response-linked-with-reason.json"
+    "link-response-linked-with-reason.json",
+    "syllabus-request-empty-name.json",
+    "syllabus-request-dotdot-folder.json",
+    "syllabus-request-absolute-folder.json",
+    "syllabus-request-unknown-level.json",
+    "syllabus-response-drafted-with-reason.json",
+    "syllabus-response-failed-no-reason.json"
 ]
 
 def load_example( path: Path ) -> tuple[ str, Any ]:

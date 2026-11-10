@@ -1,0 +1,6 @@
+{
+  "schema": "InstructionsResponse",
+  "value": {
+    "instructions": "You draft a syllabus."
+  }
+}

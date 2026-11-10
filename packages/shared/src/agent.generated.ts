@@ -14,6 +14,26 @@ export const AgentUsage = z.object( {
 } )
 export type AgentUsage = z.infer< typeof AgentUsage >
 
+export const SyllabusConcept = z.object( {
+  description: z.string().max( 500 ),
+  name: z.string().min( 1 ).max( 200 ),
+} )
+export type SyllabusConcept = z.infer< typeof SyllabusConcept >
+
+export const SyllabusSection = z.object( {
+  concepts: z.array( SyllabusConcept ),
+  name: z.string().max( 200 ),
+} )
+export type SyllabusSection = z.infer< typeof SyllabusSection >
+
+export const DraftedSyllabus = z.object( {
+  outcome: z.literal( 'drafted' ),
+  reason: z.null(),
+  sections: z.array( SyllabusSection ).max( 20 ),
+  usage: AgentUsage,
+} )
+export type DraftedSyllabus = z.infer< typeof DraftedSyllabus >
+
 export const SuggestionKind = z.enum( [ 'existing_note', 'existing_concept', 'new_concept' ] )
 export type SuggestionKind = z.infer< typeof SuggestionKind >
 
@@ -32,6 +52,13 @@ export const FailedLinkResponse = z.object( {
   usage: AgentUsage,
 } )
 export type FailedLinkResponse = z.infer< typeof FailedLinkResponse >
+
+export const FailedSyllabus = z.object( {
+  outcome: z.literal( 'failed' ),
+  reason: z.string().min( 1 ),
+  usage: AgentUsage,
+} )
+export type FailedSyllabus = z.infer< typeof FailedSyllabus >
 
 export const InstructionsResponse = z.object( {
   instructions: z.string(),
@@ -67,3 +94,23 @@ export const LinkResponse = z.discriminatedUnion( 'outcome', [
   FailedLinkResponse,
 ] )
 export type LinkResponse = z.infer< typeof LinkResponse >
+
+export const TargetLevel = z.enum( [ 'awareness', 'working', 'proficient', 'expert' ] )
+export type TargetLevel = z.infer< typeof TargetLevel >
+
+export const SyllabusRequest = z.object( {
+  guidance: z.string().max( 20000 ),
+  intent: z.string().max( 2000 ).nullable(),
+  level: TargetLevel,
+  model: z.string().min( 1 ),
+  name: z.string().min( 1 ).max( 200 ),
+  subject_folder: z.string().min( 1 ).max( 500 ).regex( /^[^/\\.][^/\\]*(\/[^/\\.][^/\\]*)*$/ ),
+  vault_dir: z.string().regex( /^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$/ ),
+} )
+export type SyllabusRequest = z.infer< typeof SyllabusRequest >
+
+export const SyllabusResponse = z.discriminatedUnion( 'outcome', [
+  DraftedSyllabus,
+  FailedSyllabus,
+] )
+export type SyllabusResponse = z.infer< typeof SyllabusResponse >

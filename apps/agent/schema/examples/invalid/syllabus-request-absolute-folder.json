@@ -1,0 +1,12 @@
+{
+  "schema": "SyllabusRequest",
+  "value": {
+    "vault_dir": "naresh",
+    "subject_folder": "/Rust",
+    "name": "Rust",
+    "level": "working",
+    "intent": "Write a small CLI tool",
+    "model": "claude-sonnet-5-5",
+    "guidance": "Prefer practical concepts."
+  }
+}

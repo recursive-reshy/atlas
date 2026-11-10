@@ -98,7 +98,7 @@ const renderNode = ( node: Node, path: string, indent: string ): Rendered => {
     const minimum = limit( 'min', take( 'minLength' ) )
     const maximum = limit( 'max', take( 'maxLength' ) )
     const pattern = take( 'pattern' )
-    const source = typeof pattern === 'string' ? pattern.replace( /\//g, '\\/' ) : ''
+    const source = typeof pattern === 'string' ? escapeSlashes( pattern ) : ''
     const regex = typeof pattern === 'string' ? `.regex( /${ source }/ )` : ''
     const code = `z.string()${ minimum }${ maximum }${ regex }`
     return finish( { code, refs: [] } )
@@ -148,6 +148,29 @@ const orderDefinitions = ( rendered: Map< string, Rendered > ): string[] => {
   }
   for( const name of [ ...rendered.keys() ].sort() ) visit( name, [] )
   return ordered
+}
+
+// A slash ends a regex literal, except inside a character class, where escaping it is a lint error
+const escapeSlashes = ( pattern: string ): string => {
+  let inClass = false
+  let output = ''
+
+  for( let index = 0; index < pattern.length; index += 1 ) {
+    const character = pattern.charAt( index )
+
+    if( character === '\\' ) {
+      output += character + pattern.charAt( index + 1 )
+      index += 1
+      continue
+    }
+
+    if( character === '[' ) inClass = true
+    if( character === ']' ) inClass = false
+
+    output += character === '/' && !inClass ? '\\/' : character
+  }
+
+  return output
 }
 
 export const generateAgentContract = ( contracts: Contract[] ): string => {

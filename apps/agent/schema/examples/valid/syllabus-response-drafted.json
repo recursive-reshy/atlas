@@ -1,0 +1,30 @@
+{
+  "schema": "SyllabusResponse",
+  "value": {
+    "outcome": "drafted",
+    "reason": null,
+    "sections": [
+      {
+        "name": "Basics",
+        "concepts": [
+          {
+            "name": "Ownership",
+            "description": "Who frees a value and when."
+          },
+          {
+            "name": "Borrowing",
+            "description": "Shared and exclusive references."
+          }
+        ]
+      }
+    ],
+    "usage": {
+      "input_tokens": 4200,
+      "output_tokens": 900,
+      "cache_read_input_tokens": 3000,
+      "cache_creation_input_tokens": 1200,
+      "tool_calls": 5,
+      "turns": 4
+    }
+  }
+}

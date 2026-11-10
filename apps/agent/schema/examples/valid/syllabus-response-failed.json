@@ -1,0 +1,15 @@
+{
+  "schema": "SyllabusResponse",
+  "value": {
+    "outcome": "failed",
+    "reason": "Subject folder not found",
+    "usage": {
+      "input_tokens": 4200,
+      "output_tokens": 900,
+      "cache_read_input_tokens": 3000,
+      "cache_creation_input_tokens": 1200,
+      "tool_calls": 0,
+      "turns": 0
+    }
+  }
+}
