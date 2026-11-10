@@ -275,7 +275,7 @@ describe( 'PATCH /api/admin/users/:id', () => {
 } )
 
 describe( 'POST /api/admin/users/:id/reset-vault', () => {
-  it( 'clears the vault choice and leaves the folder alone', async () => {
+  it( 'clears the vault choice and releases the folder', async () => {
     const admin = createTestUser( { role: 'admin' } )
     const member = createTestUser( { vault_dir: 'brother' } )
 
@@ -325,7 +325,7 @@ describe( 'DELETE /api/admin/users/:id', () => {
     expect( findUserById( member.id ) ).toBeDefined()
   } )
 
-  it( 'deletes the user and all their data, leaving others and the vault alone', async () => {
+  it( 'deletes the user and all their data, leaving other users alone', async () => {
     const admin = createTestUser( { role: 'admin' } )
     const gone = createTestUser( { vault_dir: 'gone' } )
     const kept = createTestUser( { vault_dir: 'kept' } )
