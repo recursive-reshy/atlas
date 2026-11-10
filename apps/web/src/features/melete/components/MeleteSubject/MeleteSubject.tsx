@@ -10,7 +10,7 @@ import Tabs from '@mui/material/Tabs'
 import Typography from '@mui/material/Typography'
 import { Link as RouterLink, useParams, useSearchParams } from 'react-router'
 // App
-import { LogTimeButton } from '#src/components/LogTimeButton'
+import { LogTimeButton } from '#src/features/themis/components/LogTimeButton'
 import { SubjectNotes } from '../SubjectNotes'
 import { SubjectOverview } from '../SubjectOverview'
 import { SubjectSettings } from '../SubjectSettings'

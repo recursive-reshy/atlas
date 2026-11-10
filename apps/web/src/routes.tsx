@@ -18,8 +18,8 @@ import { SettingsIndexRedirect } from './features/settings/components/SettingsIn
 import { SettingsLayout } from './features/settings/components/SettingsLayout'
 import { SignInPage } from './app/SignInPage'
 import { SourcesTab } from './features/settings/components/SourcesTab'
-import { ThemisGoal } from './components/ThemisGoal'
-import { ThemisHome } from './components/ThemisHome'
+import { ThemisGoal } from './features/themis/components/ThemisGoal'
+import { ThemisHome } from './features/themis/components/ThemisHome'
 
 export const routes: RouteObject[] = [
   { path: '/signin', element: <SignInPage /> },

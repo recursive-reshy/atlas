@@ -6,7 +6,7 @@ import TextField from '@mui/material/TextField'
 import type { MeleteSubject, UpdateMeleteSubjectBody } from '@atlas/shared'
 // App
 import { useMe } from '#src/app/useMe'
-import { useThemisOverview } from '#src/hooks/useThemisOverview'
+import { useThemisOverview } from '#src/features/themis/hooks/useThemisOverview'
 
 interface SubjectGoalPickerProps {
   subject: MeleteSubject

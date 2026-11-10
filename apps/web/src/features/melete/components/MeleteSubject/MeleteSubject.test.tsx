@@ -39,7 +39,7 @@ vi.mock( '../SubjectOverview', () => ( {
     <p>{ `The overview of ${ subjectId }` }</p>
   ) ),
 } ) )
-vi.mock( '#src/components/LogTimeButton', () => ( {
+vi.mock( '#src/features/themis/components/LogTimeButton', () => ( {
   LogTimeButton: ( { subjectId }: { subjectId?: string } ) => (
     <p>{ `log time for ${ subjectId }` }</p>
   ),

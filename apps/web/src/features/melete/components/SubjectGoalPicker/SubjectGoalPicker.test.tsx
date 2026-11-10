@@ -11,7 +11,7 @@ import {
 } from 'vitest'
 // App
 import { useMe } from '#src/app/useMe'
-import { useThemisOverview } from '#src/hooks/useThemisOverview'
+import { useThemisOverview } from '#src/features/themis/hooks/useThemisOverview'
 import { meFixture } from '#src/test-support/me.fixture'
 import { meleteSubjectFixture } from '#src/features/melete/fixtures/melete.fixture'
 import { renderWithClient } from '#src/test-support/renderWithClient'
@@ -19,11 +19,11 @@ import {
   LEARN_GOAL_ID,
   METRIC_GOAL_ID,
   overviewFixture,
-} from '#src/test-support/themis.fixture'
+} from '#src/features/themis/fixtures/themis.fixture'
 import { SubjectGoalPicker } from './SubjectGoalPicker'
 
 vi.mock( '#src/app/useMe' )
-vi.mock( '#src/hooks/useThemisOverview' )
+vi.mock( '#src/features/themis/hooks/useThemisOverview' )
 
 const onUpdate = vi.fn()
 
