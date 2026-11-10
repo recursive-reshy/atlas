@@ -3,6 +3,7 @@ import {
   CreateJobBody,
   Job,
   JobStatus,
+  LinkUsageSummary,
   SummaryUsage,
   ArticleSource,
   SourceDocument,
@@ -27,7 +28,7 @@ import {
   listActiveJobs,
   updateJob,
 } from '../repositories/jobStore.repository.js'
-import { summarizeLinkUsage } from '../repositories/linkRuns.repository.js'
+import { summarizeLinkUsageForJobs } from '../repositories/linkRuns.repository.js'
 import { supersedePending } from '../repositories/linkSuggestions.repository.js'
 import { findFeedById } from '../repositories/feeds.repository.js'
 import { findSourceById } from '../repositories/gmailSources.repository.js'
@@ -35,7 +36,11 @@ import {
   findProfileById,
   findVersionById,
 } from '../repositories/promptProfiles.repository.js'
-import { insertSummaryRun, listRunsForJob } from '../repositories/summaryRuns.repository.js'
+import {
+  insertSummaryRun,
+  listRunsForJobs,
+  type StoredSummaryRun,
+} from '../repositories/summaryRuns.repository.js'
 import { insertTranscriptionRun } from '../repositories/transcriptionRuns.repository.js'
 import {
   claimNextJob as claimNextStoredJob,
@@ -77,18 +82,58 @@ export const expiryFromNow = (): string => {
   return new Date( Date.now() + config.reviewTtlHours * HOUR_MS ).toISOString()
 }
 
-const toSummaryUsage = ( userId: string, jobId: string ): SummaryUsage | null => {
-  const runs = listRunsForJob( userId, jobId )
+// What a public job needs beyond its row, fetched once for the jobs being mapped together: the
+// runs by one query each, and each profile, version and folder looked up once however many jobs
+// share it
+type Lookups = {
+  summaryRuns: ( jobId: string ) => StoredSummaryRun[]
+  linkUsage: ( jobId: string ) => LinkUsageSummary | undefined
+  profile: ( profileId: string ) => ReturnType< typeof findProfileById >
+  version: ( versionId: number ) => ReturnType< typeof findVersionById >
+  folder: ( profileId: string | null ) => string
+}
+
+const memoize = < Key, Value >( compute: ( key: Key ) => Value ): ( ( key: Key ) => Value ) => {
+  const cache = new Map< Key, { value: Value } >()
+
+  return ( key ) => {
+    const hit = cache.get( key ) ?? { value: compute( key ) }
+
+    cache.set( key, hit )
+
+    return hit.value
+  }
+}
+
+const lookupsFor = ( userId: string, jobIds: string[] ): Lookups => {
+  const runs = listRunsForJobs( userId, jobIds )
+  const links = summarizeLinkUsageForJobs( userId, jobIds )
+  const profile = memoize( ( profileId: string ) => findProfileById( userId, profileId ) )
+
+  return {
+    summaryRuns: ( jobId ) => runs.get( jobId ) ?? [],
+    linkUsage: ( jobId ) => links.get( jobId ),
+    profile,
+    version: memoize( ( versionId: number ) => findVersionById( userId, versionId ) ),
+    folder: memoize( ( profileId: string | null ) => folderFor( userId, profileId, profile ) ),
+  }
+}
+
+const toSummaryUsage = (
+  jobId: string,
+  { summaryRuns, profile, version: findVersion }: Lookups,
+): SummaryUsage | null => {
+  const runs = summaryRuns( jobId )
   const last = runs.at( -1 )
 
   if( last === undefined ) {
     return null
   }
 
-  const version = findVersionById( userId, last.prompt_version_id )
-  const profile = version === undefined ? undefined : findProfileById( userId, version.profile_id )
+  const version = findVersion( last.prompt_version_id )
+  const owner = version === undefined ? undefined : profile( version.profile_id )
 
-  if( version === undefined || profile === undefined ) {
+  if( version === undefined || owner === undefined ) {
     throw new Error( `Summary run for job ${ jobId } points at a missing prompt version` )
   }
 
@@ -99,8 +144,8 @@ const toSummaryUsage = ( userId: string, jobId: string ): SummaryUsage | null =>
   return {
     last_run: {
       model: last.model,
-      profile_id: profile.id,
-      profile_name: profile.name,
+      profile_id: owner.id,
+      profile_name: owner.name,
       prompt_version: version.version,
       input_tokens: last.input_tokens,
       output_tokens: last.output_tokens,
@@ -118,13 +163,12 @@ const toSummaryUsage = ( userId: string, jobId: string ): SummaryUsage | null =>
 }
 
 // The profile's last saved folder while it still exists in the vault (ADR 0059)
-export const defaultFolderFor = (
+const folderFor = (
   userId: string,
-  job: { prompt_profile_id: string | null },
+  profileId: string | null,
+  profile: Lookups[ 'profile' ],
 ): string => {
-  const lastFolder = job.prompt_profile_id === null
-    ? null
-    : findProfileById( userId, job.prompt_profile_id )?.last_folder ?? null
+  const lastFolder = profileId === null ? null : profile( profileId )?.last_folder ?? null
 
   if( lastFolder !== null && existingFolderSync( vaultRootFor( userId ), lastFolder ) ) {
     return lastFolder
@@ -133,7 +177,18 @@ export const defaultFolderFor = (
   return config.defaultNoteFolder
 }
 
-export const toPublicJob = ( userId: string, job: StoredJob ): Job => {
+export const defaultFolderFor = (
+  userId: string,
+  job: { prompt_profile_id: string | null },
+): string => {
+  return folderFor( userId, job.prompt_profile_id, ( id ) => findProfileById( userId, id ) )
+}
+
+export const toPublicJob = (
+  userId: string,
+  job: StoredJob,
+  lookups: Lookups = lookupsFor( userId, [ job.id ] ),
+): Job => {
   return {
     id: job.id,
     url: job.url,
@@ -145,16 +200,16 @@ export const toPublicJob = ( userId: string, job: StoredJob ): Job => {
     note_markdown: job.note_markdown,
     target_folder: job.target_folder,
     default_folder: job.status === 'ready_for_review'
-      ? defaultFolderFor( userId, job )
+      ? lookups.folder( job.prompt_profile_id )
       : config.defaultNoteFolder,
     expires_at: job.expires_at,
     saved_path: job.saved_path,
     summary_model: job.summary_model,
     prompt_profile_id: job.prompt_profile_id,
-    summary_usage: toSummaryUsage( userId, job.id ),
+    summary_usage: toSummaryUsage( job.id, lookups ),
     link_state: job.link_state,
     link_error: job.link_error,
-    link_usage: summarizeLinkUsage( userId, job.id ) ?? null,
+    link_usage: lookups.linkUsage( job.id ) ?? null,
     source_type: job.source_type,
     feed_id: job.feed_id,
     feed_name: job.feed_name,
@@ -162,7 +217,6 @@ export const toPublicJob = ( userId: string, job: StoredJob ): Job => {
     gmail_source_name: job.gmail_source_name,
   }
 }
-
 
 export const requireJob = ( userId: string, id: string ): StoredJob => {
   const job = findJobById( userId, id )
@@ -313,7 +367,10 @@ export const findJob = ( userId: string, id: string ): Job => {
 }
 
 export const listJobs = ( userId: string ): Job[] => {
-  return listActiveJobs( userId ).map( ( job ) => toPublicJob( userId, job ) )
+  const jobs = listActiveJobs( userId )
+  const lookups = lookupsFor( userId, jobs.map( ( { id } ) => id ) )
+
+  return jobs.map( ( job ) => toPublicJob( userId, job, lookups ) )
 }
 
 // The worker serves every user in turn (ADR 0064): the next job comes with whose it is

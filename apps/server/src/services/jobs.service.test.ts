@@ -26,6 +26,7 @@ import {
 } from '../repositories/jobStore.repository.js'
 
 import { listTranscriptionRuns } from '../repositories/transcriptionRuns.repository.js'
+import { getDatabase } from '../repositories/database.js'
 import { insertFeed } from '../repositories/feeds.repository.js'
 import { addStoredSource } from '../test-support/gmailSources.fixture.js'
 // Services
@@ -500,6 +501,41 @@ describe( 'listJobs', () => {
 
     expect( listJobs( userId ).map( ( { id } ) => id ) ).toEqual( [ review ] )
     expect( listJobs( userId ).map( ( { id } ) => id ) ).not.toContain( failed )
+  } )
+} )
+
+describe( 'listJobs for many jobs', () => {
+  const countPrepared = ( sqlPart: string, spy: { mock: { calls: unknown[][] } } ): number => {
+    return spy.mock.calls.filter( ( [ sql ] ) => String( sql ).includes( sqlPart ) ).length
+  }
+
+  it( 'reads summary runs, link runs and profiles once, however many jobs it lists', async () => {
+    const ids: string[] = []
+
+    for( let index = 0; index < 10; index += 1 ) {
+      const id = await queueJobAt( 'ready_for_review' )
+
+      recordSummaryRun( userId, id, {
+        model: 'claude-sonnet-5-5',
+        promptVersionId: resolvePrompt( userId, null ).version.id,
+        usage: { input_tokens: 1000 + index, output_tokens: 100 },
+      } )
+      ids.push( id )
+    }
+
+    // The list leaves the draft out; everything else matches the single-job read
+    const expected = ids.map( ( id ) => ( { ...findJob( userId, id ), note_markdown: null } ) )
+    const prepare = vi.spyOn( getDatabase(), 'prepare' )
+
+    const jobs = listJobs( userId )
+
+    expect( jobs ).toHaveLength( 10 )
+    expect( countPrepared( 'FROM summary_runs', prepare ) ).toBe( 1 )
+    expect( countPrepared( 'FROM link_runs', prepare ) ).toBe( 1 )
+    expect( countPrepared( 'FROM prompt_profiles', prepare ) ).toBeLessThanOrEqual( 1 )
+    expect( jobs.map( ( { id } ) => id ).toSorted() ).toEqual( ids.toSorted() )
+    expect( jobs.toSorted( ( a, b ) => a.id.localeCompare( b.id ) ) )
+      .toEqual( expected.toSorted( ( a, b ) => a.id.localeCompare( b.id ) ) )
   } )
 } )
 

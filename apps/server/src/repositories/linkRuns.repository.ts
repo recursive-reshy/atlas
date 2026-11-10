@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { LinkRun, LinkUsageSummary } from '@atlas/shared'
 // Repositories
 import { getDatabase } from './database.js'
+import { marks } from './jobRows.js'
 
 export const LinkRunRecord = z.object( {
   job_id: z.string(),
@@ -50,18 +51,9 @@ export const listLinkRuns = (
 
 const RunWithVersion = StoredLinkRun.extend( { prompt_version: z.int().min( 1 ) } )
 
-export const summarizeLinkUsage = (
-  userId: string,
-  jobId: string,
+const toUsageSummary = (
+  runs: z.infer< typeof RunWithVersion >[],
 ): LinkUsageSummary | undefined => {
-  const runs = z.array( RunWithVersion ).parse( getDatabase()
-    .prepare( `SELECT link_runs.*, prompt_versions.version AS prompt_version
-      FROM link_runs
-        JOIN prompt_versions ON prompt_versions.id = link_runs.prompt_version_id
-          AND prompt_versions.user_id = link_runs.user_id
-      WHERE link_runs.job_id = ? AND link_runs.user_id = ?
-      ORDER BY link_runs.id` )
-    .all( jobId, userId ) )
   const last = runs.at( -1 )
 
   if( last === undefined ) {
@@ -92,4 +84,47 @@ export const summarizeLinkUsage = (
       ? null
       : runs.reduce( ( sum, run ) => sum + ( run.cost_usd ?? 0 ), 0 ),
   } )
+}
+
+// One query for many jobs; a job without link runs has no entry
+export const summarizeLinkUsageForJobs = (
+  userId: string,
+  jobIds: string[],
+): Map< string, LinkUsageSummary > => {
+  const usage = new Map< string, LinkUsageSummary >()
+
+  if( jobIds.length === 0 ) {
+    return usage
+  }
+
+  const runs = z.array( RunWithVersion ).parse( getDatabase()
+    .prepare( `SELECT link_runs.*, prompt_versions.version AS prompt_version
+      FROM link_runs
+        JOIN prompt_versions ON prompt_versions.id = link_runs.prompt_version_id
+          AND prompt_versions.user_id = link_runs.user_id
+      WHERE link_runs.user_id = ? AND link_runs.job_id IN ( ${ marks( jobIds ) } )
+      ORDER BY link_runs.id` )
+    .all( userId, ...jobIds ) )
+  const byJob = new Map< string, z.infer< typeof RunWithVersion >[] >()
+
+  for( const run of runs ) {
+    byJob.set( run.job_id, [ ...byJob.get( run.job_id ) ?? [], run ] )
+  }
+
+  for( const [ jobId, jobRuns ] of byJob ) {
+    const summary = toUsageSummary( jobRuns )
+
+    if( summary !== undefined ) {
+      usage.set( jobId, summary )
+    }
+  }
+
+  return usage
+}
+
+export const summarizeLinkUsage = (
+  userId: string,
+  jobId: string,
+): LinkUsageSummary | undefined => {
+  return summarizeLinkUsageForJobs( userId, [ jobId ] ).get( jobId )
 }

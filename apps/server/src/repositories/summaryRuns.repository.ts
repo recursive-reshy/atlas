@@ -2,6 +2,7 @@
 import { z } from 'zod'
 // Repositories
 import { getDatabase } from './database.js'
+import { marks } from './jobRows.js'
 
 export const SummaryRunRecord = z.object( {
   job_id: z.string(),
@@ -17,6 +18,7 @@ export const SummaryRunRecord = z.object( {
 export type SummaryRunRecord = z.infer< typeof SummaryRunRecord >
 
 const StoredSummaryRun = SummaryRunRecord.extend( { id: z.int() } )
+export type StoredSummaryRun = z.infer< typeof StoredSummaryRun >
 
 export const insertSummaryRun = ( userId: string, run: SummaryRunRecord ): void => {
   getDatabase()
@@ -30,11 +32,29 @@ export const insertSummaryRun = ( userId: string, run: SummaryRunRecord ): void 
     .run( { ...run, user_id: userId } )
 }
 
-export const listRunsForJob = (
+// One query for many jobs: each job's runs, oldest first; a job without runs has no entry
+export const listRunsForJobs = (
   userId: string,
-  jobId: string,
-): z.infer< typeof StoredSummaryRun >[] => {
-  return z.array( StoredSummaryRun ).parse( getDatabase()
-    .prepare( 'SELECT * FROM summary_runs WHERE job_id = ? AND user_id = ? ORDER BY id' )
-    .all( jobId, userId ) )
+  jobIds: string[],
+): Map< string, StoredSummaryRun[] > => {
+  const byJob = new Map< string, StoredSummaryRun[] >()
+
+  if( jobIds.length === 0 ) {
+    return byJob
+  }
+
+  const runs = z.array( StoredSummaryRun ).parse( getDatabase()
+    .prepare( `SELECT * FROM summary_runs
+      WHERE user_id = ? AND job_id IN ( ${ marks( jobIds ) } ) ORDER BY id` )
+    .all( userId, ...jobIds ) )
+
+  for( const run of runs ) {
+    byJob.set( run.job_id, [ ...byJob.get( run.job_id ) ?? [], run ] )
+  }
+
+  return byJob
+}
+
+export const listRunsForJob = ( userId: string, jobId: string ): StoredSummaryRun[] => {
+  return listRunsForJobs( userId, [ jobId ] ).get( jobId ) ?? []
 }
