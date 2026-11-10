@@ -70,11 +70,14 @@ describe( 'setModules', () => {
     expect( listModules( user ) ).toEqual( [ 'transcriber' ] )
   } )
 
-  it( 'is refused by the database for an unknown module', () => {
+  it( 'leaves out a stored module the application does not know', () => {
     const user = addUser( 'a' )
 
-    expect( () => getDatabase().prepare(
-      'INSERT INTO user_modules ( user_id, module ) VALUES ( ?, \'bogus\' )',
-    ).run( user ) ).toThrow()
+    setModules( user, [ 'melete' ] )
+    getDatabase().prepare(
+      'INSERT INTO user_modules ( user_id, module ) VALUES ( ?, \'retired\' )',
+    ).run( user )
+
+    expect( listModules( user ) ).toEqual( [ 'melete' ] )
   } )
 } )

@@ -228,6 +228,15 @@ describe( 'claimNextJob', () => {
       expect( claimNextJob( at( 0 ) ) ).toEqual( { ...job, user_id: admin } )
     } )
 
+    it( 'serves no one for a stored module the application does not know', () => {
+      const member = createTestUser( { modules: [] } ).id
+      insertJob( member, buildJob() )
+      getDatabase().prepare( 'INSERT INTO user_modules ( user_id, module ) VALUES ( ?, ? )' )
+        .run( member, 'retired' )
+
+      expect( claimNextJob( at( 0 ) ) ).toBeUndefined()
+    } )
+
     it( 'skips an ineligible user and serves the next one', () => {
       const off = createTestUser( { modules: [ 'melete' ] } ).id
       const on = createTestUser().id

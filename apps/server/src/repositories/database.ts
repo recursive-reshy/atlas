@@ -37,6 +37,8 @@ export const migrationFiles = [
   '15-melete-concept-layer',
   // 16 (ADRs 0091, 0092): Themis, time entries, `user_modules` rebuilt to accept `themis`
   '16-themis-and-time',
+  // 17 (ADR 0101): modules are defined by ModuleId alone; no list in user_modules or the view
+  '17-modules-registry',
 ]
 
 export const migrations: Migration[] = migrationFiles.map( readSql )

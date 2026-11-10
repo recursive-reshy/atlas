@@ -1,5 +1,7 @@
 // Express
 import express, { Express } from 'express'
+// Shared
+import { ModuleId } from '@atlas/shared'
 // Config
 import { config } from './config.js'
 // Errors
@@ -30,6 +32,16 @@ import { testSessionRoutes } from './routes/testSession.routes.js'
 import { vaultRoutes } from './routes/vault.routes.js'
 import { webRoutes } from './routes/web.routes.js'
 
+// Each module's routes are refused, as if unknown, to a user without the module (ADR 0068). A
+// module is named only by ModuleId, so a new one cannot be added without saying which paths it
+// owns (ADR 0101). Settings, models, prompt profiles and status are shared and filter by module
+// themselves.
+export const MODULE_ROUTES: Record< ModuleId, string[] > = {
+  transcriber: [ '/api/jobs', '/api/feeds', '/api/inbox', '/api/gmail', '/api/vault' ],
+  melete: [ '/api/melete' ],
+  themis: [ '/api/themis' ],
+}
+
 export const app: Express = express()
 
 app.use( '/api', requestLog )
@@ -46,14 +58,9 @@ if( config.e2eTestSignin ) {
 app.use( '/api', requireUser )
 app.use( '/api', meRoutes )
 app.use( '/api/admin', requireAdmin, adminRoutes )
-// Each module's routes are refused, as if unknown, to a user without the module (ADR 0068).
-// Settings, models, prompt profiles and status are shared and filter by module themselves.
-app.use(
-  [ '/api/jobs', '/api/feeds', '/api/inbox', '/api/gmail', '/api/vault' ],
-  requireModule( 'transcriber' ),
-)
-app.use( '/api/melete', requireModule( 'melete' ) )
-app.use( '/api/themis', requireModule( 'themis' ) )
+for( const module of ModuleId.options ) {
+  app.use( MODULE_ROUTES[ module ], requireModule( module ) )
+}
 app.use( '/api', jobsRoutes )
 app.use( '/api', feedsRoutes )
 app.use( '/api', inboxRoutes )

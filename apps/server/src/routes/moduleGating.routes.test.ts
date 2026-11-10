@@ -7,9 +7,9 @@ import {
   vi,
 } from 'vitest'
 // Shared
-import { ListModelsResponse, ListPromptProfilesResponse } from '@atlas/shared'
+import { ListModelsResponse, ListPromptProfilesResponse, ModuleId } from '@atlas/shared'
 // App
-import { app } from '../app.js'
+import { MODULE_ROUTES, app } from '../app.js'
 // Clients
 import { listSummaryModels } from '../clients/anthropicModels.client.js'
 // Services
@@ -68,6 +68,31 @@ const statusOf = async (
 ): Promise< number > => {
   return ( await signedInRequest( app, user ).get( path ) ).status
 }
+
+describe( 'MODULE_ROUTES (ADR 0101)', () => {
+  const representative: Record< ModuleId, string[] > = {
+    transcriber: TRANSCRIBER_ROUTES,
+    melete: MELETE_ROUTES,
+    themis: THEMIS_ROUTES,
+  }
+
+  it( 'has an entry for every module the registry names, and no other', () => {
+    expect( Object.keys( MODULE_ROUTES ).toSorted() ).toEqual( [ ...ModuleId.options ].toSorted() )
+  } )
+
+  it.each( ModuleId.options )( 'gates exactly the %s routes', ( module ) => {
+    const under = ( path: string, owner: ModuleId ): boolean => MODULE_ROUTES[ owner ]
+      .some( ( prefix ) => path === prefix || path.startsWith( `${ prefix }/` ) )
+
+    for( const path of representative[ module ] ) {
+      expect( under( path, module ), path ).toBe( true )
+
+      for( const other of ModuleId.options.filter( ( id ) => id !== module ) ) {
+        expect( under( path, other ), `${ path } under ${ other }` ).toBe( false )
+      }
+    }
+  } )
+} )
 
 describe( 'the Transcriber routes', () => {
   it.each( TRANSCRIBER_ROUTES )( '%s is a 404 without the Transcriber module', async ( path ) => {
