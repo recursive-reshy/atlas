@@ -61,7 +61,7 @@ describe( 'listLinkSuggestions', () => {
 
     const error = await rejection( listLinkSuggestions( jobId ) )
 
-    expect( error.message ).toBe( 'Unexpected response from the server' )
+    expect( error.message ).toMatch( /^Unexpected response from the server/ )
   } )
 
   it( 'throws the server message on an error status', async () => {

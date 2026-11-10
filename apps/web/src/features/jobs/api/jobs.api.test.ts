@@ -123,7 +123,7 @@ describe( 'createJob', () => {
 
     const error = await rejection( createJob( { url } ) )
 
-    expect( error.message ).toBe( 'Unexpected response from the server' )
+    expect( error.message ).toMatch( /^Unexpected response from the server/ )
     expect( error.status ).toBe( 202 )
   } )
 } )
@@ -158,7 +158,7 @@ describe( 'getJob', () => {
 
     const error = await rejection( getJob( jobId ) )
 
-    expect( error.message ).toBe( 'Unexpected response from the server' )
+    expect( error.message ).toMatch( /^Unexpected response from the server/ )
   } )
 } )
 
@@ -188,7 +188,7 @@ describe( 'listJobs', () => {
 
     const error = await rejection( listJobs() )
 
-    expect( error.message ).toBe( 'Unexpected response from the server' )
+    expect( error.message ).toMatch( /^Unexpected response from the server/ )
   } )
 } )
 
@@ -235,7 +235,7 @@ describe( 'getSource', () => {
 
     const error = await rejection( getSource( jobId ) )
 
-    expect( error.message ).toBe( 'Unexpected response from the server' )
+    expect( error.message ).toMatch( /^Unexpected response from the server/ )
   } )
 } )
 
@@ -278,7 +278,7 @@ describe( 'updateDraft', () => {
 
     const error = await rejection( updateDraft( jobId, draft ) )
 
-    expect( error.message ).toBe( 'Unexpected response from the server' )
+    expect( error.message ).toMatch( /^Unexpected response from the server/ )
   } )
 } )
 
@@ -317,7 +317,7 @@ describe( 'saveJob', () => {
 
     const error = await rejection( saveJob( jobId ) )
 
-    expect( error.message ).toBe( 'Unexpected response from the server' )
+    expect( error.message ).toMatch( /^Unexpected response from the server/ )
   } )
 } )
 
@@ -439,6 +439,6 @@ describe( 'submitPastedText', () => {
 
     const error = await rejection( submitPastedText( jobId, { text } ) )
 
-    expect( error.message ).toBe( 'Unexpected response from the server' )
+    expect( error.message ).toMatch( /^Unexpected response from the server/ )
   } )
 } )

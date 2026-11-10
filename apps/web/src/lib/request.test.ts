@@ -7,6 +7,8 @@ import {
   it,
   vi,
 } from 'vitest'
+// Shared
+import { ErrorResponse, ListJobsResponse } from '@atlas/shared'
 // App
 import { ApiError } from './apiError'
 import { request, send } from './request'
@@ -116,6 +118,29 @@ describe( 'request', () => {
 
     expect( error.message ).toBe( 'Unexpected response from the server' )
     expect( error.status ).toBe( 200 )
+  } )
+
+  it( 'names the first field that fails a Zod schema, with its path', async () => {
+    fetchMock.mockResolvedValue( new Response(
+      JSON.stringify( { jobs: [ { id: 1 } ] } ),
+      { status: 200 },
+    ) )
+
+    const error = await rejection( request( '/api/x', ListJobsResponse ) )
+
+    expect( error.message ).toMatch( /^Unexpected response from the server: jobs\.0\.[a-z_]+: .+/ )
+    expect( error.status ).toBe( 200 )
+  } )
+
+  it( 'gives only the message when the failing value is the whole body', async () => {
+    fetchMock.mockResolvedValue( new Response( JSON.stringify( 'text' ), { status: 200 } ) )
+
+    const error = await rejection( request( '/api/x', ErrorResponse ) )
+
+    const reason = ErrorResponse.safeParse( 'text' ).error?.issues[ 0 ]?.message
+
+    expect( reason ).toBeDefined()
+    expect( error.message ).toBe( `Unexpected response from the server: ${ reason }` )
   } )
 
   it( 'rejects a body that is not JSON', async () => {

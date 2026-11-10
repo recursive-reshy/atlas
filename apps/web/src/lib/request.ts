@@ -3,8 +3,24 @@ import { ErrorResponse } from '@atlas/shared'
 // App
 import { ApiError } from './apiError'
 
+type Issue = { path: readonly PropertyKey[], message: string }
+
 export interface Schema< T > {
-  safeParse( data: unknown ): { success: true, data: T } | { success: false }
+  safeParse( data: unknown ): { success: true, data: T } | {
+    success: false
+    error?: { issues: readonly Issue[] }
+  }
+}
+
+// A contract drift is readable in the console: the first field that failed, and why
+const driftMessage = ( issue: Issue | undefined ): string => {
+  if( issue === undefined ) {
+    return 'Unexpected response from the server'
+  }
+
+  const where = issue.path.length === 0 ? '' : `${ issue.path.map( String ).join( '.' ) }: `
+
+  return `Unexpected response from the server: ${ where }${ issue.message }`
 }
 
 const MUTATING_METHODS = [ 'POST', 'PUT', 'PATCH', 'DELETE' ]
@@ -56,7 +72,7 @@ export const request = async < T >(
   const parsed = schema.safeParse( body )
 
   if( !parsed.success ) {
-    throw new ApiError( 'Unexpected response from the server', response.status )
+    throw new ApiError( driftMessage( parsed.error?.issues[ 0 ] ), response.status )
   }
 
   return parsed.data
