@@ -64,7 +64,7 @@ async def converse(
     tools = build_tool_definitions()
     tools[ -1 ].cache_control = CacheControl()
     note = request.note
-    note_text = "\n".join(
+    note_body = "\n".join(
         [
             f"Title: {note.title}",
             f"Tags: {', '.join( note.tags ) if note.tags else '(none)'}",
@@ -75,6 +75,8 @@ async def converse(
             note.body
         ]
     )
+    # A closing tag inside the note must not end the block early (TRD 3.3)
+    note_text = f"<source_content>\n{note_body.replace( '</source_content>', '</source_content_>' )}\n</source_content>"
     messages = [ Message( role = "user", content = [ TextBlock( text = note_text ) ] ) ]
     invalid_submissions = 0
     replies_without_tools = 0

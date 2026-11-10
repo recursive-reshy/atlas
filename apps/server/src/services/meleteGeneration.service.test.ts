@@ -171,7 +171,8 @@ describe( 'generateForNote', () => {
         LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
         DEFAULT_MELETE_QUESTIONS_GUIDANCE,
       ),
-      user: `Subject: TypeScript\nTitle: Generics in TypeScript\n\n${ GENERICS_BODY }`,
+      user: 'Subject: TypeScript\n\n<source_content>\nTitle: Generics in TypeScript\n\n'
+        + `${ GENERICS_BODY }\n</source_content>`,
     } )
     expect( version.guidance ).toBe( DEFAULT_MELETE_QUESTIONS_GUIDANCE )
   } )
@@ -556,14 +557,17 @@ describe( 'generateForNote with an approved syllabus', () => {
       ),
       user: [
         'Subject: TypeScript',
-        'Title: Generics in TypeScript',
         '',
         '## Concepts',
         'c1: Types — Type annotations',
         'c2: Generics — Types with parameters',
         '',
         '## Note',
+        '<source_content>',
+        'Title: Generics in TypeScript',
+        '',
         GENERICS_BODY,
+        '</source_content>',
       ].join( '\n' ),
     } )
   } )

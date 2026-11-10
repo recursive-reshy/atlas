@@ -11,6 +11,7 @@ import {
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED,
   buildMeleteSystemPrompt,
+  buildQuestionsUser,
 } from '../melete/prompts.js'
 import { processApprovedQuestions, processQuestions } from '../melete/questions.js'
 import { recordMeleteRun } from '../melete/runs.js'
@@ -184,7 +185,6 @@ export const generateForNote = async (
       ? listConcepts( userId, subject.id )
       : []
     const approved = concepts.length > 0
-    const header = `Subject: ${ subjectName }\nTitle: ${ current.title }`
     let processed: Processed
 
     try {
@@ -195,18 +195,24 @@ export const generateForNote = async (
             LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED,
             version.guidance,
           ),
-          user: [
-            header,
-            `\n## Concepts\n${ buildConceptList( concepts ) }`,
-            `\n## Note\n${ current.body }`,
-          ].join( '\n' ),
+          user: buildQuestionsUser( {
+            subject: subjectName,
+            title: current.title,
+            body: current.body,
+            conceptList: buildConceptList( concepts ),
+          } ),
           body: current.body,
           concepts,
         } )
         : await generatePlain( {
           model,
           system: buildMeleteSystemPrompt( LOCKED_INSTRUCTIONS_MELETE_QUESTIONS, version.guidance ),
-          user: `${ header }\n\n${ current.body }`,
+          user: buildQuestionsUser( {
+            subject: subjectName,
+            title: current.title,
+            body: current.body,
+            conceptList: null,
+          } ),
           body: current.body,
         } )
     } catch( error ) {

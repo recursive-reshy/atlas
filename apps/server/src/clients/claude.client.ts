@@ -19,6 +19,7 @@ import { MeleteError } from '../errors.js'
 // Summarizer
 import { buildSystemPrompt } from '../summarizer/prompts.js'
 import { SUMMARY_MAX_TOKENS } from '../summarizer/models.js'
+import { wrapSourceContent } from '../summarizer/sourceContent.js'
 
 export const SummaryResult = z.object( {
   overview: z.string(),
@@ -56,10 +57,10 @@ export class SummaryError extends Error {
   }
 }
 
-const toUserMessage = ( document: SourceDocument ): string => {
-  return document.kind === 'video'
+export const toUserMessage = ( document: SourceDocument ): string => {
+  return wrapSourceContent( document.kind === 'video'
     ? `# ${ document.meta.title }\n\n${ document.text }`
-    : `# ${ document.meta.title }\n\n${ document.markdown }`
+    : `# ${ document.meta.title }\n\n${ document.markdown }` )
 }
 
 const toSummary = ( document: SourceDocument, output: unknown ): Summary | undefined => {

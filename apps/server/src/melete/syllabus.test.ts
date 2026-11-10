@@ -136,8 +136,10 @@ describe( 'buildSyllabusUser', () => {
       'Intent: Pass the GCP exam',
       '',
       'Notes already in the folder:',
+      '<source_content>',
       '- BigQuery: BigQuery is a warehouse.',
       '- Empty',
+      '</source_content>',
     ].join( '\n' ) )
   } )
 
