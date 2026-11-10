@@ -15,7 +15,7 @@ import {
 import { page } from 'vitest/browser'
 // App
 import { useMe } from '#src/app/useMe'
-import { useMeleteProfiles } from '#src/hooks/useMeleteProfiles'
+import { useMeleteProfiles } from '#src/features/melete/hooks/useMeleteProfiles'
 import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfiles'
 import { usePromptVersions } from '#src/features/settings/hooks/usePromptVersions'
 import { useSettings } from '#src/features/settings/hooks/useSettings'
@@ -33,7 +33,7 @@ import { PromptsTab } from './PromptsTab'
 vi.mock( '#src/app/useMe' )
 vi.mock( '#src/features/settings/hooks/useSettings' )
 vi.mock( '#src/features/settings/hooks/usePromptProfiles' )
-vi.mock( '#src/hooks/useMeleteProfiles' )
+vi.mock( '#src/features/melete/hooks/useMeleteProfiles' )
 vi.mock( '#src/features/settings/hooks/usePromptVersions' )
 
 const LIST_WIDTH = 280

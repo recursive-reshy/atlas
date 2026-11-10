@@ -53,7 +53,7 @@ const MODULE_TAG_FOLDER = new Set( [
   'apps/web/src/features/jobs/components/HomePage/HomePage.test.tsx',
   'apps/web/src/features/jobs/components/JobPage/JobPage.regenerate.test.tsx',
   'apps/web/src/features/jobs/components/JobPage/JobPage.test.tsx',
-  'apps/web/src/components/LearningRootSetup/LearningRootSetup.test.tsx',
+  'apps/web/src/features/melete/components/LearningRootSetup/LearningRootSetup.test.tsx',
   'apps/web/src/app/NavDrawer/NavDrawer.test.tsx',
   'apps/web/src/app/NavDrawer/NavDrawer.tsx',
   'apps/web/src/features/jobs/components/NoteDestination/NoteDestination.test.tsx',

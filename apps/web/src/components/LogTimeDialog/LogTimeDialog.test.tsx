@@ -13,14 +13,14 @@ import {
 // App
 import { useLogTime } from '#src/hooks/useLogTime'
 import { useMe } from '#src/app/useMe'
-import { useMeleteToday } from '#src/hooks/useMeleteToday'
+import { useMeleteToday } from '#src/features/melete/hooks/useMeleteToday'
 import { useThemisOverview } from '#src/hooks/useThemisOverview'
 import { meFixture } from '#src/test-support/me.fixture'
 import {
   SUBJECT_ID,
   meleteSubjectFixture,
   meleteTodayFixture,
-} from '#src/test-support/melete.fixture'
+} from '#src/features/melete/fixtures/melete.fixture'
 import { mutationStub } from '#src/test-support/mutationStub'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { METRIC_GOAL_ID, overviewFixture } from '#src/test-support/themis.fixture'
@@ -28,7 +28,7 @@ import { LogTimeDialog } from './LogTimeDialog'
 
 vi.mock( '#src/hooks/useLogTime' )
 vi.mock( '#src/app/useMe' )
-vi.mock( '#src/hooks/useMeleteToday' )
+vi.mock( '#src/features/melete/hooks/useMeleteToday' )
 vi.mock( '#src/hooks/useThemisOverview' )
 
 const mutate = vi.fn()

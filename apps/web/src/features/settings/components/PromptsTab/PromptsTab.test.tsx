@@ -11,7 +11,7 @@ import {
 } from 'vitest'
 // App
 import { getGmailAccount } from '#src/features/gmail/api/gmail.api'
-import { useMeleteProfiles } from '#src/hooks/useMeleteProfiles'
+import { useMeleteProfiles } from '#src/features/melete/hooks/useMeleteProfiles'
 import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfiles'
 import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { gmailAccountFixture } from '#src/features/gmail/fixtures/gmail.fixture'
@@ -32,7 +32,7 @@ import {
 vi.mock( '#src/features/gmail/api/gmail.api' )
 vi.mock( '#src/features/settings/hooks/useSettings' )
 vi.mock( '#src/features/settings/hooks/usePromptProfiles' )
-vi.mock( '#src/hooks/useMeleteProfiles' )
+vi.mock( '#src/features/melete/hooks/useMeleteProfiles' )
 vi.mock( '../ModelsTab', () => ( { ModelsTab: () => <p>models content</p> } ) )
 vi.mock( '../SourcesTab', () => ( { SourcesTab: () => <p>sources content</p> } ) )
 vi.mock( '../PromptList', () => ( {

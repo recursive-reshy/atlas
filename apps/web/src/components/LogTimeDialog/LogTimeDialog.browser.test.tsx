@@ -16,17 +16,20 @@ import { page, userEvent } from 'vitest/browser'
 import { LogTimeButton } from '#src/components/LogTimeButton'
 import { useLogTime } from '#src/hooks/useLogTime'
 import { useMe } from '#src/app/useMe'
-import { useMeleteToday } from '#src/hooks/useMeleteToday'
+import { useMeleteToday } from '#src/features/melete/hooks/useMeleteToday'
 import { useThemisOverview } from '#src/hooks/useThemisOverview'
 import { meFixture } from '#src/test-support/me.fixture'
-import { meleteSubjectFixture, meleteTodayFixture } from '#src/test-support/melete.fixture'
+import {
+  meleteSubjectFixture,
+  meleteTodayFixture,
+} from '#src/features/melete/fixtures/melete.fixture'
 import { mutationStub } from '#src/test-support/mutationStub'
 import { overviewFixture } from '#src/test-support/themis.fixture'
 import { theme } from '#src/theme'
 
 vi.mock( '#src/hooks/useLogTime' )
 vi.mock( '#src/app/useMe' )
-vi.mock( '#src/hooks/useMeleteToday' )
+vi.mock( '#src/features/melete/hooks/useMeleteToday' )
 vi.mock( '#src/hooks/useThemisOverview' )
 
 const MIN_TAP_SIZE = 44

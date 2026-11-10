@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography'
 // App
 import { useMe } from '#src/app/useMe'
 import { LinkingSettings } from '../LinkingSettings'
-import { MeleteSettings } from '#src/components/MeleteSettings'
+import { MeleteSettings } from '#src/features/melete/components/MeleteSettings'
 import { SummarizerDefaults } from '../SummarizerDefaults'
 
 export function ModelsTab(): ReactElement {

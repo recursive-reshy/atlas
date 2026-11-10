@@ -16,7 +16,7 @@ import Typography from '@mui/material/Typography'
 import type { MeleteSubject } from '@atlas/shared'
 // App
 import { useSetGoalSubjects } from '#src/hooks/useGoalMutations'
-import { useMeleteToday } from '#src/hooks/useMeleteToday'
+import { useMeleteToday } from '#src/features/melete/hooks/useMeleteToday'
 
 interface LinkSubjectsDialogProps {
   goalId: string

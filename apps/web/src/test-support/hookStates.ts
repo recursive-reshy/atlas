@@ -1,5 +1,5 @@
 // App
-import type { useMeleteProfiles } from '../hooks/useMeleteProfiles'
+import type { useMeleteProfiles } from '../features/melete/hooks/useMeleteProfiles'
 import type { useModels } from '../features/settings/hooks/useModels'
 import type { usePromptProfiles } from '../features/settings/hooks/usePromptProfiles'
 import type { useSettings } from '../features/settings/hooks/useSettings'

@@ -13,7 +13,7 @@ import TextField from '@mui/material/TextField'
 // App
 import { useLogTime } from '#src/hooks/useLogTime'
 import { useMe } from '#src/app/useMe'
-import { useMeleteToday } from '#src/hooks/useMeleteToday'
+import { useMeleteToday } from '#src/features/melete/hooks/useMeleteToday'
 import { useThemisOverview } from '#src/hooks/useThemisOverview'
 import { daysBefore, localDate } from '#src/lib/localDate'
 

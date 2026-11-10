@@ -9,7 +9,7 @@ import { useTheme } from '@mui/material/styles'
 import { Link, Navigate, useParams } from 'react-router'
 // App
 import { useMe } from '#src/app/useMe'
-import { useMeleteProfiles } from '#src/hooks/useMeleteProfiles'
+import { useMeleteProfiles } from '#src/features/melete/hooks/useMeleteProfiles'
 import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfiles'
 import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { ProfileManager } from '../ProfileManager'

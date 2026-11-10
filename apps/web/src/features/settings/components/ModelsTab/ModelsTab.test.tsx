@@ -17,7 +17,7 @@ import { ModelsTab } from './ModelsTab'
 vi.mock( '#src/app/useMe' )
 vi.mock( '../SummarizerDefaults', () => ( { SummarizerDefaults: () => <p>defaults</p> } ) )
 vi.mock( '../LinkingSettings', () => ( { LinkingSettings: () => <p>linking</p> } ) )
-vi.mock( '#src/components/MeleteSettings', () => (
+vi.mock( '#src/features/melete/components/MeleteSettings', () => (
   { MeleteSettings: () => <p>melete models</p> }
 ) )
 
