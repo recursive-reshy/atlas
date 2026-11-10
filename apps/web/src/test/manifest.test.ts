@@ -21,21 +21,30 @@ type Manifest = {
 const manifest = JSON.parse( manifestText ) as Manifest
 
 describe( 'manifest.webmanifest', () => {
-  it( 'names the app and opens it standalone on Melete', () => {
+  it( 'names the app and opens it standalone on Home', () => {
     expect( manifest.name ).toBe( 'Atlas' )
     expect( manifest.short_name ).toBe( 'Atlas' )
     expect( manifest.display ).toBe( 'standalone' )
     expect( manifest.scope ).toBe( '/' )
-    expect( manifest.start_url ).toBe( '/melete' )
+    expect( manifest.start_url ).toBe( '/' )
     expect( manifest.background_color ).toMatch( /^#[0-9a-f]{6}$/i )
     expect( manifest.theme_color ).toMatch( /^#[0-9a-f]{6}$/i )
   } )
 
   it( 'starts on a route the app has', () => {
-    const pathsOf = ( list: RouteObject[] ): string[] => list.flatMap( ( route ) => [
-      ...( route.path === undefined ? [] : [ `/${ route.path }` ] ),
-      ...pathsOf( route.children ?? [] ),
-    ] )
+    const join = ( prefix: string, path: string ): string => (
+      `${ prefix }/${ path }`.replace( /\/+/g, '/' )
+    )
+    const pathsOf = ( list: RouteObject[], prefix = '' ): string[] => list.flatMap( ( route ) => {
+      const here = route.path === undefined ? prefix : join( prefix, route.path )
+      const own = route.index === true ? [ prefix === '' ? '/' : prefix ] : []
+
+      return [
+        ...own,
+        ...( route.path === undefined ? [] : [ here ] ),
+        ...pathsOf( route.children ?? [], here ),
+      ]
+    } )
     const paths = pathsOf( routes )
 
     expect( paths ).toContain( manifest.start_url )

@@ -26,8 +26,8 @@ const renderAt = ( path: string ): { pathname: () => string } => {
     {
       element: <RequireModule module="transcriber" />,
       children: [
-        { path: '/', element: <p>transcriber home</p> },
-        { path: '/jobs/:id', element: <p>a job</p> },
+        { path: '/transcriber', element: <p>transcriber home</p> },
+        { path: '/transcriber/jobs/:id', element: <p>a job</p> },
       ],
     },
     {
@@ -58,7 +58,7 @@ beforeEach( () => {
 describe( 'RequireModule', () => {
   it( 'shows the page to a user with the module', () => {
     signedInAs( memberFixture( { modules: [ 'transcriber' ] } ) )
-    renderAt( '/jobs/abc' )
+    renderAt( '/transcriber/jobs/abc' )
 
     expect( screen.getByText( 'a job' ) ).toBeInTheDocument()
   } )
@@ -72,7 +72,7 @@ describe( 'RequireModule', () => {
 
   it( 'sends a Melete-only member from a Transcriber page to Melete', () => {
     signedInAs( memberFixture( { modules: [ 'melete' ] } ) )
-    const { pathname } = renderAt( '/jobs/abc' )
+    const { pathname } = renderAt( '/transcriber/jobs/abc' )
 
     expect( pathname() ).toBe( '/melete' )
     expect( screen.getByText( 'melete home' ) ).toBeInTheDocument()
@@ -82,7 +82,7 @@ describe( 'RequireModule', () => {
     signedInAs( memberFixture( { modules: [ 'transcriber' ] } ) )
     const { pathname } = renderAt( '/melete' )
 
-    expect( pathname() ).toBe( '/' )
+    expect( pathname() ).toBe( '/transcriber' )
     expect( screen.getByText( 'transcriber home' ) ).toBeInTheDocument()
   } )
 } )

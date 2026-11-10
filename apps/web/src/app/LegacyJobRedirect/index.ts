@@ -1,0 +1,1 @@
+export { LegacyJobRedirect } from './LegacyJobRedirect'

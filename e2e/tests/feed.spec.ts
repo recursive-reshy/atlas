@@ -17,7 +17,7 @@ test( 'a feed is added, checked and its items wait in the inbox', async ( { page
   // Gmail has its own (disabled, as it is not connected) button of the same name since 0.9
   await page.getByRole( 'button', { name: 'Check all now', disabled: false } ).click()
 
-  await page.goto( '/' )
+  await page.goto( '/transcriber' )
 
   const inbox = page.getByRole( 'list', { name: 'Inbox items' } )
 

@@ -8,15 +8,15 @@ import {
 import { homeFor } from './moduleHome'
 
 describe( 'homeFor', () => {
-  it( 'lands a user with Themis on Themis, whatever else they have', () => {
-    expect( homeFor( [ 'transcriber', 'melete', 'themis' ] ) ).toBe( '/themis' )
-    expect( homeFor( [ 'melete', 'themis' ] ) ).toBe( '/themis' )
-    expect( homeFor( [ 'themis' ] ) ).toBe( '/themis' )
+  it( 'lands a user with Themis on Home, whatever else they have', () => {
+    expect( homeFor( [ 'transcriber', 'melete', 'themis' ] ) ).toBe( '/' )
+    expect( homeFor( [ 'melete', 'themis' ] ) ).toBe( '/' )
+    expect( homeFor( [ 'themis' ] ) ).toBe( '/' )
   } )
 
   it( 'keeps the Transcriber first for a user without Themis', () => {
-    expect( homeFor( [ 'transcriber', 'melete' ] ) ).toBe( '/' )
-    expect( homeFor( [ 'transcriber' ] ) ).toBe( '/' )
+    expect( homeFor( [ 'transcriber', 'melete' ] ) ).toBe( '/transcriber' )
+    expect( homeFor( [ 'transcriber' ] ) ).toBe( '/transcriber' )
   } )
 
   it( 'lands a Melete-only user on Melete', () => {

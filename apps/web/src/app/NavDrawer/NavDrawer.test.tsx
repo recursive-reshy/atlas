@@ -1,5 +1,5 @@
 // Testing Library
-import { screen } from '@testing-library/react'
+import { screen, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 // Vitest
 import {
@@ -56,15 +56,19 @@ describe( 'NavDrawer, wide', () => {
   it( 'lists Transcriber as a link to the home page', () => {
     renderWithClient( <NavDrawer { ...defaults } /> )
 
-    expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) ).toHaveAttribute( 'href', '/' )
-  } )
-
-  it.each( [ '/', '/jobs/3f2b8c1e' ] )( 'marks Transcriber as current on %s', ( route ) => {
-    renderWithClient( <NavDrawer { ...defaults } />, { route } )
-
     expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) )
-      .toHaveAttribute( 'aria-current', 'page' )
+      .toHaveAttribute( 'href', '/transcriber' )
   } )
+
+  it.each( [ '/transcriber', '/transcriber/jobs/3f2b8c1e' ] )(
+    'marks Mnemosyne current on %s',
+    ( route ) => {
+      renderWithClient( <NavDrawer { ...defaults } />, { route } )
+
+      expect( screen.getByRole( 'link', { name: 'Mnemosyne' } ) )
+        .toHaveAttribute( 'aria-current', 'page' )
+    },
+  )
 
   it( 'keeps the item name when collapsed to icons', () => {
     renderWithClient( <NavDrawer { ...defaults } isExpanded={ false } /> )
@@ -95,7 +99,7 @@ describe( 'NavDrawer, wide', () => {
 } )
 
 describe( 'NavDrawer, Melete item', () => {
-  it( 'links to Melete, before Mnemosyne and Settings', () => {
+  it( 'links to Melete, after Mnemosyne and before Settings', () => {
     renderWithClient( <NavDrawer { ...defaults } /> )
 
     const transcriber = screen.getByRole( 'link', { name: 'Mnemosyne' } )
@@ -103,9 +107,9 @@ describe( 'NavDrawer, Melete item', () => {
     const settings = screen.getByRole( 'link', { name: 'Settings' } )
 
     expect( melete ).toHaveAttribute( 'href', '/melete' )
-    expect( melete.compareDocumentPosition( transcriber ) )
+    expect( transcriber.compareDocumentPosition( melete ) )
       .toBe( Node.DOCUMENT_POSITION_FOLLOWING )
-    expect( transcriber.compareDocumentPosition( settings ) )
+    expect( melete.compareDocumentPosition( settings ) )
       .toBe( Node.DOCUMENT_POSITION_FOLLOWING )
   } )
 
@@ -121,11 +125,14 @@ describe( 'NavDrawer, Melete item', () => {
     },
   )
 
-  it.each( [ '/', '/jobs/3f2b8c1e', '/settings/prompts' ] )( 'is not current on %s', ( route ) => {
-    renderWithClient( <NavDrawer { ...defaults } />, { route } )
+  it.each( [ '/', '/transcriber', '/transcriber/jobs/3f2b8c1e', '/settings' ] )(
+    'is not current on %s',
+    ( route ) => {
+      renderWithClient( <NavDrawer { ...defaults } />, { route } )
 
-    expect( screen.getByRole( 'link', { name: 'Melete' } ) ).not.toHaveAttribute( 'aria-current' )
-  } )
+      expect( screen.getByRole( 'link', { name: 'Melete' } ) ).not.toHaveAttribute( 'aria-current' )
+    },
+  )
 
   it( 'shows a tooltip with the name on hover when collapsed', async () => {
     const user = userEvent.setup()
@@ -142,7 +149,7 @@ describe( 'NavDrawer, Themis item', () => {
     signedInAs( meFixture( { modules: [ 'transcriber', 'melete', 'themis' ] } ) )
   }
 
-  it( 'is first, before Melete and Mnemosyne, and links to /themis', () => {
+  it( 'follows Home, comes before Mnemosyne and Melete, and links to /themis', () => {
     withThemis()
     renderWithClient( <NavDrawer { ...defaults } /> )
 
@@ -151,9 +158,9 @@ describe( 'NavDrawer, Themis item', () => {
     const melete = screen.getByRole( 'link', { name: 'Melete' } )
 
     expect( themis ).toHaveAttribute( 'href', '/themis' )
-    expect( themis.compareDocumentPosition( melete ) )
+    expect( themis.compareDocumentPosition( transcriber ) )
       .toBe( Node.DOCUMENT_POSITION_FOLLOWING )
-    expect( melete.compareDocumentPosition( transcriber ) )
+    expect( transcriber.compareDocumentPosition( melete ) )
       .toBe( Node.DOCUMENT_POSITION_FOLLOWING )
   } )
 
@@ -441,5 +448,38 @@ describe( 'NavDrawer, sign out', () => {
 
     expect( settings.compareDocumentPosition( signOutButton ) )
       .toBe( Node.DOCUMENT_POSITION_FOLLOWING )
+  } )
+} )
+
+describe( 'NavDrawer, Home item', () => {
+  it( 'puts Home first, then Themis, Mnemosyne and Melete, for a user with Themis', () => {
+    signedInAs( meFixture( { modules: [ 'transcriber', 'melete', 'themis' ] } ) )
+    renderWithClient( <NavDrawer { ...defaults } /> )
+
+    const names = within( screen.getByRole( 'navigation', { name: 'Main' } ) )
+      .getAllByRole( 'link' ).map( ( link ) => link.textContent )
+
+    expect( names ).toEqual( [ 'Home', 'Themis', 'Mnemosyne', 'Melete' ] )
+    expect( screen.getByRole( 'link', { name: 'Home' } ) ).toHaveAttribute( 'href', '/' )
+  } )
+
+  it( 'has no Home without Themis', () => {
+    renderWithClient( <NavDrawer { ...defaults } /> )
+
+    expect( screen.queryByRole( 'link', { name: 'Home' } ) ).not.toBeInTheDocument()
+  } )
+
+  it( 'is current on / exactly', () => {
+    signedInAs( meFixture( { modules: [ 'themis' ] } ) )
+    renderWithClient( <NavDrawer { ...defaults } />, { route: '/' } )
+
+    expect( screen.getByRole( 'link', { name: 'Home' } ) ).toHaveAttribute( 'aria-current', 'page' )
+  } )
+
+  it.each( [ '/themis', '/themis/calendar', '/settings' ] )( 'is not current on %s', ( route ) => {
+    signedInAs( meFixture( { modules: [ 'themis' ] } ) )
+    renderWithClient( <NavDrawer { ...defaults } />, { route } )
+
+    expect( screen.getByRole( 'link', { name: 'Home' } ) ).not.toHaveAttribute( 'aria-current' )
   } )
 } )

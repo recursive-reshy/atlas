@@ -90,10 +90,10 @@ describe( 'JobList', () => {
 
     expect( items ).toHaveLength( 2 )
     expect( within( items[ 0 ] ).getByRole( 'link', { name: 'How Rust Works' } ) )
-      .toHaveAttribute( 'href', `/jobs/${ jobFixture().id }` )
+      .toHaveAttribute( 'href', `/transcriber/jobs/${ jobFixture().id }` )
     expect( items[ 0 ] ).toHaveTextContent( 'Ready for review' )
     expect( within( items[ 1 ] ).getByRole( 'link', { name: 'https://example.com/v' } ) )
-      .toHaveAttribute( 'href', `/jobs/${ other }` )
+      .toHaveAttribute( 'href', `/transcriber/jobs/${ other }` )
     expect( items[ 1 ] ).toHaveTextContent( 'Queued' )
   } )
 

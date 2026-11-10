@@ -18,7 +18,7 @@ src/
   main.tsx  App.tsx  routes.tsx  theme.ts  queryClient.ts     app wiring, each with its test beside it
   app/            shell, drawer, gate, sign-in, RequireModule, ConfirmDialog, moduleHome; useMe, useSignIn, useSignOut and their api
   lib/            request, apiError, queryKeys, useDebouncedValue and the formatters; imports no feature
-  features/<f>/   jobs, feeds, inbox, gmail, vault, settings, status, admin, melete, themis; each holds
+  features/<f>/   home, jobs, feeds, inbox, gmail, vault, settings, status, admin, melete, themis; each holds
                   components/<Name>/ (<Name>.tsx, <Name>.test.tsx, index.ts), hooks/, api/, fixtures/
   test-support/   render helpers, setup, and test data several features share (me, hook states, notes)
   test/           tests of public/ assets and the browser setup

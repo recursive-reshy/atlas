@@ -66,9 +66,9 @@ describe( 'App', () => {
     expect( screen.getByText( 'All done for now' ) ).toBeInTheDocument()
   } )
 
-  it( 'shows the job on /jobs/:id', () => {
+  it( 'shows the job on /transcriber/jobs/:id', () => {
     mockedUseJob.mockReturnValue( { job: jobFixture( { status: 'transcribing' } ), error: null } )
-    renderWithRouter( `/jobs/${ jobId }` )
+    renderWithRouter( `/transcriber/jobs/${ jobId }` )
 
     expect( screen.getByRole( 'heading', { level: 1, name: 'Atlas' } ) ).toBeInTheDocument()
     expect( screen.getByRole( 'status' ) ).toHaveTextContent( 'Transcribing…' )
@@ -87,7 +87,7 @@ describe( 'App', () => {
   it( 'sends an unknown path to the home route', () => {
     const { location } = renderWithRouter( '/nowhere' )
 
-    expect( location().pathname ).toBe( '/' )
+    expect( location().pathname ).toBe( '/transcriber' )
     expect( screen.getByRole( 'form', { name: 'Add a video or article' } ) ).toBeInTheDocument()
   } )
 } )

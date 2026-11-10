@@ -20,7 +20,7 @@ import { jobFixture } from '#src/features/jobs/fixtures/job.fixture'
 import { modelsState, profilesState, settingsState } from '#src/test-support/hookStates'
 import { CODING_ID, settingsFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { renderWithClient } from '#src/test-support/renderWithClient'
-import { HomePage } from './HomePage'
+import { TranscriberHome } from './TranscriberHome'
 
 vi.mock( '#src/features/jobs/api/jobs.api' )
 vi.mock( '#src/features/jobs/hooks/useJobs' )
@@ -43,9 +43,9 @@ beforeEach( () => {
   vi.mocked( usePromptProfiles ).mockReturnValue( profilesState() )
 } )
 
-describe( 'HomePage', () => {
+describe( 'TranscriberHome', () => {
   it( 'shows the submit form', () => {
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     expect( screen.getByRole( 'form', { name: 'Add a video or article' } ) ).toBeInTheDocument()
   } )
@@ -56,7 +56,7 @@ describe( 'HomePage', () => {
       error: null,
       updatedAt: Date.now(),
     } )
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     const form = screen.getByRole( 'form', { name: 'Add a video or article' } )
     const inbox = screen.getByText( 'inbox' )
@@ -74,13 +74,13 @@ describe( 'HomePage', () => {
       error: null,
       updatedAt: Date.now(),
     } )
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     expect( screen.getByRole( 'link', { name: 'How Rust Works' } ) ).toBeInTheDocument()
   } )
 
   it( 'confirms a save with the vault path', () => {
-    renderWithClient( <HomePage />, {
+    renderWithClient( <TranscriberHome />, {
       route: { pathname: '/', state: { savedPath: 'Mnemosyne/How Rust Works.md' } },
     } )
 
@@ -89,13 +89,13 @@ describe( 'HomePage', () => {
   } )
 
   it( 'shows no confirmation without a saved path', () => {
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     expect( screen.queryByRole( 'status' ) ).not.toBeInTheDocument()
   } )
 
   it( 'shows no list when there are no jobs', () => {
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     expect( screen.queryByRole( 'list', { name: 'Jobs' } ) ).not.toBeInTheDocument()
   } )
@@ -105,7 +105,7 @@ describe( 'HomePage', () => {
     mockedCreateJob.mockReturnValue( new Promise< string >( ( resolver ) => {
       resolve = resolver
     } ) )
-    const { location } = renderWithClient( <HomePage /> )
+    const { location } = renderWithClient( <TranscriberHome /> )
     const user = userEvent.setup()
 
     await user.type( screen.getByRole( 'textbox', { name: 'URL' } ), validUrl )
@@ -119,12 +119,12 @@ describe( 'HomePage', () => {
       await Promise.resolve()
     } )
 
-    expect( location().pathname ).toBe( `/jobs/${ newJobId }` )
+    expect( location().pathname ).toBe( `/transcriber/jobs/${ newJobId }` )
   } )
 
   it( 'shows a failed submit and lets the user try again', async () => {
     mockedCreateJob.mockRejectedValue( new ApiError( 'Could not reach the server', null ) )
-    const { location } = renderWithClient( <HomePage /> )
+    const { location } = renderWithClient( <TranscriberHome /> )
     const user = userEvent.setup()
 
     await user.type( screen.getByRole( 'textbox', { name: 'URL' } ), validUrl )
@@ -136,7 +136,7 @@ describe( 'HomePage', () => {
   } )
 } )
 
-describe( 'HomePage, summary options', () => {
+describe( 'TranscriberHome, summary options', () => {
   const submit = async ( user: ReturnType< typeof userEvent.setup > ): Promise< void > => {
     await user.type( screen.getByRole( 'textbox', { name: 'URL' } ), validUrl )
     await user.click( screen.getByRole( 'button', { name: 'Transcribe' } ) )
@@ -147,7 +147,7 @@ describe( 'HomePage, summary options', () => {
   } )
 
   it( 'starts the selects on the settings defaults', () => {
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     expect( screen.getByRole( 'combobox', { name: 'Prompt profile' } ) )
       .toHaveTextContent( 'Business ideas' )
@@ -162,7 +162,7 @@ describe( 'HomePage, summary options', () => {
         default_profile_id: CODING_ID,
       } ).settings,
     } ) )
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     expect( screen.getByRole( 'combobox', { name: 'Prompt profile' } ) )
       .toHaveTextContent( 'Coding' )
@@ -172,7 +172,7 @@ describe( 'HomePage, summary options', () => {
 
   it( 'sends no options when nothing was changed', async () => {
     const user = userEvent.setup()
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     await submit( user )
 
@@ -181,7 +181,7 @@ describe( 'HomePage, summary options', () => {
 
   it( 'sends only the model when only the model was changed', async () => {
     const user = userEvent.setup()
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     await user.click( screen.getByRole( 'combobox', { name: 'Model' } ) )
     await user.click( screen.getByRole( 'option', { name: 'Claude Opus 5.5' } ) )
@@ -193,7 +193,7 @@ describe( 'HomePage, summary options', () => {
 
   it( 'sends the profile and the model when both were changed', async () => {
     const user = userEvent.setup()
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     await user.click( screen.getByRole( 'combobox', { name: 'Prompt profile' } ) )
     await user.click( screen.getByRole( 'option', { name: 'Coding' } ) )
@@ -210,7 +210,7 @@ describe( 'HomePage, summary options', () => {
 
   it( 'sends nothing for a choice that was changed back to the default', async () => {
     const user = userEvent.setup()
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     await user.click( screen.getByRole( 'combobox', { name: 'Model' } ) )
     await user.click( screen.getByRole( 'option', { name: 'Claude Opus 5.5' } ) )
@@ -230,7 +230,7 @@ describe( 'HomePage, summary options', () => {
     vi.mocked( usePromptProfiles ).mockReturnValue(
       profilesState( { profiles: [], isLoading: true } ),
     )
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     expect( screen.getByRole( 'combobox', { name: 'Model' } ) )
       .toHaveAttribute( 'aria-disabled', 'true' )
@@ -241,7 +241,7 @@ describe( 'HomePage, summary options', () => {
   } )
 } )
 
-describe( 'HomePage, articles', () => {
+describe( 'TranscriberHome, articles', () => {
   const articleUrl = 'https://example.com/posts/ownership'
   const pasted = 'Pasted words go here. '.repeat( 15 )
 
@@ -251,18 +251,20 @@ describe( 'HomePage, articles', () => {
 
   it( 'submits an article URL without a source_type and goes to the job', async () => {
     const user = userEvent.setup()
-    const { location } = renderWithClient( <HomePage /> )
+    const { location } = renderWithClient( <TranscriberHome /> )
 
     await user.type( screen.getByRole( 'textbox', { name: 'URL' } ), articleUrl )
     await user.click( screen.getByRole( 'button', { name: 'Summarize' } ) )
 
     expect( mockedCreateJob ).toHaveBeenCalledExactlyOnceWith( { url: articleUrl } )
-    await vi.waitFor( () => expect( location().pathname ).toBe( `/jobs/${ newJobId }` ) )
+    await vi.waitFor(
+      () => expect( location().pathname ).toBe( `/transcriber/jobs/${ newJobId }` ),
+    )
   } )
 
   it( 'sends the type override and pasted text together with a changed model', async () => {
     const user = userEvent.setup()
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     await user.type( screen.getByRole( 'textbox', { name: 'URL' } ), validUrl )
     await user.click( screen.getByRole( 'button', { name: 'Article' } ) )
@@ -284,7 +286,7 @@ describe( 'HomePage, articles', () => {
   it( 'shows a server error from an article submission', async () => {
     const user = userEvent.setup()
     mockedCreateJob.mockRejectedValue( new ApiError( 'Pasted text is only for articles', 400 ) )
-    renderWithClient( <HomePage /> )
+    renderWithClient( <TranscriberHome /> )
 
     await user.type( screen.getByRole( 'textbox', { name: 'URL' } ), articleUrl )
     await user.click( screen.getByRole( 'button', { name: 'Summarize' } ) )

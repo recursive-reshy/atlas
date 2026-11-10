@@ -4,9 +4,11 @@ import type { RouteObject } from 'react-router'
 import { App } from './App'
 import { AdminTab } from './features/admin/components/AdminTab'
 import { AuthGate } from './app/AuthGate'
-import { HomePage } from './features/jobs/components/HomePage'
+import { TranscriberHome } from './features/jobs/components/TranscriberHome'
 import { HomeRedirect } from './app/HomeRedirect'
+import { HomeScreen } from './features/home/components/HomeScreen'
 import { JobPage } from './features/jobs/components/JobPage'
+import { LegacyJobRedirect } from './app/LegacyJobRedirect'
 import { MeleteNote } from './features/melete/components/MeleteNote'
 import { MeleteReview } from './features/melete/components/MeleteReview'
 import { MeleteSubject } from './features/melete/components/MeleteSubject'
@@ -33,6 +35,7 @@ export const routes: RouteObject[] = [
           {
             element: <RequireModule module="themis" />,
             children: [
+              { index: true, element: <HomeScreen /> },
               { path: 'themis', element: <ThemisHome /> },
               { path: 'themis/goals/:goalId', element: <ThemisGoal /> },
             ],
@@ -40,10 +43,11 @@ export const routes: RouteObject[] = [
           {
             element: <RequireModule module="transcriber" />,
             children: [
-              { index: true, element: <HomePage /> },
-              { path: 'jobs/:id', element: <JobPage /> },
+              { path: 'transcriber', element: <TranscriberHome /> },
+              { path: 'transcriber/jobs/:id', element: <JobPage /> },
             ],
           },
+          { path: 'jobs/:id', element: <LegacyJobRedirect /> },
           {
             element: <RequireModule module="melete" />,
             children: [

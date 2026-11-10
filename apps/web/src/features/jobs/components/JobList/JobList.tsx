@@ -61,7 +61,7 @@ export function JobList( { jobs, now }: JobListProps ): ReactElement | null {
           { job.source_type === 'article'
             ? <ArticleIcon fontSize="small" titleAccess="Article" color="action" />
             : <OndemandVideoIcon fontSize="small" titleAccess="Video" color="action" /> }
-          <Link component={ RouterLink } to={ `/jobs/${ job.id }` } sx={ LINK_SX }>
+          <Link component={ RouterLink } to={ `/transcriber/jobs/${ job.id }` } sx={ LINK_SX }>
             { job.title ?? job.url }
           </Link>
           { job.feed_name !== null && <FeedChip name={ job.feed_name } /> }

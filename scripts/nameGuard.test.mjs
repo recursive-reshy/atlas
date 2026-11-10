@@ -56,7 +56,7 @@ const MODULE_TAG_FOLDER = new Set( [
   'apps/web/src/app/AppShell/AppShell.test.tsx',
   'apps/web/src/features/jobs/components/FilenamePreview/FilenamePreview.test.tsx',
   'apps/web/src/features/vault/components/FolderPicker/FolderPicker.test.tsx',
-  'apps/web/src/features/jobs/components/HomePage/HomePage.test.tsx',
+  'apps/web/src/features/jobs/components/TranscriberHome/TranscriberHome.test.tsx',
   'apps/web/src/features/jobs/components/JobPage/JobPage.regenerate.test.tsx',
   'apps/web/src/features/jobs/components/JobPage/JobPage.test.tsx',
   'apps/web/src/features/melete/components/LearningRootSetup/LearningRootSetup.test.tsx',

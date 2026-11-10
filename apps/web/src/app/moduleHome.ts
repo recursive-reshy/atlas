@@ -1,10 +1,11 @@
 // Shared
 import type { ModuleId } from '@atlas/shared'
 
-// In drawer order: the first one a user has is where they land.
+// In drawer order: the first one a user has is where they land. Themis lands on Home, which is
+// made of cards from the modules (ADR 0109).
 const MODULE_HOMES: Record< ModuleId, string > = {
-  themis: '/themis',
-  transcriber: '/',
+  themis: '/',
+  transcriber: '/transcriber',
   melete: '/melete',
 }
 

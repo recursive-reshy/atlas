@@ -19,7 +19,7 @@ const newNotes = ( dir: string ): string[] => readdirSync( dir, { recursive: tru
     && !file.startsWith( 'Learning/' ) )
 
 test( 'an article is summarized, linked, reviewed and saved to the vault', async ( { page } ) => {
-  await page.goto( '/' )
+  await page.goto( '/transcriber' )
   await page.getByLabel( 'URL' ).fill( 'http://fakes:4000/article' )
   await page.getByRole( 'button', { name: 'Summarize' } ).click()
 

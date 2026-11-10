@@ -29,11 +29,11 @@ export function JobPage(): ReactElement {
   const paste = useSubmitPastedText( id ?? '' )
 
   if( !parsedId.success ) {
-    return <Navigate to="/" replace />
+    return <Navigate to="/transcriber" replace />
   }
 
   const handleStartOver = (): void => {
-    void navigate( '/' )
+    void navigate( '/transcriber' )
   }
 
   const handleRetry = async ( { url, source_type }: Job ): Promise< void > => {
@@ -43,7 +43,7 @@ export function JobPage(): ReactElement {
       const isOverride = detectSourceType( url ) !== source_type
       const newJobId = await createJob( isOverride ? { url, source_type } : { url } )
 
-      void navigate( `/jobs/${ newJobId }` )
+      void navigate( `/transcriber/jobs/${ newJobId }` )
     } catch( caught ) {
       setSubmitError( caught instanceof Error ? caught.message : 'Unexpected error' )
     }
@@ -79,7 +79,7 @@ export function JobPage(): ReactElement {
         ? (
           <ReviewScreen
             job={ job }
-            onSaved={ ( savedPath ) => void navigate( '/', { state: { savedPath } } ) }
+            onSaved={ ( savedPath ) => void navigate( '/transcriber', { state: { savedPath } } ) }
             onDiscarded={ handleStartOver }
           />
         )
