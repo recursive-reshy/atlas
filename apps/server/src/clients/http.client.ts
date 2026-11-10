@@ -1,5 +1,11 @@
+// Config
+import { config } from '../config.js'
+// Errors
+import { ValidationError } from '../errors.js'
 // Version
 import { appVersion } from '../version.js'
+// Clients
+import { assertPublicUrl } from './addressGuard.js'
 
 const MAX_REDIRECTS = 5
 const REDIRECT_STATUSES = [ 301, 302, 303, 307, 308 ]
@@ -142,6 +148,10 @@ export const fetchResource = async (
           : new RedirectError( 'The site redirected to an address that is not http or https' )
       }
 
+      if( !config.fetchAllowPrivate ) {
+        await assertPublicUrl( current )
+      }
+
       const response = await fetch( current, {
         headers,
         redirect: 'manual',
@@ -195,8 +205,9 @@ export const fetchResource = async (
       }
     }
   } catch( error ) {
-    if( error instanceof UnreachableError || error instanceof HttpStatusError
-      || error instanceof TooLargeError || error instanceof RedirectError ) {
+    if( error instanceof ValidationError || error instanceof UnreachableError
+      || error instanceof HttpStatusError || error instanceof TooLargeError
+      || error instanceof RedirectError ) {
       throw error
     }
 

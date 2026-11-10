@@ -124,6 +124,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0093](decisions/0093-resource-suggestions-without-search.md) | Resource suggestions from Claude's own knowledge, with search queries instead of links | Accepted |
 | [0094](decisions/0094-note-concepts-carry-user-id.md) | `melete_note_concepts` carries a `user_id`, so the schema guard needs no exception | Accepted |
 | [0095](decisions/0095-themis-goals-list-route.md) | `GET /api/themis/goals` lists every goal, so achieved and dropped goals stay reachable | Accepted |
+| [0096](decisions/0096-address-guard-for-fetched-urls.md) | Fetched URLs are refused when they resolve to a private address | Accepted |
 
 ## Template for new ADRs
 

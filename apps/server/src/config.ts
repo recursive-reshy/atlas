@@ -150,6 +150,7 @@ const EnvSchema = z
     APP_ORIGINS: originsSchema,
     SESSION_DAYS: z.preprocess( emptyAsUnset, sessionDaysSchema ),
     E2E_TEST_SIGNIN: z.preprocess( emptyAsUnset, z.enum( [ '1' ] ).optional() ),
+    FETCH_ALLOW_PRIVATE: z.preprocess( emptyAsUnset, z.enum( [ '1' ] ).optional() ),
     VAULTS_PATH: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( '/vaults' ) ),
     GOOGLE_CLIENT_ID: z.string().min( 1 ),
     GOOGLE_CLIENT_SECRET: z.string().min( 1 ),
@@ -185,6 +186,8 @@ const EnvSchema = z
     sessionDays: env.SESSION_DAYS,
     // Mounts the test-only sign-in route (TRD §11.4); never set outside the e2e stack
     e2eTestSignin: env.E2E_TEST_SIGNIN === '1',
+    // Turns the address guard on fetched URLs off (ADR 0096); tests and the e2e stack only
+    fetchAllowPrivate: env.FETCH_ALLOW_PRIVATE === '1',
     defaultNoteFolder: env.DEFAULT_NOTE_FOLDER,
     summaryTimeoutMs: env.SUMMARY_TIMEOUT_MS,
     reviewTtlHours: env.REVIEW_TTL_HOURS,
@@ -230,9 +233,18 @@ export const assertTestSigninAllowed = ( env: NodeJS.ProcessEnv ): void => {
   }
 }
 
+export const assertFetchAllowPrivateAllowed = ( env: NodeJS.ProcessEnv ): void => {
+  const on = env.FETCH_ALLOW_PRIVATE !== undefined && env.FETCH_ALLOW_PRIVATE !== ''
+
+  if( on && env.NODE_ENV !== 'test' ) {
+    throw new Error( 'FETCH_ALLOW_PRIVATE is only allowed with NODE_ENV=test' )
+  }
+}
+
 const loadConfigOrExit = ( env: NodeJS.ProcessEnv ): Config => {
   try {
     assertTestSigninAllowed( env )
+    assertFetchAllowPrivateAllowed( env )
 
     return loadConfig( env )
   } catch( error ) {
