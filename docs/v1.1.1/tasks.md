@@ -52,7 +52,7 @@ A hardening and tidy-up release: no new features. Built from `prd.md` and `trd.m
 ---
 
 ## Checkpoint C: Web restructure (behaviour-neutral)
-**Plan:** ⬜ `plans/checkpoint-c.md`
+**Plan:** ✅ [`plans/checkpoint-c.md`](plans/checkpoint-c.md)
 
 Target layout (TRD §3): `src/app/` (shell, gate, routing helpers), `src/lib/` (formatters, `request`, `apiError`, `queryKeys` base), `src/features/<feature>/` (components, hooks, api and fixtures of one feature; each component keeps its `<Name>/` folder with `index.ts`), `src/test-support/` (render helpers and setup only), `src/test/` (the `public/` asset tests). One commit per feature so each is reviewable. Import paths change; nothing else does.
 
