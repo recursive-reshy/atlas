@@ -6,12 +6,12 @@ import pytest
 from pydantic import BaseModel, ValidationError
 
 from atlas_agent.contract.link import (
+    AgentUsage,
     InstructionsResponse,
     LinkNote,
     LinkRequest,
     LinkResponse,
-    LinkSuggestion,
-    LinkUsage
+    LinkSuggestion
 )
 
 EXAMPLES_PATH = Path( __file__ ).parents[ 2 ] / "schema" / "examples"
@@ -20,7 +20,7 @@ MODELS: dict[ str, type[ BaseModel ] ] = {
     "LinkNote": LinkNote,
     "LinkRequest": LinkRequest,
     "LinkSuggestion": LinkSuggestion,
-    "LinkUsage": LinkUsage,
+    "AgentUsage": AgentUsage,
     "LinkResponse": LinkResponse,
     "InstructionsResponse": InstructionsResponse
 }

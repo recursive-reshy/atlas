@@ -1,16 +1,19 @@
+import json
 from typing import Any
 
 import pytest
 from pydantic import ValidationError
 
 from atlas_agent.contract.link import (
+    AgentUsage,
+    FailedLinkResponse,
     InstructionsResponse,
+    LinkedResponse,
     LinkNote,
     LinkOutcome,
     LinkRequest,
     LinkResponse,
     LinkSuggestion,
-    LinkUsage,
     SuggestionKind
 )
 
@@ -151,9 +154,9 @@ class TestLinkSuggestion:
         with pytest.raises( ValidationError ):
             LinkSuggestion.model_validate( suggestion )
 
-class TestLinkUsage:
+class TestAgentUsage:
     def test_accepts_all_six_counts( self ) -> None:
-        assert LinkUsage.model_validate( make_usage() ).turns == 2
+        assert AgentUsage.model_validate( make_usage() ).turns == 2
 
     @pytest.mark.parametrize( "field", list( make_usage() ) )
     def test_requires_every_count( self, field: str ) -> None:
@@ -161,21 +164,25 @@ class TestLinkUsage:
         del usage[ field ]
 
         with pytest.raises( ValidationError ):
-            LinkUsage.model_validate( usage )
+            AgentUsage.model_validate( usage )
 
 class TestLinkResponse:
     def test_accepts_linked_with_suggestions( self ) -> None:
-        response = LinkResponse.model_validate( make_response() )
+        response = LinkResponse.model_validate( make_response() ).root
 
+        assert isinstance( response, LinkedResponse )
         assert response.outcome == LinkOutcome.LINKED
         assert len( response.suggestions ) == 1
 
     def test_accepts_linked_with_no_suggestions( self ) -> None:
-        assert LinkResponse.model_validate( make_response( suggestions = [] ) ).suggestions == []
+        assert LinkResponse.model_validate( make_response( suggestions = [] ) ).root.suggestions == []
 
     def test_accepts_failed_with_a_reason_and_no_suggestions( self ) -> None:
-        response = LinkResponse.model_validate( make_response( outcome = "failed", reason = "Timed out after 90 s", suggestions = [] ) )
+        response = LinkResponse.model_validate(
+            make_response( outcome = "failed", reason = "Timed out after 90 s", suggestions = [] )
+        ).root
 
+        assert isinstance( response, FailedLinkResponse )
         assert response.reason == "Timed out after 90 s"
 
     def test_rejects_failed_without_a_reason( self ) -> None:
@@ -201,6 +208,12 @@ class TestLinkResponse:
 
         with pytest.raises( ValidationError ):
             LinkResponse.model_validate( response )
+
+    def test_a_linked_response_still_serialises_reason_as_null( self ) -> None:
+        response = LinkedResponse.model_validate( make_response() )
+
+        assert json.loads( response.model_dump_json() )[ "reason" ] is None
+        assert list( json.loads( response.model_dump_json() ) ) == [ "outcome", "reason", "suggestions", "usage" ]
 
 class TestInstructionsResponse:
     def test_round_trips( self ) -> None:

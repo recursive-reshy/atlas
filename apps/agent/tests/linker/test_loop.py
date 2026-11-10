@@ -275,7 +275,7 @@ async def test_every_response_is_a_valid_link_response( settings: Settings ) -> 
 
     response = await run_linker( make_request(), settings, claude )
 
-    assert LinkResponse.model_validate( json.loads( response.model_dump_json() ) ) == response
+    assert LinkResponse.model_validate( json.loads( response.model_dump_json() ) ).root == response
 
 async def test_computes_kinds_and_rewrites_targets_against_the_vault( settings: Settings ) -> None:
     claude = ScriptedClaude(

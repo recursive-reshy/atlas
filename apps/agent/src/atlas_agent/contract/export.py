@@ -6,12 +6,14 @@ from pydantic import BaseModel
 from pydantic.json_schema import models_json_schema
 
 from atlas_agent.contract.link import (
+    AgentUsage,
+    FailedLinkResponse,
     InstructionsResponse,
+    LinkedResponse,
     LinkNote,
     LinkRequest,
     LinkResponse,
-    LinkSuggestion,
-    LinkUsage
+    LinkSuggestion
 )
 
 SCHEMA_PATH = Path( __file__ ).parents[ 3 ] / "schema" / "link_contract.json"
@@ -20,7 +22,9 @@ def build_schema() -> str:
     request_models: list[ type[ BaseModel ] ] = [ LinkNote, LinkRequest ]
     response_models: list[ type[ BaseModel ] ] = [
         LinkSuggestion,
-        LinkUsage,
+        AgentUsage,
+        LinkedResponse,
+        FailedLinkResponse,
         LinkResponse,
         InstructionsResponse
     ]

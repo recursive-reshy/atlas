@@ -16,10 +16,11 @@ from atlas_agent.claude import (
 )
 from atlas_agent.config import Settings
 from atlas_agent.contract.link import (
+    AgentUsage,
+    FailedLinkResponse,
+    LinkedResponse,
     LinkOutcome,
-    LinkRequest,
-    LinkResponse,
-    LinkUsage
+    LinkRequest
 )
 from atlas_agent.linker.checks import apply_checks
 from atlas_agent.linker.instructions import build_instructions
@@ -38,11 +39,11 @@ class RunState( BaseModel ):
     cache_read_input_tokens: int = 0
     cache_creation_input_tokens: int = 0
 
-def build_usage( state: RunState ) -> LinkUsage:
-    return LinkUsage( **state.model_dump() )
+def build_usage( state: RunState ) -> AgentUsage:
+    return AgentUsage( **state.model_dump() )
 
-def build_failure( reason: str, state: RunState ) -> LinkResponse:
-    return LinkResponse( outcome = LinkOutcome.FAILED, reason = reason, suggestions = [], usage = build_usage( state ) )
+def build_failure( reason: str, state: RunState ) -> FailedLinkResponse:
+    return FailedLinkResponse( outcome = LinkOutcome.FAILED, reason = reason, suggestions = [], usage = build_usage( state ) )
 
 def describe_validation_errors( error: ValidationError ) -> str:
     details = [ f"{'.'.join( str( part ) for part in item[ 'loc' ] )}: {item[ 'msg' ]}" for item in error.errors() ]
@@ -55,7 +56,7 @@ async def converse(
     claude: ClaudeClient,
     state: RunState,
     vault: Path
-) -> LinkResponse:
+) -> LinkedResponse | FailedLinkResponse:
     system_text = build_instructions( settings.max_suggestions )
 
     if request.guidance.strip():
@@ -150,7 +151,7 @@ async def converse(
                 settings
             )
 
-            return LinkResponse(
+            return LinkedResponse(
                 outcome = LinkOutcome.LINKED,
                 reason = None,
                 suggestions = suggestions,
@@ -174,7 +175,7 @@ async def converse(
 
         messages.append( Message( role = "user", content = [ *results ] ) )
 
-async def run_linker( request: LinkRequest, settings: Settings, claude: ClaudeClient ) -> LinkResponse:
+async def run_linker( request: LinkRequest, settings: Settings, claude: ClaudeClient ) -> LinkedResponse | FailedLinkResponse:
     vault = vault_for( settings, request.vault_dir )
     state = RunState()
 

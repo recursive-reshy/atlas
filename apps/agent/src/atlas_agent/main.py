@@ -13,11 +13,13 @@ from fastapi.responses import JSONResponse
 from atlas_agent.claude import AnthropicClaude, ClaudeClient
 from atlas_agent.config import Settings, load_settings
 from atlas_agent.contract.link import (
+    AgentUsage,
+    FailedLinkResponse,
     InstructionsResponse,
+    LinkedResponse,
     LinkOutcome,
     LinkRequest,
-    LinkResponse,
-    LinkUsage
+    LinkResponse
 )
 from atlas_agent.linker.instructions import build_instructions
 from atlas_agent.linker.loop import run_linker
@@ -63,7 +65,7 @@ def create_app( settings: Settings, claude: ClaudeClient ) -> FastAPI:
                 "status": response.status_code,
                 "duration_ms": round( duration )
             }
-            link_response: LinkResponse | None = getattr( request.state, "link_response", None )
+            link_response: LinkedResponse | FailedLinkResponse | None = getattr( request.state, "link_response", None )
 
             if link_response is not None:
                 usage = link_response.usage
@@ -100,7 +102,10 @@ def create_app( settings: Settings, claude: ClaudeClient ) -> FastAPI:
         return InstructionsResponse( instructions = build_instructions( settings.max_suggestions ) )
 
     @v1.post( "/link", response_model = LinkResponse )
-    async def create_links( link_request: LinkRequest, request: Request ) -> LinkResponse | JSONResponse:
+    async def create_links(
+        link_request: LinkRequest,
+        request: Request
+    ) -> LinkedResponse | FailedLinkResponse | JSONResponse:
         try:
             link_response = await run_linker( link_request, settings, claude )
         except UnknownVaultError:
@@ -124,11 +129,11 @@ def create_app( settings: Settings, claude: ClaudeClient ) -> FastAPI:
             plural = "" if len( errors ) == 1 else "s"
             reason = f"Invalid request: {len( errors )} error{plural}, first at {location}"
 
-        link_response = LinkResponse(
+        link_response = FailedLinkResponse(
             outcome = LinkOutcome.FAILED,
             reason = reason,
             suggestions = [],
-            usage = LinkUsage(
+            usage = AgentUsage(
                 input_tokens = 0,
                 output_tokens = 0,
                 cache_read_input_tokens = 0,

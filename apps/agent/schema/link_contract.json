@@ -1,5 +1,76 @@
 {
   "$defs": {
+    "AgentUsage": {
+      "properties": {
+        "cache_creation_input_tokens": {
+          "title": "Cache Creation Input Tokens",
+          "type": "integer"
+        },
+        "cache_read_input_tokens": {
+          "title": "Cache Read Input Tokens",
+          "type": "integer"
+        },
+        "input_tokens": {
+          "title": "Input Tokens",
+          "type": "integer"
+        },
+        "output_tokens": {
+          "title": "Output Tokens",
+          "type": "integer"
+        },
+        "tool_calls": {
+          "title": "Tool Calls",
+          "type": "integer"
+        },
+        "turns": {
+          "title": "Turns",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "input_tokens",
+        "output_tokens",
+        "cache_read_input_tokens",
+        "cache_creation_input_tokens",
+        "tool_calls",
+        "turns"
+      ],
+      "title": "AgentUsage",
+      "type": "object"
+    },
+    "FailedLinkResponse": {
+      "properties": {
+        "outcome": {
+          "const": "failed",
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "suggestions": {
+          "items": {
+            "$ref": "#/$defs/LinkSuggestion"
+          },
+          "maxItems": 0,
+          "title": "Suggestions",
+          "type": "array"
+        },
+        "usage": {
+          "$ref": "#/$defs/AgentUsage"
+        }
+      },
+      "required": [
+        "outcome",
+        "reason",
+        "suggestions",
+        "usage"
+      ],
+      "title": "FailedLinkResponse",
+      "type": "object"
+    },
     "InstructionsResponse": {
       "properties": {
         "instructions": {
@@ -56,14 +127,6 @@
       "title": "LinkNote",
       "type": "object"
     },
-    "LinkOutcome": {
-      "enum": [
-        "linked",
-        "failed"
-      ],
-      "title": "LinkOutcome",
-      "type": "string"
-    },
     "LinkRequest": {
       "properties": {
         "guidance": {
@@ -95,40 +158,22 @@
       "type": "object"
     },
     "LinkResponse": {
-      "properties": {
-        "outcome": {
-          "$ref": "#/$defs/LinkOutcome"
+      "discriminator": {
+        "mapping": {
+          "failed": "#/$defs/FailedLinkResponse",
+          "linked": "#/$defs/LinkedResponse"
         },
-        "reason": {
-          "anyOf": [
-            {
-              "type": "string"
-            },
-            {
-              "type": "null"
-            }
-          ],
-          "title": "Reason"
-        },
-        "suggestions": {
-          "items": {
-            "$ref": "#/$defs/LinkSuggestion"
-          },
-          "title": "Suggestions",
-          "type": "array"
-        },
-        "usage": {
-          "$ref": "#/$defs/LinkUsage"
-        }
+        "propertyName": "outcome"
       },
-      "required": [
-        "outcome",
-        "reason",
-        "suggestions",
-        "usage"
+      "oneOf": [
+        {
+          "$ref": "#/$defs/LinkedResponse"
+        },
+        {
+          "$ref": "#/$defs/FailedLinkResponse"
+        }
       ],
-      "title": "LinkResponse",
-      "type": "object"
+      "title": "LinkResponse"
     },
     "LinkSuggestion": {
       "properties": {
@@ -168,42 +213,35 @@
       "title": "LinkSuggestion",
       "type": "object"
     },
-    "LinkUsage": {
+    "LinkedResponse": {
       "properties": {
-        "cache_creation_input_tokens": {
-          "title": "Cache Creation Input Tokens",
-          "type": "integer"
+        "outcome": {
+          "const": "linked",
+          "title": "Outcome",
+          "type": "string"
         },
-        "cache_read_input_tokens": {
-          "title": "Cache Read Input Tokens",
-          "type": "integer"
+        "reason": {
+          "title": "Reason",
+          "type": "null"
         },
-        "input_tokens": {
-          "title": "Input Tokens",
-          "type": "integer"
+        "suggestions": {
+          "items": {
+            "$ref": "#/$defs/LinkSuggestion"
+          },
+          "title": "Suggestions",
+          "type": "array"
         },
-        "output_tokens": {
-          "title": "Output Tokens",
-          "type": "integer"
-        },
-        "tool_calls": {
-          "title": "Tool Calls",
-          "type": "integer"
-        },
-        "turns": {
-          "title": "Turns",
-          "type": "integer"
+        "usage": {
+          "$ref": "#/$defs/AgentUsage"
         }
       },
       "required": [
-        "input_tokens",
-        "output_tokens",
-        "cache_read_input_tokens",
-        "cache_creation_input_tokens",
-        "tool_calls",
-        "turns"
+        "outcome",
+        "reason",
+        "suggestions",
+        "usage"
       ],
-      "title": "LinkUsage",
+      "title": "LinkedResponse",
       "type": "object"
     },
     "SuggestionKind": {
