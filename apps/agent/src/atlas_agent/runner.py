@@ -86,6 +86,17 @@ def describe_validation_errors( error: ValidationError, noun: str ) -> str:
 
     return f"Invalid {noun} ({error.error_count()} errors): {'; '.join( details )}"
 
+# The newest user message is the only one marked, so earlier turns are read from the cache. The history
+# stays unmarked and the mark goes on a copy, which keeps every request at three breakpoints.
+def mark_newest_message( messages: list[ Message ] ) -> list[ Message ]:
+    newest = messages[ -1 ].model_copy( deep = True )
+    last_block = newest.content[ -1 ]
+
+    if isinstance( last_block, TextBlock | ToolResultBlock ):
+        last_block.cache_control = CacheControl()
+
+    return [ *messages[ : -1 ], newest ]
+
 async def converse[ SubmitT: BaseModel ](
     spec: AgentSpec[ SubmitT ],
     claude: ClaudeClient,
@@ -114,7 +125,7 @@ async def converse[ SubmitT: BaseModel ](
                     max_tokens = spec.limits.max_output_tokens,
                     system = [ SystemBlock( text = spec.system_text, cache_control = CacheControl() ) ],
                     tools = definitions,
-                    messages = messages
+                    messages = mark_newest_message( messages )
                 )
             )
         except ClaudeError as exception:

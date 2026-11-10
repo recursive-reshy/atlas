@@ -3,7 +3,7 @@ from typing import Any
 import pytest
 from pydantic import BaseModel, Field
 
-from atlas_agent.claude import ClaudeError, TextBlock, ToolDefinition, ToolResultBlock
+from atlas_agent.claude import CacheControl, ClaudeError, MessageReply, MessageRequest, TextBlock, ToolDefinition, ToolResultBlock
 from atlas_agent.contract.link import AgentUsage
 from atlas_agent.runner import AgentOutcome, AgentRun, AgentSpec, AgentTool, Limits, ToolResult, run_agent
 from tests.fakes import ScriptedClaude, text_reply, tool_reply
@@ -95,7 +95,7 @@ async def test_sends_the_spec_to_claude() -> None:
     assert request.tools[ -1 ].cache_control is not None
     assert request.tools[ 0 ].cache_control is None
     assert request.messages[ 0 ].role == "user"
-    assert request.messages[ 0 ].content == [ TextBlock( text = "What is 2 + 2?" ) ]
+    assert request.messages[ 0 ].content == [ TextBlock( text = "What is 2 + 2?", cache_control = CacheControl() ) ]
 
 async def test_a_tool_is_run_with_its_arguments_and_its_result_goes_back_to_claude() -> None:
     calls: list[ dict[ str, Any ] ] = []
@@ -167,7 +167,7 @@ async def test_a_reply_without_a_tool_call_gets_one_nudge() -> None:
 
     assert run.outcome == AgentOutcome.SUBMITTED
     assert nudge.role == "user"
-    assert nudge.content == [ TextBlock( text = "Finish by calling submit_answer." ) ]
+    assert nudge.content == [ TextBlock( text = "Finish by calling submit_answer.", cache_control = CacheControl() ) ]
 
 async def test_two_replies_without_a_tool_call_fail() -> None:
     claude = ScriptedClaude( [ text_reply( "Four." ), text_reply( "Still four." ) ] )
@@ -232,3 +232,55 @@ async def test_only_the_submit_is_acted_on_when_it_comes_with_other_tool_calls()
 
     assert run.outcome == AgentOutcome.SUBMITTED
     assert calls == []
+
+def message_breakpoints( request: MessageRequest ) -> list[ tuple[ int, int ] ]:
+    return [
+        ( message_index, block_index )
+        for message_index, message in enumerate( request.messages )
+        for block_index, block in enumerate( message.content )
+        if getattr( block, "cache_control", None ) is not None
+    ]
+
+def count_breakpoints( request: MessageRequest ) -> int:
+    system = sum( 1 for block in request.system if block.cache_control is not None )
+    tools = sum( 1 for tool in request.tools if tool.cache_control is not None )
+
+    return system + tools + len( message_breakpoints( request ) )
+
+async def test_the_newest_user_message_carries_the_only_message_breakpoint_on_every_turn() -> None:
+    claude = ScriptedClaude(
+        [ tool_reply( ( "echo", {} ) ), tool_reply( ( "echo", {} ), ( "echo", {} ) ), tool_reply( ( "echo", {} ) ), submit() ]
+    )
+
+    await run_agent( make_spec(), claude )
+
+    assert len( claude.requests ) == 4
+
+    for request in claude.requests:
+        newest = len( request.messages ) - 1
+
+        assert request.messages[ newest ].role == "user"
+        assert message_breakpoints( request ) == [ ( newest, len( request.messages[ newest ].content ) - 1 ) ]
+
+async def test_the_first_request_marks_the_first_message_and_later_ones_move_on() -> None:
+    claude = ScriptedClaude( [ tool_reply( ( "echo", {} ) ), submit() ] )
+
+    await run_agent( make_spec(), claude )
+
+    assert message_breakpoints( claude.requests[ 0 ] ) == [ ( 0, 0 ) ]
+    assert message_breakpoints( claude.requests[ 1 ] ) == [ ( 2, 0 ) ]
+
+async def test_a_request_never_has_more_than_four_breakpoints() -> None:
+    script: list[ MessageReply | ClaudeError ] = [ *[ tool_reply( ( "echo", {} ) ) ] * 4, submit() ]
+    claude = ScriptedClaude( script )
+
+    await run_agent( make_spec(), claude )
+
+    assert [ count_breakpoints( request ) for request in claude.requests ] == [ 3 ] * 5
+
+async def test_a_nudge_and_a_correction_are_marked_like_any_newest_user_message() -> None:
+    claude = ScriptedClaude( [ text_reply( "Four." ), tool_reply( ( "submit_answer", { "answer": "" } ) ), submit() ] )
+
+    await run_agent( make_spec(), claude )
+
+    assert [ message_breakpoints( request ) for request in claude.requests ] == [ [ ( 0, 0 ) ], [ ( 2, 0 ) ], [ ( 4, 0 ) ] ]
