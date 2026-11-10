@@ -447,6 +447,20 @@ describe( 'getToday', () => {
     expect( subjects.find( ( { name } ) => name === 'Rust' )?.seconds_this_week ).toBe( 50 )
   } )
 
+  it( 'counts calendar time against the subject in the same study week (ADR 0108)', async () => {
+    const typescript = subjectId( 'TypeScript' )
+
+    getDatabase().prepare( `INSERT INTO time_entries
+      ( id, user_id, source, subject_id, day, seconds, created_at, updated_at )
+      VALUES ( ?, ?, 'calendar', ?, '2026-10-21', 2400, 'now', 'now' )` )
+      .run( crypto.randomUUID(), userId, typescript )
+
+    const { subjects } = await getToday( userId, at( 2 ) )
+
+    expect( subjects.find( ( { name } ) => name === 'TypeScript' )?.seconds_this_week )
+      .toBe( 2400 )
+  } )
+
   it( 'takes the day\'s new questions already reviewed off what is remaining', async () => {
     const generics = noteId( GENERICS )
     await setSubjectEnrolled( userId, subjectId( 'TypeScript' ), true, at( 1 ) )

@@ -35,7 +35,7 @@ describe( 'GoalTimeByWeek', () => {
 
   it( 'says so when no week has any time', () => {
     render( <GoalTimeByWeek
-      weeks={ [ { week_start: '2026-11-02', measured: 0, logged: 0 } ] }
+      weeks={ [ { week_start: '2026-11-02', measured: 0, logged: 0, calendar: 0 } ] }
     /> )
 
     expect( screen.getByText( 'No time yet' ) ).toBeInTheDocument()

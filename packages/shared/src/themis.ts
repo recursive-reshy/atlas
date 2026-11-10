@@ -1,5 +1,7 @@
 // Packages
 import { z } from 'zod'
+// Local
+import { CalendarConnectionStatus } from './calendarStatus.js'
 
 // ADR 0092: areas hold goals; a goal has one outcome type, fixed when it is made
 
@@ -160,10 +162,12 @@ export const ThemisPeriod = z.enum( [ 'week', 'month', 'quarter' ] )
 export type ThemisPeriod = z.infer< typeof ThemisPeriod >
 
 // Seconds of study and logged time; `seconds` is their sum (ADR 0091)
+// `seconds` is the sum of the three sources (ADR 0108)
 export const ThemisTime = z.object( {
   seconds: z.int().min( 0 ),
   measured: z.int().min( 0 ),
   logged: z.int().min( 0 ),
+  calendar: z.int().min( 0 ),
 } )
 export type ThemisTime = z.infer< typeof ThemisTime >
 
@@ -227,6 +231,8 @@ export const GetThemisOverviewResponse = z.object( {
   period: ThemisPeriod,
   from: z.string(),
   to: z.string(),
+  calendar_drafts: z.int().min( 0 ),
+  calendar_status: CalendarConnectionStatus,
   checkins_due: z.array( ThemisCheckinDue ),
   areas: z.array( ThemisOverviewArea ),
 } )
@@ -236,6 +242,7 @@ export const ThemisWeekTime = z.object( {
   week_start: z.string(),
   measured: z.int().min( 0 ),
   logged: z.int().min( 0 ),
+  calendar: z.int().min( 0 ),
 } )
 export type ThemisWeekTime = z.infer< typeof ThemisWeekTime >
 

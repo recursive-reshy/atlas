@@ -1,5 +1,6 @@
 // Shared
 import type {
+  CalendarConnectionStatus,
   GetThemisGoalResponse,
   GetThemisOverviewResponse,
   SetGoalSubjectsBody,
@@ -29,6 +30,7 @@ import {
   setSubjectsForGoal,
 } from '../repositories/meleteSubjects.repository.js'
 import type { SubjectRecord } from '../repositories/meleteSubjects.repository.js'
+import { countEvents } from '../repositories/calendarEvents.repository.js'
 import { listAreas } from '../repositories/themisAreas.repository.js'
 import { listCheckins, listPeriodStarts } from '../repositories/themisCheckins.repository.js'
 import { listGoals } from '../repositories/themisGoals.repository.js'
@@ -37,6 +39,7 @@ import { listMetricUpdates } from '../repositories/themisMetrics.repository.js'
 import { goalTimeByDay, timeByGoal } from '../repositories/timeEntries.repository.js'
 import type { TimeSplit } from '../repositories/timeEntries.repository.js'
 // Services
+import { getCalendar } from './calendar.service.js'
 import { subjectConceptStats, subjectName } from './melete.service.js'
 import { requireGoal, toThemisGoal } from './themis.service.js'
 
@@ -46,11 +49,23 @@ const WEEKS = 12
 
 const NO_TIME: TimeSplit = { measured: 0, logged: 0, calendar: 0 }
 
-// The response shows measured and logged; calendar time is in `seconds` until the contract
-// gains its own field
+// Drafts count only while Calendar is connected; the status tells Home what to offer
+const calendarSummary = (
+  userId: string,
+): { calendar_drafts: number, calendar_status: CalendarConnectionStatus } => {
+  const { status } = getCalendar( userId )
+  const connected = status === 'connected' || status === 'broken'
+
+  return {
+    calendar_drafts: connected ? countEvents( userId, 'draft' ) : 0,
+    calendar_status: status,
+  }
+}
+
 const toTime = ( { measured, logged, calendar }: TimeSplit = NO_TIME ): ThemisTime => ( {
   measured,
   logged,
+  calendar,
   seconds: measured + logged + calendar,
 } )
 
@@ -137,10 +152,12 @@ export const getOverview = (
   return {
     period,
     ...range,
+    ...calendarSummary( userId ),
     checkins_due: checkinsDue,
     areas: areas.map( ( area ) => {
-      const inArea = goals.filter( ( goal ) => goal.area_id === area.id )
-      const cards = inArea.map( ( goal ) => cardFor( userId, goal, toTime( times[ goal.id ] ) ) )
+      const cards = goals
+        .filter( ( goal ) => goal.area_id === area.id )
+        .map( ( goal ) => cardFor( userId, goal, toTime( times[ goal.id ] ) ) )
 
       // An area's time is its active goals' time; achieved and dropped goals are left out
       return {
@@ -150,7 +167,7 @@ export const getOverview = (
         time: toTime( {
           measured: cards.reduce( ( sum, { time } ) => sum + time.measured, 0 ),
           logged: cards.reduce( ( sum, { time } ) => sum + time.logged, 0 ),
-          calendar: inArea.reduce( ( sum, { id } ) => sum + ( times[ id ]?.calendar ?? 0 ), 0 ),
+          calendar: cards.reduce( ( sum, { time } ) => sum + time.calendar, 0 ),
         } ),
         goals: cards,
       }
@@ -190,6 +207,7 @@ export const getGoalDetail = (
       week_start,
       measured: perWeek.get( week_start )?.measured ?? 0,
       logged: perWeek.get( week_start )?.logged ?? 0,
+      calendar: perWeek.get( week_start )?.calendar ?? 0,
     } ) ),
   }
 }

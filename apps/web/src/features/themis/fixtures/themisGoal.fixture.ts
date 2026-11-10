@@ -24,8 +24,8 @@ export const goalDetailFixture = (
     ],
     checkins: [],
     time_by_week: [
-      { week_start: '2026-10-26', measured: 0, logged: 1800 },
-      { week_start: '2026-11-02', measured: 3600, logged: 0 },
+      { week_start: '2026-10-26', measured: 0, logged: 1800, calendar: 0 },
+      { week_start: '2026-11-02', measured: 3600, logged: 0, calendar: 0 },
     ],
     ...overrides,
   }

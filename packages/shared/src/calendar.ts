@@ -1,17 +1,10 @@
 // Packages
 import { z } from 'zod'
 // Local
+import { CalendarConnectionStatus } from './calendarStatus.js'
 import { CalendarDate } from './themis.js'
 
-// Google Calendar as a reviewed time source (ADR 0108). `broken` is a connection Google no longer
-// accepts or whose token can't be read; imported time is kept.
-export const CalendarConnectionStatus = z.enum( [
-  'not_configured',
-  'not_connected',
-  'connected',
-  'broken',
-] )
-export type CalendarConnectionStatus = z.infer< typeof CalendarConnectionStatus >
+export { CalendarConnectionStatus } from './calendarStatus.js'
 
 export const GetCalendarResponse = z.object( {
   status: CalendarConnectionStatus,

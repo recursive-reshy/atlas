@@ -18,7 +18,14 @@ import {
 } from '@atlas/shared'
 // App
 import { app } from '../app.js'
+// Config
+import { config } from '../config.js'
 // Repositories
+import {
+  deleteCalendarAccount,
+  saveCalendarAccount,
+  setCalendarStatus,
+} from '../repositories/calendarAccount.repository.js'
 import { getDatabase } from '../repositories/database.js'
 import { listConcepts, replaceSyllabus } from '../repositories/meleteConcepts.repository.js'
 import { setNoteConcepts } from '../repositories/meleteNoteConcepts.repository.js'
@@ -26,6 +33,7 @@ import { updateSubject } from '../repositories/meleteSubjects.repository.js'
 import { insertCheckin } from '../repositories/themisCheckins.repository.js'
 import { insertMetricUpdate } from '../repositories/themisMetrics.repository.js'
 import {
+  insertCalendarEntry,
   insertLoggedEntry,
   insertMeasuredEntry,
 } from '../repositories/timeEntries.repository.js'
@@ -296,6 +304,7 @@ describe( 'GET /api/themis/goals/:id', () => {
       week_start: '2026-11-09',
       measured: 0,
       logged: 0,
+      calendar: 0,
     } )
   } )
 
@@ -468,8 +477,9 @@ describe( 'GET /api/themis/overview', () => {
 
     const { areas } = await overview()
 
-    expect( areas[ 0 ]?.time ).toEqual( { seconds: 0, measured: 0, logged: 0 } )
-    expect( areas[ 0 ]?.goals[ 0 ]?.time ).toEqual( { seconds: 0, measured: 0, logged: 0 } )
+    expect( areas[ 0 ]?.time ).toEqual( { seconds: 0, measured: 0, logged: 0, calendar: 0 } )
+    expect( areas[ 0 ]?.goals[ 0 ]?.time )
+      .toEqual( { seconds: 0, measured: 0, logged: 0, calendar: 0 } )
   } )
 
   it( 'shows each user only their own areas and goals', async () => {
@@ -537,8 +547,10 @@ describe( 'time in the overview and a goal\'s detail', () => {
 
     const { areas } = await overview()
 
-    expect( areas[ 0 ]?.goals[ 0 ]?.time ).toEqual( { seconds: 700, measured: 100, logged: 600 } )
-    expect( areas[ 1 ]?.goals[ 0 ]?.time ).toEqual( { seconds: 0, measured: 0, logged: 0 } )
+    expect( areas[ 0 ]?.goals[ 0 ]?.time )
+      .toEqual( { seconds: 700, measured: 100, logged: 600, calendar: 0 } )
+    expect( areas[ 1 ]?.goals[ 0 ]?.time )
+      .toEqual( { seconds: 0, measured: 0, logged: 0, calendar: 0 } )
   } )
 
   it( 'gives an area the sum of its active goals, and leaves unlinked subjects out', async () => {
@@ -553,8 +565,8 @@ describe( 'time in the overview and a goal\'s detail', () => {
 
     const { areas } = await overview()
 
-    expect( areas[ 0 ]?.time ).toEqual( { seconds: 400, measured: 100, logged: 300 } )
-    expect( areas[ 1 ]?.time ).toEqual( { seconds: 0, measured: 0, logged: 0 } )
+    expect( areas[ 0 ]?.time ).toEqual( { seconds: 400, measured: 100, logged: 300, calendar: 0 } )
+    expect( areas[ 1 ]?.time ).toEqual( { seconds: 0, measured: 0, logged: 0, calendar: 0 } )
   } )
 
   it( 'picks the entries of the week, month or quarter, edges included', async () => {
@@ -614,9 +626,147 @@ describe( 'time in the overview and a goal\'s detail', () => {
 
     expect( detail.time_by_week ).toHaveLength( 12 )
     expect( week( '2026-11-09' ) )
-      .toEqual( { week_start: '2026-11-09', measured: 100, logged: 400 } )
-    expect( week( '2026-11-02' ) ).toEqual( { week_start: '2026-11-02', measured: 0, logged: 60 } )
-    expect( week( '2026-08-24' ) ).toEqual( { week_start: '2026-08-24', measured: 0, logged: 5 } )
+      .toEqual( { week_start: '2026-11-09', measured: 100, logged: 400, calendar: 0 } )
+    expect( week( '2026-11-02' ) )
+      .toEqual( { week_start: '2026-11-02', measured: 0, logged: 60, calendar: 0 } )
+    expect( week( '2026-08-24' ) )
+      .toEqual( { week_start: '2026-08-24', measured: 0, logged: 5, calendar: 0 } )
     expect( detail.time_by_week.reduce( ( sum, { logged: value } ) => sum + value, 0 ) ).toBe( 465 )
+  } )
+} )
+
+describe( 'calendar time and drafts in the overview (ADR 0108)', () => {
+  const AT = '2026-11-10T09:00:00.000Z'
+  const original = config.calendar.redirectUri
+  const originalGoogle = config.gmail
+
+  afterEach( () => {
+    config.calendar.redirectUri = original
+    config.gmail = originalGoogle
+  } )
+
+  const calendarEntry = (
+    target: { subject_id: string } | { goal_id: string },
+    day: string,
+    seconds: number,
+  ): void => {
+    insertCalendarEntry( user.id, {
+      subject_id: null,
+      goal_id: null,
+      note: null,
+      started_at: `${ day }T01:00:00.000Z`,
+      ended_at: `${ day }T02:00:00.000Z`,
+      ...target,
+      day,
+      seconds,
+    } )
+  }
+
+  const addDraftRow = ( id: string ): void => {
+    getDatabase().prepare( `INSERT INTO calendar_events ( id, user_id, calendar_id, event_id,
+      title, started_at, ended_at, day, seconds, status, created_at, updated_at )
+      VALUES ( ?, ?, 'cal-1', ?, 'Gym', ?, ?, '2026-11-09', 3600, 'draft', ?, ? )` )
+      .run( id, user.id, id, AT, AT, AT, AT )
+  }
+
+  const overview = async (): Promise< GetThemisOverviewResponse > => GetThemisOverviewResponse
+    .parse( ( await agent.get( '/api/themis/overview' ) ).body )
+
+  it( 'gives a goal calendar time beside measured and logged; seconds is the sum', async () => {
+    const goal = await makeGoal( { outcome: 'learning' }, 'Fit' )
+    const subject = addSubject( user.id, 'Learning/Linked' )
+
+    await agent.put( `/api/themis/goals/${ goal }/subjects` ).send( { subject_ids: [ subject ] } )
+    insertMeasuredEntry( user.id, subject, {
+      started_at: '2026-11-10T01:00:00.000Z',
+      ended_at: '2026-11-10T01:00:00.000Z',
+      day: '2026-11-10',
+      seconds: 100,
+    } )
+    insertLoggedEntry( user.id, {
+      subject_id: null,
+      goal_id: goal,
+      note: null,
+      day: '2026-11-10',
+      seconds: 200,
+    } )
+    calendarEntry( { goal_id: goal }, '2026-11-10', 3000 )
+    calendarEntry( { subject_id: subject }, '2026-11-11', 400 )
+
+    const { areas } = await overview()
+
+    expect( areas[ 0 ]?.goals[ 0 ]?.time )
+      .toEqual( { seconds: 3700, measured: 100, logged: 200, calendar: 3400 } )
+  } )
+
+  it( 'adds calendar time to an area from its active goals only', async () => {
+    const active = await makeGoal( { outcome: 'learning' }, 'Active' )
+
+    calendarEntry( { goal_id: active }, '2026-11-10', 600 )
+
+    const { areas } = await overview()
+
+    expect( areas[ 0 ]?.time ).toEqual( { seconds: 600, measured: 0, logged: 0, calendar: 600 } )
+  } )
+
+  it( 'gives a goal\'s detail calendar time by week', async () => {
+    const goal = await makeGoal( { outcome: 'learning' }, 'Fit' )
+
+    calendarEntry( { goal_id: goal }, '2026-11-11', 900 )
+    calendarEntry( { goal_id: goal }, '2026-11-03', 120 )
+
+    const detail = GetThemisGoalResponse.parse(
+      ( await agent.get( `/api/themis/goals/${ goal }` ) ).body,
+    )
+    const week = ( start: string ) => detail.time_by_week
+      .find( ( { week_start: at } ) => at === start )
+
+    expect( week( '2026-11-09' ) )
+      .toEqual( { week_start: '2026-11-09', measured: 0, logged: 0, calendar: 900 } )
+    expect( week( '2026-11-02' )?.calendar ).toBe( 120 )
+  } )
+
+  it( 'counts the user\'s drafts and gives the connection status', async () => {
+    config.calendar.redirectUri = null
+
+    expect( await overview() )
+      .toMatchObject( { calendar_drafts: 0, calendar_status: 'not_configured' } )
+
+    config.calendar.redirectUri = 'https://atlas.example/api/calendar/oauth/callback'
+    config.gmail = { clientId: 'id', clientSecret: 's', encryptionKey: Buffer.alloc( 32 ) }
+    expect( ( await overview() ).calendar_status ).toBe( 'not_connected' )
+
+    saveCalendarAccount( user.id, {
+      email: 'a@b.c',
+      refresh_token_enc: 'x',
+      scope: 's',
+      status: 'connected',
+      error: null,
+      connected_at: AT,
+    } )
+    addDraftRow( 'd1' )
+    addDraftRow( 'd2' )
+    getDatabase().prepare( 'UPDATE calendar_events SET status = ? WHERE id = ?' )
+      .run( 'approved', 'd2' )
+
+    expect( await overview() ).toMatchObject( { calendar_drafts: 1, calendar_status: 'connected' } )
+
+    setCalendarStatus( user.id, 'broken', 'Revoked' )
+    expect( await overview() ).toMatchObject( { calendar_status: 'broken', calendar_drafts: 1 } )
+
+    deleteCalendarAccount( user.id )
+    expect( await overview() )
+      .toMatchObject( { calendar_status: 'not_connected', calendar_drafts: 0 } )
+  } )
+
+  it( 'has no drafts to show for another user\'s calendar', async () => {
+    const other = createTestUser()
+
+    getDatabase().prepare( `INSERT INTO calendar_events ( id, user_id, calendar_id, event_id,
+      title, started_at, ended_at, day, seconds, status, created_at, updated_at )
+      VALUES ( 'theirs', ?, 'cal-1', 'theirs', 'Gym', ?, ?, '2026-11-09', 3600, 'draft', ?, ? )` )
+      .run( other.id, AT, AT, AT, AT )
+
+    expect( ( await overview() ).calendar_drafts ).toBe( 0 )
   } )
 } )
