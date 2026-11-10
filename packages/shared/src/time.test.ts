@@ -30,6 +30,16 @@ describe( 'TimeEntry', () => {
     expect( TimeEntry.parse( { ...entry, source: 'measured' } ).source ).toBe( 'measured' )
   } )
 
+  it( 'accepts a calendar entry for a subject or a goal (ADR 0108)', () => {
+    expect( TimeEntry.parse( { ...entry, source: 'calendar' } ).source ).toBe( 'calendar' )
+    expect( TimeEntry.parse( {
+      ...entry,
+      source: 'calendar',
+      subject_id: null,
+      goal_id: '61000000-0000-4000-8000-000000000002',
+    } ).goal_id ).not.toBeNull()
+  } )
+
   it( 'refuses an unknown source and no seconds', () => {
     expect( TimeEntry.safeParse( { ...entry, source: 'guess' } ).success ).toBe( false )
     expect( TimeEntry.safeParse( { ...entry, seconds: 0 } ).success ).toBe( false )

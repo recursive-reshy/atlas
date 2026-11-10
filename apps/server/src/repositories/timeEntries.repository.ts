@@ -1,5 +1,7 @@
 // Packages
 import { z } from 'zod'
+// Shared
+import { TimeSource } from '@atlas/shared'
 // Time
 import type { OpenSession } from '../time/session.js'
 // Repositories
@@ -82,7 +84,7 @@ export const sumSubjectSeconds = (
 
 export const TimeEntryRecord = z.object( {
   id: z.string(),
-  source: z.enum( [ 'measured', 'logged' ] ),
+  source: TimeSource,
   subject_id: z.string().nullable(),
   goal_id: z.string().nullable(),
   day: z.string(),
@@ -169,11 +171,11 @@ export const listTimeEntries = (
     .all( userId, from, to ) )
 }
 
-export type TimeSplit = { measured: number, logged: number }
+export type TimeSplit = Record< TimeSource, number >
 
 const GoalSeconds = z.object( {
   goal_id: z.string(),
-  source: z.enum( [ 'measured', 'logged' ] ),
+  source: TimeSource,
   seconds: z.number(),
 } )
 
@@ -195,7 +197,7 @@ export const timeByGoal = (
   const totals: Record< string, TimeSplit > = {}
 
   for( const { goal_id: goalId, source, seconds } of rows ) {
-    const split = totals[ goalId ] ?? { measured: 0, logged: 0 }
+    const split = totals[ goalId ] ?? { measured: 0, logged: 0, calendar: 0 }
 
     split[ source ] = seconds
     totals[ goalId ] = split
@@ -206,7 +208,7 @@ export const timeByGoal = (
 
 const DaySeconds = z.object( {
   day: z.string(),
-  source: z.enum( [ 'measured', 'logged' ] ),
+  source: TimeSource,
   seconds: z.number(),
 } )
 export type DaySeconds = z.infer< typeof DaySeconds >

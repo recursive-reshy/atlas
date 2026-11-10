@@ -44,9 +44,14 @@ import { requireGoal, toThemisGoal } from './themis.service.js'
 const RECENT = 8
 const WEEKS = 12
 
-const toTime = ( split: TimeSplit = { measured: 0, logged: 0 } ): ThemisTime => ( {
-  ...split,
-  seconds: split.measured + split.logged,
+const NO_TIME: TimeSplit = { measured: 0, logged: 0, calendar: 0 }
+
+// The response shows measured and logged; calendar time is in `seconds` until the contract
+// gains its own field
+const toTime = ( { measured, logged, calendar }: TimeSplit = NO_TIME ): ThemisTime => ( {
+  measured,
+  logged,
+  seconds: measured + logged + calendar,
 } )
 
 const linked = ( subjects: SubjectRecord[] ): ThemisLinkedSubject[] => {
@@ -134,9 +139,8 @@ export const getOverview = (
     ...range,
     checkins_due: checkinsDue,
     areas: areas.map( ( area ) => {
-      const cards = goals
-        .filter( ( goal ) => goal.area_id === area.id )
-        .map( ( goal ) => cardFor( userId, goal, toTime( times[ goal.id ] ) ) )
+      const inArea = goals.filter( ( goal ) => goal.area_id === area.id )
+      const cards = inArea.map( ( goal ) => cardFor( userId, goal, toTime( times[ goal.id ] ) ) )
 
       // An area's time is its active goals' time; achieved and dropped goals are left out
       return {
@@ -146,6 +150,7 @@ export const getOverview = (
         time: toTime( {
           measured: cards.reduce( ( sum, { time } ) => sum + time.measured, 0 ),
           logged: cards.reduce( ( sum, { time } ) => sum + time.logged, 0 ),
+          calendar: inArea.reduce( ( sum, { id } ) => sum + ( times[ id ]?.calendar ?? 0 ), 0 ),
         } ),
         goals: cards,
       }
@@ -160,7 +165,7 @@ export const getGoalDetail = (
 ): GetThemisGoalResponse => {
   const { goal, outcome, subjects } = cardFor( userId, requireGoal( userId, id ), toTime() )
   const weeks = recentWeekStarts( studyDay( now ), WEEKS )
-  const perWeek = new Map( weeks.map( ( start ) => [ start, { measured: 0, logged: 0 } ] ) )
+  const perWeek = new Map( weeks.map( ( start ) => [ start, { ...NO_TIME } ] ) )
 
   for( const { day, source, seconds } of goalTimeByDay(
     userId,
@@ -183,7 +188,8 @@ export const getGoalDetail = (
     checkins: listCheckins( userId, id ),
     time_by_week: weeks.map( ( week_start ) => ( {
       week_start,
-      ...perWeek.get( week_start ) ?? { measured: 0, logged: 0 },
+      measured: perWeek.get( week_start )?.measured ?? 0,
+      logged: perWeek.get( week_start )?.logged ?? 0,
     } ) ),
   }
 }

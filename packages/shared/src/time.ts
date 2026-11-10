@@ -3,10 +3,11 @@ import { z } from 'zod'
 // Local
 import { CalendarDate } from './themis.js'
 
-// Time entries (ADR 0091): measured sessions are made by the server from saved answers; logged
-// entries are the person's own minutes against a subject or a goal.
+// Time entries (ADRs 0091, 0108): measured sessions are made by the server from saved answers;
+// logged entries are the person's own minutes against a subject or a goal; calendar entries are
+// approved calendar events.
 
-export const TimeSource = z.enum( [ 'measured', 'logged' ] )
+export const TimeSource = z.enum( [ 'measured', 'logged', 'calendar' ] )
 export type TimeSource = z.infer< typeof TimeSource >
 
 export const TimeEntry = z.object( {

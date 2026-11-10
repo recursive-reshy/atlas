@@ -41,6 +41,8 @@ export const migrationFiles = [
   '17-modules-registry',
   // 18 (ADR 0105): agent runs record their turns and tool calls
   '18-melete-runs-agent-columns',
+  // 19 (ADR 0108): calendar time source; time_entries rebuilt, calendar tables
+  '19-calendar-and-time',
 ]
 
 export const migrations: Migration[] = migrationFiles.map( readSql )
