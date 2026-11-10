@@ -92,7 +92,7 @@ Target layout (TRD §3): `src/app/` (shell, gate, routing helpers), `src/lib/` (
 ---
 
 ## Checkpoint E: Modules registry and release
-**Plan:** ⬜ `plans/checkpoint-e.md`
+**Plan:** ✅ [`plans/checkpoint-e.md`](plans/checkpoint-e.md)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
