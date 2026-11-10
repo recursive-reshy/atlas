@@ -14,9 +14,9 @@ import type { InboxItem } from '@atlas/shared'
 // App
 import { useDismissInbox } from '#src/features/inbox/hooks/useDismissInbox'
 import { useInbox } from '#src/features/inbox/hooks/useInbox'
-import { useModels } from '#src/hooks/useModels'
-import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
-import { useSettings } from '#src/hooks/useSettings'
+import { useModels } from '#src/features/settings/hooks/useModels'
+import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfiles'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { useSummarizeInbox } from '#src/features/inbox/hooks/useSummarizeInbox'
 import { feedItemFixture, ITEM_ID } from '#src/features/feeds/fixtures/feed.fixture'
 import { GMAIL_ITEM_ID, gmailItemFixture } from '#src/features/gmail/fixtures/gmail.fixture'
@@ -28,9 +28,9 @@ import { Inbox } from './Inbox'
 vi.mock( '#src/features/inbox/hooks/useInbox' )
 vi.mock( '#src/features/inbox/hooks/useDismissInbox' )
 vi.mock( '#src/features/inbox/hooks/useSummarizeInbox' )
-vi.mock( '#src/hooks/useSettings' )
-vi.mock( '#src/hooks/useModels' )
-vi.mock( '#src/hooks/usePromptProfiles' )
+vi.mock( '#src/features/settings/hooks/useSettings' )
+vi.mock( '#src/features/settings/hooks/useModels' )
+vi.mock( '#src/features/settings/hooks/usePromptProfiles' )
 
 const SECOND_ID = '5b6c7d8e-9f0a-4b1c-8d2e-3f4a5b6c7d8e'
 

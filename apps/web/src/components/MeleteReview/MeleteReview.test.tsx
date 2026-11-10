@@ -16,7 +16,7 @@ import {
   useRecordReview,
 } from '#src/hooks/useMeleteMutations'
 import { useNextReview } from '#src/hooks/useNextReview'
-import { useSettings } from '#src/hooks/useSettings'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 import {
   meleteReviewItemFixture,
   QUESTION_ID,
@@ -29,7 +29,7 @@ import { renderWithClient } from '#src/test-support/renderWithClient'
 import { MeleteReview } from './MeleteReview'
 
 vi.mock( '#src/hooks/useNextReview' )
-vi.mock( '#src/hooks/useSettings' )
+vi.mock( '#src/features/settings/hooks/useSettings' )
 vi.mock( '#src/hooks/useMeleteMutations' )
 
 const mocks = {

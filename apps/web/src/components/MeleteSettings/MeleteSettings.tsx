@@ -7,8 +7,8 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 import Typography from '@mui/material/Typography'
 // App
-import { useModels } from '#src/hooks/useModels'
-import { useSettings } from '#src/hooks/useSettings'
+import { useModels } from '#src/features/settings/hooks/useModels'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { NumberSettingField } from '#src/app/NumberSettingField'
 
 interface ModelSelectProps {

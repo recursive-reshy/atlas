@@ -8,7 +8,7 @@ import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // App
 import { useGmailSources } from '#src/features/gmail/hooks/useGmailSources'
-import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
+import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfiles'
 import { GmailSourceList } from '../GmailSourceList'
 import { GmailDialogs } from './GmailDialogs'
 import type { GmailDialog } from './GmailDialogs'

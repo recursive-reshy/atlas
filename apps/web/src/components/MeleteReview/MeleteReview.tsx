@@ -12,7 +12,7 @@ import type { MeleteReviewMode } from '@atlas/shared'
 // App
 import { useDropQuestion } from '#src/hooks/useMeleteMutations'
 import { useNextReview } from '#src/hooks/useNextReview'
-import { useSettings } from '#src/hooks/useSettings'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { ReviewCard } from '../ReviewCard'
 import { ReviewHeader } from '../ReviewHeader'
 

@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 // Packages
 import TextField from '@mui/material/TextField'
 // App
-import { useSettings } from '#src/hooks/useSettings'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 
 interface NumberSettingFieldProps {
   settingKey: 'melete_mastery_days' | 'melete_session_gap_minutes' | 'melete_final_card_seconds'

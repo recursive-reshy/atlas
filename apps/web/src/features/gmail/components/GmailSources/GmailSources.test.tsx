@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
+import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfiles'
 import { useGmailSources } from '#src/features/gmail/hooks/useGmailSources'
 import { profilesState } from '#src/test-support/hookStates'
 import { SOURCE_ID, gmailSourceFixture } from '#src/features/gmail/fixtures/gmail.fixture'
@@ -19,7 +19,7 @@ import { renderWithClient } from '#src/test-support/renderWithClient'
 import { GmailSources } from './GmailSources'
 
 vi.mock( '#src/features/gmail/hooks/useGmailSources' )
-vi.mock( '#src/hooks/usePromptProfiles' )
+vi.mock( '#src/features/settings/hooks/usePromptProfiles' )
 vi.mock( './GmailDialogs', () => ( {
   GmailDialogs: ( { dialog }: { dialog: { kind: string } | null } ) => (
     <p>{ `Dialog: ${ dialog?.kind ?? 'none' }` }</p>

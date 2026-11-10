@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 // Shared
 import type { PromptProfile } from '@atlas/shared'
 // App
-import { listProfiles } from '../api/prompts.api'
+import { listProfiles } from '../features/settings/api/prompts.api'
 import { promptKeys } from '../lib/queryKeys'
 
 const MELETE_PURPOSES: ReadonlySet< PromptProfile[ 'purpose' ] > = new Set( [

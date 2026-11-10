@@ -9,13 +9,13 @@ import {
   vi,
 } from 'vitest'
 // App
-import { useModels } from '#src/hooks/useModels'
+import { useModels } from '#src/features/settings/hooks/useModels'
 import { modelsState } from '#src/test-support/hookStates'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { BUSINESS_ID } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { SummaryInfo } from './SummaryInfo'
 
-vi.mock( '#src/hooks/useModels' )
+vi.mock( '#src/features/settings/hooks/useModels' )
 
 const usage = ( overrides: Record< string, unknown > = {} ) => ( {
   last_run: {

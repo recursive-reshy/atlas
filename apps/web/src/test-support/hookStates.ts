@@ -1,8 +1,8 @@
 // App
 import type { useMeleteProfiles } from '../hooks/useMeleteProfiles'
-import type { useModels } from '../hooks/useModels'
-import type { usePromptProfiles } from '../hooks/usePromptProfiles'
-import type { useSettings } from '../hooks/useSettings'
+import type { useModels } from '../features/settings/hooks/useModels'
+import type { usePromptProfiles } from '../features/settings/hooks/usePromptProfiles'
+import type { useSettings } from '../features/settings/hooks/useSettings'
 import { mutationStub } from './mutationStub'
 import {
   meleteProfilesFixture,

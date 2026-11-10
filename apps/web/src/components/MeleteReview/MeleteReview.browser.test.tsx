@@ -21,7 +21,7 @@ import {
   useRecordReview,
 } from '#src/hooks/useMeleteMutations'
 import { useNextReview } from '#src/hooks/useNextReview'
-import { useSettings } from '#src/hooks/useSettings'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { createQueryClient } from '#src/queryClient'
 import { settingsState } from '#src/test-support/hookStates'
 import { meleteQuestionFixture, meleteReviewItemFixture } from '#src/test-support/melete.fixture'
@@ -31,7 +31,7 @@ import { theme } from '#src/theme'
 import { MeleteReview } from './MeleteReview'
 
 vi.mock( '#src/hooks/useNextReview' )
-vi.mock( '#src/hooks/useSettings' )
+vi.mock( '#src/features/settings/hooks/useSettings' )
 vi.mock( '#src/hooks/useMeleteMutations' )
 
 const MIN_TAP_HEIGHT = 44

@@ -13,7 +13,7 @@ import Toolbar from '@mui/material/Toolbar'
 import { useLocation } from 'react-router'
 // App
 import { useMe } from '../useMe'
-import { useStatus } from '#src/hooks/useStatus'
+import { useStatus } from '#src/features/status/hooks/useStatus'
 import { ColorModeControl } from '../ColorModeControl'
 import { NavItem } from '../NavItem'
 import { SignOutItem } from '../SignOutItem'

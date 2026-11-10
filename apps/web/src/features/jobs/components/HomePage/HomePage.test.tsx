@@ -13,9 +13,9 @@ import {
 import { ApiError } from '#src/lib/apiError'
 import { createJob } from '#src/features/jobs/api/jobs.api'
 import { useJobs } from '#src/features/jobs/hooks/useJobs'
-import { useModels } from '#src/hooks/useModels'
-import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
-import { useSettings } from '#src/hooks/useSettings'
+import { useModels } from '#src/features/settings/hooks/useModels'
+import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfiles'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { jobFixture } from '#src/features/jobs/fixtures/job.fixture'
 import { modelsState, profilesState, settingsState } from '#src/test-support/hookStates'
 import { CODING_ID, settingsFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
@@ -24,9 +24,9 @@ import { HomePage } from './HomePage'
 
 vi.mock( '#src/features/jobs/api/jobs.api' )
 vi.mock( '#src/features/jobs/hooks/useJobs' )
-vi.mock( '#src/hooks/useSettings' )
-vi.mock( '#src/hooks/useModels' )
-vi.mock( '#src/hooks/usePromptProfiles' )
+vi.mock( '#src/features/settings/hooks/useSettings' )
+vi.mock( '#src/features/settings/hooks/useModels' )
+vi.mock( '#src/features/settings/hooks/usePromptProfiles' )
 vi.mock( '#src/features/inbox/components/Inbox', () => ( { Inbox: () => <p>inbox</p> } ) )
 
 const mockedCreateJob = vi.mocked( createJob )

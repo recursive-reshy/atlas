@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography'
 // Shared
 import type { LinkUsageSummary, SummaryUsage } from '@atlas/shared'
 // App
-import { useModels } from '#src/hooks/useModels'
+import { useModels } from '#src/features/settings/hooks/useModels'
 import { formatLinkInfo, formatSummaryInfo } from './formatSummaryInfo'
 import type { SummaryInfoText } from './formatSummaryInfo'
 

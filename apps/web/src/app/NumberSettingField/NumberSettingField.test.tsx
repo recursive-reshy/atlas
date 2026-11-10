@@ -10,14 +10,14 @@ import {
   vi,
 } from 'vitest'
 // App
-import { useSettings } from '#src/hooks/useSettings'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { settingsState } from '#src/test-support/hookStates'
 import { mutationStub } from '#src/test-support/mutationStub'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { settingsFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { NumberSettingField } from './NumberSettingField'
 
-vi.mock( '#src/hooks/useSettings' )
+vi.mock( '#src/features/settings/hooks/useSettings' )
 
 const mutate = vi.fn()
 

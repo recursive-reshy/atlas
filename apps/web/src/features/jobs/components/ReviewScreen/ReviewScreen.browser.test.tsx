@@ -18,9 +18,9 @@ import {
   listLinkSuggestions,
 } from '#src/features/jobs/api/linkSuggestions.api'
 import { useFolders } from '#src/features/vault/hooks/useFolders'
-import { useModels } from '#src/hooks/useModels'
-import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
-import { useSettings } from '#src/hooks/useSettings'
+import { useModels } from '#src/features/settings/hooks/useModels'
+import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfiles'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { useSource } from '#src/features/jobs/hooks/useSource'
 import { modelsState, profilesState, settingsState } from '#src/test-support/hookStates'
 import { jobFixture } from '#src/features/jobs/fixtures/job.fixture'
@@ -32,9 +32,9 @@ vi.mock( '#src/features/jobs/api/jobs.api' )
 vi.mock( '#src/features/jobs/api/linkSuggestions.api' )
 vi.mock( '#src/features/jobs/hooks/useSource' )
 vi.mock( '#src/features/vault/hooks/useFolders' )
-vi.mock( '#src/hooks/useModels' )
-vi.mock( '#src/hooks/useSettings' )
-vi.mock( '#src/hooks/usePromptProfiles' )
+vi.mock( '#src/features/settings/hooks/useModels' )
+vi.mock( '#src/features/settings/hooks/useSettings' )
+vi.mock( '#src/features/settings/hooks/usePromptProfiles' )
 
 // 60 paragraphs, so the pane scrolls
 const text = Array.from( { length: 60 }, ( _, index ) => {

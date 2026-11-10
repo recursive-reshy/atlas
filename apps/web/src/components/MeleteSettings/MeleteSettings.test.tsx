@@ -10,16 +10,16 @@ import {
   vi,
 } from 'vitest'
 // App
-import { useModels } from '#src/hooks/useModels'
-import { useSettings } from '#src/hooks/useSettings'
+import { useModels } from '#src/features/settings/hooks/useModels'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { modelsState, settingsState } from '#src/test-support/hookStates'
 import { mutationStub } from '#src/test-support/mutationStub'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { settingsFixture } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { MeleteSettings } from './MeleteSettings'
 
-vi.mock( '#src/hooks/useSettings' )
-vi.mock( '#src/hooks/useModels' )
+vi.mock( '#src/features/settings/hooks/useSettings' )
+vi.mock( '#src/features/settings/hooks/useModels' )
 
 const mutate = vi.fn()
 

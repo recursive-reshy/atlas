@@ -15,9 +15,9 @@ import TextField from '@mui/material/TextField'
 // Shared
 import type { SummarizeInboxBody } from '@atlas/shared'
 // App
-import { useModels } from '#src/hooks/useModels'
-import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
-import { useSettings } from '#src/hooks/useSettings'
+import { useModels } from '#src/features/settings/hooks/useModels'
+import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfiles'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 
 type Choices = Omit< SummarizeInboxBody, 'items' >
 

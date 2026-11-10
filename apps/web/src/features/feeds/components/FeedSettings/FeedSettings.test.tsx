@@ -13,8 +13,8 @@ import {
 import { previewFeed } from '#src/features/feeds/api/feeds.api'
 import { useFeeds } from '#src/features/feeds/hooks/useFeeds'
 import { useMe } from '#src/app/useMe'
-import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
-import { useSettings } from '#src/hooks/useSettings'
+import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfiles'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { FEED_ID, feedFixture } from '#src/features/feeds/fixtures/feed.fixture'
 import { profilesState, settingsState } from '#src/test-support/hookStates'
 import { meFixture, memberFixture } from '#src/test-support/me.fixture'
@@ -26,8 +26,8 @@ import { FeedSettings } from './FeedSettings'
 vi.mock( '#src/features/feeds/hooks/useFeeds' )
 vi.mock( '#src/app/useMe' )
 vi.mock( '#src/features/feeds/api/feeds.api' )
-vi.mock( '#src/hooks/useSettings' )
-vi.mock( '#src/hooks/usePromptProfiles' )
+vi.mock( '#src/features/settings/hooks/useSettings' )
+vi.mock( '#src/features/settings/hooks/usePromptProfiles' )
 
 const mockedFeeds = vi.mocked( useFeeds )
 const mockedSettings = vi.mocked( useSettings )

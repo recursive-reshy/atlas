@@ -12,7 +12,7 @@ import {
 // App
 import { NavDrawer } from './NavDrawer'
 import { ApiError } from '#src/lib/apiError'
-import { getStatus } from '#src/api/status.api'
+import { getStatus } from '#src/features/status/api/status.api'
 import { useMe } from '../useMe'
 import { useSignOut } from '../useSignOut'
 import { meFixture, memberFixture } from '#src/test-support/me.fixture'
@@ -22,9 +22,9 @@ import {
   failingRowFixture,
   statusFixture,
   statusRowFixture,
-} from '#src/test-support/status.fixture'
+} from '#src/features/status/fixtures/status.fixture'
 
-vi.mock( '#src/api/status.api' )
+vi.mock( '#src/features/status/api/status.api' )
 vi.mock( '../useMe' )
 vi.mock( '../useSignOut' )
 

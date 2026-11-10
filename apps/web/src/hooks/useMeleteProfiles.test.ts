@@ -7,7 +7,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { listProfiles } from '../api/prompts.api'
+import { listProfiles } from '../features/settings/api/prompts.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import {
   LINKER_ID,
@@ -18,7 +18,7 @@ import {
 import { promptKeys } from '../lib/queryKeys'
 import { useMeleteProfiles } from './useMeleteProfiles'
 
-vi.mock( '../api/prompts.api' )
+vi.mock( '../features/settings/api/prompts.api' )
 
 beforeEach( () => {
   vi.mocked( listProfiles ).mockReset()

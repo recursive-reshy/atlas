@@ -10,17 +10,17 @@ import {
   vi,
 } from 'vitest'
 // App
-import { useModels } from '#src/hooks/useModels'
-import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
-import { useSettings } from '#src/hooks/useSettings'
+import { useModels } from '#src/features/settings/hooks/useModels'
+import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfiles'
+import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { modelsState, profilesState, settingsState } from '#src/test-support/hookStates'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { CODING_ID } from '#src/features/jobs/fixtures/summarizer.fixture'
 import { SummarizeItemsDialog } from './SummarizeItemsDialog'
 
-vi.mock( '#src/hooks/useSettings' )
-vi.mock( '#src/hooks/useModels' )
-vi.mock( '#src/hooks/usePromptProfiles' )
+vi.mock( '#src/features/settings/hooks/useSettings' )
+vi.mock( '#src/features/settings/hooks/useModels' )
+vi.mock( '#src/features/settings/hooks/usePromptProfiles' )
 
 const setup = ( overrides: Partial< Parameters< typeof SummarizeItemsDialog >[ 0 ] > = {} ) => {
   const user = userEvent.setup()
