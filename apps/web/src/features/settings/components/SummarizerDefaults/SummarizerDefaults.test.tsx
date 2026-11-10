@@ -39,6 +39,7 @@ const settingsState = ( overrides: Partial< SettingsState > = {} ): SettingsStat
   settings: settingsFixture().settings,
   lockedInstructions: settingsFixture().locked_instructions,
   linkerLockedInstructions: settingsFixture().linker_locked_instructions,
+  syllabusLockedInstructions: settingsFixture().syllabus_locked_instructions,
   agentStatus: settingsFixture().agent_status,
   isLoading: false,
   error: null,

@@ -8,20 +8,21 @@ import {
   vi,
 } from 'vitest'
 // Clients
-import { draftSyllabus } from '../clients/claude.client.js'
+import {
+  AgentError,
+  AgentUnavailableError,
+  draftSyllabusWithAgent,
+} from '../clients/agent.client.js'
 // Errors
 import {
   ConflictError,
-  MeleteError,
   NotFoundError,
   ValidationError,
 } from '../errors.js'
 // Melete
-import {
-  DEFAULT_MELETE_SYLLABUS_GUIDANCE,
-  LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
-  buildMeleteSystemPrompt,
-} from '../melete/prompts.js'
+import { DEFAULT_MELETE_SYLLABUS_GUIDANCE } from '../melete/prompts.js'
+// Shared
+import type { SyllabusResponse } from '@atlas/shared'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
 import {
@@ -39,6 +40,7 @@ import {
   listSubjects,
   updateSubject,
 } from '../repositories/meleteSubjects.repository.js'
+import { insertVersion } from '../repositories/promptProfiles.repository.js'
 import { setSetting } from '../repositories/settings.repository.js'
 // Services
 import {
@@ -54,7 +56,7 @@ import { resolveMeletePrompt } from './prompts.service.js'
 // Logging
 import { logger } from '../logger.js'
 // Test support
-import { createTestUser, defaultTestAdmin } from '../test-support/auth.js'
+import { DEFAULT_TEST_VAULT, createTestUser, defaultTestAdmin } from '../test-support/auth.js'
 import { addQuestion, addSubject } from '../test-support/meleteData.fixture.js'
 import { MeleteVault, createMeleteVault } from '../test-support/meleteVault.fixture.js'
 
@@ -73,27 +75,38 @@ const configMock = vi.hoisted( () => ( {
 } ) )
 
 vi.mock( '../config.js', () => ( { config: configMock } ) )
-vi.mock( '../clients/claude.client.js' )
+vi.mock( '../clients/agent.client.js', async ( importOriginal ) => {
+  const original = await importOriginal< typeof import( '../clients/agent.client.js' ) >()
 
-const draft = vi.mocked( draftSyllabus )
+  return { ...original, draftSyllabusWithAgent: vi.fn() }
+} )
+
+const draft = vi.mocked( draftSyllabusWithAgent )
 
 const T0 = new Date( '2026-11-07T10:00:00.000Z' )
-const usage = { input_tokens: 2500, output_tokens: 900 }
+const usage = {
+  input_tokens: 2500,
+  output_tokens: 900,
+  cache_read_input_tokens: 4000,
+  cache_creation_input_tokens: 300,
+  tool_calls: 6,
+  turns: 4,
+}
 
-const reply = () => ( {
-  output: {
-    sections: [
-      {
-        name: 'Basics',
-        concepts: [
-          { name: 'Generics', description: 'Types with parameters.' },
-          { name: 'generics', description: 'A duplicate.' },
-          { name: 'Constraints', description: 'Limiting a parameter.' },
-        ],
-      },
-      { name: 'Advanced', concepts: [ { name: 'Conditional types', description: 'extends' } ] },
-    ],
-  },
+const reply = (): SyllabusResponse => ( {
+  outcome: 'drafted',
+  reason: null,
+  sections: [
+    {
+      name: 'Basics',
+      concepts: [
+        { name: 'Generics', description: 'Types with parameters.' },
+        { name: 'generics', description: 'A duplicate.' },
+        { name: 'Constraints', description: 'Limiting a parameter.' },
+      ],
+    },
+    { name: 'Advanced', concepts: [ { name: 'Conditional types', description: 'extends' } ] },
+  ],
   usage,
 } )
 
@@ -231,7 +244,7 @@ describe( 'draftForSubject', () => {
     expect( names() ).toEqual( [ [ 'Generics', 'Constraints' ], [ 'Conditional types' ] ] )
   } )
 
-  it( 'sends the subject, level, intent and the notes\' titles and openings', async () => {
+  it( 'asks the agent to read the subject folder, sending no note text itself', async () => {
     const id = await drafting()
 
     await draftForSubject( userId, id, T0 )
@@ -239,20 +252,35 @@ describe( 'draftForSubject', () => {
     const { version } = resolveMeletePrompt( userId, 'melete_syllabus' )
 
     expect( draft ).toHaveBeenCalledTimes( 1 )
-
-    const [ sent ] = draft.mock.calls[ 0 ]
-
-    expect( sent.model ).toBe( 'claude-sonnet-5-5' )
-    expect( sent.system ).toBe( buildMeleteSystemPrompt(
-      LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
-      DEFAULT_MELETE_SYLLABUS_GUIDANCE,
-    ) )
+    expect( draft.mock.calls[ 0 ][ 0 ] ).toEqual( {
+      vault_dir: DEFAULT_TEST_VAULT,
+      subject_folder: 'Learning/TypeScript',
+      name: 'TypeScript',
+      level: 'working',
+      intent: 'Pass the exam',
+      model: 'claude-sonnet-5-5',
+      guidance: DEFAULT_MELETE_SYLLABUS_GUIDANCE,
+    } )
     expect( version.guidance ).toBe( DEFAULT_MELETE_SYLLABUS_GUIDANCE )
-    expect( sent.user ).toContain( 'Subject: TypeScript\nTarget level: Working knowledge\n' )
-    expect( sent.user ).toContain( 'Intent: Pass the exam' )
-    expect( sent.user ).toContain( '- Generics in TypeScript: # Generics A generic type takes' )
-    expect( sent.user ).toContain( 'Conditional types' )
-    expect( sent.user ).not.toContain( 'title: Generics in TypeScript' )
+  } )
+
+  it( 'sends the edited guidance of the syllabus profile', async () => {
+    const id = await drafting()
+    const { profile } = resolveMeletePrompt( userId, 'melete_syllabus' )
+
+    insertVersion( userId, profile.id, 'Only the basics.', 'edit' )
+    await draftForSubject( userId, id, T0 )
+
+    expect( draft.mock.calls[ 0 ][ 0 ].guidance ).toBe( 'Only the basics.' )
+  } )
+
+  it( 'sends no intent when the subject has none', async () => {
+    const id = await drafting()
+
+    updateSubject( userId, id, { intent: null } )
+    await draftForSubject( userId, id, T0 )
+
+    expect( draft.mock.calls[ 0 ][ 0 ].intent ).toBeNull()
   } )
 
   it( 'uses the syllabus model setting', async () => {
@@ -264,28 +292,7 @@ describe( 'draftForSubject', () => {
     expect( draft.mock.calls[ 0 ][ 0 ].model ).toBe( 'claude-opus-5-5' )
   } )
 
-  it( 'leaves out notes missing from the vault', async () => {
-    const id = await drafting()
-
-    await vault.remove( 'Learning/TypeScript/Advanced/Conditional Types.md' )
-    await scanLearningRoot( userId, { force: true, now: T0 } )
-    await draftForSubject( userId, id, T0 )
-
-    expect( draft.mock.calls[ 0 ][ 0 ].user ).not.toContain( 'Conditional' )
-    expect( draft.mock.calls[ 0 ][ 0 ].user ).toContain( 'Generics in TypeScript' )
-  } )
-
-  it( 'skips a note it cannot read and still drafts', async () => {
-    const id = await drafting()
-
-    await vault.remove( 'Learning/TypeScript/Generics.md' )
-    await draftForSubject( userId, id, T0 )
-
-    expect( findSubject( userId, id )?.syllabus_status ).toBe( 'draft' )
-    expect( draft.mock.calls[ 0 ][ 0 ].user ).not.toContain( 'Generics in TypeScript' )
-  } )
-
-  it( 'records a syllabus run for the subject with model, prompt version and tokens', async () => {
+  it( 'records a syllabus run with model, prompt version, tokens, turns and calls', async () => {
     const id = await drafting()
 
     await draftForSubject( userId, id, T0 )
@@ -302,6 +309,8 @@ describe( 'draftForSubject', () => {
       prompt_version_id: version.id,
       input_tokens: 2500,
       output_tokens: 900,
+      turns: 4,
+      tool_calls: 6,
       outcome: 'succeeded',
       error: null,
       created_at: T0.toISOString(),
@@ -331,7 +340,7 @@ describe( 'draftForSubject', () => {
       .toEqual( { count: 0 } )
   } )
 
-  describe( 'when the call fails', () => {
+  describe( 'when the draft fails', () => {
     const keepOldSyllabus = ( id: string ): void => {
       const section = insertSection( userId, { subject_id: id, name: 'Kept', position: 0 } )
 
@@ -344,25 +353,25 @@ describe( 'draftForSubject', () => {
       } )
     }
 
-    it( 'stores the failure on the subject and keeps the old syllabus', async () => {
+    it( 'stores the agent\'s reason and keeps the old syllabus', async () => {
       const id = await drafting()
 
       keepOldSyllabus( id )
-      draft.mockRejectedValue( new MeleteError( 'Syllabus drafting was cut off', { usage } ) )
+      draft.mockResolvedValue( { outcome: 'failed', reason: 'Timed out after 180 s', usage } )
 
       await draftForSubject( userId, id, T0 )
 
       expect( findSubject( userId, id ) ).toMatchObject( {
         syllabus_status: 'failed',
-        syllabus_error: 'Syllabus drafting was cut off',
+        syllabus_error: 'Timed out after 180 s',
       } )
       expect( names() ).toEqual( [ [ 'Kept concept' ] ] )
     } )
 
-    it( 'records a failed run with the tokens that were billed', async () => {
+    it( 'records a failed run with the tokens, turns and tool calls that were billed', async () => {
       const id = await drafting()
 
-      draft.mockRejectedValue( new MeleteError( 'Declined', { usage } ) )
+      draft.mockResolvedValue( { outcome: 'failed', reason: 'Stopped after 16 turns', usage } )
       await draftForSubject( userId, id, T0 )
 
       const [ row ] = runs() as { id: number }[]
@@ -371,22 +380,57 @@ describe( 'draftForSubject', () => {
         kind: 'syllabus',
         subject_id: id,
         outcome: 'failed',
-        error: 'Declined',
+        error: 'Stopped after 16 turns',
         input_tokens: 2500,
         output_tokens: 900,
+        turns: 4,
+        tool_calls: 6,
       } )
     } )
 
-    it( 'records a failed run with no tokens when the call gave none', async () => {
+    it( 'says the agent service is unavailable when it cannot be reached', async () => {
       const id = await drafting()
 
-      draft.mockRejectedValue( new MeleteError( 'Rate limited' ) )
+      keepOldSyllabus( id )
+      draft.mockRejectedValue( new AgentUnavailableError( 'Agent service unreachable' ) )
+
+      await draftForSubject( userId, id, T0 )
+
+      expect( findSubject( userId, id ) ).toMatchObject( {
+        syllabus_status: 'failed',
+        syllabus_error: 'Agent service unavailable',
+      } )
+      expect( names() ).toEqual( [ [ 'Kept concept' ] ] )
+    } )
+
+    it( 'records a failed run with no tokens when the agent gave none', async () => {
+      const id = await drafting()
+
+      draft.mockRejectedValue( new AgentUnavailableError( 'Agent service timed out after 200 s' ) )
       await draftForSubject( userId, id, T0 )
 
       const [ row ] = runs() as { id: number }[]
 
-      expect( findRun( userId, row.id ) )
-        .toMatchObject( { outcome: 'failed', input_tokens: null, cost_usd: null } )
+      expect( findRun( userId, row.id ) ).toMatchObject( {
+        outcome: 'failed',
+        error: 'Agent service unavailable',
+        input_tokens: null,
+        cost_usd: null,
+        turns: null,
+        tool_calls: null,
+      } )
+    } )
+
+    it( 'says why for any other agent error, such as a rejected secret', async () => {
+      const id = await drafting()
+
+      draft.mockRejectedValue( new AgentError( 'Agent service rejected the secret' ) )
+      await draftForSubject( userId, id, T0 )
+
+      expect( findSubject( userId, id ) ).toMatchObject( {
+        syllabus_status: 'failed',
+        syllabus_error: 'Agent service rejected the secret',
+      } )
     } )
 
     it( 'stores an unexpected error the same way, and does not throw', async () => {
@@ -404,7 +448,9 @@ describe( 'draftForSubject', () => {
 
       keepOldSyllabus( id )
       draft.mockResolvedValue( {
-        output: { sections: [ { name: 'Empty', concepts: [ { name: ' ', description: '' } ] } ] },
+        outcome: 'drafted',
+        reason: null,
+        sections: [ { name: 'Empty', concepts: [ { name: ' ', description: '' } ] } ],
         usage,
       } )
 
@@ -417,7 +463,7 @@ describe( 'draftForSubject', () => {
       expect( names() ).toEqual( [ [ 'Kept concept' ] ] )
       expect( runs() ).toHaveLength( 1 )
       expect( findRun( userId, ( runs()[ 0 ] as { id: number } ).id ) )
-        .toMatchObject( { outcome: 'failed', input_tokens: 2500 } )
+        .toMatchObject( { outcome: 'failed', input_tokens: 2500, turns: 4, tool_calls: 6 } )
     } )
 
     it( 'does not log the subject, the intent or any concept name', async () => {
@@ -425,7 +471,7 @@ describe( 'draftForSubject', () => {
       const warn = vi.spyOn( logger, 'warn' ).mockImplementation( () => undefined )
       const info = vi.spyOn( logger, 'info' ).mockImplementation( () => undefined )
 
-      draft.mockRejectedValueOnce( new MeleteError( 'Declined', { usage } ) )
+      draft.mockResolvedValueOnce( { outcome: 'failed', reason: 'Timed out', usage } )
       await draftForSubject( userId, id, T0 )
       updateSubject( userId, id, { syllabus_status: 'drafting' } )
       await draftForSubject( userId, id, T0 )
@@ -467,29 +513,6 @@ describe( 'draftForSubject', () => {
 
     await expect( draftForSubject( userId, crypto.randomUUID(), T0 ) ).resolves.toBeUndefined()
     expect( draft ).not.toHaveBeenCalled()
-  } )
-
-  it( 'sends at most 60 notes', async () => {
-    await scanLearningRoot( userId, { force: true, now: T0 } )
-
-    for( let index = 0; index < 70; index++ ) {
-      const number = String( index ).padStart( 2, '0' )
-
-      await vault.write( `Learning/TypeScript/Extra ${ number }.md`, `# Extra ${ number }\n` )
-    }
-
-    await scanLearningRoot( userId, { force: true, now: T0 } )
-
-    const id = subjectId()
-
-    updateSubject( userId, id, { target_level: 'expert', syllabus_status: 'drafting' } )
-    await draftForSubject( userId, id, T0 )
-
-    const lines = draft.mock.calls[ 0 ][ 0 ].user.split( '\n' ).filter( ( line ) => {
-      return line.startsWith( '- ' )
-    } )
-
-    expect( lines ).toHaveLength( 60 )
   } )
 } )
 

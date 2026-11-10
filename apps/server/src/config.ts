@@ -18,6 +18,8 @@ const logLevelSchema = z
   .enum( [ 'fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent' ] )
   .default( 'info' )
 const agentTimeoutSchema = z.coerce.number().int().positive().default( 120_000 )
+// Above the agent's own 180 s, so the agent reports its own timeout (ADR 0105)
+const agentSyllabusTimeoutSchema = z.coerce.number().int().positive().default( 200_000 )
 
 const isTimeZone = ( value: string ): boolean => {
   try {
@@ -158,6 +160,7 @@ const EnvSchema = z
     AGENT_URL: z.preprocess( emptyAsUnset, z.url().default( 'http://localhost:8100' ) ),
     AGENT_SECRET: z.preprocess( emptyAsUnset, z.string().min( 32 ).optional() ),
     AGENT_TIMEOUT_MS: z.preprocess( emptyAsUnset, agentTimeoutSchema ),
+    AGENT_SYLLABUS_TIMEOUT_MS: z.preprocess( emptyAsUnset, agentSyllabusTimeoutSchema ),
     APP_TIME_ZONE: z.preprocess( emptyAsUnset, timeZoneSchema ),
     MELETE_DAY_START_HOUR: z.preprocess( emptyAsUnset, dayStartHourSchema ),
     MELETE_REQUEST_RETENTION: z.preprocess( emptyAsUnset, requestRetentionSchema ),
@@ -203,6 +206,7 @@ const EnvSchema = z
     agent: env.AGENT_SECRET === undefined
       ? null
       : { url: env.AGENT_URL, secret: env.AGENT_SECRET, timeoutMs: env.AGENT_TIMEOUT_MS },
+    agentSyllabusTimeoutMs: env.AGENT_SYLLABUS_TIMEOUT_MS,
     timeZone: env.APP_TIME_ZONE,
     melete: {
       requestRetention: env.MELETE_REQUEST_RETENTION,

@@ -15,6 +15,7 @@ export interface SettingsState {
   settings: Settings | null
   lockedInstructions: GetSettingsResponse[ 'locked_instructions' ] | null
   linkerLockedInstructions: string | null
+  syllabusLockedInstructions: string | null
   agentStatus: GetSettingsResponse[ 'agent_status' ] | null
   isLoading: boolean
   error: string | null
@@ -40,6 +41,7 @@ export function useSettings(): SettingsState {
     settings: data?.settings ?? null,
     lockedInstructions: data?.locked_instructions ?? null,
     linkerLockedInstructions: data?.linker_locked_instructions ?? null,
+    syllabusLockedInstructions: data?.syllabus_locked_instructions ?? null,
     agentStatus: data?.agent_status ?? null,
     isLoading: isPending,
     error: error === null ? null : error.message,

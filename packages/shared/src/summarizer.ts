@@ -98,11 +98,12 @@ export const GetSettingsResponse = z.object( {
     article: z.string(),
     melete_questions: z.string(),
     melete_grading: z.string(),
-    melete_syllabus: z.string(),
     melete_map: z.string(),
     melete_suggest: z.string(),
   } ),
   linker_locked_instructions: z.string().nullable(),
+  // The syllabus agent's text, read from the agent like the linker's (ADR 0105)
+  syllabus_locked_instructions: z.string().nullable(),
   agent_status: AgentStatus,
 } )
 export type GetSettingsResponse = z.infer< typeof GetSettingsResponse >

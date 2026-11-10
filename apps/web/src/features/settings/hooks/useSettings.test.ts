@@ -74,6 +74,24 @@ describe( 'useSettings', () => {
     } )
   } )
 
+  it( 'returns the syllabus locked instructions from the agent, or null', async () => {
+    mockedGet.mockResolvedValue( settingsFixture() )
+
+    const { result } = renderHookWithClient( () => useSettings() )
+
+    expect( result.current.syllabusLockedInstructions ).toBeNull()
+
+    await vi.waitFor( () => expect( result.current.isLoading ).toBe( false ) )
+    expect( result.current.syllabusLockedInstructions ).toBe( 'You draft a syllabus.' )
+
+    mockedGet.mockResolvedValue( { ...settingsFixture(), syllabus_locked_instructions: null } )
+
+    const down = renderHookWithClient( () => useSettings() )
+
+    await vi.waitFor( () => expect( down.result.current.isLoading ).toBe( false ) )
+    expect( down.result.current.syllabusLockedInstructions ).toBeNull()
+  } )
+
   it( 'reports a load error', async () => {
     mockedGet.mockRejectedValue( new ApiError( 'Could not reach the server', null ) )
     const { result } = renderHookWithClient( () => useSettings() )

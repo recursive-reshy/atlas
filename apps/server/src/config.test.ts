@@ -60,6 +60,7 @@ describe( 'loadConfig', () => {
       vaultSyncStatusDir: null,
       vaultCreateEnabled: true,
       agent: null,
+      agentSyllabusTimeoutMs: 200_000,
       timeZone: 'Asia/Singapore',
       melete: {
         requestRetention: 0.9,
@@ -126,6 +127,7 @@ describe( 'loadConfig', () => {
       vaultSyncStatusDir: '/sync-status',
       vaultCreateEnabled: false,
       agent: null,
+      agentSyllabusTimeoutMs: 200_000,
       timeZone: 'Europe/London',
       melete: {
         requestRetention: 0.85,
@@ -374,6 +376,28 @@ describe( 'loadConfig', () => {
         .toThrow( /AGENT_URL/ )
       expect( () => loadConfig( { ...base, AGENT_SECRET: secret, AGENT_TIMEOUT_MS: '0' } ) )
         .toThrow( /AGENT_TIMEOUT_MS/ )
+    } )
+  } )
+
+  describe( 'the syllabus timeout', () => {
+    it( 'is 200 seconds by default, with an empty value as unset', () => {
+      expect( loadConfig( base ).agentSyllabusTimeoutMs ).toBe( 200_000 )
+      expect( loadConfig( { ...base, AGENT_SYLLABUS_TIMEOUT_MS: '' } ).agentSyllabusTimeoutMs )
+        .toBe( 200_000 )
+    } )
+
+    it( 'comes from AGENT_SYLLABUS_TIMEOUT_MS', () => {
+      expect( loadConfig( { ...base, AGENT_SYLLABUS_TIMEOUT_MS: '90000' } ).agentSyllabusTimeoutMs )
+        .toBe( 90_000 )
+    } )
+
+    it.each( [ '0', '-5', 'soon', '1.5' ] )( 'rejects %s naming the variable', ( value ) => {
+      expect( () => loadConfig( { ...base, AGENT_SYLLABUS_TIMEOUT_MS: value } ) )
+        .toThrow( /AGENT_SYLLABUS_TIMEOUT_MS/ )
+    } )
+
+    it( 'does not need the agent to be configured', () => {
+      expect( loadConfig( base ).agent ).toBeNull()
     } )
   } )
 

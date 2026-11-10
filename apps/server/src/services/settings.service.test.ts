@@ -30,14 +30,18 @@ import {
   LOCKED_INSTRUCTIONS_MELETE_GRADING,
   LOCKED_INSTRUCTIONS_MELETE_MAP,
   LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
-  LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
 } from '../melete/prompts.js'
 import { isScanFresh, markScanned, resetScanClock } from '../melete/scanClock.js'
 // Summarizer
 import { LOCKED_INSTRUCTIONS_ARTICLE, LOCKED_INSTRUCTIONS_VIDEO } from '../summarizer/prompts.js'
 // Clients
-import { AgentError, checkHealth, fetchInstructions } from '../clients/agent.client.js'
+import {
+  AgentError,
+  checkHealth,
+  fetchInstructions,
+  fetchSyllabusInstructions,
+} from '../clients/agent.client.js'
 // Config
 import { config } from '../config.js'
 // Services
@@ -74,7 +78,12 @@ vi.mock( './models.service.js' )
 vi.mock( '../clients/agent.client.js', async ( importOriginal ) => {
   const original = await importOriginal< typeof import( '../clients/agent.client.js' ) >()
 
-  return { ...original, checkHealth: vi.fn(), fetchInstructions: vi.fn() }
+  return {
+    ...original,
+    checkHealth: vi.fn(),
+    fetchInstructions: vi.fn(),
+    fetchSyllabusInstructions: vi.fn(),
+  }
 } )
 
 const profileIdOf = ( seedKey: string ): string => findProfileBySeedKey( userId, seedKey )?.id ?? ''
@@ -83,6 +92,7 @@ const assertMock = vi.mocked( assertKnownModel )
 const listModelsMock = vi.mocked( listModels )
 const healthMock = vi.mocked( checkHealth )
 const instructionsMock = vi.mocked( fetchInstructions )
+const syllabusInstructionsMock = vi.mocked( fetchSyllabusInstructions )
 
 const modelList = ( ...ids: string[] ): Awaited< ReturnType< typeof listModels > > => ( {
   models: ids.map( ( id ) => ( { id, display_name: id } ) ),
@@ -396,17 +406,34 @@ describe( 'getSettingsResponse', () => {
       agent_status: 'not_configured',
       locked_instructions: getLockedInstructions(),
     } )
+    expect( response.syllabus_locked_instructions ).toBeNull()
     expect( healthMock ).not.toHaveBeenCalled()
     expect( instructionsMock ).not.toHaveBeenCalled()
+    expect( syllabusInstructionsMock ).not.toHaveBeenCalled()
   } )
 
   it( 'carries the agent\'s locked instructions when it is up', async () => {
     config.agent = agent
     healthMock.mockResolvedValue( 'ok' )
     instructionsMock.mockResolvedValue( 'You link notes.' )
+    syllabusInstructionsMock.mockResolvedValue( 'You draft a syllabus.' )
 
     expect( await getSettingsResponse( userId ) ).toMatchObject( {
       linker_locked_instructions: 'You link notes.',
+      syllabus_locked_instructions: 'You draft a syllabus.',
+      agent_status: 'ok',
+    } )
+  } )
+
+  it( 'keeps one text when the other cannot be fetched', async () => {
+    config.agent = agent
+    healthMock.mockResolvedValue( 'ok' )
+    instructionsMock.mockResolvedValue( 'You link notes.' )
+    syllabusInstructionsMock.mockRejectedValue( new AgentError( 'Agent service unreachable' ) )
+
+    expect( await getSettingsResponse( userId ) ).toMatchObject( {
+      linker_locked_instructions: 'You link notes.',
+      syllabus_locked_instructions: null,
       agent_status: 'ok',
     } )
   } )
@@ -420,28 +447,34 @@ describe( 'getSettingsResponse', () => {
       agent_status: 'unavailable',
     } )
     expect( instructionsMock ).not.toHaveBeenCalled()
+    expect( syllabusInstructionsMock ).not.toHaveBeenCalled()
   } )
 
   it( 'still answers, with no instructions, when fetching them fails', async () => {
     config.agent = agent
     healthMock.mockResolvedValue( 'ok' )
     instructionsMock.mockRejectedValue( new AgentError( 'Agent service rejected the secret' ) )
+    syllabusInstructionsMock.mockRejectedValue( new AgentError( 'Agent service rejected' ) )
 
     expect( await getSettingsResponse( userId ) ).toMatchObject( {
       linker_locked_instructions: null,
+      syllabus_locked_instructions: null,
       agent_status: 'ok',
     } )
   } )
 } )
 
 describe( 'getLockedInstructions', () => {
+  it( 'has no syllabus text: the agent serves it', () => {
+    expect( getLockedInstructions() ).not.toHaveProperty( 'melete_syllabus' )
+  } )
+
   it( 'returns the locked instructions for videos and articles', () => {
     expect( getLockedInstructions() ).toEqual( {
       video: LOCKED_INSTRUCTIONS_VIDEO,
       article: LOCKED_INSTRUCTIONS_ARTICLE,
       melete_questions: LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
       melete_grading: LOCKED_INSTRUCTIONS_MELETE_GRADING,
-      melete_syllabus: LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
       melete_map: LOCKED_INSTRUCTIONS_MELETE_MAP,
       melete_suggest: LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
     } )

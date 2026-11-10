@@ -15,7 +15,6 @@ import {
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS_APPROVED,
   LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
-  LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
   MELETE_GRADING_SEED_KEY,
   MELETE_MAP_SEED_KEY,
   MELETE_QUESTIONS_SEED_KEY,
@@ -166,7 +165,6 @@ describe( 'buildMeleteGradingUser', () => {
 
 describe( 'the concept-layer locked instructions (ADR 0089, 0093)', () => {
   const all = {
-    syllabus: LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
     map: LOCKED_INSTRUCTIONS_MELETE_MAP,
     suggest: LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
     questions: LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
@@ -177,28 +175,10 @@ describe( 'the concept-layer locked instructions (ADR 0089, 0093)', () => {
     const firstLines = Object.values( all ).map( ( text ) => text.split( '\n' )[ 0 ] )
 
     expect( new Set( firstLines ).size ).toBe( firstLines.length )
-    expect( LOCKED_INSTRUCTIONS_MELETE_SYLLABUS.split( '\n' )[ 0 ] )
-      .toBe( 'You draft a syllabus for a subject a learner is studying.' )
     expect( LOCKED_INSTRUCTIONS_MELETE_MAP.split( '\n' )[ 0 ] )
       .toBe( 'You map a study note and its questions onto the concepts of a syllabus.' )
     expect( LOCKED_INSTRUCTIONS_MELETE_SUGGEST.split( '\n' )[ 0 ] )
       .toBe( 'You suggest learning resources for one concept of a syllabus.' )
-  } )
-
-  it.each( [
-    'awareness',
-    '8–12',
-    'working knowledge',
-    '15–25',
-    'proficient',
-    '25–40',
-    'expert',
-    '40–60',
-    'at most 80',
-    'sections',
-    'one line',
-  ] )( 'the syllabus prompt says %s', ( phrase ) => {
-    expect( LOCKED_INSTRUCTIONS_MELETE_SYLLABUS.toLowerCase() ).toContain( phrase.toLowerCase() )
   } )
 
   it.each( [

@@ -228,11 +228,11 @@ describe( 'Settings', () => {
         article: 'article text',
         melete_questions: 'questions text',
         melete_grading: 'grading text',
-        melete_syllabus: 'syllabus text',
         melete_map: 'map text',
         melete_suggest: 'suggest text',
       },
       linker_locked_instructions: 'linker text',
+      syllabus_locked_instructions: 'syllabus text',
       agent_status: 'ok',
     }
 
@@ -240,6 +240,18 @@ describe( 'Settings', () => {
     expect( GetSettingsResponse.safeParse( { settings } ).success ).toBe( false )
     expect( GetSettingsResponse.safeParse( { ...body, linker_locked_instructions: null } ).success )
       .toBe( true )
+    expect( GetSettingsResponse.safeParse( {
+      ...body,
+      syllabus_locked_instructions: null,
+    } ).success ).toBe( true )
+    expect( GetSettingsResponse.parse( {
+      ...body,
+      locked_instructions: { ...body.locked_instructions, melete_syllabus: 'old text' },
+    } ).locked_instructions ).not.toHaveProperty( 'melete_syllabus' )
+    expect( GetSettingsResponse.safeParse( {
+      ...body,
+      syllabus_locked_instructions: undefined,
+    } ).success ).toBe( false )
     expect( GetSettingsResponse.safeParse( { ...body, agent_status: 'unavailable' } ).success )
       .toBe( true )
     expect( GetSettingsResponse.safeParse( { ...body, agent_status: 'not_configured' } ).success )
