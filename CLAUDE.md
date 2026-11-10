@@ -50,4 +50,4 @@ Not covered by the PRD, TRD, ADRs or the plan (a new dependency, endpoint, job s
 
 ## Before you stop
 
-A task is ticked only when tests, lint and typecheck pass for every folder it touched. From checkpoint F on, also run `pnpm e2e` at the end of a checkpoint (needs Docker). Report at the end of a checkpoint: what was built per task with hashes; test/lint/typecheck per folder and the e2e result; ADRs written and whether they change the TRD; anything deferred.
+A task is ticked only when `pnpm gate --only <folders it touched>` passes (tests, lint and typecheck for those folders; ADR 0106). At the end of a checkpoint run `pnpm gate` and `pnpm e2e` (needs Docker). `test:integration` is never part of the gate. Report at the end of a checkpoint: what was built per task with hashes; the gate's table and the e2e result; ADRs written and whether they change the TRD; anything deferred.

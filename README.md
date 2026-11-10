@@ -47,6 +47,7 @@ Sign-in and Gmail share one Google OAuth client. [`docs/google-cloud-setup.md`](
 pnpm install
 pnpm dev                                        # server on :3100, web on :5173 (proxies /api)
 pnpm test                                       # unit tests, all packages (the agent's pytest included) and the script tests (Compose, deploy scripts, shellcheck)
+pnpm gate                                       # every test, lint and typecheck step, one table at the end; `pnpm gate --only server,web` for some folders
 pnpm --filter web test:browser                  # real-browser tests (Chromium and WebKit)
 pnpm --filter @atlas/server test:integration  # the real Claude API (needs ANTHROPIC_API_KEY)
 pnpm lint
