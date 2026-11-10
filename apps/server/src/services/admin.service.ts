@@ -31,6 +31,7 @@ import type { UsageRange, UsageRow } from '../repositories/system.repository.js'
 import { instantAt, wallTime } from '../melete/day.js'
 // Services
 import { seedUser } from './seedUser.service.js'
+import { releaseVaultFolder } from './vaultOnboarding.service.js'
 
 const toAdminUser = ( user: StoredUser ): AdminUser => ( {
   id: user.id,
@@ -110,8 +111,10 @@ export const changeUser = ( adminId: string, id: string, body: UpdateUserBody ):
 }
 
 export const resetVault = ( adminId: string, id: string ): AdminUser => {
-  targetOf( adminId, id )
+  const { vault_dir: vaultDir } = targetOf( adminId, id )
+
   clearVaultDir( id )
+  releaseVaultFolder( vaultDir )
 
   return toAdminUser( targetOf( adminId, id ) )
 }
@@ -128,6 +131,7 @@ export const deleteUserAccount = ( adminId: string, id: string, confirm: string 
   }
 
   deleteUser( id )
+  releaseVaultFolder( user.vault_dir )
 }
 
 const MONTH = /^(\d{4})-(0[1-9]|1[0-2])$/

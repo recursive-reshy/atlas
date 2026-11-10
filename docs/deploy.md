@@ -451,6 +451,10 @@ The `atlas` service starts by itself on boot; the external IP may change, which 
 3. Do step 6 for `sync-alex` with their Obsidian account. They need their own Obsidian Sync subscription.
 4. Add them in Settings → Admin, share the VM's Tailscale node with them ([`phone-access.md`](phone-access.md#sharing-the-app-with-another-person)), and they choose the `alex` vault when they first sign in.
 
+## Freeing a released vault folder
+
+Deleting a user, or resetting their vault in Settings → Admin, moves their folder to `/srv/atlas/vaults/.released/<folder>-<YYYYMMDDTHHmmss>` so the other user is never offered it (ADR 0097). To give it back, move it out by hand and restore its name: `sudo mv /srv/atlas/vaults/.released/alex-20261110T090503 /srv/atlas/vaults/alex`. Delete old ones when you no longer need them; nothing does it for you.
+
 ## Release checks (memory and the rest)
 
 On a first release, run these with a video job in progress and record the results in the release notes:
