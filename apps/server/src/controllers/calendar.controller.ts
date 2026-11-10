@@ -8,6 +8,8 @@ import {
   GetCalendarResponse,
   ListCalendarsResponse,
   SelectCalendarBody,
+  SyncCalendarQuery,
+  SyncCalendarResponse,
 } from '@atlas/shared'
 // Middleware
 import { currentUser } from '../middleware/auth.js'
@@ -20,6 +22,7 @@ import {
   listCalendars,
   startConnect,
 } from '../services/calendar.service.js'
+import { syncCalendar } from '../services/calendarSync.service.js'
 
 const CallbackQuery = z.object( {
   code: z.string().min( 1 ).optional(),
@@ -74,4 +77,13 @@ export const deleteCalendar = async ( req: Request, res: Response ): Promise< vo
 
   await disconnectCalendar( currentUser( req ).id, remove_time )
   res.status( 204 ).end()
+}
+
+export const postSync = async (
+  req: Request,
+  res: Response< SyncCalendarResponse >,
+): Promise< void > => {
+  const { if_older_than } = SyncCalendarQuery.parse( req.query )
+
+  res.status( 200 ).json( await syncCalendar( currentUser( req ).id, new Date(), if_older_than ) )
 }

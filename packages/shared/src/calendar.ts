@@ -85,3 +85,18 @@ export const UpdateCalendarRuleBody = z.strictObject( {
   { message: 'Change at least one field' },
 )
 export type UpdateCalendarRuleBody = z.infer< typeof UpdateCalendarRuleBody >
+
+// `skipped` is true when the last sync was newer than `if_older_than` and nothing was read
+export const SyncCalendarResponse = z.object( {
+  added: z.int().min( 0 ),
+  updated: z.int().min( 0 ),
+  removed: z.int().min( 0 ),
+  drafts: z.int().min( 0 ),
+  skipped: z.boolean(),
+} )
+export type SyncCalendarResponse = z.infer< typeof SyncCalendarResponse >
+
+export const SyncCalendarQuery = z.object( {
+  if_older_than: z.coerce.number().int().min( 0 ).max( 86_400 ).optional(),
+} )
+export type SyncCalendarQuery = z.infer< typeof SyncCalendarQuery >

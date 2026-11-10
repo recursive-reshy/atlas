@@ -9,11 +9,16 @@ import {
 import {
   countEvents,
   deleteDrafts,
+  deleteEvents,
+  insertDraft,
+  listEventsForSync,
   listRuleAssignable,
   removeImported,
   setRuleAssignment,
+  updateDraftEvent,
 } from './calendarEvents.repository.js'
 import { getDatabase } from './database.js'
+import type { NewDraft } from './calendarEvents.repository.js'
 // Test support
 import { createTestUser, defaultTestAdmin } from '../test-support/auth.js'
 import { addSubject } from '../test-support/meleteData.fixture.js'
@@ -54,6 +59,10 @@ const insertEntry = ( id: string ): void => {
 const ids = (): string[] => ( getDatabase()
   .prepare( 'SELECT id FROM calendar_events ORDER BY id' ).all() as { id: string }[] )
   .map( ( { id } ) => id )
+
+const rowOf = ( id: string ) => getDatabase()
+  .prepare( 'SELECT subject_id, goal_id, assigned_by, rule_id FROM calendar_events WHERE id = ?' )
+  .get( id )
 
 beforeEach( () => {
   userId = defaultTestAdmin().id
@@ -124,10 +133,6 @@ describe( 'rule assignment', () => {
       SET assigned_by = 'hand', subject_id = ? WHERE id = ?` ).run( subjectId, id )
   }
 
-  const rowOf = ( id: string ) => getDatabase()
-    .prepare( 'SELECT subject_id, goal_id, assigned_by, rule_id FROM calendar_events WHERE id = ?' )
-    .get( id )
-
   it( 'lists the drafts a rule may assign: unassigned or by rule, not by hand or settled', () => {
     insertEvent( 'free', 'draft' )
     insertEvent( 'by-rule', 'draft' )
@@ -160,8 +165,84 @@ describe( 'rule assignment', () => {
 
   it( 'never touches another user\'s event', () => {
     insertEvent( 'theirs', 'draft', { user: createTestUser().id } )
-    setRuleAssignment( userId, 'theirs', { rule_id: null, subject_id: subjectId, goal_id: null } )
+    setRuleAssignment( userId, 'theirs', { rule_id: 'r1', subject_id: subjectId, goal_id: null } )
 
     expect( rowOf( 'theirs' ) ).toMatchObject( { assigned_by: null } )
+  } )
+} )
+
+describe( 'sync writes', () => {
+  const draft: NewDraft = {
+    event_id: 'g-1',
+    title: 'Gym',
+    started_at: '2026-11-09T07:00:00.000Z',
+    ended_at: '2026-11-09T08:30:00.000Z',
+    day: '2026-11-09',
+    seconds: 5400,
+    assignment: null,
+  }
+
+  it( 'inserts a draft and lists it for the calendar', () => {
+    insertDraft( userId, 'cal-1', draft )
+    insertDraft( userId, 'cal-2', { ...draft, event_id: 'g-2' } )
+
+    expect( listEventsForSync( userId, 'cal-1' ) ).toEqual( [ {
+      id: expect.any( String ) as string,
+      event_id: 'g-1',
+      status: 'draft',
+      title: 'Gym',
+      started_at: '2026-11-09T07:00:00.000Z',
+      ended_at: '2026-11-09T08:30:00.000Z',
+      assigned_by: null,
+    } ] )
+    expect( rowOf( listEventsForSync( userId, 'cal-1' )[ 0 ]?.id ?? '' ) )
+      .toEqual( { subject_id: null, goal_id: null, assigned_by: null, rule_id: null } )
+  } )
+
+  it( 'inserts a draft already assigned by a rule', () => {
+    getDatabase().prepare( `INSERT INTO calendar_rules ( id, user_id, phrase, subject_id, goal_id,
+      position, created_at, updated_at ) VALUES ( 'r1', ?, 'gym', ?, NULL, 0, ?, ? )` )
+      .run( userId, subjectId, AT, AT )
+    insertDraft( userId, 'cal-1', {
+      ...draft,
+      assignment: { rule_id: 'r1', subject_id: subjectId, goal_id: null },
+    } )
+
+    expect( rowOf( listEventsForSync( userId, 'cal-1' )[ 0 ]?.id ?? '' ) )
+      .toEqual( { subject_id: subjectId, goal_id: null, assigned_by: 'rule', rule_id: 'r1' } )
+  } )
+
+  it( 'refuses the same event twice for one calendar', () => {
+    insertDraft( userId, 'cal-1', draft )
+
+    expect( () => insertDraft( userId, 'cal-1', draft ) ).toThrow( /UNIQUE/ )
+  } )
+
+  it( 'updates a draft\'s title, times, day and seconds', () => {
+    insertDraft( userId, 'cal-1', draft )
+
+    const id = listEventsForSync( userId, 'cal-1' )[ 0 ]?.id ?? ''
+
+    updateDraftEvent( userId, id, {
+      title: 'Leg day',
+      started_at: '2026-11-09T09:00:00.000Z',
+      ended_at: '2026-11-09T10:00:00.000Z',
+      day: '2026-11-09',
+      seconds: 3600,
+    } )
+
+    expect( getDatabase()
+      .prepare( 'SELECT title, started_at, seconds FROM calendar_events' ).get() )
+      .toEqual( { title: 'Leg day', started_at: '2026-11-09T09:00:00.000Z', seconds: 3600 } )
+  } )
+
+  it( 'deletes the events given, only the user\'s', () => {
+    insertEvent( 'mine', 'draft' )
+    insertEvent( 'theirs', 'draft', { user: createTestUser().id } )
+
+    deleteEvents( userId, [ 'mine', 'theirs' ] )
+
+    expect( ids() ).toEqual( [ 'theirs' ] )
+    expect( () => deleteEvents( userId, [] ) ).not.toThrow()
   } )
 } )
