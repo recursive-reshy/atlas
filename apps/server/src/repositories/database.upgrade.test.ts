@@ -680,3 +680,40 @@ describe( 'migration 17 (stored schema 17, modules defined once, ADR 0101)', () 
     expect( getDatabase().pragma( 'foreign_key_check' ) ).toEqual( [] )
   } )
 } )
+
+describe( 'migration 18 (stored schema 18, agent run columns, ADR 0105)', () => {
+  afterEach( () => {
+    closeDatabase()
+  } )
+
+  it( 'adds turns and tool_calls to melete_runs', () => {
+    openSeeded( 17 )
+    runMigrations( getDatabase(), migrations )
+
+    const columns = rows( 'PRAGMA table_info( melete_runs )' ).map( ( { name } ) => name )
+
+    expect( columns ).toEqual( expect.arrayContaining( [ 'turns', 'tool_calls' ] ) )
+  } )
+
+  it( 'leaves every existing run with no turns and no tool calls', () => {
+    openSeeded( 17 )
+
+    const original = 'SELECT id, kind, model, input_tokens, output_tokens, cost_usd'
+      + ' FROM melete_runs ORDER BY id'
+    const before = rows( original )
+
+    runMigrations( getDatabase(), migrations )
+
+    expect( before.length ).toBeGreaterThan( 0 )
+    expect( rows( original ) ).toEqual( before )
+    expect( rows( 'SELECT DISTINCT turns, tool_calls FROM melete_runs' ) )
+      .toEqual( [ { turns: null, tool_calls: null } ] )
+  } )
+
+  it( 'is the eighteenth stored schema', () => {
+    openSeeded( 17 )
+    runMigrations( getDatabase(), migrations )
+
+    expect( getDatabase().pragma( 'user_version', { simple: true } ) ).toBe( 18 )
+  } )
+} )

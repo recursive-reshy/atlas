@@ -3,8 +3,13 @@ import { readdirSync, readFileSync } from 'node:fs'
 // Packages
 import { describe, it, expect } from 'vitest'
 // Repositories
-import { migrationFiles, migrations } from './database.js'
-import { LOCK_PATH, migrationHash, readLock } from './migrationLock.js'
+import { SCHEMA_BASE, migrationFiles, migrations } from './database.js'
+import {
+  LOCK_PATH,
+  migrationHash,
+  readLock,
+  unlockedVersions,
+} from './migrationLock.js'
 
 const sqlDirectory = new URL( './sql/', import.meta.url )
 
@@ -30,7 +35,20 @@ describe( 'the schema SQL files', () => {
       const sql = readFileSync( new URL( `./${ name }.sql`, sqlDirectory ), 'utf8' )
 
       expect( migrations[ index ] ).toBe( sql )
-      expect( migrationHash( sql ) ).toBe( lock[ 10 + index ] )
+
+      // A migration of the release being built is not locked until its release task
+      if( lock[ 10 + index ] !== undefined ) {
+        expect( migrationHash( sql ) ).toBe( lock[ 10 + index ] )
+      }
     }
+  } )
+
+  it( 'locks migrations from the first up to some version, never a gap', () => {
+    const lock = readLock( LOCK_PATH )
+    const unlocked = unlockedVersions( lock, migrations )
+
+    const versions = migrations.map( ( _, index ) => SCHEMA_BASE + index + 1 )
+
+    expect( unlocked ).toEqual( versions.slice( versions.length - unlocked.length ) )
   } )
 } )

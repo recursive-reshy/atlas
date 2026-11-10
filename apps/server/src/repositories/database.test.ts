@@ -518,6 +518,8 @@ const BASELINE_COLUMNS: Record< string, string[] > = {
     'error',
     'created_at',
     'subject_id',
+    'turns',
+    'tool_calls',
   ],
   melete_sections: [ 'id', 'user_id', 'subject_id', 'position', 'name', 'created_at' ],
   melete_concepts: [
