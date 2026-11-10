@@ -1,0 +1,52 @@
+# Plan — Checkpoint E: Home and calendar UI (v1.2.0)
+
+## Context
+Next is **5.1** (checkpoint E, Plan cell ⬜, though `tasks.md` already links `plans/checkpoint-e.md`); A–D are done and the calendar API is complete. E is the web side of ADR 0108 and ADR 0109 (TRD §6): a Home screen at `/`, the transcriber moved to `/transcriber`, a Calendar section in Settings › Sources, and `/themis/calendar` (Drafts and Rules). Branch `release/1.2.0`, tree clean. Read: TRD §5–§8, ADRs 0108 and 0109, `apps/web/CLAUDE.md`, `routes.tsx`, `moduleHome.ts`, `NavDrawer`, `ThemisHome`, `TimeByArea`, `TimeBar`, `useThemisOverview`, `GmailSettings`, `LogTimeDialog`, the calendar contracts in `packages/shared/src/calendar.ts`.
+
+**Before 5.1:** save this plan to `docs/v1.2.0/plans/checkpoint-e.md`, tick the Plan cell, commit `docs: plan checkpoint E`, push.
+
+No new dependency, endpoint or contract: every call below already exists (`GET/POST/PUT/DELETE /api/calendar…`, `/api/calendar/drafts…`, `/api/calendar/rules…`, `/api/themis/overview`). Web rules apply throughout: test-first beside each file, one component per folder with `index.ts`, ≤150 lines per file, `api/` parses with shared schemas, hooks call `api/`, components get props, 44 px targets, one column ≤ 40rem.
+
+## 5.1 Routes, `homeFor`, drawer, manifest — `feat:` (web)
+- **Tests first:** `moduleHome.test.ts` (Themis user → `/`; transcriber-only → `/transcriber`; order unchanged otherwise); `routes.test.tsx` (`/transcriber` and `/transcriber/jobs/:id` render under `RequireModule transcriber`; `/jobs/:id` redirects to `/transcriber/jobs/:id`; `/` renders Home for a Themis user and redirects to `homeFor` for others; a user with no Themis never sees Home); `NavDrawer.test.tsx` (Home first and current only on `/` exactly, then Themis, Mnemosyne, Melete; Home hidden without Themis; Mnemosyne current on `/transcriber` and `/transcriber/jobs/…`); manifest test in `src/test/` (`start_url` `/`). Existing `HomePage`, `JobPage`, `JobList` tests move to the new names/paths; list in the log.
+- **Code:** `git mv features/jobs/components/HomePage` → `TranscriberHome` (folder, file, component, index). `routes.tsx`: index route under a `RequireModule module="themis"` layout renders a placeholder `HomeScreen` (real one in 5.2); `transcriber` and `transcriber/jobs/:id`; `jobs/:id` redirect element (`Navigate` preserving the id). `MODULE_HOMES.transcriber = '/transcriber'`, `homeFor` returns `/` when `modules` includes `themis`. `NAV_ITEMS`: Home (`HomeOutlined`) first; reorder to Home, Themis, Mnemosyne, Melete (the file comment says "matching moduleHome.ts", so `MODULE_HOMES` order is also made Themis, transcriber, melete). Update internal links: `JobList` (`/jobs/${id}`), `TranscriberHome` and `JobPage` (`navigate` to `/jobs/…`), `JobPage`'s `Navigate to="/"` (→ `/transcriber`); grep `to="/"` and `` `/jobs/ `` afterwards, including e2e specs and docs that name the old paths (e2e specs updated here, run in E's end-of-checkpoint `pnpm e2e`). `public/manifest.webmanifest` `start_url` → `/`.
+- **Risk:** `RequireModule` redirects to `homeFor`, which is `/` for Themis users, so the Themis guard must never redirect to `/` itself; the index route only redirects non-Themis users, whose `homeFor` is never `/` unless they have no modules (AuthGate already shows `NoModules`). A routes test covers this loop case.
+- Gate: `pnpm gate --only web` (test, test:browser, lint, typecheck).
+
+## 5.2 `features/home` — `feat:` (web)
+- **Tests first** (component tests beside each file, hooks with `renderHookWithClient`, `api/` mocked):
+  - `TimeBar` gains `calendar` (third shade, `Segment` label "Calendar"); `TimeBar.test.tsx` and `TimeByArea.test.tsx` updated for three shades, captions "… measured · … logged · … calendar".
+  - `TimeOverviewCard` (`features/themis`): period switch via `?period=`, bars per area, top 5 goals by time across areas with their three-way time; empty and loading and error states.
+  - `CalendarDraftsCard` (`features/themis`): "N calendar drafts to review" linking to `/themis/calendar`; renders nothing at 0 and when status isn't `connected`.
+  - `ConnectCalendarPrompt` (`features/themis`): shows only for `not_connected` and when not dismissed; Connect calls the connect API (see 5.3 hook) and navigates to the returned `url`; Dismiss stored in `localStorage` through a hook inside try/catch; with storage throwing it still renders and dismisses for the session.
+  - `useCalendarSync( isConnected )` hook: on mount when connected posts `/api/calendar/sync?if_older_than=300` once, then invalidates `themisKeys.all` (also `calendarKeys.all`); never throws into render; does nothing when not connected.
+  - `HomeScreen` (`features/home`): composes the cards from one `useThemisOverview( period )`; renders at once with the overview while sync runs (sync never blocks).
+- **Code:** `features/themis/api/calendar.api.ts` (`getCalendar`, `startCalendarConnect`, `syncCalendar`, plus the rest of 5.3/5.4 added by their tasks, parsing with the shared schemas) and `calendarKeys` in `lib/queryKeys.ts`; the cards above; `features/home/components/HomeScreen` imports cards and owns no data (ADR 0109); `TimeByArea` is reused/extended rather than duplicated (`TimeOverviewCard` wraps it and adds the goals list; `ThemisHome` keeps working with the third shade). `routes.tsx` swaps the placeholder for `HomeScreen`.
+- **Look:** run the dev server and describe Home on a phone and desktop, light and dark (CLAUDE.md "After a UI slice"). `test:browser` for the three-shade bar in light and dark (TRD §8).
+- Gate: `pnpm gate --only web`.
+
+## 5.3 Settings › Sources: Calendar section — `feat:` (web)
+- **Tests first:** `CalendarSettings` states: not configured (names `CALENDAR_REDIRECT_URI`, no button); not connected (**Connect Calendar** → `POST /api/calendar/connect`, then `window.location` to the returned URL, as the Gmail flow does via a top-level link); after consent (`?calendar=choose`) a calendar `Select` from `GET /api/calendar/calendars` plus an import-start date, saved with `PUT /api/calendar/selection`, validation (not future, ≤365 days back, matching the server); connected (account, calendar, last sync, **Sync now** → sync without age check, **Change calendar** reopens the chooser, **Disconnect** opens `ConfirmDialog` with a checkbox "also remove imported time" → `DELETE /api/calendar?remove_time=…`); broken (**Reconnect**, imported time kept). `useCalendarRedirectNotice` (like `useGmailRedirectNotice`: `?calendar=choose|error&reason=`, read once, removed from the URL; reasons denied/state/no_refresh_token/scope/failed as the controller emits them). `SourcesTab` renders it beside Gmail, only for users with Themis (`useMe().modules`; the API is 404 otherwise). Status panel's `Calendar` row gets a Reconnect action if Gmail's has one (the 4.3 log says "no Reconnect button yet").
+- **Code:** `features/settings/components/CalendarSettings/` (split: `CalendarAccountCard`, `CalendarChooser`, `DisconnectCalendarDialog` to stay ≤150 lines), hooks `useCalendar`, `useCalendarChoices`, `useCalendarMutations`, `useCalendarRedirectNotice` in `features/themis/hooks` (or `settings`, following where Gmail's live: its own feature folder `features/gmail`, so these go in a new `features/calendar`? **Decision:** keep everything calendar in `features/themis` because the module is Themis and `/themis/calendar` is there; Settings imports it by path). `docs/google-cloud-setup.md` is 6.2, not here.
+- Gate: `pnpm gate --only web`.
+
+## 5.4 `/themis/calendar` — `feat:` (web)
+- **Tests first:**
+  - Route: `themis/calendar` under the Themis guard, `?tab=drafts|rules` (default drafts, unknown → drafts).
+  - `CalendarDraftRow`: date, time range, title, assignment picker (subjects and active goals, grouped; same sources as `LogTimeDialog`: Melete today's subjects for users with Melete, overview goals; extract the grouped picker from `LogTimeDialog` into a shared `TargetSelect` only if it fits without behaviour change, else a small copy flagged in the log), counts line "60 min · 25 already measured · counts 35", note field, **Approve** (disabled without assignment) and **Dismiss**, **Make a rule** (opens the Rules add row pre-filled with the title).
+  - `CalendarDrafts`: **Sync now** and **Approve all matched (n)** (n = rule-assigned drafts), opening the tab syncs with `if_older_than=300`; empty state; errors as `role="alert"`; approving shows the recorded minutes; mutations invalidate drafts, `themisKeys.all`, and the Melete numbers if cached.
+  - `CalendarRules`: list with phrase, target picker, up/down reorder (`PATCH position`), delete, add row (phrase 1–100, exactly one target); pre-fill from a draft via `?phrase=` (read once).
+  - `ThemisHome`: link "Calendar drafts" in the time section → `/themis/calendar`.
+  - `CalendarDraftRow.browser.test.tsx`: drafts list on a 375 px phone, no horizontal scroll, targets ≥44 px.
+- **Code:** `features/themis/components/{ThemisCalendar,CalendarDrafts,CalendarDraftRow,CalendarRules,CalendarRuleRow}`, hooks `useCalendarDrafts`, `useCalendarRules`, their mutations, API functions for drafts and rules added to `calendar.api.ts`.
+- **Look:** dev server with the server behind it (fake data seeded locally), describe the drafts list on a phone.
+- Gate: `pnpm gate --only web`.
+
+## Docs (same commits as the code they describe)
+`apps/web/CLAUDE.md` layout line (adds `home`) in 5.2; `docs/architecture.md` web/routes paragraph (Home, `/transcriber`, `/themis/calendar`) in 5.1/5.4; `docs/guide.md` mentions of the transcriber path and the new screens where they exist; `docs/phone-access.md` if it names `start_url`/`/melete` (check by grep). `nameGuard` needs no change (paths use `transcriber`).
+
+## End of checkpoint
+`pnpm gate` (all steps) and `pnpm e2e` (Docker). Expect existing e2e specs that open `/` or `/jobs/…` as the transcriber to need path updates (done in 5.1); the Calendar e2e spec is 6.1. Report: per-task hashes, gate table, e2e result, deviations, deferred items. Stop before checkpoint F.
+
+## Verification
+Per task: failing tests seen red for the right reason, then green; `pnpm gate --only web`. End: `pnpm gate`, `pnpm e2e`, plus a manual pass in the dev server: sign in as a Themis user → lands on Home; drawer order; Mnemosyne at `/transcriber`; `/jobs/<id>` redirect; Settings › Sources Calendar states (server with `CALENDAR_API_BASE_URL` fake); drafts on a phone width.
