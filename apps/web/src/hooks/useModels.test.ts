@@ -7,11 +7,11 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { listModels } from '../api/models.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import { modelsFixture } from '../test-support/summarizer.fixture'
-import { modelKeys } from './queryKeys'
+import { modelKeys } from '../lib/queryKeys'
 import { useModels } from './useModels'
 
 vi.mock( '../api/models.api' )

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { Job } from '@atlas/shared'
 // App
 import { listJobs } from '../api/jobs.api'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 
 export const FAST_POLL_MS = 2000
 export const SLOW_POLL_MS = 30_000

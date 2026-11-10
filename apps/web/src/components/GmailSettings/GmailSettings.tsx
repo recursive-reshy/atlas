@@ -14,7 +14,7 @@ import type { GmailAccount } from '@atlas/shared'
 import { GMAIL_CONNECT_URL } from '#src/api/gmail.api'
 import { useGmailAccount } from '#src/hooks/useGmailAccount'
 import { useGmailRedirectNotice } from '#src/hooks/useGmailRedirectNotice'
-import { ConfirmDialog } from '../ConfirmDialog'
+import { ConfirmDialog } from '#src/app/ConfirmDialog'
 import { GmailSources } from '../GmailSources'
 
 const DISCONNECT_MESSAGE = 'Atlas will revoke its access and forget the stored credentials. '

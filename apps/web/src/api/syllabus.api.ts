@@ -6,7 +6,7 @@ import {
 } from '@atlas/shared'
 import type { MeleteSubject, MeleteSyllabusEdit } from '@atlas/shared'
 // App
-import { request } from './request'
+import { request } from '../lib/request'
 
 const syllabusPath = ( subjectId: string ): string => {
   return `/api/melete/subjects/${ encodeURIComponent( subjectId ) }/syllabus`

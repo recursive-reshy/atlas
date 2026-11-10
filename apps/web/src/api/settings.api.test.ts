@@ -9,7 +9,7 @@ import {
 } from 'vitest'
 // App
 import { settingsFixture } from '../test-support/summarizer.fixture'
-import { ApiError } from './apiError'
+import { ApiError } from '../lib/apiError'
 import { getSettings, updateSettings } from './settings.api'
 
 const fetchMock = vi.fn()

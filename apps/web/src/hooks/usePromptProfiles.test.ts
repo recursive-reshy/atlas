@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import {
   createProfile,
   deleteProfile,
@@ -25,7 +25,7 @@ import {
   profileFixture,
   profilesFixture,
 } from '../test-support/summarizer.fixture'
-import { promptKeys } from './queryKeys'
+import { promptKeys } from '../lib/queryKeys'
 import { usePromptProfiles } from './usePromptProfiles'
 
 vi.mock( '../api/prompts.api' )

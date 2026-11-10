@@ -23,7 +23,7 @@ import {
   setNoteEnrolled,
   updateMeleteSubject,
 } from '../api/melete.api'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 import { useNoteResponse } from './useNoteResponse'
 
 type Mutation< Variables, Result > = UseMutationResult< Result, Error, Variables >

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { SourceDocument } from '@atlas/shared'
 // App
 import { getSource } from '../api/jobs.api'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 
 export interface SourceState {
   source: SourceDocument | null

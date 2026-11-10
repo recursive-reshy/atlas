@@ -13,8 +13,8 @@ import Typography from '@mui/material/Typography'
 import { ModuleId } from '@atlas/shared'
 import type { AdminUser } from '@atlas/shared'
 // App
-import { formatDate } from '#src/formatDate'
-import { MODULE_LABELS } from '#src/moduleLabels'
+import { formatDate } from '#src/lib/formatDate'
+import { MODULE_LABELS } from '#src/app/moduleLabels'
 
 const CARD_SX = { p: 2, listStyle: 'none' } as const
 const WRAP_SX = { overflowWrap: 'anywhere' } as const

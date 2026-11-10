@@ -14,7 +14,7 @@ import {
   draftMeleteSyllabus,
   saveMeleteSyllabus,
 } from '../api/syllabus.api'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 
 type Mutation< Variables, Result > = UseMutationResult< Result, Error, Variables >
 

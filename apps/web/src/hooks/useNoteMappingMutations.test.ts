@@ -20,7 +20,7 @@ import {
   SUBJECT_ID,
 } from '../test-support/melete.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 import { useOffSyllabusAction, useSetNoteConcepts } from './useNoteMappingMutations'
 
 vi.mock( '../api/melete.api' )

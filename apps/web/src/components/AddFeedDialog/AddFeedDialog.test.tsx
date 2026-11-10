@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '#src/api/apiError'
+import { ApiError } from '#src/lib/apiError'
 import { previewFeed } from '#src/api/feeds.api'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { CODING_ID, profilesFixture } from '#src/test-support/summarizer.fixture'

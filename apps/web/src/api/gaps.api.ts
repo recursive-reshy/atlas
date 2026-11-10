@@ -1,7 +1,7 @@
 // Shared
 import { GetMeleteGapsResponse, SuggestMeleteResourcesResponse } from '@atlas/shared'
 // App
-import { request } from './request'
+import { request } from '../lib/request'
 
 export const getMeleteGaps = async ( subjectId: string ): Promise< GetMeleteGapsResponse > => {
   return request(

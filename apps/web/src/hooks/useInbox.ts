@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { InboxItem } from '@atlas/shared'
 // App
 import { listInbox } from '../api/inbox.api'
-import { inboxKeys } from './queryKeys'
+import { inboxKeys } from '../lib/queryKeys'
 
 export const INBOX_POLL_MS = 60_000
 

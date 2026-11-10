@@ -9,7 +9,7 @@ import Typography from '@mui/material/Typography'
 // Shared
 import type { MeleteQuestion } from '@atlas/shared'
 // App
-import { formatDate } from '#src/formatDate'
+import { formatDate } from '#src/lib/formatDate'
 
 interface MeleteQuestionItemProps {
   question: MeleteQuestion

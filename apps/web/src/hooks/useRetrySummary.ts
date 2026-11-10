@@ -5,7 +5,7 @@ import type { UseMutationResult } from '@tanstack/react-query'
 import type { Job } from '@atlas/shared'
 // App
 import { retrySummary } from '../api/jobs.api'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 
 export function useRetrySummary( jobId: string ): UseMutationResult< Job, Error, void > {
   const queryClient = useQueryClient()

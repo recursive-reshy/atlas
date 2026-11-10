@@ -10,7 +10,7 @@ import {
   gmailKeys,
   inboxKeys,
   jobKeys,
-} from './queryKeys'
+} from '../lib/queryKeys'
 
 export interface SummarizeOutcome {
   jobs: Job[]

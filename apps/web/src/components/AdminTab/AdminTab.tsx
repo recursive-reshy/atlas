@@ -11,7 +11,7 @@ import type { AdminUser, UpdateUserBody } from '@atlas/shared'
 // App
 import { useAdminUsers } from '#src/hooks/useAdminUsers'
 import { AddUserDialog } from '../AddUserDialog'
-import { ConfirmDialog } from '../ConfirmDialog'
+import { ConfirmDialog } from '#src/app/ConfirmDialog'
 import { DeleteUserDialog } from '../DeleteUserDialog'
 import { UsageSection } from '../UsageSection'
 import { UserCard } from '../UserCard'

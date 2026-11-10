@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { PromptVersion } from '@atlas/shared'
 // App
 import { listVersions } from '../api/prompts.api'
-import { promptKeys } from './queryKeys'
+import { promptKeys } from '../lib/queryKeys'
 
 export interface PromptVersionsState {
   versions: PromptVersion[]

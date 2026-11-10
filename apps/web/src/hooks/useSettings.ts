@@ -9,7 +9,7 @@ import type {
 } from '@atlas/shared'
 // App
 import { getSettings, updateSettings } from '../api/settings.api'
-import { meleteKeys, settingsKeys } from './queryKeys'
+import { meleteKeys, settingsKeys } from '../lib/queryKeys'
 
 export interface SettingsState {
   settings: Settings | null

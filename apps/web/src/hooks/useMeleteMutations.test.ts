@@ -11,7 +11,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import * as api from '../api/melete.api'
 import {
   meleteNoteFixture,
@@ -34,7 +34,7 @@ import {
   useSetNoteEnrolled,
   useUpdateSubject,
 } from './useMeleteMutations'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 
 vi.mock( '../api/melete.api' )
 

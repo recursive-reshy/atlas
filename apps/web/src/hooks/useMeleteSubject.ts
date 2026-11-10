@@ -5,7 +5,7 @@ import type { MeleteNote, MeleteSubject } from '@atlas/shared'
 // App
 import { getMeleteSubject } from '../api/melete.api'
 import { POLL_INTERVAL_MS } from './useJob'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 
 export interface MeleteSubjectState {
   subject: MeleteSubject | null

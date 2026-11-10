@@ -14,7 +14,7 @@ import {
 // Shared
 import { serializeNote } from '@atlas/shared'
 // App
-import { ApiError } from '#src/api/apiError'
+import { ApiError } from '#src/lib/apiError'
 import {
   getJob,
   regenerateSummary,

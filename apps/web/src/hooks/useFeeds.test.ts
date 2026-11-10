@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import {
   checkAllFeeds,
   checkFeed,
@@ -20,7 +20,7 @@ import {
 } from '../api/feeds.api'
 import { FEED_ID, feedFixture } from '../test-support/feed.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { feedKeys, inboxKeys } from './queryKeys'
+import { feedKeys, inboxKeys } from '../lib/queryKeys'
 import { useFeeds } from './useFeeds'
 
 vi.mock( '../api/feeds.api' )

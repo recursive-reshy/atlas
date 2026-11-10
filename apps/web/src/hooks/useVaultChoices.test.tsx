@@ -9,14 +9,14 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
-import { claimVault, createVault, listVaults } from '../api/me.api'
+import { ApiError } from '../lib/apiError'
+import { claimVault, createVault, listVaults } from '../app/me.api'
 import { meFixture } from '../test-support/me.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { meKeys } from './queryKeys'
+import { meKeys } from '../lib/queryKeys'
 import { useVaultChoices } from './useVaultChoices'
 
-vi.mock( '../api/me.api' )
+vi.mock( '../app/me.api' )
 
 beforeEach( () => {
   vi.mocked( listVaults ).mockReset()

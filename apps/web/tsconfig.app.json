@@ -20,5 +20,5 @@
     "noFallthroughCasesInSwitch": true
   },
   "include": [ "src" ],
-  "exclude": [ "src/**/*.browser.test.tsx", "src/manifestIcons.test.ts" ]
+  "exclude": [ "src/**/*.browser.test.tsx", "src/test/manifestIcons.test.ts" ]
 }

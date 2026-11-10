@@ -11,7 +11,7 @@ import { Link as RouterLink } from 'react-router'
 // Shared
 import type { Job } from '@atlas/shared'
 // App
-import { formatExpiry } from '#src/expiry'
+import { formatExpiry } from '#src/lib/expiry'
 import { FeedChip } from '../FeedChip'
 import { GmailSourceChip } from '../GmailSourceChip'
 

@@ -17,7 +17,7 @@ import TextField from '@mui/material/TextField'
 // Shared
 import { CreateUserBody, ModuleId } from '@atlas/shared'
 // App
-import { MODULE_LABELS } from '#src/moduleLabels'
+import { MODULE_LABELS } from '#src/app/moduleLabels'
 
 type AddUserDialogProps = {
   isSubmitting: boolean

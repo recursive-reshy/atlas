@@ -9,11 +9,11 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { regenerateSummary } from '../api/jobs.api'
 import { jobFixture } from '../test-support/job.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 import { useRegenerateSummary } from './useRegenerateSummary'
 
 vi.mock( '../api/jobs.api' )

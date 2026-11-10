@@ -3,7 +3,7 @@ import type { ReactElement } from 'react'
 // Packages
 import { Outlet } from 'react-router'
 // App
-import { AppShell } from './components/AppShell'
+import { AppShell } from './app/AppShell'
 import { useRemoveLegacyDrafts } from './hooks/useRemoveLegacyDrafts'
 
 export function App(): ReactElement {

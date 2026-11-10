@@ -15,7 +15,7 @@ import Typography from '@mui/material/Typography'
 // Shared
 import type { InboxItem } from '@atlas/shared'
 // App
-import { formatDate } from '#src/formatDate'
+import { formatDate } from '#src/lib/formatDate'
 import { FeedChip } from '../FeedChip'
 import { GmailSourceChip } from '../GmailSourceChip'
 

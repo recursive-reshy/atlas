@@ -126,6 +126,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0095](decisions/0095-themis-goals-list-route.md) | `GET /api/themis/goals` lists every goal, so achieved and dropped goals stay reachable | Accepted |
 | [0096](decisions/0096-address-guard-for-fetched-urls.md) | Fetched URLs are refused when they resolve to a private address | Accepted |
 | [0097](decisions/0097-released-vault-folders.md) | A released vault folder is moved aside, so no one else can claim it | Accepted |
+| [0098](decisions/0098-web-source-grouped-by-feature.md) | The web source is grouped by feature | Accepted |
 
 ## Template for new ADRs
 

@@ -16,7 +16,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '#src/api/apiError'
+import { ApiError } from '#src/lib/apiError'
 import {
   discardJob,
   regenerateSummary,

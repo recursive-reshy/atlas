@@ -3,9 +3,9 @@ import { useQuery } from '@tanstack/react-query'
 // Shared
 import type { Job } from '@atlas/shared'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { getJob } from '../api/jobs.api'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 
 export const POLL_INTERVAL_MS = 2000
 

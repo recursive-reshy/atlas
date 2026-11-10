@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { ModelOption } from '@atlas/shared'
 // App
 import { listModels } from '../api/models.api'
-import { modelKeys } from './queryKeys'
+import { modelKeys } from '../lib/queryKeys'
 
 const ONE_HOUR_MS = 3_600_000
 

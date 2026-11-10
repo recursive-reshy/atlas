@@ -16,7 +16,7 @@ import {
   listGmailSources,
   updateGmailSource,
 } from '../api/gmailSources.api'
-import { gmailKeys, inboxKeys, jobKeys } from './queryKeys'
+import { gmailKeys, inboxKeys, jobKeys } from '../lib/queryKeys'
 
 type Mutation< Variables, Result = GmailSource > = UseMutationResult< Result, Error, Variables >
 

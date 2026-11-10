@@ -22,7 +22,7 @@ import {
   updateArea,
   updateGoal,
 } from '../api/themis.api'
-import { meleteKeys, themisKeys } from './queryKeys'
+import { meleteKeys, themisKeys } from '../lib/queryKeys'
 
 type Mutation< Variables, Result > = UseMutationResult< Result, Error, Variables >
 

@@ -24,7 +24,7 @@ import type {
   UpdateGoalBody,
 } from '@atlas/shared'
 // App
-import { request, send } from './request'
+import { request, send } from '../lib/request'
 
 const jsonInit = ( method: string, body: unknown ): RequestInit => {
   return {

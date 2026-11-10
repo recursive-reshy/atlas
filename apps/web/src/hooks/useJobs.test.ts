@@ -10,11 +10,11 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { listJobs } from '../api/jobs.api'
 import { jobFixture } from '../test-support/job.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 import { FAST_POLL_MS, SLOW_POLL_MS, useJobs } from './useJobs'
 
 vi.mock( '../api/jobs.api' )

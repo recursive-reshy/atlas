@@ -11,7 +11,7 @@ import type {
   UpdateGmailSourceBody,
 } from '@atlas/shared'
 // App
-import { request, send } from './request'
+import { request, send } from '../lib/request'
 
 const sourcePath = ( id: string ): string => `/api/gmail/sources/${ encodeURIComponent( id ) }`
 

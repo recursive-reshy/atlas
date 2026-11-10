@@ -11,7 +11,7 @@ import {
 } from 'vitest'
 // App
 import { useDeleteGoal } from '#src/hooks/useGoalMutations'
-import { useMe } from '#src/hooks/useMe'
+import { useMe } from '#src/app/useMe'
 import { useThemisGoal } from '#src/hooks/useThemisGoals'
 import { useThemisOverview } from '#src/hooks/useThemisOverview'
 import { meFixture } from '#src/test-support/me.fixture'
@@ -33,7 +33,7 @@ vi.mock( 'react-router', async ( importOriginal ) => ( {
   useNavigate: () => navigate,
 } ) )
 vi.mock( '#src/hooks/useGoalMutations' )
-vi.mock( '#src/hooks/useMe' )
+vi.mock( '#src/app/useMe' )
 vi.mock( '#src/hooks/useThemisGoals' )
 vi.mock( '#src/hooks/useThemisOverview' )
 vi.mock( '#src/components/GoalDialog', () => ( {

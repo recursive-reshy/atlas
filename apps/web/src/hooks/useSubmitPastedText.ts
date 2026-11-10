@@ -5,7 +5,7 @@ import type { UseMutationResult } from '@tanstack/react-query'
 import type { Job, SubmitPastedTextBody } from '@atlas/shared'
 // App
 import { submitPastedText } from '../api/jobs.api'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 
 export function useSubmitPastedText(
   jobId: string,

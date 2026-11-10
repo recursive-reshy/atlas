@@ -2,7 +2,7 @@
 import { GetSettingsResponse } from '@atlas/shared'
 import type { UpdateSettingsBody } from '@atlas/shared'
 // App
-import { request } from './request'
+import { request } from '../lib/request'
 
 export const getSettings = async (): Promise< GetSettingsResponse > => {
   return request( '/api/settings', GetSettingsResponse )

@@ -19,7 +19,7 @@ import {
 } from '../test-support/melete.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import { DIFF, syllabusFixture } from '../test-support/syllabus.fixture'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 import {
   useApproveSyllabus,
   useDraftSyllabus,

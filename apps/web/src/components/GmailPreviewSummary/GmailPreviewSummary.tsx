@@ -7,7 +7,7 @@ import Typography from '@mui/material/Typography'
 // Shared
 import type { PreviewGmailSourceResponse } from '@atlas/shared'
 // App
-import { formatDate } from '#src/formatDate'
+import { formatDate } from '#src/lib/formatDate'
 
 interface GmailPreviewSummaryProps {
   preview: PreviewGmailSourceResponse

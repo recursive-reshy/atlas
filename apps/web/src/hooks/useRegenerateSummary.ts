@@ -5,7 +5,7 @@ import type { UseMutationResult } from '@tanstack/react-query'
 import type { Job, RegenerateSummaryBody } from '@atlas/shared'
 // App
 import { regenerateSummary } from '../api/jobs.api'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 
 export function useRegenerateSummary(
   jobId: string,

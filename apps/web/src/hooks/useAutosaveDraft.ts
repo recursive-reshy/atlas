@@ -7,7 +7,7 @@ import type { Job, UpdateDraftBody } from '@atlas/shared'
 // App
 import { updateDraft } from '../api/jobs.api'
 import type { AutosaveState, AutosaveStatus, Values } from './autosaveDraft.types'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 import { useUnsavedChangesGuard } from './useUnsavedChangesGuard'
 
 export type { AutosaveState, AutosaveStatus } from './autosaveDraft.types'

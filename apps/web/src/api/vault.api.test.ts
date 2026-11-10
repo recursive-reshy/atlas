@@ -8,7 +8,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from './apiError'
+import { ApiError } from '../lib/apiError'
 import { listFolders } from './vault.api'
 
 const fetchMock = vi.fn()

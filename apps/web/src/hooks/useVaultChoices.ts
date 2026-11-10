@@ -4,8 +4,8 @@ import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
 import type { Me } from '@atlas/shared'
 // App
-import { claimVault, createVault, listVaults } from '../api/me.api'
-import { meKeys } from './queryKeys'
+import { claimVault, createVault, listVaults } from '../app/me.api'
+import { meKeys } from '../lib/queryKeys'
 
 export interface VaultChoicesState {
   folders: string[]

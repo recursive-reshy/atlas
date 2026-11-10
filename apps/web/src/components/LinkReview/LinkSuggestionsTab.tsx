@@ -6,7 +6,7 @@ import type { Job, StoredLinkSuggestion } from '@atlas/shared'
 // App
 import { useAcceptLinkSuggestions } from '#src/hooks/useAcceptLinkSuggestions'
 import type { AutosaveState } from '#src/hooks/useAutosaveDraft'
-import { useDebouncedValue } from '#src/hooks/useDebouncedValue'
+import { useDebouncedValue } from '#src/lib/useDebouncedValue'
 import { useRejectLinkSuggestions } from '#src/hooks/useRejectLinkSuggestions'
 import { LinkSuggestionsPanel } from '../LinkSuggestionsPanel'
 

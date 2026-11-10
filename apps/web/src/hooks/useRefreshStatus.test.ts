@@ -16,7 +16,7 @@ import {
   statusFixture,
   statusRowFixture,
 } from '../test-support/status.fixture'
-import { statusKeys } from './queryKeys'
+import { statusKeys } from '../lib/queryKeys'
 import { useRefreshStatus } from './useRefreshStatus'
 import { useStatus } from './useStatus'
 

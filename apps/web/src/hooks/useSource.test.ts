@@ -12,10 +12,10 @@ import {
 // Shared
 import type { SourceDocument } from '@atlas/shared'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { getSource } from '../api/jobs.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 import { useSource } from './useSource'
 
 vi.mock( '../api/jobs.api' )

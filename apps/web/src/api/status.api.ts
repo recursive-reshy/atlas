@@ -2,7 +2,7 @@
 import { GetHealthErrorsResponse, GetStatusResponse } from '@atlas/shared'
 import type { HealthError, HealthKind } from '@atlas/shared'
 // App
-import { request } from './request'
+import { request } from '../lib/request'
 
 export const getStatus = async (): Promise< GetStatusResponse > => {
   return request( '/api/status', GetStatusResponse )

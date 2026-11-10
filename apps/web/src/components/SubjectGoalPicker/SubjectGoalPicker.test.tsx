@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { useMe } from '#src/hooks/useMe'
+import { useMe } from '#src/app/useMe'
 import { useThemisOverview } from '#src/hooks/useThemisOverview'
 import { meFixture } from '#src/test-support/me.fixture'
 import { meleteSubjectFixture } from '#src/test-support/melete.fixture'
@@ -22,7 +22,7 @@ import {
 } from '#src/test-support/themis.fixture'
 import { SubjectGoalPicker } from './SubjectGoalPicker'
 
-vi.mock( '#src/hooks/useMe' )
+vi.mock( '#src/app/useMe' )
 vi.mock( '#src/hooks/useThemisOverview' )
 
 const onUpdate = vi.fn()

@@ -15,7 +15,7 @@ vi.mock( '#src/components/MeleteToday', () => ( { MeleteToday: () => <p>melete t
 vi.mock( '#src/components/HomePage', () => ( { HomePage: () => <p>home page</p> } ) )
 vi.mock( '#src/components/ThemisHome', () => ( { ThemisHome: () => <p>themis home</p> } ) )
 vi.mock( '#src/components/ThemisGoal', () => ( { ThemisGoal: () => <p>themis goal</p> } ) )
-vi.mock( '#src/components/AppShell', () => ( {
+vi.mock( './app/AppShell', () => ( {
   AppShell: ( { children }: { children: unknown } ) => <>{ children as never }</>,
 } ) )
 

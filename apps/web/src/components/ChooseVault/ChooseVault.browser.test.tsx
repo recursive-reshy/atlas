@@ -15,7 +15,7 @@ import {
 } from 'vitest'
 import { page } from 'vitest/browser'
 // App
-import { useSignOut } from '#src/hooks/useSignOut'
+import { useSignOut } from '#src/app/useSignOut'
 import { useVaultChoices } from '#src/hooks/useVaultChoices'
 import { createQueryClient } from '#src/queryClient'
 import { mutationStub } from '#src/test-support/mutationStub'
@@ -23,7 +23,7 @@ import { theme } from '#src/theme'
 import { ChooseVault } from './ChooseVault'
 
 vi.mock( '#src/hooks/useVaultChoices' )
-vi.mock( '#src/hooks/useSignOut' )
+vi.mock( '#src/app/useSignOut' )
 
 const MIN_TAP_HEIGHT = 44
 const SIZES = [

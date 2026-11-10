@@ -5,7 +5,7 @@ import type { UseMutationResult } from '@tanstack/react-query'
 import type { AcceptLinkSuggestionsBody, LinkSuggestionsResponse } from '@atlas/shared'
 // App
 import { acceptLinkSuggestions } from '../api/linkSuggestions.api'
-import { jobKeys, linkSuggestionKeys } from './queryKeys'
+import { jobKeys, linkSuggestionKeys } from '../lib/queryKeys'
 
 export function useAcceptLinkSuggestions(
   jobId: string,

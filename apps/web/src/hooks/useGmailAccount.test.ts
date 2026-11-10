@@ -9,11 +9,11 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { disconnectGmail, getGmailAccount } from '../api/gmail.api'
 import { gmailAccountFixture } from '../test-support/gmail.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { gmailKeys } from './queryKeys'
+import { gmailKeys } from '../lib/queryKeys'
 import { useGmailAccount } from './useGmailAccount'
 
 vi.mock( '../api/gmail.api' )

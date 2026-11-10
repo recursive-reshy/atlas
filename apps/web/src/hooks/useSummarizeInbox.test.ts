@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { listInbox, summarizeInbox } from '../api/inbox.api'
 import { feedItemFixture, ITEM_ID } from '../test-support/feed.fixture'
 import { GMAIL_ITEM_ID, gmailItemFixture } from '../test-support/gmail.fixture'
@@ -20,7 +20,7 @@ import {
   gmailKeys,
   inboxKeys,
   jobKeys,
-} from './queryKeys'
+} from '../lib/queryKeys'
 import { useSummarizeInbox } from './useSummarizeInbox'
 
 vi.mock( '../api/inbox.api' )

@@ -7,7 +7,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { listVersions } from '../api/prompts.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import { CODING_ID, versionFixture } from '../test-support/summarizer.fixture'

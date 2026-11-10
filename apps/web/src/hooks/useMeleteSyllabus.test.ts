@@ -11,7 +11,7 @@ import { getMeleteSyllabus } from '../api/syllabus.api'
 import { SUBJECT_ID } from '../test-support/melete.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import { syllabusFixture } from '../test-support/syllabus.fixture'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 import { useMeleteSyllabus } from './useMeleteSyllabus'
 
 vi.mock( '../api/syllabus.api' )

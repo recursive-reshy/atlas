@@ -5,7 +5,7 @@ import type { UseMutationResult } from '@tanstack/react-query'
 import type { GmailAccount } from '@atlas/shared'
 // App
 import { disconnectGmail, getGmailAccount } from '../api/gmail.api'
-import { gmailKeys } from './queryKeys'
+import { gmailKeys } from '../lib/queryKeys'
 
 const REFRESH_MS = 5 * 60 * 1000
 

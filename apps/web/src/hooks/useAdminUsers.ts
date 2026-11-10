@@ -11,7 +11,7 @@ import {
   resetVault,
   updateUser,
 } from '../api/admin.api'
-import { adminKeys } from './queryKeys'
+import { adminKeys } from '../lib/queryKeys'
 
 type Mutation< Variables, Result = AdminUser > = UseMutationResult< Result, Error, Variables >
 

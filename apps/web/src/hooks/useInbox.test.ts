@@ -12,7 +12,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { listInbox } from '../api/inbox.api'
 import { feedItemFixture } from '../test-support/feed.fixture'
 import { gmailItemFixture } from '../test-support/gmail.fixture'

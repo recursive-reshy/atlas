@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography'
 // Shared
 import type { GetThemisGoalResponse } from '@atlas/shared'
 // App
-import { formatDate } from '#src/formatDate'
+import { formatDate } from '#src/lib/formatDate'
 
 interface GoalHistoryProps {
   detail: GetThemisGoalResponse

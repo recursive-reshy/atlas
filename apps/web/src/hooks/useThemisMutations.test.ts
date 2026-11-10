@@ -10,7 +10,7 @@ import {
 import { answerCheckin, createArea } from '../api/themis.api'
 import { CHECKIN_GOAL_ID } from '../test-support/themis.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { themisKeys } from './queryKeys'
+import { themisKeys } from '../lib/queryKeys'
 import { useAnswerCheckin, useCreateArea } from './useThemisMutations'
 
 vi.mock( '../api/themis.api' )

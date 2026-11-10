@@ -11,7 +11,7 @@ import {
 } from 'vitest'
 // App
 import { jobFixture } from '../test-support/job.fixture'
-import { ApiError } from './apiError'
+import { ApiError } from '../lib/apiError'
 import {
   createJob,
   discardJob,

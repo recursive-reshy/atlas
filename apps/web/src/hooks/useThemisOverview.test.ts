@@ -7,7 +7,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { getThemisOverview } from '../api/themis.api'
 import { overviewFixture } from '../test-support/themis.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'

@@ -10,7 +10,7 @@ import {
 import { logTime } from '../api/timeEntries.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import { SUBJECT_ID } from '../test-support/themis.fixture'
-import { meleteKeys, themisKeys } from './queryKeys'
+import { meleteKeys, themisKeys } from '../lib/queryKeys'
 import { useLogTime } from './useLogTime'
 
 vi.mock( '../api/timeEntries.api' )

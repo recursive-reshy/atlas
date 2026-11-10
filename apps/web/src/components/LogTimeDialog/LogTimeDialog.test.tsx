@@ -12,7 +12,7 @@ import {
 } from 'vitest'
 // App
 import { useLogTime } from '#src/hooks/useLogTime'
-import { useMe } from '#src/hooks/useMe'
+import { useMe } from '#src/app/useMe'
 import { useMeleteToday } from '#src/hooks/useMeleteToday'
 import { useThemisOverview } from '#src/hooks/useThemisOverview'
 import { meFixture } from '#src/test-support/me.fixture'
@@ -27,7 +27,7 @@ import { METRIC_GOAL_ID, overviewFixture } from '#src/test-support/themis.fixtur
 import { LogTimeDialog } from './LogTimeDialog'
 
 vi.mock( '#src/hooks/useLogTime' )
-vi.mock( '#src/hooks/useMe' )
+vi.mock( '#src/app/useMe' )
 vi.mock( '#src/hooks/useMeleteToday' )
 vi.mock( '#src/hooks/useThemisOverview' )
 

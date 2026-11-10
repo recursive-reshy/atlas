@@ -6,7 +6,7 @@ import type { MeleteNote, MeleteQuestion } from '@atlas/shared'
 import { getMeleteNote } from '../api/melete.api'
 import { POLL_INTERVAL_MS } from './useJob'
 import { isGenerating } from './useMeleteSubject'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 
 export interface MeleteNoteState {
   note: MeleteNote | null

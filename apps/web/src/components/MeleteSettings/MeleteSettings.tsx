@@ -9,7 +9,7 @@ import Typography from '@mui/material/Typography'
 // App
 import { useModels } from '#src/hooks/useModels'
 import { useSettings } from '#src/hooks/useSettings'
-import { NumberSettingField } from '../NumberSettingField'
+import { NumberSettingField } from '#src/app/NumberSettingField'
 
 interface ModelSelectProps {
   label: string

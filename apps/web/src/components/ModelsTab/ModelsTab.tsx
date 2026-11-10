@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 import Stack from '@mui/material/Stack'
 import Typography from '@mui/material/Typography'
 // App
-import { useMe } from '#src/hooks/useMe'
+import { useMe } from '#src/app/useMe'
 import { LinkingSettings } from '../LinkingSettings'
 import { MeleteSettings } from '../MeleteSettings'
 import { SummarizerDefaults } from '../SummarizerDefaults'

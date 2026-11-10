@@ -4,7 +4,7 @@ import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import type { UsageResponse } from '@atlas/shared'
 // App
 import { getUsage } from '../api/admin.api'
-import { adminKeys } from './queryKeys'
+import { adminKeys } from '../lib/queryKeys'
 
 export interface AdminUsageState {
   usage: UsageResponse | null

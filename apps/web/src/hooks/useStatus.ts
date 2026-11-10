@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { StatusRow } from '@atlas/shared'
 // App
 import { getStatus } from '../api/status.api'
-import { statusKeys } from './queryKeys'
+import { statusKeys } from '../lib/queryKeys'
 
 const REFRESH_MS = 60_000
 

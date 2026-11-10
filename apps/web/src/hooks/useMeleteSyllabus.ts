@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { MeleteSyllabus } from '@atlas/shared'
 // App
 import { getMeleteSyllabus } from '../api/syllabus.api'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 
 export interface MeleteSyllabusState {
   syllabus: MeleteSyllabus | null

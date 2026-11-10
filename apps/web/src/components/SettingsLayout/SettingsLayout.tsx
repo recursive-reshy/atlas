@@ -13,7 +13,7 @@ import {
   useLocation,
 } from 'react-router'
 // App
-import { useMe } from '#src/hooks/useMe'
+import { useMe } from '#src/app/useMe'
 import { useSettings } from '#src/hooks/useSettings'
 import { settingsTabs } from './settingsTabs'
 

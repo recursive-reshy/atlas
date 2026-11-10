@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '#src/api/apiError'
+import { ApiError } from '#src/lib/apiError'
 import { listGmailLabels } from '#src/api/gmail.api'
 import { previewGmailSource } from '#src/api/gmailSources.api'
 import { gmailLabelFixture, gmailPreviewFixture } from '#src/test-support/gmail.fixture'

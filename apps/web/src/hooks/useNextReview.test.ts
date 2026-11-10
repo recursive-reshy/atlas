@@ -7,7 +7,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { getNextReview } from '../api/melete.api'
 import { SUBJECT_ID } from '../test-support/melete.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'

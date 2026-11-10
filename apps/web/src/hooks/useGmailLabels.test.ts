@@ -7,7 +7,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { listGmailLabels } from '../api/gmail.api'
 import { gmailLabelFixture } from '../test-support/gmail.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'

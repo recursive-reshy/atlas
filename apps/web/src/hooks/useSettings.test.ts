@@ -9,11 +9,11 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { getSettings, updateSettings } from '../api/settings.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import { settingsFixture } from '../test-support/summarizer.fixture'
-import { meleteKeys, settingsKeys } from './queryKeys'
+import { meleteKeys, settingsKeys } from '../lib/queryKeys'
 import { useSettings } from './useSettings'
 
 vi.mock( '../api/settings.api' )

@@ -5,7 +5,7 @@ import type { UseMutationResult } from '@tanstack/react-query'
 import type { InboxItemRef } from '@atlas/shared'
 // App
 import { dismissInbox } from '../api/inbox.api'
-import { feedKeys, gmailKeys, inboxKeys } from './queryKeys'
+import { feedKeys, gmailKeys, inboxKeys } from '../lib/queryKeys'
 
 export function useDismissInbox(): UseMutationResult< void, Error, InboxItemRef[] > {
   const queryClient = useQueryClient()

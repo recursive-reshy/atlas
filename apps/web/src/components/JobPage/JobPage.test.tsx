@@ -15,7 +15,7 @@ import {
 import { serializeNote } from '@atlas/shared'
 import type { Job } from '@atlas/shared'
 // App
-import { ApiError } from '#src/api/apiError'
+import { ApiError } from '#src/lib/apiError'
 import {
   createJob,
   saveJob,

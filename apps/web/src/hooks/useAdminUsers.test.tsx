@@ -18,7 +18,7 @@ import {
 } from '../api/admin.api'
 import { adminUserFixture } from '../test-support/me.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { adminKeys } from './queryKeys'
+import { adminKeys } from '../lib/queryKeys'
 import { useAdminUsers } from './useAdminUsers'
 
 vi.mock( '../api/admin.api' )

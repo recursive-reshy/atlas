@@ -13,7 +13,7 @@ import { getMeleteGaps, suggestResources } from '../api/gaps.api'
 import { gapsFixture, suggestionsFixture } from '../test-support/gaps.fixture'
 import { SUBJECT_ID } from '../test-support/melete.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 import { useMeleteGaps } from './useMeleteGaps'
 import { useSuggestResources } from './useSuggestResources'
 

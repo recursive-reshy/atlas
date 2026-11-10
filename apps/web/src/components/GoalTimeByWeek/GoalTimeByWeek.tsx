@@ -6,7 +6,7 @@ import Typography from '@mui/material/Typography'
 // Shared
 import type { ThemisWeekTime } from '@atlas/shared'
 // App
-import { formatStudyTime } from '#src/formatStudyTime'
+import { formatStudyTime } from '#src/lib/formatStudyTime'
 import { TimeBar } from '../TimeBar'
 
 interface GoalTimeByWeekProps {

@@ -2,7 +2,7 @@
 import { AdminUser, UsageResponse } from '@atlas/shared'
 import type { CreateUserBody, UpdateUserBody } from '@atlas/shared'
 // App
-import { request, send } from './request'
+import { request, send } from '../lib/request'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 

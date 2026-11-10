@@ -11,7 +11,7 @@ import type {
   PromptVersion,
 } from '@atlas/shared'
 // App
-import { request, send } from './request'
+import { request, send } from '../lib/request'
 
 const profilePath = ( id: string ): string => `/api/prompt-profiles/${ encodeURIComponent( id ) }`
 

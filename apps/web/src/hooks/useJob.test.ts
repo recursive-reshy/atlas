@@ -12,7 +12,7 @@ import {
 // Shared
 import type { Job } from '@atlas/shared'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { getJob } from '../api/jobs.api'
 import { jobFixture } from '../test-support/job.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'

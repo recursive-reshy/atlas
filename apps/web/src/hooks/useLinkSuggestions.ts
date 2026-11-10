@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { StoredLinkSuggestion } from '@atlas/shared'
 // App
 import { listLinkSuggestions } from '../api/linkSuggestions.api'
-import { linkSuggestionKeys } from './queryKeys'
+import { linkSuggestionKeys } from '../lib/queryKeys'
 
 export interface LinkSuggestionsState {
   suggestions: StoredLinkSuggestion[]

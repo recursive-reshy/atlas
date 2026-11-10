@@ -15,7 +15,7 @@ import {
   profileFixture,
   profilesFixture,
 } from '../test-support/summarizer.fixture'
-import { promptKeys } from './queryKeys'
+import { promptKeys } from '../lib/queryKeys'
 import { useMeleteProfiles } from './useMeleteProfiles'
 
 vi.mock( '../api/prompts.api' )

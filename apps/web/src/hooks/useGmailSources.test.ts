@@ -11,7 +11,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import {
   checkAllGmailSources,
   checkGmailSource,
@@ -22,7 +22,7 @@ import {
 } from '../api/gmailSources.api'
 import { SOURCE_ID, gmailSourceFixture } from '../test-support/gmail.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { gmailKeys, inboxKeys, jobKeys } from './queryKeys'
+import { gmailKeys, inboxKeys, jobKeys } from '../lib/queryKeys'
 import { useGmailSources } from './useGmailSources'
 
 vi.mock( '../api/gmailSources.api' )

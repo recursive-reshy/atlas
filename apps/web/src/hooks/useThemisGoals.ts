@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { GetThemisGoalResponse, ThemisGoalListItem } from '@atlas/shared'
 // App
 import { getThemisGoal, getThemisGoals } from '../api/themis.api'
-import { themisKeys } from './queryKeys'
+import { themisKeys } from '../lib/queryKeys'
 
 export interface ThemisGoalState {
   detail: GetThemisGoalResponse | null

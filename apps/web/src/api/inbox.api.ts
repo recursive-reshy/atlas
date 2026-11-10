@@ -7,7 +7,7 @@ import type {
   SummarizeInboxBody,
 } from '@atlas/shared'
 // App
-import { request, send } from './request'
+import { request, send } from '../lib/request'
 
 const postJson = ( body: unknown ): RequestInit => {
   return {

@@ -12,7 +12,7 @@ import type {
   StoredLinkSuggestion,
 } from '@atlas/shared'
 // App
-import { request } from './request'
+import { request } from '../lib/request'
 
 const jobPath = ( id: string ): string => `/api/jobs/${ encodeURIComponent( id ) }`
 

@@ -16,7 +16,7 @@ import type {
   UpdateMeleteSubjectBody,
 } from '@atlas/shared'
 // App
-import { request } from './request'
+import { request } from '../lib/request'
 
 // The two single-entity responses have no schema of their own; these pick the key out of the
 // full responses' schemas.

@@ -10,7 +10,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { getMeleteSubject } from '../api/melete.api'
 import {
   meleteNoteFixture,

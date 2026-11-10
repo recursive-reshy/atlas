@@ -7,7 +7,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { getHealthErrors } from '../api/status.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import { useHealthErrors } from './useHealthErrors'

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { FolderNode } from '@atlas/shared'
 // App
 import { listFolders } from '../api/vault.api'
-import { vaultKeys } from './queryKeys'
+import { vaultKeys } from '../lib/queryKeys'
 
 export interface FoldersState {
   defaultFolder: string | null

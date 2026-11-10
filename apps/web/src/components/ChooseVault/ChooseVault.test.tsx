@@ -10,14 +10,14 @@ import {
   vi,
 } from 'vitest'
 // App
-import { useSignOut } from '#src/hooks/useSignOut'
+import { useSignOut } from '#src/app/useSignOut'
 import { useVaultChoices } from '#src/hooks/useVaultChoices'
 import { mutationStub } from '#src/test-support/mutationStub'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { ChooseVault } from './ChooseVault'
 
 vi.mock( '#src/hooks/useVaultChoices' )
-vi.mock( '#src/hooks/useSignOut' )
+vi.mock( '#src/app/useSignOut' )
 
 type State = ReturnType< typeof useVaultChoices >
 

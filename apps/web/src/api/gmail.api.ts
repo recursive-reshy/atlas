@@ -2,7 +2,7 @@
 import { GetGmailAccountResponse, ListGmailLabelsResponse } from '@atlas/shared'
 import type { GmailAccount, GmailLabel } from '@atlas/shared'
 // App
-import { request, send } from './request'
+import { request, send } from '../lib/request'
 
 export const GMAIL_CONNECT_URL = '/api/gmail/connect'
 

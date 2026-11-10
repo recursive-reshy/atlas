@@ -10,7 +10,7 @@ import Typography from '@mui/material/Typography'
 // Shared
 import { Guidance } from '@atlas/shared'
 // App
-import { ConfirmDialog } from '../ConfirmDialog'
+import { ConfirmDialog } from '#src/app/ConfirmDialog'
 
 const LIMIT = 20_000
 const RESET_MESSAGE = 'The shipped prompt is saved as a new version. '

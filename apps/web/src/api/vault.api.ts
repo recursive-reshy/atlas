@@ -1,7 +1,7 @@
 // Shared
 import { ErrorResponse, ListFoldersResponse } from '@atlas/shared'
 // App
-import { ApiError } from './apiError'
+import { ApiError } from '../lib/apiError'
 
 export const listFolders = async (): Promise< ListFoldersResponse > => {
   let response: Response

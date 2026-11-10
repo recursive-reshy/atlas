@@ -14,7 +14,7 @@ import {
 } from 'vitest'
 import { page } from 'vitest/browser'
 // App
-import { useMe } from '#src/hooks/useMe'
+import { useMe } from '#src/app/useMe'
 import { useMeleteProfiles } from '#src/hooks/useMeleteProfiles'
 import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
 import { usePromptVersions } from '#src/hooks/usePromptVersions'
@@ -30,7 +30,7 @@ import { CODING_ID } from '#src/test-support/summarizer.fixture'
 import { theme } from '#src/theme'
 import { PromptsTab } from './PromptsTab'
 
-vi.mock( '#src/hooks/useMe' )
+vi.mock( '#src/app/useMe' )
 vi.mock( '#src/hooks/useSettings' )
 vi.mock( '#src/hooks/usePromptProfiles' )
 vi.mock( '#src/hooks/useMeleteProfiles' )

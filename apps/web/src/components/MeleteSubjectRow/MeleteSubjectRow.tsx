@@ -11,7 +11,7 @@ import { Link as RouterLink } from 'react-router'
 // Shared
 import type { MeleteSubject } from '@atlas/shared'
 // App
-import { formatStudyTime } from '#src/formatStudyTime'
+import { formatStudyTime } from '#src/lib/formatStudyTime'
 import { LEVELS } from '#src/syllabusLevels'
 
 interface MeleteSubjectRowProps {

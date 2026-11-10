@@ -14,7 +14,7 @@ import Typography from '@mui/material/Typography'
 // Shared
 import type { CreateFeedBody, PreviewFeedResponse, PromptProfile } from '@atlas/shared'
 // App
-import { formatDate } from '#src/formatDate'
+import { formatDate } from '#src/lib/formatDate'
 import { useFeedPreview } from '#src/hooks/useFeedPreview'
 import { FeedFields } from '../FeedFields'
 

@@ -10,7 +10,7 @@ import {
 // App
 import { jobFixture } from '../test-support/job.fixture'
 import { linkSuggestionFixture, SUGGESTION_ID } from '../test-support/linkSuggestion.fixture'
-import { ApiError } from './apiError'
+import { ApiError } from '../lib/apiError'
 import {
   acceptLinkSuggestions,
   listLinkSuggestions,

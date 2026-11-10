@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { GmailLabel } from '@atlas/shared'
 // App
 import { listGmailLabels } from '../api/gmail.api'
-import { gmailKeys } from './queryKeys'
+import { gmailKeys } from '../lib/queryKeys'
 
 export interface GmailLabelsState {
   labels: GmailLabel[]

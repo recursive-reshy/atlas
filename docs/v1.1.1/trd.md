@@ -30,7 +30,7 @@ Built from `prd.md` in this folder. Decided with Naresh on 2026-11-09; ADRs 0096
 3.5 **Health route.** `GET /api/health` runs `isTrustedProxy( req )` (exported from `requestOrigin.ts`); an untrusted peer gets the standard 404. `deploy.sh`, the Compose healthcheck and e2e all connect locally.
 
 ## 4. Web layout (checkpoint C, ADR 0098)
-4.1 `src/` root: `main.tsx`, `App.tsx`, `routes.tsx`, `theme.ts`, `queryClient.ts` only.
+4.1 `src/` root: `main.tsx`, `App.tsx`, `routes.tsx`, `theme.ts`, `queryClient.ts` and their tests only: five source files and their tests.
 4.2 `src/app/`: shell, drawer, gate, `GatePage`, `HomeRedirect`, `RequireModule`, `ColorModeControl`, `SignInPage`, `moduleHome.ts`, `moduleLabels.ts`.
 4.3 `src/lib/`: `request.ts`, `apiError.ts`, the formatters, `queryKeys.ts` (the key factories stay in one file for now).
 4.4 `src/features/<feature>/` for `jobs`, `feeds`, `inbox`, `gmail`, `vault`, `settings`, `status`, `admin`, `melete`, `themis`. Inside a feature: `components/<Name>/` (unchanged convention: `<Name>.tsx`, `<Name>.test.tsx`, `index.ts`), `hooks/`, `api/`, `fixtures/`. A component used by two features lives in the one that owns the data (`ConfirmDialog` and `NumberSettingField` go to `src/app/`).

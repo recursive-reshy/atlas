@@ -17,7 +17,7 @@ import type {
   UpdateDraftBody,
 } from '@atlas/shared'
 // App
-import { request, send } from './request'
+import { request, send } from '../lib/request'
 
 const jobPath = ( id: string ): string => `/api/jobs/${ encodeURIComponent( id ) }`
 

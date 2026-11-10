@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { HealthError, HealthKind } from '@atlas/shared'
 // App
 import { getHealthErrors } from '../api/status.api'
-import { statusKeys } from './queryKeys'
+import { statusKeys } from '../lib/queryKeys'
 
 export interface HealthErrorsState {
   errors: HealthError[]

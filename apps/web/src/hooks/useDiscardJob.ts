@@ -5,7 +5,7 @@ import type { UseMutationResult } from '@tanstack/react-query'
 import type { Job } from '@atlas/shared'
 // App
 import { discardJob } from '../api/jobs.api'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 
 interface DiscardContext {
   previous: Job[] | undefined

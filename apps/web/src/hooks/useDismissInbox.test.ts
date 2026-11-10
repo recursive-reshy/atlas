@@ -9,12 +9,12 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { dismissInbox } from '../api/inbox.api'
 import { ITEM_ID } from '../test-support/feed.fixture'
 import { GMAIL_ITEM_ID } from '../test-support/gmail.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { feedKeys, gmailKeys, inboxKeys } from './queryKeys'
+import { feedKeys, gmailKeys, inboxKeys } from '../lib/queryKeys'
 import { useDismissInbox } from './useDismissInbox'
 
 vi.mock( '../api/inbox.api' )

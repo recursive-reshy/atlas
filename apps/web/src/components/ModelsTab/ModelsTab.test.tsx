@@ -9,12 +9,12 @@ import {
   vi,
 } from 'vitest'
 // App
-import { useMe } from '#src/hooks/useMe'
+import { useMe } from '#src/app/useMe'
 import { meFixture, memberFixture } from '#src/test-support/me.fixture'
 import { renderWithClient } from '#src/test-support/renderWithClient'
 import { ModelsTab } from './ModelsTab'
 
-vi.mock( '#src/hooks/useMe' )
+vi.mock( '#src/app/useMe' )
 vi.mock( '../SummarizerDefaults', () => ( { SummarizerDefaults: () => <p>defaults</p> } ) )
 vi.mock( '../LinkingSettings', () => ( { LinkingSettings: () => <p>linking</p> } ) )
 vi.mock( '../MeleteSettings', () => ( { MeleteSettings: () => <p>melete models</p> } ) )

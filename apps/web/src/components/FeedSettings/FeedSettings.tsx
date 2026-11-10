@@ -12,7 +12,7 @@ import Typography from '@mui/material/Typography'
 import { FeedCheckInterval } from '@atlas/shared'
 // App
 import { useFeeds } from '#src/hooks/useFeeds'
-import { useMe } from '#src/hooks/useMe'
+import { useMe } from '#src/app/useMe'
 import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
 import { useSettings } from '#src/hooks/useSettings'
 import { FeedList } from '../FeedList'

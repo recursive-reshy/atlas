@@ -3,7 +3,7 @@ import type { ReactElement } from 'react'
 // Packages
 import { Navigate, useLocation } from 'react-router'
 // App
-import { useMe } from '#src/hooks/useMe'
+import { useMe } from '#src/app/useMe'
 import { settingsTabs } from '../SettingsLayout/settingsTabs'
 
 // The first tab the user can see. The server's Gmail OAuth callback returns to /settings?gmail=…;

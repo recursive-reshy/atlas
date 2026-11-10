@@ -12,7 +12,7 @@ import {
 // App
 import { previewFeed } from '#src/api/feeds.api'
 import { useFeeds } from '#src/hooks/useFeeds'
-import { useMe } from '#src/hooks/useMe'
+import { useMe } from '#src/app/useMe'
 import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
 import { useSettings } from '#src/hooks/useSettings'
 import { FEED_ID, feedFixture } from '#src/test-support/feed.fixture'
@@ -24,7 +24,7 @@ import { settingsFixture } from '#src/test-support/summarizer.fixture'
 import { FeedSettings } from './FeedSettings'
 
 vi.mock( '#src/hooks/useFeeds' )
-vi.mock( '#src/hooks/useMe' )
+vi.mock( '#src/app/useMe' )
 vi.mock( '#src/api/feeds.api' )
 vi.mock( '#src/hooks/useSettings' )
 vi.mock( '#src/hooks/usePromptProfiles' )

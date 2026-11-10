@@ -5,7 +5,7 @@ import type { UseMutationResult } from '@tanstack/react-query'
 import type { Job, RunLinkingBody } from '@atlas/shared'
 // App
 import { runLinking } from '../api/linkSuggestions.api'
-import { jobKeys, linkSuggestionKeys } from './queryKeys'
+import { jobKeys, linkSuggestionKeys } from '../lib/queryKeys'
 
 export function useRunLinking( jobId: string ): UseMutationResult< Job, Error, RunLinkingBody > {
   const queryClient = useQueryClient()

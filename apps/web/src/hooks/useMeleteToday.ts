@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { GetMeleteTodayResponse } from '@atlas/shared'
 // App
 import { getMeleteToday } from '../api/melete.api'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 
 export interface MeleteTodayState {
   today: GetMeleteTodayResponse | null

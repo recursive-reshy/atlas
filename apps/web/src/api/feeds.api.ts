@@ -10,7 +10,7 @@ import type {
   UpdateFeedBody,
 } from '@atlas/shared'
 // App
-import { request, send } from './request'
+import { request, send } from '../lib/request'
 
 const feedPath = ( id: string ): string => `/api/feeds/${ encodeURIComponent( id ) }`
 

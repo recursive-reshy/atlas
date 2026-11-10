@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { MeleteReviewCounts, MeleteReviewItem } from '@atlas/shared'
 // App
 import { getNextReview } from '../api/melete.api'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 
 export interface NextReviewState {
   item: MeleteReviewItem | null

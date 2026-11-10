@@ -14,7 +14,7 @@ import type {
 } from '@atlas/shared'
 import { MELETE_MAX_CONCEPTS } from '@atlas/shared'
 // App
-import { ConfirmDialog } from '#src/components/ConfirmDialog'
+import { ConfirmDialog } from '#src/app/ConfirmDialog'
 import { SyllabusSectionCard } from '#src/components/SyllabusSectionCard'
 import * as draftOf from '#src/syllabusDraft'
 

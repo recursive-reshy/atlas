@@ -4,7 +4,7 @@ import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
 import type { GetMeleteNoteResponse } from '@atlas/shared'
 // App
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 
 export type Mutation< Variables, Result > = UseMutationResult< Result, Error, Variables >
 

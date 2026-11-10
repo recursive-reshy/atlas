@@ -7,7 +7,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { listLinkSuggestions } from '../api/linkSuggestions.api'
 import { linkSuggestionFixture } from '../test-support/linkSuggestion.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'

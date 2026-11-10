@@ -13,7 +13,7 @@ import {
   restoreVersion,
   saveVersion,
 } from '../api/prompts.api'
-import { promptKeys } from './queryKeys'
+import { promptKeys } from '../lib/queryKeys'
 
 type Mutation< Variables, Result = PromptProfile > = UseMutationResult< Result, Error, Variables >
 

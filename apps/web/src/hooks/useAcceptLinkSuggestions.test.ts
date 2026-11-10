@@ -9,12 +9,12 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { acceptLinkSuggestions } from '../api/linkSuggestions.api'
 import { jobFixture } from '../test-support/job.fixture'
 import { linkSuggestionFixture, SUGGESTION_ID } from '../test-support/linkSuggestion.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { jobKeys, linkSuggestionKeys } from './queryKeys'
+import { jobKeys, linkSuggestionKeys } from '../lib/queryKeys'
 import { useAcceptLinkSuggestions } from './useAcceptLinkSuggestions'
 
 vi.mock( '../api/linkSuggestions.api' )

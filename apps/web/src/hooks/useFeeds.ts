@@ -12,7 +12,7 @@ import {
   listFeeds,
   updateFeed,
 } from '../api/feeds.api'
-import { feedKeys, inboxKeys } from './queryKeys'
+import { feedKeys, inboxKeys } from '../lib/queryKeys'
 
 type Mutation< Variables, Result = Feed > = UseMutationResult< Result, Error, Variables >
 

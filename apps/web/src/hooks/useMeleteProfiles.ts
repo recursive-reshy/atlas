@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { PromptProfile } from '@atlas/shared'
 // App
 import { listProfiles } from '../api/prompts.api'
-import { promptKeys } from './queryKeys'
+import { promptKeys } from '../lib/queryKeys'
 
 const MELETE_PURPOSES: ReadonlySet< PromptProfile[ 'purpose' ] > = new Set( [
   'melete_questions',

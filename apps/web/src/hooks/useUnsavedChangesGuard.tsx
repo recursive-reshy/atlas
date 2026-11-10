@@ -4,7 +4,7 @@ import type { ReactElement } from 'react'
 // Packages
 import { useBlocker } from 'react-router'
 // App
-import { ConfirmDialog } from '../components/ConfirmDialog'
+import { ConfirmDialog } from '../app/ConfirmDialog'
 
 // Guards reloading or closing the tab (beforeunload) and moving to another path inside the app.
 // The caller renders the returned dialog.

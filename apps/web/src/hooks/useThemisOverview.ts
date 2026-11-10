@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { GetThemisOverviewResponse, ThemisPeriod } from '@atlas/shared'
 // App
 import { getThemisOverview } from '../api/themis.api'
-import { themisKeys } from './queryKeys'
+import { themisKeys } from '../lib/queryKeys'
 
 export interface ThemisOverviewState {
   overview: GetThemisOverviewResponse | null

@@ -4,7 +4,7 @@ import { useQuery } from '@tanstack/react-query'
 import type { GetMeleteGapsResponse } from '@atlas/shared'
 // App
 import { getMeleteGaps } from '../api/gaps.api'
-import { meleteKeys } from './queryKeys'
+import { meleteKeys } from '../lib/queryKeys'
 
 export interface MeleteGapsState {
   gaps: GetMeleteGapsResponse | null

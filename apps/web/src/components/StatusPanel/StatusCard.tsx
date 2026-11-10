@@ -8,7 +8,7 @@ import Typography from '@mui/material/Typography'
 // Shared
 import type { StatusRow } from '@atlas/shared'
 // App
-import { formatAgo } from '#src/checkedAt'
+import { formatAgo } from '#src/lib/checkedAt'
 import { ErrorHistory } from './ErrorHistory'
 import { RowControls } from './RowControls'
 import { StateCell } from './StateCell'

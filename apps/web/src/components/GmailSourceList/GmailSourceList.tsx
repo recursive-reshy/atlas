@@ -17,7 +17,7 @@ import Typography from '@mui/material/Typography'
 // Shared
 import type { GmailSource, UpdateGmailSourceBody } from '@atlas/shared'
 // App
-import { formatChecked } from '#src/checkedAt'
+import { formatChecked } from '#src/lib/checkedAt'
 import { GmailSourceMatch } from './GmailSourceMatch'
 
 const LIST_SX = { display: 'flex', flexDirection: 'column', gap: 1, width: '100%' } as const

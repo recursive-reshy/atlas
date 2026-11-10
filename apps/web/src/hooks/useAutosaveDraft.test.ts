@@ -12,11 +12,11 @@ import {
 // Shared
 import type { Job } from '@atlas/shared'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { updateDraft } from '../api/jobs.api'
 import { jobFixture } from '../test-support/job.fixture'
 import { renderHookWithClient } from '../test-support/renderWithClient'
-import { jobKeys } from './queryKeys'
+import { jobKeys } from '../lib/queryKeys'
 import { AUTOSAVE_DEBOUNCE_MS, useAutosaveDraft } from './useAutosaveDraft'
 
 vi.mock( '../api/jobs.api' )

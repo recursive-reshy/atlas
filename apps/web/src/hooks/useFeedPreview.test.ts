@@ -9,7 +9,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { previewFeed } from '../api/feeds.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import { useFeedPreview } from './useFeedPreview'

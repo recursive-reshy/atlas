@@ -11,7 +11,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { getStatus } from '../api/status.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import { failingRowFixture, statusFixture } from '../test-support/status.fixture'

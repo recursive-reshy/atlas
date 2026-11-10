@@ -23,7 +23,7 @@ import {
   SUBJECT_ID,
   metricCardFixture,
 } from '../test-support/themis.fixture'
-import { meleteKeys, themisKeys } from './queryKeys'
+import { meleteKeys, themisKeys } from '../lib/queryKeys'
 import {
   useCreateGoal,
   useDeleteArea,

@@ -7,7 +7,7 @@ import {
   vi,
 } from 'vitest'
 // App
-import { ApiError } from '../api/apiError'
+import { ApiError } from '../lib/apiError'
 import { getThemisGoal, getThemisGoals } from '../api/themis.api'
 import { renderHookWithClient } from '../test-support/renderWithClient'
 import { METRIC_GOAL_ID } from '../test-support/themis.fixture'

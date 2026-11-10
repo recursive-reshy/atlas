@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router'
 // App
 import { usePromptProfiles } from '#src/hooks/usePromptProfiles'
 import { useSettings } from '#src/hooks/useSettings'
-import { ConfirmDialog } from '../ConfirmDialog'
+import { ConfirmDialog } from '#src/app/ConfirmDialog'
 import { ProfileActions } from '../ProfileActions'
 import { deleteBlockedReason } from '../ProfileActions/deleteBlockedReason'
 import { ProfileNameDialog } from '../ProfileNameDialog'

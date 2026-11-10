@@ -10,7 +10,7 @@ import type {
 } from '@atlas/shared'
 // App
 import { answerCheckin, createArea } from '../api/themis.api'
-import { themisKeys } from './queryKeys'
+import { themisKeys } from '../lib/queryKeys'
 
 type Mutation< Variables, Result > = UseMutationResult< Result, Error, Variables >
 

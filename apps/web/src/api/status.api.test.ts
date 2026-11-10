@@ -9,7 +9,7 @@ import {
 } from 'vitest'
 // App
 import { failingRowFixture, statusFixture } from '../test-support/status.fixture'
-import { ApiError } from './apiError'
+import { ApiError } from '../lib/apiError'
 import { getHealthErrors, getStatus, refreshStatus } from './status.api'
 
 const fetchMock = vi.fn()

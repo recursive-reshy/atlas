@@ -16,9 +16,9 @@ import Typography from '@mui/material/Typography'
 // Shared
 import { VaultDir } from '@atlas/shared'
 // App
-import { useSignOut } from '#src/hooks/useSignOut'
+import { useSignOut } from '#src/app/useSignOut'
 import { useVaultChoices } from '#src/hooks/useVaultChoices'
-import { GatePage } from '../GatePage'
+import { GatePage } from '#src/app/GatePage'
 
 const NAME_RULE = '1 to 40 characters: lowercase letters, digits and hyphens, '
   + 'not starting or ending with a hyphen.'
