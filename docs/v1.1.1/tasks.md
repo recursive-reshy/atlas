@@ -73,7 +73,7 @@ Target layout (TRD §3): `src/app/` (shell, gate, routing helpers), `src/lib/` (
 ---
 
 ## Checkpoint D: Server structure and performance (behaviour-neutral)
-**Plan:** ⬜ `plans/checkpoint-d.md`
+**Plan:** ✅ [`plans/checkpoint-d.md`](plans/checkpoint-d.md)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
