@@ -39,7 +39,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 | --- | --- | --- | --- |
 | 1.1 | Version 1.2.0 in every `package.json`, `apps/agent/pyproject.toml` and its `uv.lock` entry; `docs/README.md` lists v1.2.0 with this folder's docs and ADRs 0103–0109; ADR 0043 status "Hand-mirror clause superseded by 0104", ADR 0055 "Narrowed by 0103"; `nameGuard.test.mjs` `HISTORY` gains `docs/v1.2.0/` and ADRs 0103–0109 (TRD §3.1a); commit this folder's docs and the ADRs | | ✅ |
 | 1.2 | Gate (TRD §3.1): `scripts/gate.mjs` without the contract step, `scripts/gate.test.mjs` first; root `gate` and `test` scripts; root `CLAUDE.md` "Before you stop" names the gate | 0106 | ✅ |
-| 1.3 | `@anthropic-ai/sdk` 1.x (TRD §3.2): migration guide read first, types fixed, gate green for server; `test:integration` run once by hand, result in the log | 0107 | ⬜ |
+| 1.3 | `@anthropic-ai/sdk` 1.x (TRD §3.2): migration guide read first, types fixed, gate green for server; `test:integration` run once by hand, result in the log | 0107 | 🟨 |
 
 **Checkpoint A done when:** `pnpm gate` runs every step and prints its table, and the server runs on SDK 1.x.
 
@@ -126,3 +126,4 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 _(one line per ticked task: id, commit hash, moved or deleted test files)_
 - 1.1: version 1.2.0 everywhere, docs index lists v1.2.0 and ADRs 0103–0109, ADR 0043/0055 statuses, nameGuard HISTORY extended. No test files moved or deleted. Root scripts/deploy 123 pass; agent 283 pass, ruff clean; typecheck clean in all five folders.
 - 1.2: gate (`scripts/gate.mjs`, `scripts/gate.test.mjs`), root `gate` and `test` scripts, CLAUDE.md "Before you stop", README test lines. No test files moved or deleted. `pnpm gate`: 17 steps pass.
+- 1.3 (not ticked): `@anthropic-ai/sdk` ^0.137.0 → ^1.6.0, no code changes needed (typecheck, lint, unit tests green). 1.6.0 not 1.7.0: 1.7.0 was under a day old and pnpm's minimumReleaseAge refused it. Migration guide lists more than the three breaks in ADR 0107 (document blocks in assistant messages, citations in user messages, tool-runner compaction, Text Completions, `betas` on Models, X-Api-Key proxies, one credential per client); grep shows the server uses none. `test:integration` NOT run: no ANTHROPIC_API_KEY in apps/server/.env. Needs Naresh.
