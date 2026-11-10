@@ -1,7 +1,7 @@
 // Packages
 import { useQuery } from '@tanstack/react-query'
 // Shared
-import type { Job } from '@atlas/shared'
+import type { Job, JobListItem } from '@atlas/shared'
 // App
 import { listJobs } from '../api/jobs.api'
 import { jobKeys } from '#src/lib/queryKeys'
@@ -16,7 +16,7 @@ const IN_PROGRESS_STATUSES: Job[ 'status' ][] = [
 ]
 
 export interface JobsState {
-  jobs: Job[] | null
+  jobs: JobListItem[] | null
   error: string | null
   updatedAt: number
 }

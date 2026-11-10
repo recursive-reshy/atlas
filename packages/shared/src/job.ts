@@ -70,3 +70,7 @@ export const Job = z.object( {
   gmail_source_name: z.string().nullable(),
 } )
 export type Job = z.infer< typeof Job >
+
+// The list leaves the draft out (ADR 0102): the detail read carries it
+export const JobListItem = Job.omit( { note_markdown: true } )
+export type JobListItem = z.infer< typeof JobListItem >

@@ -2,13 +2,13 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { UseMutationResult } from '@tanstack/react-query'
 // Shared
-import type { Job } from '@atlas/shared'
+import type { JobListItem } from '@atlas/shared'
 // App
 import { discardJob } from '../api/jobs.api'
 import { jobKeys } from '#src/lib/queryKeys'
 
 interface DiscardContext {
-  previous: Job[] | undefined
+  previous: JobListItem[] | undefined
 }
 
 export function useDiscardJob(
@@ -21,9 +21,9 @@ export function useDiscardJob(
     onMutate: async () => {
       await queryClient.cancelQueries( { queryKey: jobKeys.all, exact: true } )
 
-      const previous = queryClient.getQueryData< Job[] >( jobKeys.all )
+      const previous = queryClient.getQueryData< JobListItem[] >( jobKeys.all )
 
-      queryClient.setQueryData< Job[] >(
+      queryClient.setQueryData< JobListItem[] >(
         jobKeys.all,
         ( jobs ) => jobs?.filter( ( { id } ) => id !== jobId ),
       )

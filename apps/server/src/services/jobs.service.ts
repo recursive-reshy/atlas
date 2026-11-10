@@ -2,6 +2,7 @@
 import {
   CreateJobBody,
   Job,
+  JobListItem,
   JobStatus,
   LinkUsageSummary,
   SummaryUsage,
@@ -369,11 +370,12 @@ export const findJob = ( userId: string, id: string ): Job => {
   return toPublicJob( userId, requireJob( userId, id ) )
 }
 
-export const listJobs = ( userId: string ): Job[] => {
+export const listJobs = ( userId: string ): JobListItem[] => {
   const jobs = listActiveJobs( userId )
   const lookups = lookupsFor( userId, jobs.map( ( { id } ) => id ) )
 
-  return jobs.map( ( job ) => toPublicJob( userId, job, lookups ) )
+  // Parsing drops note_markdown: a listed job has no draft field, not an empty one (ADR 0102)
+  return jobs.map( ( job ) => JobListItem.parse( toPublicJob( userId, job, lookups ) ) )
 }
 
 // The worker serves every user in turn (ADR 0064): the next job comes with whose it is

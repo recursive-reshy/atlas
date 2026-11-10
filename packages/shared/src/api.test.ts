@@ -276,6 +276,14 @@ describe( 'ListJobsResponse', () => {
     ).toBe( true )
   } )
 
+  it( 'has no draft on a listed job: the list type is the job without note_markdown', () => {
+    const listed = ListJobsResponse.parse( {
+      jobs: [ { id: jobId, ...jobFields, note_markdown: '---\n---\nDraft' } ],
+    } )
+
+    expect( listed.jobs[ 0 ] ).not.toHaveProperty( 'note_markdown' )
+  } )
+
   it( 'rejects an invalid job in the list', () => {
     expect(
       ListJobsResponse.safeParse( { jobs: [ { id: 'x', ...jobFields } ] } ).success,

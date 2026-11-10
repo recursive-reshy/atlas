@@ -11,6 +11,7 @@ import type {
   CreateJobBody,
   DownloadFormat,
   Job,
+  JobListItem,
   RegenerateSummaryBody,
   SourceDocument,
   SubmitPastedTextBody,
@@ -49,7 +50,7 @@ export const getJob = async ( id: string ): Promise< Job > => {
   return job
 }
 
-export const listJobs = async (): Promise< Job[] > => {
+export const listJobs = async (): Promise< JobListItem[] > => {
   const { jobs } = await request( '/api/jobs', ListJobsResponse )
   return jobs
 }

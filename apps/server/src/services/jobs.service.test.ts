@@ -9,6 +9,7 @@ import {
 } from 'vitest'
 // Shared
 import {
+  JobListItem,
   JobStatus,
   SourceDocument,
   VideoSource,
@@ -523,8 +524,8 @@ describe( 'listJobs for many jobs', () => {
       ids.push( id )
     }
 
-    // The list leaves the draft out; everything else matches the single-job read
-    const expected = ids.map( ( id ) => ( { ...findJob( userId, id ), note_markdown: null } ) )
+    // The list leaves the draft out (ADR 0102); everything else matches the single-job read
+    const expected = ids.map( ( id ) => JobListItem.parse( findJob( userId, id ) ) )
     const prepare = vi.spyOn( getDatabase(), 'prepare' )
 
     const jobs = listJobs( userId )

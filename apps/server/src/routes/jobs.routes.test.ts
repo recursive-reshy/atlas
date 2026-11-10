@@ -199,6 +199,19 @@ describe( 'GET /api/jobs', () => {
     expect( JSON.stringify( response.body ) ).not.toContain( 'transcript"' )
   } )
 
+  it( 'lists a job in review without its draft, which the detail read still carries', async () => {
+    const id = await seedJobAt( 'ready_for_review' )
+
+    const listed = ( await request( app ).get( '/api/jobs' ) ).body as { jobs: object[] }
+    const detail = ( await request( app ).get( `/api/jobs/${ id }` ) ).body as {
+      job: { note_markdown: string | null }
+    }
+
+    expect( listed.jobs ).toHaveLength( 1 )
+    expect( listed.jobs[ 0 ] ).not.toHaveProperty( 'note_markdown' )
+    expect( detail.job.note_markdown ).toContain( '## Summary' )
+  } )
+
   it( 'leaves out failed jobs', async () => {
     const { id } = await queueJob( userId, { url: youtubeUrl } )
     failJob( userId, id, 'boom' )

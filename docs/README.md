@@ -129,6 +129,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0098](decisions/0098-web-source-grouped-by-feature.md) | The web source is grouped by feature | Accepted |
 | [0099](decisions/0099-schema-sql-in-files.md) | The schema SQL lives in files | Accepted |
 | [0100](decisions/0100-loops-wake-on-queue.md) | The worker and the Melete generator wake when work is queued | Accepted |
+| [0102](decisions/0102-job-list-omits-the-draft.md) | The job list omits the draft | Accepted |
 
 ## Template for new ADRs
 

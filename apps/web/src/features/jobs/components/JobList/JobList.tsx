@@ -9,7 +9,7 @@ import ListItem from '@mui/material/ListItem'
 import Typography from '@mui/material/Typography'
 import { Link as RouterLink } from 'react-router'
 // Shared
-import type { Job } from '@atlas/shared'
+import type { Job, JobListItem } from '@atlas/shared'
 // App
 import { formatExpiry } from '#src/lib/expiry'
 import { FeedChip } from '#src/features/feeds/components/FeedChip'
@@ -45,7 +45,7 @@ const ITEM_SX = {
 const LINK_SX = { flex: '1 1 12rem', overflowWrap: 'anywhere' } as const
 
 interface JobListProps {
-  jobs: Job[]
+  jobs: JobListItem[]
   now: number
 }
 
