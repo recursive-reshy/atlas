@@ -25,7 +25,7 @@ src/
   routes/         <name>.routes.ts — method + path → controller, nothing else
   controllers/    <name>.controller.ts — parse with Zod, call one service, send with an explicit status
   services/       <name>.service.ts — business rules, state changes, typed errors
-  repositories/   <name>.repository.ts — SQLite only; database.ts owns the connection and migrations;
+  repositories/   <name>.repository.ts — SQLite only; database.ts owns the connection and runs the migrations, whose SQL is in sql/*.sql;
                   system.repository.ts holds the only cross-user queries (the loops' claims)
   clients/        one external service each; parse output with Zod, throw on failure, no job logic
   sources/        adapters that turn a job into a SourceDocument; use clients, report through the context

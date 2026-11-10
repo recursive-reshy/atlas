@@ -16,7 +16,7 @@
   "scripts": {
     "start": "node --env-file-if-exists=.env dist/src/server.js",
     "dev": "tsx watch --conditions=development --env-file-if-exists=.env src/server.ts | pino-pretty",
-    "build": "tsc --build tsconfig.build.json",
+    "build": "tsc --build tsconfig.build.json && cp -R src/repositories/sql dist/src/repositories/",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "lint": "eslint .",

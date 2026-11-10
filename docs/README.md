@@ -127,6 +127,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0096](decisions/0096-address-guard-for-fetched-urls.md) | Fetched URLs are refused when they resolve to a private address | Accepted |
 | [0097](decisions/0097-released-vault-folders.md) | A released vault folder is moved aside, so no one else can claim it | Accepted |
 | [0098](decisions/0098-web-source-grouped-by-feature.md) | The web source is grouped by feature | Accepted |
+| [0099](decisions/0099-schema-sql-in-files.md) | The schema SQL lives in files | Accepted |
 
 ## Template for new ADRs
 

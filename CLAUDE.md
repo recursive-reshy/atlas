@@ -39,7 +39,7 @@ Not covered by the PRD, TRD, ADRs or the plan (a new dependency, endpoint, job s
 - **The stored transcript is the source of truth.** Markdown and TXT are rendered by pure formatters, never stored.
 - **No secrets in the repo.** `.env` stays out of git; `.env.example` names variables only.
 - **No new dependency** unless the TRD or an ADR names it. Ask.
-- **Database (ADRs 0084, 0085).** Schema 13 is the 1.0 baseline; production is never reset or hand-edited. A schema change is a migration appended in `apps/server/src/repositories/database.ts`. Never edit, reorder or reformat a locked migration (`migrations.lock.json`) or `SCHEMA_BASE`; fix with a later migration. A new migration needs, written first: a seed `fixtures/schema-<N>.sql`, a test in `database.upgrade.test.ts`, and an `ALLOWED_COUNT_CHANGES` entry if it adds or removes rows. Lock with `pnpm --filter @atlas/server migrations:lock`; `release.sh` refuses an unlocked migration.
+- **Database (ADRs 0084, 0085).** Schema 13 is the 1.0 baseline; production is never reset or hand-edited. A schema change is a migration: a new SQL file in `apps/server/src/repositories/sql/` (ADR 0099) and one entry appended to `migrationFiles` in `database.ts`. Never edit, reorder or reformat a locked migration (`migrations.lock.json`) or `SCHEMA_BASE`; fix with a later migration. A new migration needs, written first: a seed `fixtures/schema-<N>.sql`, a test in `database.upgrade.test.ts`, and an `ALLOWED_COUNT_CHANGES` entry if it adds or removes rows. Lock with `pnpm --filter @atlas/server migrations:lock`; `release.sh` refuses an unlocked migration.
 
 ## Git
 
