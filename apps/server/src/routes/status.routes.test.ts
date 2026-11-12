@@ -187,6 +187,6 @@ describe( 'the status of a member', () => {
     const response = await request( app ).get( '/api/status' )
 
     expect( GetStatusResponse.parse( response.body ).rows.map( ( { kind } ) => kind ) )
-      .toEqual( [ 'agent', 'transcription', 'gmail_connection', 'feed' ] )
+      .toEqual( [ 'agent', 'transcription', 'claude', 'gmail_connection', 'feed' ] )
   } )
 } )

@@ -43,6 +43,8 @@ export const migrationFiles = [
   '18-melete-runs-agent-columns',
   // 19 (ADR 0108): calendar time source; time_entries rebuilt, calendar tables
   '19-calendar-and-time',
+  // 20 (ADR 0110): the health tables accept the Claude API kind
+  '20-claude-health-kind',
 ]
 
 export const migrations: Migration[] = migrationFiles.map( readSql )

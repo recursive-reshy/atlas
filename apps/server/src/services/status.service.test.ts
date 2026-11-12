@@ -41,6 +41,7 @@ const configMock = vi.hoisted( () => {
     sessionDays: number
     gmail: Record< string, unknown > | null
     agent: { url: string } | null
+    claudeAuth: { kind: 'api_key', key: string } | { kind: 'federation' }
     litestreamMetricsUrl: string | null
     vaultSyncStatusDir: string | null
   } = {
@@ -48,6 +49,7 @@ const configMock = vi.hoisted( () => {
     sessionDays: 30,
     gmail: { clientId: 'id' },
     agent: { url: 'http://agent.test' },
+    claudeAuth: { kind: 'api_key', key: 'sk-test' },
     litestreamMetricsUrl: null,
     vaultSyncStatusDir: null,
   }
@@ -112,6 +114,7 @@ const rowOf = (
 beforeEach( () => {
   configMock.gmail = { clientId: 'id' }
   configMock.agent = { url: 'http://agent.test' }
+  configMock.claudeAuth = { kind: 'api_key', key: 'sk-test' }
   configMock.litestreamMetricsUrl = null
   configMock.vaultSyncStatusDir = null
   vi.mocked( runServiceChecks ).mockReset().mockResolvedValue( undefined )
@@ -122,7 +125,7 @@ describe( 'getStatus', () => {
     const { rows, failing_count } = getStatus( userId, true )
 
     expect( rows.map( ( { kind } ) => kind ) )
-      .toEqual( [ 'agent', 'transcription', 'gmail_connection' ] )
+      .toEqual( [ 'agent', 'transcription', 'claude', 'gmail_connection' ] )
     expect( failing_count ).toBe( 0 )
     expect( GetStatusResponse.parse( getStatus( userId, true ) ) )
       .toEqual( getStatus( userId, true ) )
@@ -130,7 +133,12 @@ describe( 'getStatus', () => {
 
   it( 'names the singletons', () => {
     expect( getStatus( userId, true ).rows.map( ( { name } ) => name ) )
-      .toEqual( [ 'Agent service', 'Transcription (Gemini)', 'Gmail connection' ] )
+      .toEqual( [
+        'Agent service',
+        'Transcription (Gemini)',
+        'Claude API (API key)',
+        'Gmail connection',
+      ] )
   } )
 
   it( 'shows a never-checked service as ok with no times', () => {
@@ -183,10 +191,63 @@ describe( 'getStatus', () => {
       expect( getStatus( userId, true ).failing_count ).toBe( 1 )
     } )
 
+    it( 'shows which Claude credential the agent is using, once it has said', () => {
+      recordSuccess( null, 'agent', 'default', at( 1 ), '{"credential":"federation"}' )
+
+      expect( rowOf( 'agent' ).detail ).toBe( 'Claude credential: federation' )
+
+      recordSuccess( null, 'agent', 'default', at( 2 ), '{"credential":"api_key"}' )
+
+      expect( rowOf( 'agent' ).detail ).toBe( 'Claude credential: API key' )
+    } )
+
+    it( 'has no detail before the agent has said, or when it says something else', () => {
+      expect( rowOf( 'agent' ).detail ).toBeNull()
+
+      recordSuccess( null, 'agent', 'default', at( 1 ), 'not json' )
+
+      expect( rowOf( 'agent' ).detail ).toBeNull()
+    } )
+
     it( 'is failing when its check failed and linking is on', () => {
       recordFailure( null, 'agent', 'default', at( 1 ), 'The agent service is not reachable' )
 
       expect( rowOf( 'agent' ) ).toMatchObject( { state: 'failing' } )
+    } )
+  } )
+
+  describe( 'claude', () => {
+    it( 'is named for the credential this app uses', () => {
+      expect( rowOf( 'claude' ).name ).toBe( 'Claude API (API key)' )
+
+      configMock.claudeAuth = { kind: 'federation' }
+
+      expect( rowOf( 'claude' ).name ).toBe( 'Claude API (federation)' )
+    } )
+
+    it( 'is ok when never checked, and never off', () => {
+      expect( rowOf( 'claude' ) )
+        .toMatchObject( { state: 'ok', last_checked_at: null, detail: null } )
+    } )
+
+    it( 'is failing with the check\'s message and counts as a failure', () => {
+      recordFailure( null, 'claude', 'default', at( 1 ), 'AuthenticationError (status 401)' )
+
+      expect( rowOf( 'claude' ) ).toMatchObject( {
+        state: 'failing',
+        last_error: 'AuthenticationError (status 401)',
+      } )
+      expect( getStatus( userId, true ).failing_count ).toBe( 1 )
+    } )
+
+    it( 'is hidden from a member, and its history is a 404', () => {
+      const member = createTestUser().id
+
+      recordFailure( null, 'claude', 'default', at( 1 ), 'down' )
+
+      expect( getStatus( member, false ).rows.map( ( { kind } ) => kind ) )
+        .not.toContain( 'claude' )
+      expect( () => getHealthErrors( member, false, 'claude', 'default' ) ).toThrow( NotFoundError )
     } )
   } )
 
@@ -360,7 +421,7 @@ describe( 'getStatus', () => {
       configMock.litestreamMetricsUrl = METRICS_URL
 
       expect( getStatus( userId, true ).rows.map( ( { kind } ) => kind ) )
-        .toEqual( [ 'agent', 'transcription', 'replication', 'gmail_connection' ] )
+        .toEqual( [ 'agent', 'transcription', 'claude', 'replication', 'gmail_connection' ] )
     } )
   } )
 
@@ -440,6 +501,7 @@ describe( 'getStatus', () => {
         .toEqual( [
           'agent:Agent service',
           'transcription:Transcription (Gemini)',
+          'claude:Claude API (API key)',
           'gmail_connection:Gmail connection',
           'gmail_source:alpha alerts',
           'gmail_source:Beta alerts',
@@ -531,6 +593,7 @@ describe( 'getStatus for two users', () => {
       .toEqual( [
         'Agent service',
         'Transcription (Gemini)',
+        'Claude API (API key)',
         'Gmail connection',
         'Mine',
       ] )

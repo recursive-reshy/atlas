@@ -1,7 +1,7 @@
 // Packages
 import { z } from 'zod'
 // Shared
-import { AppHealthKind } from '@atlas/shared'
+import { AppHealthKind, ClaudeCredential } from '@atlas/shared'
 import type {
   GetStatusResponse,
   HealthError,
@@ -45,6 +45,28 @@ const describeReplication = ( detail: string | null ): string | null => {
     return `Last synced ${ lastSyncAt.slice( 0, 16 ).replace( 'T', ' ' ) } UTC`
   } catch{
     return detail
+  }
+}
+
+const CREDENTIAL_LABELS: Record< ClaudeCredential, string > = {
+  federation: 'federation',
+  api_key: 'API key',
+}
+
+const AgentDetail = z.object( { credential: ClaudeCredential } )
+
+// The agent check stores { credential } as JSON once the agent has said which it uses
+const describeAgent = ( detail: string | null ): string | null => {
+  if( detail === null ) {
+    return null
+  }
+
+  try {
+    const { credential } = AgentDetail.parse( JSON.parse( detail ) )
+
+    return `Claude credential: ${ CREDENTIAL_LABELS[ credential ] }`
+  } catch{
+    return null
   }
 }
 
@@ -187,11 +209,22 @@ export const getStatus = ( userId: string, isAdmin: boolean ): GetStatusResponse
       { kind: 'agent', id: SINGLETON_ID, name: 'Agent service' },
       find( 'agent', SINGLETON_ID ),
       config.agent === null,
+      describeAgent( find( 'agent', SINGLETON_ID )?.detail ?? null ),
     ),
     toRow(
       { kind: 'transcription', id: SINGLETON_ID, name: 'Transcription (Gemini)' },
       find( 'transcription', SINGLETON_ID ),
       false,
+    ),
+    toRow(
+      {
+        kind: 'claude',
+        id: SINGLETON_ID,
+        name: `Claude API (${ CREDENTIAL_LABELS[ config.claudeAuth.kind ] })`,
+      },
+      find( 'claude', SINGLETON_ID ),
+      false,
+      null,
     ),
   ]
   const replicationRows: StatusRow[] = config.litestreamMetricsUrl === null

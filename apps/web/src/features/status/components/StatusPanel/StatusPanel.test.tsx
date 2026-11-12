@@ -141,6 +141,19 @@ describe( 'StatusPanel', () => {
     expect( screen.getByText( 'Last synced 10:00' ) ).toBeInTheDocument()
   } )
 
+  it( 'shows the Claude API row as a service, with its credential in the name', () => {
+    show( [ statusRowFixture( {
+      kind: 'claude',
+      id: 'default',
+      name: 'Claude API (federation)',
+    } ) ] )
+    renderWithClient( <StatusPanel /> )
+
+    const row = screen.getByRole( 'row', { name: /Claude API \(federation\)/ } )
+
+    expect( within( row ).getByText( 'Service' ) ).toBeInTheDocument()
+  } )
+
   it.each( [
     [ 'ok', 'OK' ],
     [ 'failing', 'Failing' ],

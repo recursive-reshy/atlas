@@ -1,6 +1,15 @@
 // Shared
-import { InstructionsResponse, LinkResponse, SyllabusResponse } from '@atlas/shared'
-import type { LinkRequest, SyllabusRequest } from '@atlas/shared'
+import {
+  AgentHealthResponse,
+  InstructionsResponse,
+  LinkResponse,
+  SyllabusResponse,
+} from '@atlas/shared'
+import type {
+  ClaudeCredential,
+  LinkRequest,
+  SyllabusRequest,
+} from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Logging
@@ -28,8 +37,14 @@ export type AgentHealth = 'ok' | 'unavailable'
 
 let health: { status: AgentHealth, expiresAt: number } | undefined
 
+// Which Claude credential the agent said it uses, from the last health answer (ADR 0110)
+let credential: ClaudeCredential | null = null
+
+export const agentCredential = (): ClaudeCredential | null => credential
+
 export const clearAgentHealthCache = (): void => {
   health = undefined
+  credential = null
 }
 
 const requireAgent = ( unconfigured: string ): NonNullable< typeof config.agent > => {
@@ -172,10 +187,21 @@ const probe = async ( url: string ): Promise< AgentHealth > => {
       signal: AbortSignal.timeout( HEALTH_TIMEOUT_MS ),
     } )
 
-    await response.body?.cancel()
+    if( response.status !== 200 ) {
+      await response.body?.cancel()
+      credential = null
 
-    return response.status === 200 ? 'ok' : 'unavailable'
+      return 'unavailable'
+    }
+
+    const body = AgentHealthResponse.safeParse( await response.json().catch( () => null ) )
+
+    credential = body.success ? body.data.claude_credential : null
+
+    return 'ok'
   } catch{
+    credential = null
+
     return 'unavailable'
   }
 }

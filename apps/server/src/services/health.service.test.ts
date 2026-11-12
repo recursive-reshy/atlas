@@ -12,7 +12,8 @@ import {
   afterEach,
 } from 'vitest'
 // Clients
-import { checkHealth } from '../clients/agent.client.js'
+import { agentCredential, checkHealth } from '../clients/agent.client.js'
+import { getAnthropic } from '../clients/anthropic.js'
 import { fetchReplicationMetrics } from '../clients/litestreamMetrics.client.js'
 import { checkGeminiModel } from '../clients/gemini.client.js'
 // Logging
@@ -38,19 +39,36 @@ beforeEach( () => {
   userId = defaultTestAdmin().id
 } )
 
-const configMock = vi.hoisted( () => ( {
+type ConfigMock = {
+  logLevel: string
+  sessionDays: number
+  geminiModel: string
+  geminiApiKey: string
+  geminiBaseUrl: string | null
+  agent: { url: string } | null
+  claudeAuth: { kind: 'api_key', key: string } | { kind: 'federation' }
+  litestreamMetricsUrl: string | null
+  vaultSyncStatusDir: string | null
+}
+
+const configMock = vi.hoisted( (): ConfigMock => ( {
   logLevel: 'silent',
   sessionDays: 30,
   geminiModel: 'test-gemini',
   geminiApiKey: 'test-gemini-key',
   geminiBaseUrl: null,
-  agent: null as { url: string } | null,
-  litestreamMetricsUrl: null as string | null,
-  vaultSyncStatusDir: null as string | null,
+  agent: null,
+  claudeAuth: { kind: 'api_key', key: 'sk-test' },
+  litestreamMetricsUrl: null,
+  vaultSyncStatusDir: null,
 } ) )
 
 vi.mock( '../config.js', () => ( { config: configMock } ) )
-vi.mock( '../clients/agent.client.js', () => ( { checkHealth: vi.fn() } ) )
+vi.mock( '../clients/agent.client.js', () => ( {
+  checkHealth: vi.fn(),
+  agentCredential: vi.fn(),
+} ) )
+vi.mock( '../clients/anthropic.js', () => ( { getAnthropic: vi.fn() } ) )
 vi.mock( '../clients/litestreamMetrics.client.js', () => ( { fetchReplicationMetrics: vi.fn() } ) )
 vi.mock( '../clients/gemini.client.js', () => ( {
   checkGeminiModel: vi.fn(),
@@ -58,11 +76,15 @@ vi.mock( '../clients/gemini.client.js', () => ( {
 
 beforeEach( () => {
   configMock.agent = { url: 'http://agent.test:8100' }
+  configMock.claudeAuth = { kind: 'api_key', key: 'sk-test' }
   configMock.litestreamMetricsUrl = null
   configMock.vaultSyncStatusDir = null
   resetReplicationCheck()
   vi.mocked( fetchReplicationMetrics ).mockReset()
   vi.mocked( checkHealth ).mockReset().mockResolvedValue( 'ok' )
+  vi.mocked( agentCredential ).mockReset().mockReturnValue( null )
+  listModels.mockReset().mockResolvedValue( { data: [] } )
+  vi.mocked( getAnthropic ).mockReset().mockReturnValue( { models: { list: listModels } } as never )
   vi.mocked( checkGeminiModel ).mockReset().mockResolvedValue( undefined )
 } )
 
@@ -70,6 +92,8 @@ afterEach( () => {
   vi.useRealTimers()
   vi.restoreAllMocks()
 } )
+
+const listModels = vi.fn()
 
 describe( 'recordCheck', () => {
   it( 'records a success at the time it is given', () => {
@@ -189,6 +213,93 @@ describe( 'runServiceChecks', () => {
 
     expect( getHealth( null, 'agent', 'default' )?.last_error ).toBe( 'boom' )
     expect( getHealth( null, 'transcription', 'default' ) ).toBeDefined()
+  } )
+} )
+
+describe( 'the agent check, credential source', () => {
+  it( 'stores the credential the agent reported as the detail of an ok row', async () => {
+    vi.mocked( agentCredential ).mockReturnValue( 'federation' )
+
+    await runServiceChecks()
+
+    expect( getHealth( null, 'agent', 'default' )?.detail ).toBe( '{"credential":"federation"}' )
+  } )
+
+  it( 'stores no detail when the agent did not say (an older agent)', async () => {
+    await runServiceChecks()
+
+    expect( getHealth( null, 'agent', 'default' ) )
+      .toMatchObject( { last_error: null, detail: null } )
+  } )
+} )
+
+describe( 'the Claude API check', () => {
+  it( 'lists one model through the shared client, quickly and without retries', async () => {
+    await runServiceChecks()
+
+    expect( listModels ).toHaveBeenCalledWith( { limit: 1 }, { timeout: 10_000, maxRetries: 0 } )
+  } )
+
+  it( 'records ok with the credential source in the API key mode', async () => {
+    await runServiceChecks()
+
+    expect( getHealth( null, 'claude', 'default' ) ).toMatchObject( {
+      last_error: null,
+      detail: '{"source":"api_key"}',
+    } )
+  } )
+
+  it( 'records the federation source under federation', async () => {
+    configMock.claudeAuth = { kind: 'federation' }
+
+    await runServiceChecks()
+
+    expect( getHealth( null, 'claude', 'default' )?.detail ).toBe( '{"source":"federation"}' )
+  } )
+
+  it( 'fails with the error class and the status, and nothing else from the error', async () => {
+    class AuthenticationError extends Error {
+      status = 401
+
+      constructor() {
+        super( 'invalid x-api-key sk-ant-SENTINEL token eyJSENTINEL' )
+        this.name = 'AuthenticationError'
+      }
+    }
+
+    listModels.mockRejectedValue( new AuthenticationError() )
+
+    await runServiceChecks()
+
+    const record = getHealth( null, 'claude', 'default' )
+
+    expect( record?.last_error ).toBe( 'AuthenticationError (status 401)' )
+    expect( JSON.stringify( [ record, listErrors( null, 'claude', 'default' ) ] ) )
+      .not.toMatch( /SENTINEL/ )
+  } )
+
+  it( 'fails with just the class when the error has no status', async () => {
+    listModels.mockRejectedValue( new TypeError( 'secret detail' ) )
+
+    await runServiceChecks()
+
+    expect( getHealth( null, 'claude', 'default' )?.last_error ).toBe( 'TypeError' )
+  } )
+
+  it( 'does not stop the other checks when it fails', async () => {
+    listModels.mockRejectedValue( new Error( 'down' ) )
+
+    await runServiceChecks()
+
+    expect( getHealth( null, 'transcription', 'default' )?.last_error ).toBeNull()
+    expect( getHealth( null, 'agent', 'default' )?.last_error ).toBeNull()
+  } )
+
+  it( 'is kept by pruneHealth, as it always runs', async () => {
+    await runServiceChecks()
+    pruneHealth()
+
+    expect( getHealth( null, 'claude', 'default' ) ).toBeDefined()
   } )
 } )
 

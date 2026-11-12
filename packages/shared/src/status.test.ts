@@ -35,6 +35,7 @@ describe( 'HealthKind', () => {
     'agent',
     'transcription',
     'replication',
+    'claude',
   ] )(
     'accepts %s',
     ( kind ) => {
@@ -50,7 +51,7 @@ describe( 'HealthKind', () => {
 describe( 'AppHealthKind and UserHealthKind', () => {
   it( 'split the kinds into app services and a user\'s own sources', () => {
     expect( AppHealthKind.options )
-      .toEqual( [ 'agent', 'transcription', 'replication' ] )
+      .toEqual( [ 'agent', 'transcription', 'replication', 'claude' ] )
     expect( UserHealthKind.options ).toEqual( [
       'feed',
       'gmail_source',

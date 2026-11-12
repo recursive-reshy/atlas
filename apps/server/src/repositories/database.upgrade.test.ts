@@ -876,3 +876,59 @@ describe( 'migration 19 (stored schema 19, calendar and time, ADR 0108)', () => 
     expect( tableCounts().calendar_events ).toBe( 0 )
   } )
 } )
+
+describe( 'migration 20 (stored schema 20, the Claude health kind, ADR 0110)', () => {
+  const health = 'SELECT * FROM health_status ORDER BY kind, subject_id'
+  const errors = 'SELECT * FROM health_errors ORDER BY id'
+
+  const insertStatus = ( kind: string, userId: string | null ): void => {
+    getDatabase().prepare( `INSERT INTO health_status ( user_id, kind, subject_id )
+      VALUES ( ?, ?, 'default' )` ).run( userId, kind )
+  }
+
+  afterEach( () => {
+    closeDatabase()
+  } )
+
+  it( 'keeps every health row and error with identical values', () => {
+    openSeeded( 19 )
+
+    const before = { status: rows( health ), errors: rows( errors ) }
+
+    runMigrations( getDatabase(), migrations )
+
+    expect( before.status ).toHaveLength( 5 )
+    expect( before.errors ).toHaveLength( 2 )
+    expect( { status: rows( health ), errors: rows( errors ) } ).toEqual( before )
+  } )
+
+  it( 'accepts the claude kind as an app service, and only as one', () => {
+    openSeeded( 19 )
+    runMigrations( getDatabase(), migrations )
+
+    expect( () => insertStatus( 'claude', null ) ).not.toThrow()
+    expect( () => insertStatus( 'claude', '00000000-0000-4000-8000-000000000001' ) )
+      .toThrow( /CHECK/ )
+  } )
+
+  it( 'refused the claude kind before the migration', () => {
+    openSeeded( 19 )
+    closeDatabase()
+    openDatabase( ':memory:', { migrations: migrations.slice( 0, 19 - SCHEMA_BASE ) } )
+
+    expect( () => insertStatus( 'claude', null ) ).toThrow( /CHECK/ )
+  } )
+
+  it( 'keeps the error history index and the user kinds', () => {
+    openSeeded( 19 )
+    runMigrations( getDatabase(), migrations )
+
+    expect( rows( `SELECT name FROM sqlite_master
+      WHERE type = 'index' AND name = 'health_errors_subject'` ) )
+      .toEqual( [ { name: 'health_errors_subject' } ] )
+    expect( () => insertStatus( 'feed', '00000000-0000-4000-8000-000000000001' ) ).not.toThrow()
+    expect( () => insertStatus( 'agent', '00000000-0000-4000-8000-000000000001' ) )
+      .toThrow( /CHECK/ )
+    expect( getDatabase().pragma( 'foreign_key_check' ) ).toEqual( [] )
+  } )
+} )

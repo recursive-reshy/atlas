@@ -19,6 +19,7 @@ import type {
 import {
   AgentError,
   AgentUnavailableError,
+  agentCredential,
   checkHealth,
   clearAgentHealthCache,
   draftSyllabusWithAgent,
@@ -241,6 +242,48 @@ describe( 'fetchInstructions', () => {
 
     expect( ( await rejection( () => fetchInstructions() ) ).message )
       .toBe( 'Linking isn\'t configured' )
+  } )
+} )
+
+describe( 'agentCredential', () => {
+  it( 'is what the last /health answer said, and unknown before any answer', async () => {
+    expect( agentCredential() ).toBeNull()
+
+    fetchMock.mockResolvedValue( json( {
+      status: 'ok',
+      vault: 'readable',
+      claude_credential: 'federation',
+    } ) )
+    await checkHealth( { fresh: true } )
+
+    expect( agentCredential() ).toBe( 'federation' )
+  } )
+
+  it( 'is unknown when the answer has no credential, is not JSON or is a failure', async () => {
+    fetchMock.mockResolvedValue( json( { status: 'ok', vault: 'readable' } ) )
+    await checkHealth( { fresh: true } )
+    expect( agentCredential() ).toBeNull()
+
+    fetchMock.mockResolvedValue( new Response( 'not json', { status: 200 } ) )
+    await checkHealth( { fresh: true } )
+    expect( agentCredential() ).toBeNull()
+
+    fetchMock.mockResolvedValue( json( { status: 'error' }, 503 ) )
+    await checkHealth( { fresh: true } )
+    expect( agentCredential() ).toBeNull()
+  } )
+
+  it( 'is forgotten when the agent stops answering', async () => {
+    fetchMock.mockResolvedValue( json( {
+      status: 'ok',
+      vault: 'readable',
+      claude_credential: 'api_key',
+    } ) )
+    await checkHealth( { fresh: true } )
+    fetchMock.mockRejectedValue( new TypeError( 'fetch failed' ) )
+    await checkHealth( { fresh: true } )
+
+    expect( agentCredential() ).toBeNull()
   } )
 } )
 

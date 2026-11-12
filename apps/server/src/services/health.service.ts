@@ -4,7 +4,8 @@ import { join } from 'node:path'
 // Shared
 import { HealthKind, VaultSyncStatusFile } from '@atlas/shared'
 // Clients
-import { checkHealth } from '../clients/agent.client.js'
+import { agentCredential, checkHealth } from '../clients/agent.client.js'
+import { getAnthropic } from '../clients/anthropic.js'
 import { fetchReplicationMetrics } from '../clients/litestreamMetrics.client.js'
 import type { ReplicationMetrics } from '../clients/litestreamMetrics.client.js'
 import { checkGeminiModel } from '../clients/gemini.client.js'
@@ -49,13 +50,49 @@ const checkAgent = async (): Promise< void > => {
   try {
     const status = await checkHealth( { fresh: true } )
 
+    const credential = agentCredential()
+
     recordCheck(
       null,
       subject,
-      status === 'ok' ? { ok: true } : { ok: false, message: 'The agent service is not reachable' },
+      status === 'ok'
+        ? { ok: true, ...credential === null ? {} : { detail: JSON.stringify( { credential } ) } }
+        : { ok: false, message: 'The agent service is not reachable' },
     )
   } catch( error ) {
     recordCheck( null, subject, { ok: false, message: errorMessage( error ) } )
+  }
+}
+
+const CLAUDE_CHECK_TIMEOUT_MS = 10_000
+
+// Only the error's class and status are kept: a credential exchange can fail with a message that
+// quotes what was sent (ADR 0110).
+const claudeFailure = ( error: unknown ): string => {
+  if( !( error instanceof Error ) ) {
+    return 'Unknown error'
+  }
+
+  const { status } = error as { status?: unknown }
+
+  return typeof status === 'number' ? `${ error.name } (status ${ status })` : error.name
+}
+
+// Lists one model through the shared client, so a failing federation exchange shows here
+const checkClaude = async (): Promise< void > => {
+  const subject: HealthSubject = { kind: 'claude', id: 'default' }
+
+  try {
+    await getAnthropic().models.list(
+      { limit: 1 },
+      { timeout: CLAUDE_CHECK_TIMEOUT_MS, maxRetries: 0 },
+    )
+    recordCheck( null, subject, {
+      ok: true,
+      detail: JSON.stringify( { source: config.claudeAuth.kind } ),
+    } )
+  } catch( error ) {
+    recordCheck( null, subject, { ok: false, message: claudeFailure( error ) } )
   }
 }
 
@@ -171,7 +208,7 @@ const checkVaultSync = async ( directory: string ): Promise< void > => {
 
 // The agent is checked whenever it is configured; its row reads as off while it is not.
 export const runServiceChecks = async (): Promise< void > => {
-  const checks = [ checkTranscription() ]
+  const checks = [ checkTranscription(), checkClaude() ]
 
   if( config.agent !== null ) {
     checks.push( checkAgent() )
