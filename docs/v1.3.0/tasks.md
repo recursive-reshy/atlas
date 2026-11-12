@@ -37,7 +37,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
-| 1.1 | Version 1.3.0 in every `package.json`, `apps/agent/pyproject.toml` and its `uv.lock` entry; root `CLAUDE.md` names 1.3.0; `docs/README.md` lists v1.3.0 and ADR 0110; `nameGuard.test.mjs` `HISTORY` if needed; commit this folder's docs and ADR 0110 (TRD §2.1) | 0110 | ⬜ |
+| 1.1 | Version 1.3.0 in every `package.json`, `apps/agent/pyproject.toml` and its `uv.lock` entry; root `CLAUDE.md` names 1.3.0; `docs/README.md` lists v1.3.0 and ADR 0110; `nameGuard.test.mjs` `HISTORY` if needed; commit this folder's docs and ADR 0110 (TRD §2.1) | 0110 | ✅ |
 | 1.2 | `@anthropic-ai/sdk` 1.6 → 1.7 or newest 1.x past `minimumReleaseAge`, no waiver; `test:integration` by Naresh afterwards, result in the log (TRD §2.4) | | ⬜ |
 | 1.3 | `vitest.integration.config.ts` placeholders for the non-Claude variables; "A local `.env` for development" in `configuration.md` (TRD §2.3) | | ⬜ |
 | 1.4 | `study_today` on `Me`; Log time dialog default and max from it; dialog test with the device a day ahead; `themis.spec.ts` green in local time (TRD §2.2) | | ⬜ |
@@ -121,3 +121,4 @@ _(none yet)_
 
 ## Log
 _(one line per ticked task: id, commit hash, moved or deleted test files)_
+- 1.1: version 1.3.0 everywhere (six package.json, pyproject, uv.lock); README and root CLAUDE.md updated; nameGuard HISTORY gains docs/v1.3.0/ and ADR 0110; no test files moved.

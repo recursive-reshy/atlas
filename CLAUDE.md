@@ -18,11 +18,11 @@ This file holds only what is true everywhere. Each app's `CLAUDE.md` has its lan
 
 ## Workflow
 
-The current version is **1.2.0**; its plan is `docs/v1.2.0/` (`prd.md` what and why, `trd.md` how, `tasks.md` ordered tasks in checkpoints). Only Naresh edits the PRD and TRD. You edit `tasks.md`, write checkpoint plans and ADRs.
+The current version is **1.3.0**; its plan is `docs/v1.3.0/` (`prd.md` what and why, `trd.md` how, `tasks.md` ordered tasks in checkpoints). Only Naresh edits the PRD and TRD. You edit `tasks.md`, write checkpoint plans and ADRs.
 
 Each session:
 1. Read `tasks.md` and say which checkpoint and task is next, in one line. Read the TRD sections and ADRs that task names — not the whole TRD, not every ADR.
-2. Plan cell ⬜: enter plan mode, write one plan for the checkpoint (files, tests first, red → green), stop. When approved, save it to `docs/v1.2.0/plans/checkpoint-<x>.md`, tick the cell, commit, push, start.
+2. Plan cell ⬜: enter plan mode, write one plan for the checkpoint (files, tests first, red → green), stop. When approved, save it to `docs/v1.3.0/plans/checkpoint-<x>.md`, tick the cell, commit, push, start.
 3. Plan cell ✅: continue from the first unticked task.
 
 Per task: failing test → least code → refactor while green → tick `tasks.md` with a log line → commit → push. Work through a checkpoint without stopping; stop and report at its end.

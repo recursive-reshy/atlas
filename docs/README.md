@@ -2,8 +2,9 @@
 
 ## Plans
 
-Each version has its own folder. The current version is 1.2.0. User guides: [deploy.md](deploy.md) (hosting on a VM, including backups and restore), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md). How the app works: [architecture.md](architecture.md).
+Each version has its own folder. The current version is 1.3.0. User guides: [deploy.md](deploy.md) (hosting on a VM, including backups and restore), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md). How the app works: [architecture.md](architecture.md).
 
+- **v1.3.0 (in progress):** [PRD](v1.3.0/prd.md) · [TRD](v1.3.0/trd.md) · [Tasks](v1.3.0/tasks.md) · checkpoint plans in `v1.3.0/plans/`
 - **v1.2.0 (done):** [PRD](v1.2.0/prd.md) · [TRD](v1.2.0/trd.md) · [Tasks](v1.2.0/tasks.md) · [Release notes](v1.2.0/release-notes.md) · checkpoint plans in `v1.2.0/plans/`
 - **v1.1.1 (done):** [PRD](v1.1.1/prd.md) · [TRD](v1.1.1/trd.md) · [Tasks](v1.1.1/tasks.md) · [Release notes](v1.1.1/release-notes.md) · checkpoint plans in `v1.1.1/plans/`
 - **v1.1.0 (done):** [PRD](v1.1.0/prd.md) · [TRD](v1.1.0/trd.md) · [Tasks](v1.1.0/tasks.md) · [Release notes](v1.1.0/release-notes.md) · checkpoint plans in `v1.1.0/plans/`
@@ -139,6 +140,7 @@ Each significant decision is recorded as a short ADR (Architecture Decision Reco
 | [0107](decisions/0107-anthropic-typescript-sdk-1.md) | Express moves to `@anthropic-ai/sdk` 1.x | Accepted |
 | [0108](decisions/0108-google-calendar-time-source.md) | Google Calendar is a reviewed time source for Themis | Accepted |
 | [0109](decisions/0109-home-screen.md) | A Home screen at `/`; the transcriber moves to `/transcriber` | Accepted |
+| [0110](decisions/0110-claude-workload-identity-federation.md) | Claude API credentials: Workload Identity Federation on the VM | Accepted |
 
 ## Template for new ADRs
 
