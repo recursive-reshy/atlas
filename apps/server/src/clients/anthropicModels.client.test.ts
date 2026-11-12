@@ -19,7 +19,7 @@ vi.mock( '@anthropic-ai/sdk', () => {
   return { default: MockAnthropic }
 } )
 vi.mock( '../config.js', () => ( {
-  config: { anthropicApiKey: 'sk-test', summaryTimeoutMs: 12_345 },
+  config: { claudeAuth: { kind: 'api_key', key: 'sk-test' }, summaryTimeoutMs: 12_345 },
 } ) )
 
 type Fake = Record< string, unknown >

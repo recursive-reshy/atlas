@@ -1,8 +1,18 @@
 // Node
+import {
+  mkdtempSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 // Packages
-import { describe, it, expect } from 'vitest'
+import {
+  afterAll,
+  describe,
+  expect,
+  it,
+} from 'vitest'
 // Config
 import {
   assertCalendarApiBaseUrlAllowed,
@@ -28,13 +38,86 @@ const base = {
   ...google,
 }
 
+const federationFiles: string[] = []
+
+type Overrides = Record< string, string | undefined >
+
+const federationEnv = ( overrides: Overrides = {} ): NodeJS.ProcessEnv => {
+  const dir = mkdtempSync( join( tmpdir(), 'atlas-identity-' ) )
+  const tokenFile = join( dir, 'token' )
+
+  writeFileSync( tokenFile, 'header.payload.signature' )
+  federationFiles.push( dir )
+
+  const withoutKey: NodeJS.ProcessEnv = { ...base }
+
+  delete withoutKey.ANTHROPIC_API_KEY
+
+  return {
+    ...withoutKey,
+    ANTHROPIC_FEDERATION_RULE_ID: 'fdrl_test',
+    ANTHROPIC_ORGANIZATION_ID: 'org-test',
+    ANTHROPIC_SERVICE_ACCOUNT_ID: 'svac_test',
+    ANTHROPIC_WORKSPACE_ID: 'wrkspc_test',
+    ANTHROPIC_IDENTITY_TOKEN_FILE: tokenFile,
+    ...overrides,
+  }
+}
+
+afterAll( () => {
+  federationFiles.forEach( ( dir ) => rmSync( dir, { recursive: true, force: true } ) )
+} )
+
+describe( 'loadConfig, Claude credentials (ADR 0110)', () => {
+  it( 'takes the API key mode when only the key is set', () => {
+    expect( loadConfig( base ).claudeAuth ).toEqual( { kind: 'api_key', key: 'sk-test' } )
+  } )
+
+  it( 'takes the federation mode when only the federation variables are set', () => {
+    expect( loadConfig( federationEnv() ).claudeAuth ).toEqual( { kind: 'federation' } )
+  } )
+
+  it( 'refuses a key together with any federation variable, naming both', () => {
+    const env = { ...federationEnv(), ANTHROPIC_API_KEY: 'sk-test' }
+
+    expect( () => loadConfig( env ) ).toThrow( /not both/ )
+    expect( () => loadConfig( env ) ).toThrow( /ANTHROPIC_FEDERATION_RULE_ID/ )
+    expect( () => loadConfig( { ...base, ANTHROPIC_WORKSPACE_ID: 'wrkspc_test' } ) )
+      .toThrow( /ANTHROPIC_WORKSPACE_ID/ )
+  } )
+
+  it( 'refuses an empty key beside federation and says to unset it', () => {
+    expect( () => loadConfig( { ...federationEnv(), ANTHROPIC_API_KEY: '' } ) )
+      .toThrow( /unset it, don't blank it/ )
+  } )
+
+  it.each( [
+    'ANTHROPIC_FEDERATION_RULE_ID',
+    'ANTHROPIC_ORGANIZATION_ID',
+    'ANTHROPIC_SERVICE_ACCOUNT_ID',
+    'ANTHROPIC_WORKSPACE_ID',
+    'ANTHROPIC_IDENTITY_TOKEN_FILE',
+  ] )( 'refuses federation without %s, naming it', ( name ) => {
+    const pattern = new RegExp( name )
+
+    expect( () => loadConfig( federationEnv( { [ name ]: undefined } ) ) ).toThrow( pattern )
+    expect( () => loadConfig( federationEnv( { [ name ]: '' } ) ) ).toThrow( pattern )
+  } )
+
+  it( 'refuses federation when the token file does not exist', () => {
+    const env = federationEnv( { ANTHROPIC_IDENTITY_TOKEN_FILE: '/nonexistent/atlas/token' } )
+
+    expect( () => loadConfig( env ) ).toThrow( /ANTHROPIC_IDENTITY_TOKEN_FILE.*does not exist/ )
+  } )
+} )
+
 describe( 'loadConfig', () => {
   it( 'returns the defaults for a minimal environment', () => {
     expect( loadConfig( base ) ).toEqual( {
       port: 3100,
       dataDir: join( tmpdir(), 'atlas-data' ),
       webDir: undefined,
-      anthropicApiKey: 'sk-test',
+      claudeAuth: { kind: 'api_key', key: 'sk-test' },
       geminiModel: 'gemini-3.8-flash',
       geminiApiKey: 'gemini-key',
       youtubeApiKey: 'yt-key',
@@ -102,7 +185,7 @@ describe( 'loadConfig', () => {
       port: 4000,
       dataDir: '/data',
       webDir: '/srv/web',
-      anthropicApiKey: 'sk-test',
+      claudeAuth: { kind: 'api_key', key: 'sk-test' },
       geminiModel: 'gemini-3.5-flash',
       geminiApiKey: 'gemini-key',
       youtubeApiKey: 'yt-key',
@@ -282,8 +365,11 @@ describe( 'loadConfig', () => {
     },
   )
 
-  it.each( [ undefined, '' ] )( 'throws naming ANTHROPIC_API_KEY when it is %j', ( key ) => {
-    expect( () => loadConfig( { ANTHROPIC_API_KEY: key } ) ).toThrow( /ANTHROPIC_API_KEY/ )
+  it.each( [ undefined, '' ] )( 'throws naming both modes with no credential (%j)', ( key ) => {
+    const env = { ...base, ANTHROPIC_API_KEY: key }
+
+    expect( () => loadConfig( env ) ).toThrow( /ANTHROPIC_API_KEY/ )
+    expect( () => loadConfig( env ) ).toThrow( /ANTHROPIC_FEDERATION_RULE_ID/ )
   } )
 
   it( 'no longer needs VAULT_PATH', () => {

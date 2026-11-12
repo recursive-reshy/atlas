@@ -82,7 +82,9 @@ describe( 'apps/server/.env.example', () => {
   it( 'puts the variables config.ts requires under Required, and no others', () => {
     const required = requiredKeys()
 
-    expect( required ).toContain( 'ANTHROPIC_API_KEY' )
+    // One of a key or the federation variables is required (ADR 0110), which the schema checks as
+    // a whole, so the key is listed under its own heading rather than Required
+    expect( required ).not.toContain( 'ANTHROPIC_API_KEY' )
     const listed = entries.filter( ( { section } ) => section === 'Required' )
 
     expect( listed.map( ( { name } ) => name ).sort() ).toEqual( [ ...required ].sort() )

@@ -45,7 +45,7 @@ vi.mock( '@anthropic-ai/sdk', () => {
 vi.mock( '../logger.js', () => ( { logger: { error: vi.fn(), warn: vi.fn(), info: vi.fn() } } ) )
 vi.mock( '../config.js', () => ( {
   config: {
-    anthropicApiKey: 'sk-test',
+    claudeAuth: { kind: 'api_key', key: 'sk-test' },
     summaryTimeoutMs: 12_345,
     melete: { generationTimeoutMs: 54_321, gradingTimeoutMs: 7_654 },
   },

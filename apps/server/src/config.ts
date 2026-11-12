@@ -1,4 +1,5 @@
 // Node
+import { existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 // Packages
@@ -127,12 +128,83 @@ export const ignoredEnv = ( env: NodeJS.ProcessEnv ): string[] => {
   return IGNORED_VARIABLES.filter( ( name ) => env[ name ] !== undefined && env[ name ] !== '' )
 }
 
+const FEDERATION_VARIABLES = [
+  'ANTHROPIC_FEDERATION_RULE_ID',
+  'ANTHROPIC_ORGANIZATION_ID',
+  'ANTHROPIC_SERVICE_ACCOUNT_ID',
+  'ANTHROPIC_WORKSPACE_ID',
+  'ANTHROPIC_IDENTITY_TOKEN_FILE',
+] as const
+
+type ClaudeVariable = 'ANTHROPIC_API_KEY' | typeof FEDERATION_VARIABLES[ number ]
+type ClaudeEnv = { [ name in ClaudeVariable ]?: string }
+
+export type ClaudeAuth = { kind: 'api_key', key: string } | { kind: 'federation' }
+
+const isSet = ( value: string | undefined ): boolean => value !== undefined && value !== ''
+
+// Exactly one mode (ADR 0110). An empty key beside federation is refused because the SDK treats
+// an empty key as the key path.
+const claudeAuthProblem = ( env: ClaudeEnv ): { variable: string, message: string } | null => {
+  const federation = FEDERATION_VARIABLES.filter( ( name ) => isSet( env[ name ] ) )
+  const hasKey = isSet( env.ANTHROPIC_API_KEY )
+  const modes = `set ANTHROPIC_API_KEY, or all of ${  FEDERATION_VARIABLES.join( ', ' )}`
+
+  if( hasKey && federation.length > 0 ) {
+    return {
+      variable: 'ANTHROPIC_API_KEY',
+      message: 'Set either ANTHROPIC_API_KEY or the federation variables, not both '
+        + `(found ${ federation.join( ', ' ) })`,
+    }
+  }
+
+  if( env.ANTHROPIC_API_KEY === '' && federation.length > 0 ) {
+    return {
+      variable: 'ANTHROPIC_API_KEY',
+      message: 'ANTHROPIC_API_KEY is empty beside federation: unset it, don\'t blank it',
+    }
+  }
+
+  if( hasKey ) return null
+
+  if( federation.length === 0 ) {
+    return { variable: 'ANTHROPIC_API_KEY', message: `No Claude credential: ${ modes }` }
+  }
+
+  const missing = FEDERATION_VARIABLES.find( ( name ) => !isSet( env[ name ] ) )
+
+  if( missing !== undefined ) {
+    return { variable: missing, message: `Federation is partly set: ${ missing } is missing` }
+  }
+
+  if( !existsSync( env.ANTHROPIC_IDENTITY_TOKEN_FILE ?? '' ) ) {
+    return {
+      variable: 'ANTHROPIC_IDENTITY_TOKEN_FILE',
+      message: 'ANTHROPIC_IDENTITY_TOKEN_FILE does not exist: has the identity-token helper run?',
+    }
+  }
+
+  return null
+}
+
+const claudeAuthOf = ( env: ClaudeEnv ): ClaudeAuth => {
+  return isSet( env.ANTHROPIC_API_KEY )
+    ? { kind: 'api_key', key: env.ANTHROPIC_API_KEY as string }
+    : { kind: 'federation' }
+}
+
 const EnvSchema = z
   .object( {
     PORT: z.preprocess( emptyAsUnset, portSchema ),
     DATA_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).default( defaultDataDir ) ),
     WEB_DIR: z.preprocess( emptyAsUnset, z.string().min( 1 ).optional() ),
-    ANTHROPIC_API_KEY: z.string().min( 1 ),
+    // Claude credentials (ADR 0110): a key (the Mac) or federation (the VM), checked together below
+    ANTHROPIC_API_KEY: z.string().optional(),
+    ANTHROPIC_FEDERATION_RULE_ID: z.string().optional(),
+    ANTHROPIC_ORGANIZATION_ID: z.string().optional(),
+    ANTHROPIC_SERVICE_ACCOUNT_ID: z.string().optional(),
+    ANTHROPIC_WORKSPACE_ID: z.string().optional(),
+    ANTHROPIC_IDENTITY_TOKEN_FILE: z.string().optional(),
     GEMINI_MODEL: z.string().min( 1 ),
     GEMINI_API_KEY: z.string().min( 1 ),
     YOUTUBE_API_KEY: z.string().min( 1 ),
@@ -173,11 +245,18 @@ const EnvSchema = z
     MELETE_GRADING_TIMEOUT_MS: z.preprocess( emptyAsUnset, gradingTimeoutSchema ),
     MELETE_GENERATION_TIMEOUT_MS: z.preprocess( emptyAsUnset, generationTimeoutSchema ),
   } )
+  .superRefine( ( env, context ) => {
+    const problem = claudeAuthProblem( env )
+
+    if( problem !== null ) {
+      context.addIssue( { code: 'custom', path: [ problem.variable ], message: problem.message } )
+    }
+  } )
   .transform( ( env ) => ( {
     port: env.PORT,
     dataDir: env.DATA_DIR,
     webDir: env.WEB_DIR,
-    anthropicApiKey: env.ANTHROPIC_API_KEY,
+    claudeAuth: claudeAuthOf( env ),
     // Gemini (Developer API, ADR 0083) reads YouTube links; the YouTube Data API gives the metadata
     geminiModel: env.GEMINI_MODEL,
     geminiApiKey: env.GEMINI_API_KEY,
