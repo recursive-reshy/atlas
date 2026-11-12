@@ -41,8 +41,8 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 | 1.2 | `@anthropic-ai/sdk` 1.6 → 1.7 or newest 1.x past `minimumReleaseAge`, no waiver; `test:integration` by Naresh afterwards, result in the log (TRD §2.4) | | ✅ |
 | 1.3 | `vitest.integration.config.ts` placeholders for the non-Claude variables; "A local `.env` for development" in `configuration.md` (TRD §2.3) | | ✅ |
 | 1.4 | `study_today` on `Me`; Log time dialog default and max from it; dialog test with the device a day ahead; `themis.spec.ts` green in local time (TRD §2.2) | | ✅ |
-| 1.5 | Flaky tests: three `pnpm gate` runs; cause fixed or "not reproduced in 3 runs" logged, never a raised timeout (TRD §2.6) | | ⬜ |
-| 1.6 | Major bump `jsdom` 31 (TRD §2.5) — only once PRD §9.7 is confirmed, else ⏸️ | | ⬜ |
+| 1.5 | Flaky tests: three `pnpm gate` runs; cause fixed or "not reproduced in 3 runs" logged, never a raised timeout (TRD §2.6) | | ✅ |
+| 1.6 | Major bump `jsdom` 31 (TRD §2.5) — only once PRD §9.7 is confirmed, else ⏸️ | | ⏸️ |
 
 **Checkpoint A done when:** the gate and e2e are green in local time +08, `test:integration` runs with only the key, and the SDK is on 1.7.
 
@@ -117,7 +117,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 ---
 
 ## Deferred
-_(none yet)_
+- 1.6 `jsdom` 31: PRD §9.7 still says "proposed"; not confirmed by Naresh.
 
 ## Log
 _(one line per ticked task: id, commit hash, moved or deleted test files)_
@@ -128,3 +128,6 @@ _(one line per ticked task: id, commit hash, moved or deleted test files)_
 - 1.3: `applyIntegrationPlaceholders` in `src/test-support/integrationEnv.ts` (tested), wired into `vitest.integration.config.ts` after `.env` loads; empty counts as unset; `configuration.md` gains "A local `.env` for development" (the old dev bullet now points at it). No test files moved.
 - 1.3 hash: f18d944.
 - 1.4: `Me.study_today` (shared, `getMe` via `studyDay`); `LogTimeDialog` default, `max` and `min` come from it (new `dayBefore` in `lib/localDate.ts`); tests: shared schema, `/api/me` across the 04:00 boundary, dialog with the device clock a day ahead, `dayBefore`; `meFixture` gains the field; architecture.md updated. `themis.spec.ts` in local time +08 runs with the checkpoint's e2e (Docker). **Naresh: confirm `APP_TIME_ZONE=Asia/Singapore` in `/etc/atlas/atlas.env`.** No test files moved.
+- 1.4 hash: 4b3109d.
+- 1.5: not reproduced in 3 runs (`pnpm gate`, 18 of 18 steps passed each time, local time +08); nothing changed, no timeout raised.
+- 1.6: ⏸️ deferred, PRD §9.7 "proposed" (see Deferred).
