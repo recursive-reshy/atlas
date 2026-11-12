@@ -191,7 +191,7 @@ def test_logs_tool_calls_and_tokens_but_no_content(
     assert "input_tokens=100" in line
     assert "output_tokens=10" in line
 
-    for forbidden in [ "title-sentinel", "body-sentinel", "guidance-sentinel", "Free Tier", settings.agent_secret, settings.anthropic_api_key ]:
+    for forbidden in [ "title-sentinel", "body-sentinel", "guidance-sentinel", "Free Tier", settings.agent_secret, settings.claude_auth.key or "" ]:
         assert forbidden not in caplog.text
 
 def test_the_json_log_line_of_a_link_run_has_its_fields_and_none_of_the_content(
@@ -213,5 +213,5 @@ def test_the_json_log_line_of_a_link_run_has_its_fields_and_none_of_the_content(
     assert line[ "input_tokens" ] == 100
     assert line[ "output_tokens" ] == 10
 
-    for forbidden in [ "title-sentinel", "body-sentinel", "guidance-sentinel", "Free Tier", settings.agent_secret, settings.anthropic_api_key ]:
+    for forbidden in [ "title-sentinel", "body-sentinel", "guidance-sentinel", "Free Tier", settings.agent_secret, settings.claude_auth.key or "" ]:
         assert forbidden not in output

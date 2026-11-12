@@ -1,5 +1,29 @@
 {
   "$defs": {
+    "AgentHealthResponse": {
+      "properties": {
+        "claude_credential": {
+          "$ref": "#/$defs/ClaudeCredential"
+        },
+        "status": {
+          "const": "ok",
+          "title": "Status",
+          "type": "string"
+        },
+        "vault": {
+          "const": "readable",
+          "title": "Vault",
+          "type": "string"
+        }
+      },
+      "required": [
+        "status",
+        "vault",
+        "claude_credential"
+      ],
+      "title": "AgentHealthResponse",
+      "type": "object"
+    },
     "AgentUsage": {
       "properties": {
         "cache_creation_input_tokens": {
@@ -37,6 +61,14 @@
       ],
       "title": "AgentUsage",
       "type": "object"
+    },
+    "ClaudeCredential": {
+      "enum": [
+        "federation",
+        "api_key"
+      ],
+      "title": "ClaudeCredential",
+      "type": "string"
     },
     "FailedLinkResponse": {
       "properties": {

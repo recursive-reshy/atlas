@@ -7,6 +7,7 @@ from pydantic import BaseModel, ValidationError
 
 from atlas_agent.contract.link import (
     AgentUsage,
+    AgentHealthResponse,
     InstructionsResponse,
     LinkNote,
     LinkRequest,
@@ -23,6 +24,7 @@ MODELS: dict[ str, type[ BaseModel ] ] = {
     "LinkSuggestion": LinkSuggestion,
     "AgentUsage": AgentUsage,
     "LinkResponse": LinkResponse,
+    "AgentHealthResponse": AgentHealthResponse,
     "InstructionsResponse": InstructionsResponse,
     "SyllabusRequest": SyllabusRequest,
     "SyllabusResponse": SyllabusResponse
@@ -35,6 +37,8 @@ REQUIRED_VALID = [
     "link-response-linked-empty.json",
     "link-response-failed.json",
     "instructions-response.json",
+    "health-response.json",
+    "health-response-federation.json",
     "syllabus-request.json",
     "syllabus-request-no-intent.json",
     "syllabus-response-drafted.json",
@@ -51,6 +55,8 @@ REQUIRED_INVALID = [
     "link-response-failed-no-reason.json",
     "link-response-failed-with-suggestions.json",
     "link-response-linked-with-reason.json",
+    "health-response-no-credential.json",
+    "health-response-unknown-credential.json",
     "syllabus-request-empty-name.json",
     "syllabus-request-dotdot-folder.json",
     "syllabus-request-absolute-folder.json",

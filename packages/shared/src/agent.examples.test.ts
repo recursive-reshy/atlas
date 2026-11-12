@@ -7,6 +7,7 @@ import { describe, it, expect } from 'vitest'
 import { z } from 'zod'
 // Agent
 import {
+  AgentHealthResponse,
   InstructionsResponse,
   LinkNote,
   LinkRequest,
@@ -27,6 +28,7 @@ const schemas: Record< string, z.ZodType > = {
   LinkSuggestion,
   AgentUsage,
   LinkResponse,
+  AgentHealthResponse,
   InstructionsResponse,
   SyllabusRequest,
   SyllabusResponse,
@@ -39,6 +41,8 @@ const requiredValid = [
   'link-response-linked-empty.json',
   'link-response-failed.json',
   'instructions-response.json',
+  'health-response.json',
+  'health-response-federation.json',
   'syllabus-request.json',
   'syllabus-request-no-intent.json',
   'syllabus-response-drafted.json',
@@ -55,6 +59,8 @@ const requiredInvalid = [
   'link-response-failed-no-reason.json',
   'link-response-failed-with-suggestions.json',
   'link-response-linked-with-reason.json',
+  'health-response-no-credential.json',
+  'health-response-unknown-credential.json',
   'syllabus-request-empty-name.json',
   'syllabus-request-dotdot-folder.json',
   'syllabus-request-absolute-folder.json',

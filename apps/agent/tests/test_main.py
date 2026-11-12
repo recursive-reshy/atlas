@@ -12,7 +12,7 @@ from fastapi.testclient import TestClient
 
 from atlas_agent import main
 from atlas_agent.claude import AnthropicClaude
-from atlas_agent.config import ConfigError, Settings
+from atlas_agent.config import ClaudeAuth, ConfigError, Settings
 from atlas_agent.logging_setup import configure_logging
 from atlas_agent.main import create_app, create_secret_check
 from tests.fakes import ScriptedClaude
@@ -21,7 +21,16 @@ def test_health_is_ok_without_auth( settings: Settings, app_factory: Callable[ [
     response = TestClient( app_factory( settings ) ).get( "/health" )
 
     assert response.status_code == 200
-    assert response.json() == { "status": "ok", "vault": "readable" }
+    assert response.json() == { "status": "ok", "vault": "readable", "claude_credential": "api_key" }
+
+def test_health_reports_federation_as_the_credential_source(
+    settings: Settings,
+    app_factory: Callable[ [ Settings ], FastAPI ]
+) -> None:
+    federated = settings.model_copy( update = { "claude_auth": ClaudeAuth( kind = "federation" ) } )
+    body = TestClient( app_factory( federated ) ).get( "/health" ).json()
+
+    assert body[ "claude_credential" ] == "federation"
 
 def test_health_is_unavailable_when_the_vaults_root_cannot_be_listed(
     settings: Settings,
@@ -96,7 +105,7 @@ def test_logs_one_line_per_request_without_secrets_or_content(
     assert "405" in line
     assert "ms" in line
 
-    for forbidden in [ settings.agent_secret, settings.anthropic_api_key, "query-sentinel", "body-sentinel" ]:
+    for forbidden in [ settings.agent_secret, settings.claude_auth.key or "", "query-sentinel", "body-sentinel" ]:
         assert forbidden not in caplog.text
 
 def test_importing_main_does_not_read_the_environment( monkeypatch: pytest.MonkeyPatch ) -> None:

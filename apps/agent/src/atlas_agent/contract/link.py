@@ -57,3 +57,13 @@ class LinkResponse( RootModel[ Annotated[ LinkedResponse | FailedLinkResponse, F
 
 class InstructionsResponse( BaseModel ):
     instructions: str
+
+class ClaudeCredential( StrEnum ):
+    FEDERATION = "federation"
+    API_KEY = "api_key"
+
+# The 200 body of GET /health; an unreadable vault answers 503 with its own small body
+class AgentHealthResponse( BaseModel ):
+    status: Literal[ "ok" ]
+    vault: Literal[ "readable" ]
+    claude_credential: ClaudeCredential

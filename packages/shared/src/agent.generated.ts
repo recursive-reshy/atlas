@@ -4,6 +4,16 @@
 // Packages
 import { z } from 'zod'
 
+export const ClaudeCredential = z.enum( [ 'federation', 'api_key' ] )
+export type ClaudeCredential = z.infer< typeof ClaudeCredential >
+
+export const AgentHealthResponse = z.object( {
+  claude_credential: ClaudeCredential,
+  status: z.literal( 'ok' ),
+  vault: z.literal( 'readable' ),
+} )
+export type AgentHealthResponse = z.infer< typeof AgentHealthResponse >
+
 export const AgentUsage = z.object( {
   cache_creation_input_tokens: z.number().int(),
   cache_read_input_tokens: z.number().int(),

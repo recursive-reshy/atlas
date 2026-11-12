@@ -2,7 +2,7 @@ from pathlib import Path
 
 import pytest
 
-from atlas_agent.config import ConfigError, load_settings
+from atlas_agent.config import ClaudeAuth, ConfigError, load_settings
 
 SECRET = "s" * 32
 
@@ -13,7 +13,7 @@ def make_environ( vault: Path, **overrides: str ) -> dict[ str, str ]:
 def test_reads_the_required_variables( fixture_vault: Path ) -> None:
     settings = load_settings( make_environ( fixture_vault ) )
 
-    assert settings.anthropic_api_key == "sk-test-key"
+    assert settings.claude_auth == ClaudeAuth( kind = "api_key", key = "sk-test-key" )
     assert settings.agent_secret == SECRET
     assert settings.vaults_root == fixture_vault
 
@@ -37,11 +37,65 @@ def test_limits_can_be_overridden_with_agent_variables( fixture_vault: Path ) ->
     assert settings.max_turns == 5
     assert settings.run_timeout_seconds == 30
 
-def test_a_missing_api_key_names_the_variable( fixture_vault: Path ) -> None:
+FEDERATION_VARIABLES = [
+    "ANTHROPIC_FEDERATION_RULE_ID",
+    "ANTHROPIC_ORGANIZATION_ID",
+    "ANTHROPIC_SERVICE_ACCOUNT_ID",
+    "ANTHROPIC_WORKSPACE_ID",
+    "ANTHROPIC_IDENTITY_TOKEN_FILE"
+]
+
+def make_federation_environ( vault: Path, tmp_path: Path, **overrides: str ) -> dict[ str, str ]:
+    token_file = tmp_path / "token"
+    token_file.write_text( "header.payload.signature" )
+    environ = make_environ( vault )
+    del environ[ "ANTHROPIC_API_KEY" ]
+    values = { name: f"{name.lower()}-value" for name in FEDERATION_VARIABLES }
+    values[ "ANTHROPIC_IDENTITY_TOKEN_FILE" ] = str( token_file )
+
+    return { **environ, **values, **overrides }
+
+def test_neither_a_key_nor_federation_names_both_modes( fixture_vault: Path ) -> None:
     environ = make_environ( fixture_vault )
     del environ[ "ANTHROPIC_API_KEY" ]
 
-    with pytest.raises( ConfigError, match = "ANTHROPIC_API_KEY" ):
+    with pytest.raises( ConfigError, match = "ANTHROPIC_API_KEY" ) as error:
+        load_settings( environ )
+
+    assert "ANTHROPIC_FEDERATION_RULE_ID" in str( error.value )
+
+def test_federation_is_a_mode_of_its_own( fixture_vault: Path, tmp_path: Path ) -> None:
+    settings = load_settings( make_federation_environ( fixture_vault, tmp_path ) )
+
+    assert settings.claude_auth == ClaudeAuth( kind = "federation" )
+
+def test_a_key_beside_a_federation_variable_is_refused( fixture_vault: Path, tmp_path: Path ) -> None:
+    environ = make_federation_environ( fixture_vault, tmp_path, ANTHROPIC_API_KEY = "sk-test-key" )
+
+    with pytest.raises( ConfigError, match = "not both" ) as error:
+        load_settings( environ )
+
+    assert "ANTHROPIC_FEDERATION_RULE_ID" in str( error.value )
+    assert "sk-test-key" not in str( error.value )
+
+def test_an_empty_key_beside_federation_is_refused( fixture_vault: Path, tmp_path: Path ) -> None:
+    with pytest.raises( ConfigError, match = "unset it, don't blank it" ):
+        load_settings( make_federation_environ( fixture_vault, tmp_path, ANTHROPIC_API_KEY = "" ) )
+
+@pytest.mark.parametrize( "name", FEDERATION_VARIABLES )
+def test_partial_federation_names_the_missing_variable( fixture_vault: Path, tmp_path: Path, name: str ) -> None:
+    environ = make_federation_environ( fixture_vault, tmp_path )
+    del environ[ name ]
+
+    with pytest.raises( ConfigError, match = name ):
+        load_settings( environ )
+
+def test_federation_needs_the_token_file_to_exist( fixture_vault: Path, tmp_path: Path ) -> None:
+    environ = make_federation_environ(
+        fixture_vault, tmp_path, ANTHROPIC_IDENTITY_TOKEN_FILE = str( tmp_path / "missing" )
+    )
+
+    with pytest.raises( ConfigError, match = "ANTHROPIC_IDENTITY_TOKEN_FILE does not exist" ):
         load_settings( environ )
 
 def test_a_short_secret_names_the_variable_and_does_not_echo_it( fixture_vault: Path ) -> None:

@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel
 
@@ -31,8 +32,22 @@ SYLLABUS_DEFAULTS: dict[ str, int ] = {
 class ConfigError( Exception ):
     pass
 
+FEDERATION_VARIABLES = (
+    "ANTHROPIC_FEDERATION_RULE_ID",
+    "ANTHROPIC_ORGANIZATION_ID",
+    "ANTHROPIC_SERVICE_ACCOUNT_ID",
+    "ANTHROPIC_WORKSPACE_ID",
+    "ANTHROPIC_IDENTITY_TOKEN_FILE"
+)
+
+# Exactly one mode (ADR 0110): `key` is set for api_key and None for federation, where the SDK reads
+# its credentials from the environment
+class ClaudeAuth( BaseModel ):
+    kind: Literal[ "api_key", "federation" ]
+    key: str | None = None
+
 class Settings( BaseModel ):
-    anthropic_api_key: str
+    claude_auth: ClaudeAuth
     agent_secret: str
     vaults_root: Path
     log_level: str = "info"
@@ -51,15 +66,32 @@ class Settings( BaseModel ):
     syllabus_max_output_tokens: int = SYLLABUS_DEFAULTS[ "syllabus_max_output_tokens" ]
     syllabus_timeout_seconds: int = SYLLABUS_DEFAULTS[ "syllabus_timeout_seconds" ]
 
+def load_claude_auth( environ: Mapping[ str, str ], problems: list[ str ] ) -> ClaudeAuth:
+    key = environ.get( "ANTHROPIC_API_KEY" )
+    federation = [ name for name in FEDERATION_VARIABLES if environ.get( name ) ]
+
+    if key and federation:
+        problems.append( f"Set either ANTHROPIC_API_KEY or the federation variables, not both (found {', '.join( federation )})" )
+    elif key == "" and federation:
+        problems.append( "ANTHROPIC_API_KEY is empty beside federation: unset it, don't blank it" )
+    elif not key and not federation:
+        problems.append( f"No Claude credential: set ANTHROPIC_API_KEY, or all of {', '.join( FEDERATION_VARIABLES )}" )
+    elif not key:
+        missing = [ name for name in FEDERATION_VARIABLES if name not in federation ]
+
+        if missing:
+            problems.append( f"Federation is partly set: {', '.join( missing )} missing" )
+        elif not Path( environ[ "ANTHROPIC_IDENTITY_TOKEN_FILE" ] ).is_file():
+            problems.append( "ANTHROPIC_IDENTITY_TOKEN_FILE does not exist: has the identity-token helper run?" )
+
+    return ClaudeAuth( kind = "api_key", key = key ) if key else ClaudeAuth( kind = "federation" )
+
 def load_settings( environ: Mapping[ str, str ] ) -> Settings:
     problems: list[ str ] = []
-    api_key = environ.get( "ANTHROPIC_API_KEY", "" )
+    claude_auth = load_claude_auth( environ, problems )
     secret = environ.get( "AGENT_SECRET", "" )
     vaults_value = environ.get( "VAULTS_ROOT", "" )
     log_level = environ.get( "LOG_LEVEL", "" ).lower() or "info"
-
-    if not api_key:
-        problems.append( "ANTHROPIC_API_KEY is required" )
 
     if len( secret ) < SECRET_MINIMUM_LENGTH:
         problems.append( f"AGENT_SECRET is required and must be at least {SECRET_MINIMUM_LENGTH} characters" )
@@ -95,7 +127,7 @@ def load_settings( environ: Mapping[ str, str ] ) -> Settings:
     if problems:
         raise ConfigError( f"Invalid configuration: {'; '.join( problems )}" )
 
-    return Settings( anthropic_api_key = api_key, agent_secret = secret, vaults_root = Path( vaults_value ),
+    return Settings( claude_auth = claude_auth, agent_secret = secret, vaults_root = Path( vaults_value ),
         log_level = log_level,
         **limits
     )

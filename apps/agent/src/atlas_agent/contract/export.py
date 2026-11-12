@@ -8,6 +8,7 @@ from pydantic.json_schema import models_json_schema
 from atlas_agent.contract.link import (
     AgentUsage,
     FailedLinkResponse,
+    AgentHealthResponse,
     InstructionsResponse,
     LinkedResponse,
     LinkNote,
@@ -36,7 +37,8 @@ def build_schema() -> str:
         LinkedResponse,
         FailedLinkResponse,
         LinkResponse,
-        InstructionsResponse
+        InstructionsResponse,
+        AgentHealthResponse
     ]
 
     return render( request_models, response_models, [] )

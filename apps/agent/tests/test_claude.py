@@ -26,6 +26,30 @@ SOURCE_PATH = Path( __file__ ).parents[ 1 ] / "src"
 def make_claude( handler: Callable[ [ httpx2.Request ], httpx2.Response ] ) -> AnthropicClaude:
     return AnthropicClaude( "sk-test-key", http_client = httpx2.AsyncClient( transport = httpx2.MockTransport( handler ) ) )
 
+def test_the_client_gets_the_key_in_key_mode( monkeypatch: pytest.MonkeyPatch ) -> None:
+    built: list[ dict[ str, Any ] ] = []
+
+    class RecordingClient:
+        def __init__( self, **options: Any ) -> None:
+            built.append( options )
+
+    monkeypatch.setattr( "anthropic.AsyncAnthropic", RecordingClient )
+    AnthropicClaude( "sk-test-key" )
+
+    assert built[ 0 ][ "api_key" ] == "sk-test-key"
+
+def test_the_client_gets_no_api_key_under_federation( monkeypatch: pytest.MonkeyPatch ) -> None:
+    built: list[ dict[ str, Any ] ] = []
+
+    class RecordingClient:
+        def __init__( self, **options: Any ) -> None:
+            built.append( options )
+
+    monkeypatch.setattr( "anthropic.AsyncAnthropic", RecordingClient )
+    AnthropicClaude( None )
+
+    assert "api_key" not in built[ 0 ]
+
 def make_request() -> MessageRequest:
     return MessageRequest(
         model = "model-under-test",

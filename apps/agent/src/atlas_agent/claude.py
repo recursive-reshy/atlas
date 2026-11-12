@@ -71,11 +71,13 @@ class ClaudeClient( Protocol ):
 class AnthropicClaude:
     def __init__(
         self,
-        api_key: str,
+        api_key: str | None,
         http_client: httpx2.AsyncClient | None = None,
         max_retries: int = 0
     ) -> None:
-        self.client = anthropic.AsyncAnthropic( api_key = api_key, http_client = http_client, max_retries = max_retries )
+        # No api_key under federation: the SDK then resolves its credentials from the environment
+        credentials: dict[ str, Any ] = {} if api_key is None else { "api_key": api_key }
+        self.client = anthropic.AsyncAnthropic( http_client = http_client, max_retries = max_retries, **credentials )
 
     async def create_message( self, request: MessageRequest ) -> MessageReply:
         payload: dict[ str, Any ] = request.model_dump( mode = "json", exclude_none = True )

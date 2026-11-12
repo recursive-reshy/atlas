@@ -14,7 +14,9 @@ from atlas_agent.claude import AnthropicClaude, ClaudeClient
 from atlas_agent.config import Settings, load_settings
 from atlas_agent.contract.link import (
     AgentUsage,
+    ClaudeCredential,
     FailedLinkResponse,
+    AgentHealthResponse,
     InstructionsResponse,
     LinkedResponse,
     LinkOutcome,
@@ -104,7 +106,13 @@ def create_app( settings: Settings, claude: ClaudeClient ) -> FastAPI:
         except OSError:
             return JSONResponse( status_code = 503, content = { "status": "error", "vault": "unreadable" } )
 
-        return JSONResponse( content = { "status": "ok", "vault": "readable" } )
+        health = AgentHealthResponse(
+            status = "ok",
+            vault = "readable",
+            claude_credential = ClaudeCredential( settings.claude_auth.kind )
+        )
+
+        return JSONResponse( content = health.model_dump( mode = "json" ) )
 
     v1 = APIRouter( prefix = "/v1", dependencies = [ Depends( create_secret_check( settings ) ) ] )
 
@@ -186,4 +194,4 @@ def __getattr__( name: str ) -> FastAPI:
     settings = load_settings( os.environ )
     configure_logging( settings.log_level )
 
-    return create_app( settings, AnthropicClaude( settings.anthropic_api_key ) )
+    return create_app( settings, AnthropicClaude( settings.claude_auth.key ) )

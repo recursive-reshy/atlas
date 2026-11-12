@@ -18,7 +18,9 @@ def test_schema_defines_every_model() -> None:
     definitions = json.loads( build_schema() )[ "$defs" ]
 
     assert sorted( definitions ) == [
+        "AgentHealthResponse",
         "AgentUsage",
+        "ClaudeCredential",
         "FailedLinkResponse",
         "InstructionsResponse",
         "LinkNote",

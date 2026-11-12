@@ -6,7 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi import FastAPI
 
-from atlas_agent.config import Settings
+from atlas_agent.config import ClaudeAuth, Settings
 from atlas_agent.main import create_app
 from tests.fakes import ScriptedClaude
 
@@ -32,7 +32,11 @@ def vault_copy( tmp_path: Path, vault_dir: str ) -> Path:
 
 @pytest.fixture
 def settings( vault_copy: Path ) -> Settings:
-    return Settings( anthropic_api_key = "test-api-key", agent_secret = "s" * 32, vaults_root = vault_copy.parent )
+    return Settings(
+        claude_auth = ClaudeAuth( kind = "api_key", key = "test-api-key" ),
+        agent_secret = "s" * 32,
+        vaults_root = vault_copy.parent
+    )
 
 @pytest.fixture
 def auth_headers( settings: Settings ) -> dict[ str, str ]:
