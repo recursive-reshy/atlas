@@ -9,18 +9,11 @@ import {
 // Clients
 import { listSummaryModels } from './anthropicModels.client.js'
 
-const { list, constructed } = vi.hoisted( () => ( {
-  list: vi.fn(),
-  constructed: [] as unknown[],
-} ) )
+const { list } = vi.hoisted( () => ( { list: vi.fn() } ) )
 
 vi.mock( '@anthropic-ai/sdk', () => {
   class MockAnthropic {
     models = { list }
-
-    constructor( options: unknown ) {
-      constructed.push( options )
-    }
   }
 
   return { default: MockAnthropic }
@@ -47,7 +40,6 @@ const pages = ( ...items: Fake[][] ): Fake[] => items.flat()
 
 beforeEach( () => {
   list.mockReset()
-  constructed.length = 0
   list.mockReturnValue( pages( [ model( 'a' ), model( 'b' ) ] ) )
 } )
 
@@ -59,14 +51,13 @@ describe( 'listSummaryModels', () => {
     ] )
   } )
 
-  it( 'asks only for active models, with the key and timeout', async () => {
+  it( 'asks only for active models, with the timeout and one retry per request', async () => {
     await listSummaryModels()
 
-    expect( list ).toHaveBeenCalledWith( expect.objectContaining( { lifecycle: [ 'active' ] } ) )
-    expect( constructed ).toEqual( [ expect.objectContaining( {
-      apiKey: 'sk-test',
-      timeout: 12_345,
-    } ) ] )
+    expect( list ).toHaveBeenCalledWith(
+      expect.objectContaining( { lifecycle: [ 'active' ] } ),
+      { timeout: 12_345, maxRetries: 1 },
+    )
   } )
 
   it( 'reads every page', async () => {

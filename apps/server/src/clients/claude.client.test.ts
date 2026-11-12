@@ -25,10 +25,7 @@ import { buildSystemPrompt } from '../summarizer/prompts.js'
 // Fixtures
 import { transcriptFixture } from '../test-support/transcript.fixture.js'
 
-const { parse, constructed } = vi.hoisted( () => ( {
-  parse: vi.fn(),
-  constructed: [] as unknown[],
-} ) )
+const { parse } = vi.hoisted( () => ( { parse: vi.fn() } ) )
 
 vi.mock( '@anthropic-ai/sdk', () => {
   class APIError extends Error {
@@ -41,9 +38,6 @@ vi.mock( '@anthropic-ai/sdk', () => {
     static APIError = APIError
     messages = { parse }
 
-    constructor( options: unknown ) {
-      constructed.push( options )
-    }
   }
 
   return { default: MockAnthropic }
@@ -56,6 +50,9 @@ vi.mock( '../config.js', () => ( {
     melete: { generationTimeoutMs: 54_321, gradingTimeoutMs: 7_654 },
   },
 } ) )
+
+// The options the call passed to the SDK per request (the client itself is shared)
+const requestOptions = (): unknown => parse.mock.calls[ 0 ]?.[ 1 ]
 
 const summary: SummaryResult = {
   overview: 'A short talk about formatters.',
@@ -104,7 +101,6 @@ const reply = ( overrides: Record< string, unknown > = {} ): Record< string, unk
 
 beforeEach( () => {
   parse.mockReset()
-  constructed.length = 0
   parse.mockResolvedValue( reply() )
 } )
 
@@ -118,14 +114,10 @@ describe( 'summarizeSource', () => {
     } )
   } )
 
-  it( 'builds the client with the key, the configured timeout and one retry', async () => {
+  it( 'passes the configured timeout and one retry with the request', async () => {
     await summarizeSource( input )
 
-    expect( constructed ).toEqual( [ {
-      apiKey: 'sk-test',
-      timeout: 12_345,
-      maxRetries: 1,
-    } ] )
+    expect( requestOptions() ).toEqual( { timeout: 12_345, maxRetries: 1 } )
   } )
 
   it( 'asks the summary model for structured output with room to think', async () => {
@@ -311,10 +303,10 @@ describe( 'generateQuestions', () => {
     } )
   } )
 
-  it( 'builds the client with the key, the generation timeout and one retry', async () => {
+  it( 'passes the generation timeout and one retry', async () => {
     await generateQuestions( request )
 
-    expect( constructed ).toEqual( [ { apiKey: 'sk-test', timeout: 54_321, maxRetries: 1 } ] )
+    expect( requestOptions() ).toEqual( { timeout: 54_321, maxRetries: 1 } )
   } )
 
   it( 'asks for structured output at medium effort with the given prompts', async () => {
@@ -374,7 +366,6 @@ describe( 'gradeAnswer', () => {
   const request = { model: 'claude-haiku-5-5', system: 'Grade it.', user: '## Question\nWhy?' }
 
   beforeEach( () => {
-    constructed.length = 0
     parse.mockResolvedValue( reply( { parsed_output: grade } ) )
   } )
 
@@ -385,10 +376,10 @@ describe( 'gradeAnswer', () => {
     } )
   } )
 
-  it( 'builds the client with the key, the grading timeout and no retries', async () => {
+  it( 'passes the grading timeout and no retries', async () => {
     await gradeAnswer( request )
 
-    expect( constructed ).toEqual( [ { apiKey: 'sk-test', timeout: 7_654, maxRetries: 0 } ] )
+    expect( requestOptions() ).toEqual( { timeout: 7_654, maxRetries: 0 } )
   } )
 
   it( 'asks for structured output at low effort with the given prompts', async () => {
@@ -451,7 +442,6 @@ describe( 'generateApprovedQuestions', () => {
   const request = { model: 'claude-haiku-5-5', system: 'Write questions.', user: 'Subject: TS' }
 
   beforeEach( () => {
-    constructed.length = 0
     parse.mockReset()
     parse.mockResolvedValue( reply( { parsed_output: approved } ) )
   } )
@@ -468,7 +458,7 @@ describe( 'generateApprovedQuestions', () => {
 
     const [ sent ] = parse.mock.calls[ 0 ] as [ Record< string, unknown > ]
 
-    expect( constructed ).toEqual( [ { apiKey: 'sk-test', timeout: 54_321, maxRetries: 1 } ] )
+    expect( requestOptions() ).toEqual( { timeout: 54_321, maxRetries: 1 } )
     expect( sent ).toMatchObject( {
       model: 'claude-haiku-5-5',
       system: 'Write questions.',
@@ -509,7 +499,7 @@ describe( 'mapNote', () => {
 
     const [ sent ] = parse.mock.calls[ 0 ] as [ Record< string, unknown > ]
 
-    expect( constructed ).toEqual( [ { apiKey: 'sk-test', timeout: 54_321, maxRetries: 1 } ] )
+    expect( requestOptions() ).toEqual( { timeout: 54_321, maxRetries: 1 } )
     expect( sent ).toMatchObject( {
       model: 'claude-haiku-5-5',
       max_tokens: 2048,
@@ -567,7 +557,7 @@ describe( 'suggestResources', () => {
 
     const [ sent ] = parse.mock.calls[ 0 ] as [ Record< string, unknown > ]
 
-    expect( constructed ).toEqual( [ { apiKey: 'sk-test', timeout: 60_000, maxRetries: 1 } ] )
+    expect( requestOptions() ).toEqual( { timeout: 60_000, maxRetries: 1 } )
     expect( sent ).toMatchObject( {
       model: 'claude-sonnet-5-5',
       system: 'Suggest.',

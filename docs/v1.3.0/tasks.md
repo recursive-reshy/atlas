@@ -53,7 +53,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
-| 2.1 | *(neutral)* Express: one shared `Anthropic` client in `clients/anthropic.ts`; `claude.client.ts` and `anthropicModels.client.ts` pass `timeout` and `maxRetries` per request (TRD §4.5) | 0110 | ⬜ |
+| 2.1 | *(neutral)* Express: one shared `Anthropic` client in `clients/anthropic.ts`; `claude.client.ts` and `anthropicModels.client.ts` pass `timeout` and `maxRetries` per request (TRD §4.5) | 0110 | ✅ |
 | 2.2 | Express config: `claudeAuth` modes and refusals; the shared client sends no `apiKey` under federation; credentials-cache check (`ANTHROPIC_CONFIG_DIR` if needed) (TRD §4.5) | 0110 | ⬜ |
 | 2.3 | Agent: `config.py` modes and refusals; `AsyncAnthropic()` under federation; confirm `anthropic` 2.x resolves the federation variables; `/health` reports `claude_credential` in the contract, Zod regenerated (TRD §4.6) | 0110 | ⬜ |
 | 2.4 | Migration 20 test-first against `schema-19.sql`, not locked; `AppHealthKind` gains `claude`; Claude API check and row; agent row shows its credential source (TRD §3, §4.7) | 0085, 0110 | ⬜ |
@@ -131,3 +131,5 @@ _(one line per ticked task: id, commit hash, moved or deleted test files)_
 - 1.4 hash: 4b3109d.
 - 1.5: not reproduced in 3 runs (`pnpm gate`, 18 of 18 steps passed each time, local time +08); nothing changed, no timeout raised.
 - 1.6: ⏸️ deferred, PRD §9.7 "proposed" (see Deferred).
+- Plan B hash: 92cbeb9.
+- 2.1: `clients/anthropic.ts` `getAnthropic()` (one client per process, `apiKey` only); `claude.client.ts` (3 calls) and `anthropicModels.client.ts` pass `timeout`/`maxRetries` per request. Behaviour-neutral. Changed tests (assertion moved from the constructor options to the per-request options, same values): `claude.client.test.ts` (6 "builds the client…" cases, `constructed` removed) and `anthropicModels.client.test.ts` (1 case); new `anthropic.test.ts`. No test files moved.

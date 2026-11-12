@@ -11,6 +11,8 @@ import {
   MeleteSuggestionsOutput,
   SourceDocument,
 } from '@atlas/shared'
+// Clients
+import { getAnthropic } from './anthropic.js'
 // Config
 import { config } from '../config.js'
 // Errors
@@ -71,21 +73,16 @@ const toSummary = ( document: SourceDocument, output: unknown ): Summary | undef
 export const summarizeSource = async (
   { document, model, guidance }: SummaryInput,
 ): Promise< SummaryOutcome > => {
-  const client = new Anthropic( {
-    apiKey: config.anthropicApiKey,
-    timeout: config.summaryTimeoutMs,
-    maxRetries: 1,
-  } )
   const format = zodOutputFormat( SummaryResult )
 
   try {
-    const response = await client.messages.parse( {
+    const response = await getAnthropic().messages.parse( {
       model,
       max_tokens: SUMMARY_MAX_TOKENS,
       system: buildSystemPrompt( guidance, document.kind ),
       messages: [ { role: 'user', content: toUserMessage( document ) } ],
       output_config: { effort: 'medium', format },
-    } )
+    }, { timeout: config.summaryTimeoutMs, maxRetries: 1 } )
     const usage = {
       input_tokens: response.usage.input_tokens,
       output_tokens: response.usage.output_tokens,
@@ -144,20 +141,15 @@ const callStructured = async < Schema extends z.ZodType >(
   { model, system, user }: MeleteCall,
   timeoutMs: number = config.melete.generationTimeoutMs,
 ): Promise< { output: z.infer< Schema >, usage: TokenUsage } > => {
-  const client = new Anthropic( {
-    apiKey: config.anthropicApiKey,
-    timeout: timeoutMs,
-    maxRetries: 1,
-  } )
 
   try {
-    const response = await client.messages.parse( {
+    const response = await getAnthropic().messages.parse( {
       model,
       max_tokens: maxTokens,
       system,
       messages: [ { role: 'user', content: user } ],
       output_config: { effort: 'medium', format: zodOutputFormat( schema ) },
-    } )
+    }, { timeout: timeoutMs, maxRetries: 1 } )
     const usage = {
       input_tokens: response.usage.input_tokens,
       output_tokens: response.usage.output_tokens,
@@ -251,20 +243,15 @@ const GRADE_MAX_TOKENS = 1024
 export const gradeAnswer = async (
   { model, system, user }: MeleteCall,
 ): Promise< GradeOutcome > => {
-  const client = new Anthropic( {
-    apiKey: config.anthropicApiKey,
-    timeout: config.melete.gradingTimeoutMs,
-    maxRetries: 0,
-  } )
 
   try {
-    const response = await client.messages.parse( {
+    const response = await getAnthropic().messages.parse( {
       model,
       max_tokens: GRADE_MAX_TOKENS,
       system,
       messages: [ { role: 'user', content: user } ],
       output_config: { effort: 'low', format: zodOutputFormat( MeleteGradeOutput ) },
-    } )
+    }, { timeout: config.melete.gradingTimeoutMs, maxRetries: 0 } )
     const usage = {
       input_tokens: response.usage.input_tokens,
       output_tokens: response.usage.output_tokens,
