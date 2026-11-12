@@ -54,7 +54,25 @@ The server reads these environment variables. Empty values count as unset.
 - The three Google variables are required: they run sign-in and, if someone connects it, Gmail. `TOKEN_ENCRYPTION_KEY` must be 32 bytes in base64 (`openssl rand -base64 32`); any other value stops the server at startup with a message. The redirect URIs are derived from `APP_ORIGINS`, so `GOOGLE_REDIRECT_URI` and `VAULT_PATH` (and `VAULT_HOST_PATH` for Compose, now `VAULTS_HOST_PATH`) are gone from 0.9.0: a leftover `GOOGLE_REDIRECT_URI` or `VAULT_PATH` is ignored and logged as a warning at startup.
 - `AGENT_SECRET` (at least 32 characters; `openssl rand -hex 32`) must be the same for the app and the agent service; in Docker one `.env` value feeds both. Without it the server starts with linking off and Settings says how to set it up. `AGENT_TIMEOUT_MS` is how long the server waits for one linking run; the agent's own run limit is 90 seconds. `AGENT_SYLLABUS_TIMEOUT_MS` (default 200000) is how long it waits for one syllabus draft, kept above the agent's own 180 seconds so the agent reports its own timeout. The agent service reads `ANTHROPIC_API_KEY`, `AGENT_SECRET` and `VAULTS_ROOT` (the vaults folder, mounted read-only; each request names the person's vault folder and the agent refuses anything that isn't a real folder directly inside it), plus optional limits named `AGENT_MAX_TURNS`, `AGENT_MAX_TOOL_CALLS`, `AGENT_MAX_OUTPUT_TOKENS`, `AGENT_RUN_TIMEOUT_SECONDS`, `AGENT_MAX_SUGGESTIONS`, `AGENT_LIST_NOTES_LIMIT`, `AGENT_SEARCH_HITS_LIMIT`, `AGENT_SEARCH_SNIPPET_CHARS`, `AGENT_READ_NOTE_CHARS` and `AGENT_LINK_TARGETS_LIMIT` and, for syllabus drafting, `SYLLABUS_MAX_TURNS` (16), `SYLLABUS_MAX_TOOL_CALLS` (40), `SYLLABUS_MAX_OUTPUT_TOKENS` (8192) and `SYLLABUS_TIMEOUT_SECONDS` (180) (the defaults are in `apps/agent/src/atlas_agent/config.py`).
 - `ANTHROPIC_API_KEY` lives in `.env` only, never in the repo. In Docker, `.env` at the repo root feeds both compose and the container.
-- For development, copy `apps/server/.env.example` to `apps/server/.env` and set `ANTHROPIC_API_KEY`, `GEMINI_MODEL`, `GEMINI_API_KEY`, `YOUTUBE_API_KEY`, `ADMIN_EMAIL`, `APP_ORIGINS` (`http://localhost:5173`), the three Google variables and `VAULTS_PATH` (a folder that holds one folder per person; any folder works for trying it out). Add `http://localhost:5173/api/auth/callback` to the Google client for sign-in. `pnpm dev` loads it, and the integration tests load it too.
+- For development, see [A local `.env` for development](#a-local-env-for-development).
 - **The agent service outside Docker.** It needs [uv](https://docs.astral.sh/uv/) and Python 3.14. Run `ANTHROPIC_API_KEY=… AGENT_SECRET=… VAULTS_ROOT=/path/to/vaults pnpm --filter @atlas/agent dev` (port 8100, reloading), and put the same `AGENT_SECRET` and `AGENT_URL=http://localhost:8100` in `apps/server/.env`. The agent only reads vaults, so any copy of a vaults folder works. Stop the agent container first if it is running.
+
+## A local `.env` for development
+
+Copy `apps/server/.env.example` to `apps/server/.env`. `pnpm dev` and `pnpm --filter @atlas/server test:integration` both load it. A current file needs:
+
+| Variable | Value for development |
+| --- | --- |
+| `ANTHROPIC_API_KEY` | your Claude API key (the Mac always uses a key, ADR 0110) |
+| `GEMINI_MODEL`, `GEMINI_API_KEY` | the Gemini model name and key |
+| `YOUTUBE_API_KEY` | a YouTube Data API v3 key |
+| `ADMIN_EMAIL` | the Google account that becomes the admin |
+| `APP_ORIGINS` | `http://localhost:5173` |
+| `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `TOKEN_ENCRYPTION_KEY` | the Google client and `openssl rand -base64 32` |
+| `VAULTS_PATH` | a folder that holds one folder per person; any folder works for trying it out |
+
+Add `http://localhost:5173/api/auth/callback` to the Google client for sign-in. Old entries such as `WHISPER_URL` and `VAULT_PATH` are ignored (a warning is logged at startup); delete them.
+
+The integration tests (`*.integration.test.ts`) call the real Claude API and skip without `ANTHROPIC_API_KEY`. They fill in placeholders for `GEMINI_MODEL`, `GEMINI_API_KEY`, `YOUTUBE_API_KEY`, `ADMIN_EMAIL` and `APP_ORIGINS` when those are unset or empty, so a `.env` with only the Claude key is enough; a real value always wins.
 
 Every variable also has a one-line comment in `.env.example` (Compose) and `apps/server/.env.example` (development).

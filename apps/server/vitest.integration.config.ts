@@ -2,11 +2,14 @@
 import { existsSync } from 'node:fs'
 // Packages
 import { defineConfig } from 'vitest/config'
+// Local
+import { applyIntegrationPlaceholders } from './src/test-support/integrationEnv.js'
 
-// Integration tests need the same .env the dev server reads (ANTHROPIC_API_KEY).
+// Integration tests need ANTHROPIC_API_KEY from .env; other required variables get placeholders.
 if( existsSync( '.env' ) ) {
   process.loadEnvFile( '.env' )
 }
+applyIntegrationPlaceholders( process.env )
 
 export default defineConfig( {
   resolve: {
