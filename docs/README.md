@@ -4,7 +4,7 @@
 
 Each version has its own folder. The current version is 1.2.0. User guides: [deploy.md](deploy.md) (hosting on a VM, including backups and restore), [phone-access.md](phone-access.md), [google-cloud-setup.md](google-cloud-setup.md). How the app works: [architecture.md](architecture.md).
 
-- **v1.2.0 (in progress):** [PRD](v1.2.0/prd.md) · [TRD](v1.2.0/trd.md) · [Tasks](v1.2.0/tasks.md) · [Release notes](v1.2.0/release-notes.md) · checkpoint plans in `v1.2.0/plans/`
+- **v1.2.0 (done):** [PRD](v1.2.0/prd.md) · [TRD](v1.2.0/trd.md) · [Tasks](v1.2.0/tasks.md) · [Release notes](v1.2.0/release-notes.md) · checkpoint plans in `v1.2.0/plans/`
 - **v1.1.1 (done):** [PRD](v1.1.1/prd.md) · [TRD](v1.1.1/trd.md) · [Tasks](v1.1.1/tasks.md) · [Release notes](v1.1.1/release-notes.md) · checkpoint plans in `v1.1.1/plans/`
 - **v1.1.0 (done):** [PRD](v1.1.0/prd.md) · [TRD](v1.1.0/trd.md) · [Tasks](v1.1.0/tasks.md) · [Release notes](v1.1.0/release-notes.md) · checkpoint plans in `v1.1.0/plans/`
 - **v1.0.0:** the same code as 0.11.0 with the version raised and no migration; the promise is [ADR 0084](decisions/0084-stability-promise-from-1-0.md), the checklist is [1.0 readiness](v1-readiness.md)
