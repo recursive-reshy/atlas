@@ -151,12 +151,19 @@ test( 'a first run sets up the packages, swap, Docker, folders, files and the un
   assert.doesNotMatch( calls, /chown .*var\/lib\/atlas/, 'stays root-owned' )
 
   // What the unit runs
-  for( const file of [ 'docker-compose.yml', 'compose.prod.yml', 'litestream.yml', 'fetch-secrets.sh', 'deploy.sh' ] ) {
-    assert.equal( read( box, `opt/atlas/${ file }` ), readFileSync( join( repo, file === 'litestream.yml' ? 'deploy/litestream/litestream.yml' : file === 'fetch-secrets.sh' || file === 'deploy.sh' ? `deploy/vm/${ file }` : file ), 'utf8' ), file )
+  const vmFiles = [ 'fetch-secrets.sh', 'deploy.sh', 'fetch-identity-token.sh' ]
+  for( const file of [ 'docker-compose.yml', 'compose.prod.yml', 'litestream.yml', ...vmFiles ] ) {
+    assert.equal( read( box, `opt/atlas/${ file }` ), readFileSync( join( repo, file === 'litestream.yml' ? 'deploy/litestream/litestream.yml' : vmFiles.includes( file ) ? `deploy/vm/${ file }` : file ), 'utf8' ), file )
   }
+  assert.equal( lstatSync( join( box.root, 'opt/atlas/fetch-identity-token.sh' ) ).mode & 0o777, 0o755 )
   assert.equal( lstatSync( join( box.root, 'opt/atlas/fetch-secrets.sh' ) ).mode & 0o777, 0o755 )
   assert.equal( lstatSync( join( box.root, 'opt/atlas/deploy.sh' ) ).mode & 0o777, 0o755 )
   assert.equal( read( box, 'etc/systemd/system/atlas.service' ), readFileSync( join( here, 'atlas.service' ), 'utf8' ) )
+  // The identity-token helper for Claude federation (ADR 0110): its units, and its timer enabled
+  for( const unit of [ 'atlas-identity-token.service', 'atlas-identity-token.timer' ] ) {
+    assert.equal( read( box, `etc/systemd/system/${ unit }` ), readFileSync( join( here, unit ), 'utf8' ), unit )
+  }
+  assert.match( calls, /systemctl enable atlas-identity-token\.timer/ )
   assert.match( calls, /systemctl daemon-reload/ )
   assert.match( calls, /systemctl enable atlas\b/ )
   assert.doesNotMatch( calls, /systemctl (start|restart) atlas/, 'the stack is started by the first deploy, not by bootstrap' )
@@ -190,6 +197,7 @@ test( 'a changed file in the checkout reaches /opt/atlas and reloads systemd on 
   for( const file of [
     'docker-compose.yml', 'compose.prod.yml', 'deploy/litestream/litestream.yml', 'deploy/vm/fetch-secrets.sh', 'deploy/vm/deploy.sh',
     'deploy/vm/atlas.service', 'deploy/vm/atlas.env.example', 'deploy/vm/docker-credential-atlas-gar',
+    'deploy/vm/fetch-identity-token.sh', 'deploy/vm/atlas-identity-token.service', 'deploy/vm/atlas-identity-token.timer',
   ] ) {
     mkdirSync( dirname( join( src, file ) ), { recursive: true } )
     writeFileSync( join( src, file ), readFileSync( join( repo, file ) ) )

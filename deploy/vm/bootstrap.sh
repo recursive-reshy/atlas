@@ -180,6 +180,7 @@ install_file "$SRC/compose.prod.yml" "$R/opt/atlas/compose.prod.yml" 644 || true
 install_file "$SRC/deploy/litestream/litestream.yml" "$R/opt/atlas/litestream.yml" 644 || true
 install_file "$SRC/deploy/vm/fetch-secrets.sh" "$R/opt/atlas/fetch-secrets.sh" 755 || true
 install_file "$SRC/deploy/vm/deploy.sh" "$R/opt/atlas/deploy.sh" 755 || true
+install_file "$SRC/deploy/vm/fetch-identity-token.sh" "$R/opt/atlas/fetch-identity-token.sh" 755 || true
 
 if [ ! -f "$R/etc/atlas/atlas.env" ]; then
   log "creating /etc/atlas/atlas.env from the example; edit it before the first deploy"
@@ -187,9 +188,17 @@ if [ ! -f "$R/etc/atlas/atlas.env" ]; then
   chmod 640 "$R/etc/atlas/atlas.env"
 fi
 
-if install_file "$SRC/deploy/vm/atlas.service" "$R/etc/systemd/system/atlas.service" 644; then
+units_changed=1
+for unit in atlas.service atlas-identity-token.service atlas-identity-token.timer; do
+  if install_file "$SRC/deploy/vm/$unit" "$R/etc/systemd/system/$unit" 644; then
+    units_changed=0
+  fi
+done
+if [ "$units_changed" -eq 0 ]; then
   systemctl daemon-reload
 fi
 systemctl is-enabled --quiet atlas || systemctl enable atlas
+# The timer keeps the Claude identity token fresh (ADR 0110); deploy.sh starts it once the IDs are set
+systemctl is-enabled --quiet atlas-identity-token.timer || systemctl enable atlas-identity-token.timer
 
 log "done. Next: tailscale up, edit /etc/atlas/atlas.env, then deploy (docs/deploy.md)"

@@ -106,9 +106,21 @@ install_files() {
   install_from "$files/deploy/litestream/litestream.yml" "$OPT/litestream.yml" 644 || true
   install_from "$files/deploy/vm/fetch-secrets.sh" "$OPT/fetch-secrets.sh" 755 || true
   install_from "$files/deploy/vm/deploy.sh" "$OPT/deploy.sh" 755 || true
+  install_from "$files/deploy/vm/fetch-identity-token.sh" "$OPT/fetch-identity-token.sh" 755 || true
+  local units_changed=1
   if install_from "$files/deploy/vm/atlas.service" "$UNIT" 644; then
+    units_changed=0
+  fi
+  # The identity-token units (ADR 0110) sit beside atlas.service
+  for unit in atlas-identity-token.service atlas-identity-token.timer; do
+    if install_from "$files/deploy/vm/$unit" "$(dirname "$UNIT")/$unit" 644; then
+      units_changed=0
+    fi
+  done
+  if [ "$units_changed" -eq 0 ]; then
     systemctl daemon-reload
   fi
+  systemctl enable --now atlas-identity-token.timer
 }
 
 set_version() {

@@ -1,5 +1,5 @@
 # Installed by deploy/vm/bootstrap.sh as /etc/systemd/system/atlas.service (ADR 0077, 0078).
-# Fetches the secrets into memory, then starts the stack. Restart it to pick up a new secret
+# Fetches the secrets and the identity token for Claude (ADR 0110) into memory, then starts the stack. Restart it to pick up a new secret
 # version or a new ATLAS_VERSION: sudo systemctl restart atlas
 [Unit]
 Description=Atlas
@@ -12,6 +12,7 @@ Type=oneshot
 RemainAfterExit=yes
 WorkingDirectory=/opt/atlas
 ExecStartPre=/opt/atlas/fetch-secrets.sh
+ExecStartPre=/opt/atlas/fetch-identity-token.sh
 ExecStart=/usr/bin/docker compose --env-file /etc/atlas/atlas.env --env-file /run/atlas/secrets.env -f docker-compose.yml -f compose.prod.yml up -d --wait --remove-orphans
 ExecStop=/usr/bin/docker compose --env-file /etc/atlas/atlas.env --env-file /run/atlas/secrets.env -f docker-compose.yml -f compose.prod.yml down
 TimeoutStartSec=600

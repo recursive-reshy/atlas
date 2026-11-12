@@ -1,0 +1,11 @@
+# Installed by deploy/vm/bootstrap.sh and deploy.sh (ADR 0110).
+# Writes the VM's Google identity token for api.anthropic.com to /run/atlas/identity/token, where
+# both containers read it to sign in to Claude without a stored key. Started by the timer next to it.
+[Unit]
+Description=Atlas identity token for Claude
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/atlas/fetch-identity-token.sh
