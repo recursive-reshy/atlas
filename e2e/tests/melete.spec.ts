@@ -73,5 +73,5 @@ test( 'a note is enrolled, quizzed in typed and quick modes, and the app is inst
   const manifest = await request.get( '/manifest.webmanifest' )
 
   expect( manifest.status() ).toBe( 200 )
-  expect( ( await manifest.json() as { start_url: string } ).start_url ).toBe( '/melete' )
+  expect( ( await manifest.json() as { start_url: string } ).start_url ).toBe( '/' )
 } )

@@ -20,6 +20,14 @@ LIMIT_DEFAULTS: dict[ str, int ] = {
     "link_targets_limit": 500
 }
 
+# Read from SYLLABUS_<NAME without the prefix>, not AGENT_*
+SYLLABUS_DEFAULTS: dict[ str, int ] = {
+    "syllabus_max_turns": 16,
+    "syllabus_max_tool_calls": 40,
+    "syllabus_max_output_tokens": 8192,
+    "syllabus_timeout_seconds": 180
+}
+
 class ConfigError( Exception ):
     pass
 
@@ -38,6 +46,10 @@ class Settings( BaseModel ):
     search_snippet_chars: int = LIMIT_DEFAULTS[ "search_snippet_chars" ]
     read_note_chars: int = LIMIT_DEFAULTS[ "read_note_chars" ]
     link_targets_limit: int = LIMIT_DEFAULTS[ "link_targets_limit" ]
+    syllabus_max_turns: int = SYLLABUS_DEFAULTS[ "syllabus_max_turns" ]
+    syllabus_max_tool_calls: int = SYLLABUS_DEFAULTS[ "syllabus_max_tool_calls" ]
+    syllabus_max_output_tokens: int = SYLLABUS_DEFAULTS[ "syllabus_max_output_tokens" ]
+    syllabus_timeout_seconds: int = SYLLABUS_DEFAULTS[ "syllabus_timeout_seconds" ]
 
 def load_settings( environ: Mapping[ str, str ] ) -> Settings:
     problems: list[ str ] = []
@@ -62,8 +74,12 @@ def load_settings( environ: Mapping[ str, str ] ) -> Settings:
 
     limits: dict[ str, int ] = {}
 
-    for name in LIMIT_DEFAULTS:
-        variable = f"AGENT_{name.upper()}"
+    variables = {
+        **{ f"AGENT_{name.upper()}": name for name in LIMIT_DEFAULTS },
+        **{ name.upper(): name for name in SYLLABUS_DEFAULTS }
+    }
+
+    for variable, name in variables.items():
 
         if variable not in environ:
             continue

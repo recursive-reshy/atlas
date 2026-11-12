@@ -27,6 +27,6 @@ describe( 'renderWithRouter', () => {
   it( 'follows redirects', () => {
     const { location } = renderWithRouter( '/nowhere' )
 
-    expect( location().pathname ).toBe( '/' )
+    expect( location().pathname ).toBe( '/transcriber' )
   } )
 } )

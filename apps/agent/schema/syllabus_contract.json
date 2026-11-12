@@ -1,0 +1,189 @@
+{
+  "$defs": {
+    "DraftedSyllabus": {
+      "properties": {
+        "outcome": {
+          "const": "drafted",
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "null"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/SyllabusSection"
+          },
+          "maxItems": 20,
+          "title": "Sections",
+          "type": "array"
+        },
+        "usage": {
+          "$ref": "#/$defs/AgentUsage"
+        }
+      },
+      "required": [
+        "outcome",
+        "reason",
+        "sections",
+        "usage"
+      ],
+      "title": "DraftedSyllabus",
+      "type": "object"
+    },
+    "FailedSyllabus": {
+      "properties": {
+        "outcome": {
+          "const": "failed",
+          "title": "Outcome",
+          "type": "string"
+        },
+        "reason": {
+          "minLength": 1,
+          "title": "Reason",
+          "type": "string"
+        },
+        "usage": {
+          "$ref": "#/$defs/AgentUsage"
+        }
+      },
+      "required": [
+        "outcome",
+        "reason",
+        "usage"
+      ],
+      "title": "FailedSyllabus",
+      "type": "object"
+    },
+    "SyllabusConcept": {
+      "properties": {
+        "description": {
+          "maxLength": 500,
+          "title": "Description",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "description"
+      ],
+      "title": "SyllabusConcept",
+      "type": "object"
+    },
+    "SyllabusRequest": {
+      "properties": {
+        "guidance": {
+          "maxLength": 20000,
+          "title": "Guidance",
+          "type": "string"
+        },
+        "intent": {
+          "anyOf": [
+            {
+              "maxLength": 2000,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Intent"
+        },
+        "level": {
+          "$ref": "#/$defs/TargetLevel"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        },
+        "name": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Name",
+          "type": "string"
+        },
+        "subject_folder": {
+          "maxLength": 500,
+          "minLength": 1,
+          "pattern": "^[^/\\\\.][^/\\\\]*(/[^/\\\\.][^/\\\\]*)*$",
+          "title": "Subject Folder",
+          "type": "string"
+        },
+        "vault_dir": {
+          "pattern": "^[a-z0-9]([a-z0-9-]{0,38}[a-z0-9])?$",
+          "title": "Vault Dir",
+          "type": "string"
+        }
+      },
+      "required": [
+        "vault_dir",
+        "subject_folder",
+        "name",
+        "level",
+        "intent",
+        "model",
+        "guidance"
+      ],
+      "title": "SyllabusRequest",
+      "type": "object"
+    },
+    "SyllabusResponse": {
+      "discriminator": {
+        "mapping": {
+          "drafted": "#/$defs/DraftedSyllabus",
+          "failed": "#/$defs/FailedSyllabus"
+        },
+        "propertyName": "outcome"
+      },
+      "oneOf": [
+        {
+          "$ref": "#/$defs/DraftedSyllabus"
+        },
+        {
+          "$ref": "#/$defs/FailedSyllabus"
+        }
+      ],
+      "title": "SyllabusResponse"
+    },
+    "SyllabusSection": {
+      "properties": {
+        "concepts": {
+          "items": {
+            "$ref": "#/$defs/SyllabusConcept"
+          },
+          "title": "Concepts",
+          "type": "array"
+        },
+        "name": {
+          "maxLength": 200,
+          "title": "Name",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "concepts"
+      ],
+      "title": "SyllabusSection",
+      "type": "object"
+    },
+    "TargetLevel": {
+      "enum": [
+        "awareness",
+        "working",
+        "proficient",
+        "expert"
+      ],
+      "title": "TargetLevel",
+      "type": "string"
+    }
+  }
+}

@@ -5,6 +5,9 @@ import { fileURLToPath } from 'node:url'
 // Packages
 import { describe, it, expect } from 'vitest'
 // Repositories
+import * as calendarAccount from './calendarAccount.repository.js'
+import * as calendarEvents from './calendarEvents.repository.js'
+import * as calendarRules from './calendarRules.repository.js'
 import * as extractionRuns from './extractionRuns.repository.js'
 import * as feedItems from './feedItems.repository.js'
 import * as feeds from './feeds.repository.js'
@@ -44,6 +47,9 @@ type AnyFunction = ( ...args: never[] ) => unknown
 // Every data repository, imported by name so the guard is typed. A new one must be added here;
 // the file listing below fails until it is.
 const DATA_REPOSITORIES: Record< string, Record< string, unknown > > = {
+  calendarAccount,
+  calendarEvents,
+  calendarRules,
   extractionRuns,
   feedItems,
   feeds,

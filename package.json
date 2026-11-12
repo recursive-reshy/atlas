@@ -1,6 +1,6 @@
 {
   "name": "atlas",
-  "version": "1.1.1",
+  "version": "1.2.0",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.24.0",
@@ -12,7 +12,8 @@
     }
   },
   "scripts": {
-    "test": "pnpm -r test && node --test \"scripts/*.test.mjs\" \"deploy/**/*.test.mjs\"",
+    "test": "node scripts/gate.mjs --tests",
+    "gate": "node scripts/gate.mjs",
     "lint": "pnpm -r lint",
     "typecheck": "pnpm -r typecheck",
     "build": "pnpm -r build",

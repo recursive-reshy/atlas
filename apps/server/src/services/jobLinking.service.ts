@@ -1,10 +1,10 @@
 // Shared
 import type {
   AcceptLinkSuggestionsBody,
+  AgentUsage,
   Job,
   LinkSuggestion,
   LinkSuggestionsResponse,
-  LinkUsage,
   RejectLinkSuggestionsBody,
   RunLinkingBody,
   StoredLinkSuggestion,
@@ -58,7 +58,7 @@ export const recordLinkRun = (
   run: {
     model: string
     promptVersionId: number
-    usage: LinkUsage | undefined
+    usage: AgentUsage | undefined
     error?: string
   },
 ): number => {

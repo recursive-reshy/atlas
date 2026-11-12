@@ -18,6 +18,10 @@ const logLevelSchema = z
   .enum( [ 'fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent' ] )
   .default( 'info' )
 const agentTimeoutSchema = z.coerce.number().int().positive().default( 120_000 )
+// Above the agent's own 180 s, so the agent reports its own timeout (ADR 0105)
+const agentSyllabusTimeoutSchema = z.coerce.number().int().positive().default( 200_000 )
+
+const calendarLookbackSchema = z.coerce.number().int().min( 1 ).max( 90 ).default( 14 )
 
 const isTimeZone = ( value: string ): boolean => {
   try {
@@ -158,6 +162,11 @@ const EnvSchema = z
     AGENT_URL: z.preprocess( emptyAsUnset, z.url().default( 'http://localhost:8100' ) ),
     AGENT_SECRET: z.preprocess( emptyAsUnset, z.string().min( 32 ).optional() ),
     AGENT_TIMEOUT_MS: z.preprocess( emptyAsUnset, agentTimeoutSchema ),
+    AGENT_SYLLABUS_TIMEOUT_MS: z.preprocess( emptyAsUnset, agentSyllabusTimeoutSchema ),
+    // Google Calendar (ADR 0108). Without a redirect URI the feature is "not configured"
+    CALENDAR_REDIRECT_URI: z.preprocess( emptyAsUnset, z.url().optional() ),
+    CALENDAR_LOOKBACK_DAYS: z.preprocess( emptyAsUnset, calendarLookbackSchema ),
+    CALENDAR_API_BASE_URL: z.preprocess( emptyAsUnset, z.url().optional() ),
     APP_TIME_ZONE: z.preprocess( emptyAsUnset, timeZoneSchema ),
     MELETE_DAY_START_HOUR: z.preprocess( emptyAsUnset, dayStartHourSchema ),
     MELETE_REQUEST_RETENTION: z.preprocess( emptyAsUnset, requestRetentionSchema ),
@@ -203,6 +212,13 @@ const EnvSchema = z
     agent: env.AGENT_SECRET === undefined
       ? null
       : { url: env.AGENT_URL, secret: env.AGENT_SECRET, timeoutMs: env.AGENT_TIMEOUT_MS },
+    agentSyllabusTimeoutMs: env.AGENT_SYLLABUS_TIMEOUT_MS,
+    calendar: {
+      redirectUri: env.CALENDAR_REDIRECT_URI ?? null,
+      lookbackDays: env.CALENDAR_LOOKBACK_DAYS,
+      // Test double for the e2e stack: another host for the Calendar API. Unset in production.
+      apiBaseUrl: env.CALENDAR_API_BASE_URL ?? null,
+    },
     timeZone: env.APP_TIME_ZONE,
     melete: {
       requestRetention: env.MELETE_REQUEST_RETENTION,
@@ -241,10 +257,19 @@ export const assertFetchAllowPrivateAllowed = ( env: NodeJS.ProcessEnv ): void =
   }
 }
 
+export const assertCalendarApiBaseUrlAllowed = ( env: NodeJS.ProcessEnv ): void => {
+  const on = env.CALENDAR_API_BASE_URL !== undefined && env.CALENDAR_API_BASE_URL !== ''
+
+  if( on && env.NODE_ENV !== 'test' ) {
+    throw new Error( 'CALENDAR_API_BASE_URL is only allowed with NODE_ENV=test' )
+  }
+}
+
 const loadConfigOrExit = ( env: NodeJS.ProcessEnv ): Config => {
   try {
     assertTestSigninAllowed( env )
     assertFetchAllowPrivateAllowed( env )
+    assertCalendarApiBaseUrlAllowed( env )
 
     return loadConfig( env )
   } catch( error ) {

@@ -12,9 +12,8 @@ import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 // App
 import { useLogTime } from '#src/features/themis/hooks/useLogTime'
-import { useMe } from '#src/app/useMe'
-import { useMeleteToday } from '#src/features/melete/hooks/useMeleteToday'
-import { useThemisOverview } from '#src/features/themis/hooks/useThemisOverview'
+import { useTimeTargets } from '#src/features/themis/hooks/useTimeTargets'
+import { TargetSelect } from '../TargetSelect'
 import { daysBefore, localDate } from '#src/lib/localDate'
 
 interface LogTimeDialogProps {
@@ -39,24 +38,16 @@ const startTarget = ( subjectId?: string, goalId?: string ): string => {
 // Minutes against a subject or a goal, on a day up to a year back (ADR 0091); phone first
 export function LogTimeDialog( { subjectId, goalId, onClose }: LogTimeDialogProps ): ReactElement {
   const titleId = useId()
-  const modules = useMe().me?.modules ?? []
-  const hasMelete = modules.includes( 'melete' )
-  const hasThemis = modules.includes( 'themis' )
-  const { today: melete } = useMeleteToday( hasMelete )
-  const { overview } = useThemisOverview( 'week', hasThemis )
+  const { subjects, goals } = useTimeTargets()
   const logTime = useLogTime()
   const now = new Date()
   const [ target, setTarget ] = useState( startTarget( subjectId, goalId ) )
   const [ minutes, setMinutes ] = useState( '' )
   const [ day, setDay ] = useState( localDate( now ) )
   const [ note, setNote ] = useState( '' )
-  const subjects = hasMelete ? melete?.subjects ?? [] : []
-  const goals = hasThemis ? overview?.areas.flatMap( ( { goals: cards } ) => cards ) ?? [] : []
   const count = Number( minutes )
   const isValid = target !== '' && day !== '' && minutes !== ''
     && Number.isInteger( count ) && count >= 1 && count <= MAX_MINUTES
-  const isKnown = [ ...subjects.map( ( { id } ) => `subject:${ id }` ),
-    ...goals.map( ( { goal } ) => `goal:${ goal.id }` ) ].includes( target )
 
   const handleSave = (): void => {
     const [ kind, id ] = target.split( ':' )
@@ -78,30 +69,13 @@ export function LogTimeDialog( { subjectId, goalId, onClose }: LogTimeDialogProp
       <DialogTitle id={ titleId }>Log time</DialogTitle>
       <DialogContent>
         <Stack spacing={ 2 } sx={ { pt: 1 } }>
-          <TextField
-            select
+          <TargetSelect
             label="Subject or goal"
             value={ target }
-            onChange={ ( event ) => setTarget( event.target.value ) }
-            slotProps={ { select: { native: true }, inputLabel: { shrink: true } } }
-          >
-            <option value="">Choose…</option>
-            { target !== '' && !isKnown && <option value={ target }>Selected</option> }
-            { subjects.length > 0 && (
-              <optgroup label="Subjects">
-                { subjects.map( ( { id, name } ) => (
-                  <option key={ id } value={ `subject:${ id }` }>{ name }</option>
-                ) ) }
-              </optgroup>
-            ) }
-            { goals.length > 0 && (
-              <optgroup label="Goals">
-                { goals.map( ( { goal } ) => (
-                  <option key={ goal.id } value={ `goal:${ goal.id }` }>{ goal.name }</option>
-                ) ) }
-              </optgroup>
-            ) }
-          </TextField>
+            subjects={ subjects }
+            goals={ goals }
+            onChange={ setTarget }
+          />
           <Stack direction="row" sx={ { flexWrap: 'wrap', gap: 1 } }>
             { CHIPS.map( ( chip ) => (
               <Button

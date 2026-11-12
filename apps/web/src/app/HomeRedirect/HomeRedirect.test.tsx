@@ -22,8 +22,9 @@ beforeEach( () => {
 
 describe( 'HomeRedirect', () => {
   it.each( [
-    [ [ 'transcriber', 'melete' ] as const, '/' ],
-    [ [ 'transcriber' ] as const, '/' ],
+    [ [ 'transcriber', 'melete' ] as const, '/transcriber' ],
+    [ [ 'transcriber' ] as const, '/transcriber' ],
+    [ [ 'transcriber', 'themis' ] as const, '/' ],
     [ [ 'melete' ] as const, '/melete' ],
   ] )( 'sends a user with %s to %s', ( modules, home ) => {
     vi.mocked( useMe ).mockReturnValue(

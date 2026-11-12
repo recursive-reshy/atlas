@@ -1,15 +1,16 @@
 // Packages
 import { describe, it, expect } from 'vitest'
 import { z } from 'zod'
+// Shared
+import { VaultDir } from './auth.js'
 // Agent
 import {
   InstructionsResponse,
   LinkNote,
-  LinkOutcome,
   LinkRequest,
   LinkResponse,
   LinkSuggestion,
-  LinkUsage,
+  AgentUsage,
   SuggestionKind,
 } from './agent.js'
 
@@ -114,6 +115,22 @@ describe( 'LinkRequest', () => {
   )
 } )
 
+describe( 'LinkRequest vault_dir', () => {
+  // The Python pattern is generated inline; it must stay the same rule as the app's VaultDir
+  const names = [
+    'a', 'naresh', 'my-vault-2', '', '..', 'a/b', 'UPPER', '-lead', 'trail-', 'a'.repeat( 41 ),
+  ]
+
+  it.each( names )(
+    'treats %j as VaultDir does',
+    ( vaultDir ) => {
+      const request = { note, vault_dir: vaultDir, model: 'm', guidance: '' }
+
+      expect( accepts( LinkRequest, request ) ).toBe( VaultDir.safeParse( vaultDir ).success )
+    },
+  )
+} )
+
 describe( 'LinkSuggestion', () => {
   it( 'accepts every kind and rejects an unknown one', () => {
     for( const kind of SuggestionKind.options ) {
@@ -140,10 +157,10 @@ describe( 'LinkSuggestion', () => {
   } )
 } )
 
-describe( 'LinkUsage', () => {
+describe( 'AgentUsage', () => {
   it.each( Object.keys( usage ) )( 'requires %s', ( field ) => {
-    expect( accepts( LinkUsage, usage ) ).toBe( true )
-    expect( accepts( LinkUsage, without( usage, field ) ) ).toBe( false )
+    expect( accepts( AgentUsage, usage ) ).toBe( true )
+    expect( accepts( AgentUsage, without( usage, field ) ) ).toBe( false )
   } )
 } )
 
@@ -154,7 +171,6 @@ describe( 'LinkResponse', () => {
   } )
 
   it( 'accepts failed with a reason and no suggestions', () => {
-    expect( LinkOutcome.options ).toEqual( [ 'linked', 'failed' ] )
     expect( accepts( LinkResponse, { ...response, ...failed } ) ).toBe( true )
   } )
 

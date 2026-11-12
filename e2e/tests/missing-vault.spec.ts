@@ -20,7 +20,7 @@ test( 'a member whose vault folder disappears can create a vault again (ADR 0070
   const page = await context.newPage()
 
   await signIn( context, { email: 'lost@e2e.test', modules: [ 'melete' ] } )
-  await page.goto( '/' )
+  await page.goto( '/transcriber' )
   await page.getByLabel( 'New vault name' ).fill( 'lost-vault' )
   await page.getByRole( 'button', { name: 'Create vault' } ).click()
   await expect( page ).toHaveURL( /\/melete/ )

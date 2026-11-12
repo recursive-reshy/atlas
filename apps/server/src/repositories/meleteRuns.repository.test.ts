@@ -41,6 +41,8 @@ const run = ( overrides: Partial< NewMeleteRun > = {} ): NewMeleteRun => {
     cost_usd: 0.002,
     outcome: 'succeeded',
     error: null,
+    turns: null,
+    tool_calls: null,
     created_at: '2026-10-22T10:00:00.000Z',
     ...overrides,
   }
@@ -64,6 +66,12 @@ describe( 'insertRun and findRun', () => {
 
     expect( findRun( userId, id ) )
       .toMatchObject( { kind: 'grade', note_id: null, question_id: 'question-1' } )
+  } )
+
+  it( 'stores the turns and tool calls of an agent run', () => {
+    const id = insertRun( userId, run( { kind: 'syllabus', turns: 5, tool_calls: 9 } ) )
+
+    expect( findRun( userId, id ) ).toMatchObject( { turns: 5, tool_calls: 9 } )
   } )
 
   it( 'stores a failed run with no usage', () => {

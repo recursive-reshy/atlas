@@ -15,6 +15,7 @@ import { config } from '../config.js'
 import { NotFoundError } from '../errors.js'
 // Repositories
 import { findFeedById, listFeeds } from '../repositories/feeds.repository.js'
+import { findCalendarAccount } from '../repositories/calendarAccount.repository.js'
 import { findAccount } from '../repositories/gmailAccount.repository.js'
 import { findSourceById, listSources } from '../repositories/gmailSources.repository.js'
 import { listErrors, listHealth } from '../repositories/health.repository.js'
@@ -99,6 +100,36 @@ const gmailConnectionRow = (
   return toRow( subject, health, false )
 }
 
+// A row only once Calendar is connected: the connection is a source of the user's own
+const calendarConnectionRows = (
+  userId: string,
+  health: HealthRecord | undefined,
+): StatusRow[] => {
+  const account = findCalendarAccount( userId )
+
+  if( account === undefined ) {
+    return []
+  }
+
+  const subject: Subject = {
+    kind: 'calendar_connection',
+    id: userId,
+    name: 'Calendar connection',
+  }
+  const row = toRow( subject, health, false )
+
+  if( account.status !== 'broken' ) {
+    return [ row ]
+  }
+
+  return [ {
+    ...row,
+    state: 'failing',
+    last_error: health?.last_error ?? account.error ?? 'Calendar needs reconnecting',
+    failing_since: health?.failing_since ?? health?.last_checked_at ?? null,
+  } ]
+}
+
 const VAULT_SYNC_NAME = 'Vault sync'
 
 // A member sees their own vault's sync; the admin sees every active user's, named (ADR 0075).
@@ -177,6 +208,7 @@ export const getStatus = ( userId: string, isAdmin: boolean ): GetStatusResponse
     ...isAdmin ? [ ...appRows, ...replicationRows ] : [],
     ...vaultSyncRows( userId, isAdmin, find ),
     gmailConnectionRow( userId, find( 'gmail_connection', userId ) ),
+    ...calendarConnectionRows( userId, find( 'calendar_connection', userId ) ),
     ...listSources( userId )
       .map( ( { id, name, enabled } ) => {
         return toRow( { kind: 'gmail_source', id, name }, find( 'gmail_source', id ), !enabled )
@@ -216,7 +248,7 @@ const subjectExists = ( userId: string, kind: HealthKind, id: string ): boolean 
     return findSourceById( userId, id )?.deleted_at === null
   }
 
-  if( kind === 'gmail_connection' ) {
+  if( kind === 'gmail_connection' || kind === 'calendar_connection' ) {
     return id === userId
   }
 

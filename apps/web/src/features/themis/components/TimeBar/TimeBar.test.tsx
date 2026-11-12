@@ -30,6 +30,14 @@ describe( 'TimeBar', () => {
     expect( screen.queryByRole( 'img' ) ).not.toBeInTheDocument()
   } )
 
+  it( 'draws calendar time as a third shade', () => {
+    render( <TimeBar measured={ 3600 } logged={ 1800 } calendar={ 1800 } scale={ 1 } /> )
+
+    expect( screen.getByRole( 'img', { name: 'Measured 50%' } ) ).toBeInTheDocument()
+    expect( screen.getByRole( 'img', { name: 'Logged 25%' } ) ).toBeInTheDocument()
+    expect( screen.getByRole( 'img', { name: 'Calendar 25%' } ) ).toBeInTheDocument()
+  } )
+
   it( 'sizes the whole bar by the scale', () => {
     render( <TimeBar measured={ 600 } logged={ 600 } scale={ 0.5 } /> )
 

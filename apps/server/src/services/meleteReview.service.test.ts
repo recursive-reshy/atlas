@@ -600,6 +600,8 @@ describe( 'gradeAnswer', () => {
       output_tokens: 120,
       outcome: 'succeeded',
       error: null,
+      turns: null,
+      tool_calls: null,
       created_at: iso( 0 ),
     } )
     expect( ( run as { cost_usd: number } ).cost_usd ).toBeGreaterThan( 0 )
@@ -822,6 +824,8 @@ describe( 'recordReview', () => {
         cost_usd: null,
         outcome: 'succeeded',
         error: null,
+        turns: null,
+        tool_calls: null,
         created_at: iso( 0 ),
       } )
       const runIds: Record< string, number > = {
@@ -990,6 +994,8 @@ describe( 'reviews for two users', () => {
       cost_usd: null,
       outcome: 'succeeded',
       error: null,
+      turns: null,
+      tool_calls: null,
       created_at: iso( 0 ),
     } )
 

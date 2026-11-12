@@ -6,6 +6,7 @@ import Box from '@mui/material/Box'
 interface TimeBarProps {
   measured: number
   logged: number
+  calendar?: number
   // How much of the full width the whole bar takes, 0 to 1
   scale: number
 }
@@ -28,9 +29,9 @@ function Segment(
   )
 }
 
-// Measured and logged time as two shades of one bar (ADR 0091)
-export function TimeBar( { measured, logged, scale }: TimeBarProps ): ReactElement {
-  const total = measured + logged
+// Measured, logged and calendar time as three shades of one bar (ADRs 0091, 0108)
+export function TimeBar( { measured, logged, calendar = 0, scale }: TimeBarProps ): ReactElement {
+  const total = measured + logged + calendar
 
   return (
     <Box
@@ -51,6 +52,11 @@ export function TimeBar( { measured, logged, scale }: TimeBarProps ): ReactEleme
         label="Logged"
         share={ total === 0 ? 0 : logged / total * 100 }
         color="secondary.main"
+      />
+      <Segment
+        label="Calendar"
+        share={ total === 0 ? 0 : calendar / total * 100 }
+        color="success.main"
       />
     </Box>
   )

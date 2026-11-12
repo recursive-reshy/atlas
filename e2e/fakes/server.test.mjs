@@ -1,3 +1,4 @@
+import { URLSearchParams } from 'node:url'
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
 import { route } from './server.mjs'
@@ -235,23 +236,11 @@ describe( 'unexpected requests', () => {
 const answerText = ( body ) => JSON.parse( JSON.parse( post( body ).body ).content[ 0 ].text )
 
 describe( 'POST /v1/messages for the Melete syllabus (v1.1)', () => {
-  const syllabusRequest = request( 'You draft a syllabus for a subject a learner is studying.\n\nMore.' )
   const approvedRequest = request(
     'You write active-recall questions from one study note and place the note in a syllabus.\n\nMore.',
   )
   const mapRequest = request( 'You map a study note and its questions onto the concepts of a syllabus.\n\nMore.' )
   const suggestRequest = request( 'You suggest learning resources for one concept of a syllabus.\n\nMore.' )
-
-  it( 'drafts a syllabus of two concepts in one section', () => {
-    const { sections } = answerText( syllabusRequest )
-
-    assert.equal( sections.length, 1 )
-    assert.equal( sections[ 0 ].concepts.length, 2 )
-
-    for( const concept of sections[ 0 ].concepts ) {
-      assert.ok( concept.name.length > 0 && concept.description.length > 0 )
-    }
-  } )
 
   it( 'tells the approved question form from the plain one, though they start alike', () => {
     const plain = answerText( questionsRequest )
@@ -291,3 +280,140 @@ describe( 'POST /v1/messages for the Melete syllabus (v1.1)', () => {
   } )
 } )
 
+
+describe( 'POST /v1/messages with tools (the syllabus agent, v1.2)', () => {
+  const tools = [
+    { name: 'list_notes' },
+    { name: 'search_vault' },
+    { name: 'read_note' },
+    { name: 'submit_syllabus' },
+  ]
+  const syllabusRequest = ( messages = [] ) => ( {
+    ...request( 'You draft a syllabus for a subject a learner is studying.\n\nMore.' ),
+    tools,
+    messages: [ { role: 'user', content: 'Subject: E2E' }, ...messages ],
+  } )
+  const called = ( name, id, input = {} ) => ( {
+    role: 'assistant',
+    content: [ { type: 'tool_use', id, name, input } ],
+  } )
+  const result = ( id, content ) => ( {
+    role: 'user',
+    content: [ { type: 'tool_result', tool_use_id: id, content } ],
+  } )
+  const block = ( body ) => JSON.parse( post( body ).body ).content.find( ( item ) => item.type === 'tool_use' )
+  const notes = JSON.stringify( { notes: [ { path: 'Recall.md', title: 'Recall', tags: [] } ], omitted: 0 } )
+
+  it( 'starts by listing the notes', () => {
+    const first = block( syllabusRequest() )
+
+    assert.equal( first.name, 'list_notes' )
+  } )
+
+  it( 'reads the first note the list returned', () => {
+    const second = block( syllabusRequest( [ called( 'list_notes', 't1' ), result( 't1', notes ) ] ) )
+
+    assert.equal( second.name, 'read_note' )
+    assert.deepEqual( second.input, { path: 'Recall.md' } )
+  } )
+
+  it( 'submits two concepts in one section after reading', () => {
+    const third = block( syllabusRequest( [
+      called( 'list_notes', 't1' ),
+      result( 't1', notes ),
+      called( 'read_note', 't2', { path: 'Recall.md' } ),
+      result( 't2', '{}' ),
+    ] ) )
+
+    assert.equal( third.name, 'submit_syllabus' )
+    assert.equal( third.input.sections.length, 1 )
+    assert.equal( third.input.sections[ 0 ].concepts.length, 2 )
+
+    for( const concept of third.input.sections[ 0 ].concepts ) {
+      assert.ok( concept.name.length > 0 && concept.description.length > 0 )
+    }
+  } )
+
+  it( 'submits straight away when the folder has no notes', () => {
+    const empty = JSON.stringify( { notes: [], omitted: 0 } )
+    const answer = block( syllabusRequest( [ called( 'list_notes', 't1' ), result( 't1', empty ) ] ) )
+
+    assert.equal( answer.name, 'submit_syllabus' )
+  } )
+
+  it( 'stop_reason is tool_use on every turn', () => {
+    assert.equal( JSON.parse( post( syllabusRequest() ).body ).stop_reason, 'tool_use' )
+  } )
+
+  it( 'answers 400 to a syllabus run whose tools do not include submit_syllabus', () => {
+    const response = post( { ...syllabusRequest(), tools: [ { name: 'list_notes' } ] } )
+
+    assert.equal( response.status, 400 )
+    assert.match( JSON.parse( response.body ).error.message, /submit/ )
+  } )
+} )
+
+describe( 'the Calendar API', () => {
+  const CAL = '/calendar/v3/calendars/e2e-cal/events'
+  const at = ( minutes ) => new Date( Date.UTC( 2026, 10, 10, 9, minutes ) ).toISOString()
+  const event = ( id, summary, from, to ) => ( {
+    id,
+    summary,
+    start: { dateTime: at( from ) },
+    end: { dateTime: at( to ) },
+  } )
+  const events = [
+    event( 'a', 'Standup', 0, 15 ),
+    event( 'b', 'Dentist', 60, 90 ),
+    event( 'c', 'Study block', 120, 180 ),
+  ]
+  const list = ( query ) => JSON.parse(
+    route( 'GET', CAL, '', new URLSearchParams( query ) ).body,
+  )
+
+  it( 'answers the token refresh with an access token', () => {
+    const response = route( 'POST', '/token', 'grant_type=refresh_token' )
+
+    assert.equal( response.status, 200 )
+    assert.equal( JSON.parse( response.body ).token_type, 'Bearer' )
+    assert.ok( JSON.parse( response.body ).access_token )
+  } )
+
+  it( 'lists one calendar, and answers its entry', () => {
+    const all = JSON.parse( route( 'GET', '/calendar/v3/users/me/calendarList' ).body )
+    const one = route( 'GET', '/calendar/v3/users/me/calendarList/e2e-cal' )
+
+    assert.deepEqual( all.items.map( ( { id } ) => id ), [ 'e2e-cal' ] )
+    assert.equal( all.items[ 0 ].primary, true )
+    assert.equal( JSON.parse( one.body ).id, 'e2e-cal' )
+    assert.equal( route( 'GET', '/calendar/v3/users/me/calendarList/other' ).status, 404 )
+  } )
+
+  it( 'has no events until the spec sets them, then serves them in two pages', () => {
+    assert.deepEqual( list( {} ).items, [] )
+    assert.equal( route( 'PUT', '/__calendar/events', JSON.stringify( events ) ).status, 204 )
+
+    const first = list( {} )
+
+    assert.deepEqual( first.items.map( ( { id } ) => id ), [ 'a', 'b' ] )
+    assert.ok( first.nextPageToken )
+
+    const second = list( { pageToken: first.nextPageToken } )
+
+    assert.deepEqual( second.items.map( ( { id } ) => id ), [ 'c' ] )
+    assert.equal( second.nextPageToken, undefined )
+  } )
+
+  it( 'keeps only the events that overlap timeMin and timeMax', () => {
+    route( 'PUT', '/__calendar/events', JSON.stringify( events ) )
+
+    const found = list( { timeMin: at( 80 ), timeMax: at( 130 ) } )
+
+    assert.deepEqual( found.items.map( ( { id } ) => id ), [ 'b', 'c' ] )
+  } )
+
+  it( 'answers 404 for another calendar and 400 for a bad events body', () => {
+    assert.equal( route( 'GET', '/calendar/v3/calendars/other/events' ).status, 404 )
+    assert.equal( route( 'PUT', '/__calendar/events', 'nope' ).status, 400 )
+  } )
+} )

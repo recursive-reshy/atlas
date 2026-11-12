@@ -1,6 +1,7 @@
 // React
 import type { ReactElement } from 'react'
 // Packages
+import HomeIcon from '@mui/icons-material/HomeOutlined'
 import ThemisIcon from '@mui/icons-material/BalanceOutlined'
 import MeleteIcon from '@mui/icons-material/SchoolOutlined'
 import SettingsIcon from '@mui/icons-material/Settings'
@@ -21,8 +22,15 @@ import { SignOutItem } from '../SignOutItem'
 const DRAWER_WIDTH = 240
 const MINI_DRAWER_WIDTH = 64
 
-// In drawer order, matching moduleHome.ts.
+// In drawer order, matching moduleHome.ts. Home is Themis's card page and shows with it.
 const NAV_ITEMS = [
+  {
+    module: 'themis',
+    label: 'Home',
+    to: '/',
+    icon: <HomeIcon />,
+    isCurrent: ( pathname: string ): boolean => pathname === '/',
+  },
   {
     module: 'themis',
     label: 'Themis',
@@ -33,21 +41,21 @@ const NAV_ITEMS = [
     ),
   },
   {
+    module: 'transcriber',
+    label: 'Mnemosyne',
+    to: '/transcriber',
+    icon: <TranscriberIcon />,
+    isCurrent: ( pathname: string ): boolean => (
+      pathname === '/transcriber' || pathname.startsWith( '/transcriber/' )
+    ),
+  },
+  {
     module: 'melete',
     label: 'Melete',
     to: '/melete',
     icon: <MeleteIcon />,
     isCurrent: ( pathname: string ): boolean => (
       pathname === '/melete' || pathname.startsWith( '/melete/' )
-    ),
-  },
-  {
-    module: 'transcriber',
-    label: 'Mnemosyne',
-    to: '/',
-    icon: <TranscriberIcon />,
-    isCurrent: ( pathname: string ): boolean => (
-      pathname === '/' || pathname.startsWith( '/jobs/' )
     ),
   },
 ] as const

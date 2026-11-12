@@ -72,4 +72,32 @@ describe( 'recordMeleteRun', () => {
       error: 'Bad output',
     } )
   } )
+
+  it( 'records the turns and tool calls of an agent run', () => {
+    const id = recordMeleteRun( userId, {
+      kind: 'syllabus',
+      subjectId: 'subject-1',
+      model: 'claude-sonnet-5-5',
+      promptVersionId,
+      usage: { input_tokens: 1000, output_tokens: 500 },
+      turns: 4,
+      toolCalls: 7,
+      now: new Date( '2026-11-07T10:00:00.000Z' ),
+    } )
+
+    expect( findRun( userId, id ) ).toMatchObject( { turns: 4, tool_calls: 7 } )
+  } )
+
+  it( 'leaves turns and tool calls empty for a run that is not an agent', () => {
+    const id = recordMeleteRun( userId, {
+      kind: 'map',
+      noteId: 'note-1',
+      model: 'claude-haiku-5-5',
+      promptVersionId,
+      usage: undefined,
+      now: new Date( '2026-11-07T10:00:00.000Z' ),
+    } )
+
+    expect( findRun( userId, id ) ).toMatchObject( { turns: null, tool_calls: null } )
+  } )
 } )

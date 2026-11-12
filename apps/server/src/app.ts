@@ -13,6 +13,7 @@ import { requestLog } from './middleware/requestLog.js'
 import { requireModule } from './middleware/requireModule.js'
 // Routes
 import { authRoutes } from './routes/auth.routes.js'
+import { calendarRoutes } from './routes/calendar.routes.js'
 import { adminRoutes } from './routes/admin.routes.js'
 import { feedsRoutes } from './routes/feeds.routes.js'
 import { gmailRoutes } from './routes/gmail.routes.js'
@@ -39,7 +40,7 @@ import { webRoutes } from './routes/web.routes.js'
 export const MODULE_ROUTES: Record< ModuleId, string[] > = {
   transcriber: [ '/api/jobs', '/api/feeds', '/api/inbox', '/api/gmail', '/api/vault' ],
   melete: [ '/api/melete' ],
-  themis: [ '/api/themis' ],
+  themis: [ '/api/themis', '/api/calendar' ],
 }
 
 export const app: Express = express()
@@ -74,6 +75,7 @@ app.use( '/api', statusRoutes )
 app.use( '/api', meleteRoutes )
 app.use( '/api', themisRoutes )
 app.use( '/api', timeEntriesRoutes )
+app.use( '/api', calendarRoutes )
 app.use( '/api', notFoundHandler )
 
 if( config.webDir !== undefined ) {

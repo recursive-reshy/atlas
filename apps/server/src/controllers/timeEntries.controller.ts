@@ -4,11 +4,11 @@ import { Request, Response } from 'express'
 import { z } from 'zod'
 // Shared
 import {
+  EditTimeEntryBody,
   ListTimeEntriesQuery,
   ListTimeEntriesResponse,
   LogTimeBody,
   TimeEntryResponse,
-  UpdateTimeEntryBody,
 } from '@atlas/shared'
 // Middleware
 import { currentUser } from '../middleware/auth.js'
@@ -29,10 +29,12 @@ export const postTimeEntry = ( req: Request, res: Response< TimeEntryResponse > 
 }
 
 export const patchTimeEntry = ( req: Request, res: Response< TimeEntryResponse > ): void => {
+  const { id, modules } = currentUser( req )
   const entry = changeTimeEntry(
-    currentUser( req ).id,
+    id,
+    modules,
     Id.parse( req.params.id ),
-    UpdateTimeEntryBody.parse( req.body ),
+    EditTimeEntryBody.parse( req.body ),
   )
 
   res.status( 200 ).json( { entry } )

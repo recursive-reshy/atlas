@@ -11,7 +11,8 @@ import {
   vi,
 } from 'vitest'
 // Clients
-import { draftSyllabus, gradeAnswer, suggestResources } from '../clients/claude.client.js'
+import { draftSyllabusWithAgent } from '../clients/agent.client.js'
+import { gradeAnswer, suggestResources } from '../clients/claude.client.js'
 // Shared
 import {
   GetMeleteGapsResponse,
@@ -62,9 +63,14 @@ beforeEach( () => {
 } )
 
 vi.mock( '../clients/claude.client.js' )
+vi.mock( '../clients/agent.client.js', async ( importOriginal ) => {
+  const original = await importOriginal< typeof import( '../clients/agent.client.js' ) >()
+
+  return { ...original, draftSyllabusWithAgent: vi.fn() }
+} )
 
 const grade = vi.mocked( gradeAnswer )
-const draft = vi.mocked( draftSyllabus )
+const draft = vi.mocked( draftSyllabusWithAgent )
 const suggest = vi.mocked( suggestResources )
 
 let vault: MeleteVault

@@ -9,7 +9,13 @@ export const AppHealthKind = z.enum( [
 ] )
 export type AppHealthKind = z.infer< typeof AppHealthKind >
 
-export const UserHealthKind = z.enum( [ 'feed', 'gmail_source', 'gmail_connection', 'vault_sync' ] )
+export const UserHealthKind = z.enum( [
+  'feed',
+  'gmail_source',
+  'gmail_connection',
+  'calendar_connection',
+  'vault_sync',
+] )
 export type UserHealthKind = z.infer< typeof UserHealthKind >
 
 export const HealthKind = z.enum( [
@@ -21,7 +27,7 @@ export type HealthKind = z.infer< typeof HealthKind >
 export const HealthState = z.enum( [ 'ok', 'failing', 'off' ] )
 export type HealthState = z.infer< typeof HealthState >
 
-// Singleton subjects (gmail_connection and the app kinds) use the id "default".
+// Singleton subjects (the app kinds) use the id "default"; a connection's is its user's ID.
 export const StatusRow = z.object( {
   kind: HealthKind,
   id: z.string().min( 1 ),

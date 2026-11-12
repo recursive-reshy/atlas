@@ -680,3 +680,199 @@ describe( 'migration 17 (stored schema 17, modules defined once, ADR 0101)', () 
     expect( getDatabase().pragma( 'foreign_key_check' ) ).toEqual( [] )
   } )
 } )
+
+describe( 'migration 18 (stored schema 18, agent run columns, ADR 0105)', () => {
+  afterEach( () => {
+    closeDatabase()
+  } )
+
+  it( 'adds turns and tool_calls to melete_runs', () => {
+    openSeeded( 17 )
+    runMigrations( getDatabase(), migrations )
+
+    const columns = rows( 'PRAGMA table_info( melete_runs )' ).map( ( { name } ) => name )
+
+    expect( columns ).toEqual( expect.arrayContaining( [ 'turns', 'tool_calls' ] ) )
+  } )
+
+  it( 'leaves every existing run with no turns and no tool calls', () => {
+    openSeeded( 17 )
+
+    const original = 'SELECT id, kind, model, input_tokens, output_tokens, cost_usd'
+      + ' FROM melete_runs ORDER BY id'
+    const before = rows( original )
+
+    runMigrations( getDatabase(), migrations )
+
+    expect( before.length ).toBeGreaterThan( 0 )
+    expect( rows( original ) ).toEqual( before )
+    expect( rows( 'SELECT DISTINCT turns, tool_calls FROM melete_runs' ) )
+      .toEqual( [ { turns: null, tool_calls: null } ] )
+  } )
+} )
+
+describe( 'migration 19 (stored schema 19, calendar and time, ADR 0108)', () => {
+  const USER = '00000000-0000-4000-8000-000000000002'
+  const SUBJECT = '50000000-0000-4000-8000-000000000001'
+  const GOAL = '61000000-0000-4000-8000-000000000002'
+  const AT = '2026-11-10T09:00:00.000Z'
+
+  const migrated = (): void => {
+    openSeeded( 18 )
+    runMigrations( getDatabase(), migrations )
+  }
+
+  const entries = 'SELECT id, user_id, source, subject_id, goal_id, day, started_at, ended_at,'
+    + ' seconds, note, created_at, updated_at FROM time_entries ORDER BY id'
+
+  const insertEntry = (
+    id: string,
+    source: string,
+    subject: string | null,
+    goal: string | null,
+  ) => {
+    getDatabase().prepare( `INSERT INTO time_entries ( id, user_id, source, subject_id, goal_id,
+      day, started_at, ended_at, seconds, note, created_at, updated_at )
+      VALUES ( ?, ?, ?, ?, ?, '2026-11-09', NULL, NULL, 600, NULL, ?, ? )` )
+      .run( id, USER, source, subject, goal, AT, AT )
+  }
+
+  const insertEvent = ( id: string, overrides: Record< string, string | number | null > = {} ) => {
+    const values = {
+      id,
+      user_id: USER,
+      calendar_id: 'cal-1',
+      event_id: id,
+      title: 'Gym',
+      started_at: '2026-11-09T07:00:00.000Z',
+      ended_at: '2026-11-09T08:00:00.000Z',
+      day: '2026-11-09',
+      seconds: 3600,
+      status: 'draft',
+      created_at: AT,
+      updated_at: AT,
+      ...overrides,
+    }
+    const columns = Object.keys( values )
+
+    getDatabase().prepare( `INSERT INTO calendar_events ( ${ columns.join( ', ' ) } )
+      VALUES ( ${ columns.map( () => '?' ).join( ', ' ) } )` ).run( ...Object.values( values ) )
+  }
+
+  afterEach( () => {
+    closeDatabase()
+  } )
+
+  it( 'keeps every time entry with identical values', () => {
+    openSeeded( 18 )
+
+    const before = rows( entries )
+
+    runMigrations( getDatabase(), migrations )
+
+    expect( before ).toHaveLength( 3 )
+    expect( rows( entries ) ).toEqual( before )
+  } )
+
+  it( 'keeps both indexes on time_entries', () => {
+    migrated()
+
+    expect( rows( `SELECT name FROM sqlite_master
+      WHERE type = 'index' AND tbl_name = 'time_entries' AND name LIKE 'time_entries_%'
+      ORDER BY name` ) )
+      .toEqual( [ { name: 'time_entries_day' }, { name: 'time_entries_open' } ] )
+  } )
+
+  it( 'creates the three calendar tables empty', () => {
+    migrated()
+
+    for( const table of [ 'calendar_account', 'calendar_rules', 'calendar_events' ] ) {
+      expect( tableCounts()[ table ], table ).toBe( 0 )
+    }
+  } )
+
+  it( 'accepts calendar time on a subject or on a goal, and nothing else new', () => {
+    migrated()
+    insertEntry( 'c-subject', 'calendar', SUBJECT, null )
+    insertEntry( 'c-goal', 'calendar', null, GOAL )
+
+    expect( () => insertEntry( 'c-both', 'calendar', SUBJECT, GOAL ) ).toThrow( /CHECK/ )
+    expect( () => insertEntry( 'c-neither', 'calendar', null, null ) ).toThrow( /CHECK/ )
+    expect( () => insertEntry( 'bad-source', 'imported', SUBJECT, null ) ).toThrow( /CHECK/ )
+  } )
+
+  it( 'still needs a subject for measured time', () => {
+    migrated()
+
+    expect( () => insertEntry( 'm-goal', 'measured', null, GOAL ) ).toThrow( /CHECK/ )
+    insertEntry( 'm-subject', 'measured', SUBJECT, null )
+  } )
+
+  it( 'keeps the time_entries foreign keys', () => {
+    migrated()
+
+    const db = getDatabase()
+
+    db.prepare( 'DELETE FROM themis_goals WHERE id = ?' ).run( GOAL )
+    expect( rows( `SELECT id FROM time_entries WHERE goal_id = '${ GOAL }'` ) ).toEqual( [] )
+    expect( db.pragma( 'foreign_key_check' ) ).toEqual( [] )
+  } )
+
+  it( 'refuses a rule with no target or with two', () => {
+    migrated()
+
+    const insert = ( subject: string | null, goal: string | null ) => getDatabase()
+      .prepare( `INSERT INTO calendar_rules
+        ( id, user_id, phrase, subject_id, goal_id, position, created_at, updated_at )
+        VALUES ( ?, ?, 'gym', ?, ?, 0, ?, ? )` )
+      .run( `r-${ String( subject ) }-${ String( goal ) }`, USER, subject, goal, AT, AT )
+
+    expect( () => insert( null, null ) ).toThrow( /CHECK/ )
+    expect( () => insert( SUBJECT, GOAL ) ).toThrow( /CHECK/ )
+    insert( SUBJECT, null )
+    insert( null, GOAL )
+  } )
+
+  it( 'holds one event once per calendar, with a known status and positive seconds', () => {
+    migrated()
+    insertEvent( 'e1' )
+
+    expect( () => insertEvent( 'e2', { event_id: 'e1' } ) ).toThrow( /UNIQUE/ )
+    expect( () => insertEvent( 'e3', { status: 'counted' } ) ).toThrow( /CHECK/ )
+    expect( () => insertEvent( 'e4', { seconds: 0 } ) ).toThrow( /CHECK/ )
+    expect( () => insertEvent( 'e5', { subject_id: SUBJECT, goal_id: GOAL } ) ).toThrow( /CHECK/ )
+    insertEvent( 'e6', { calendar_id: 'cal-2', event_id: 'e1' } )
+    insertEvent( 'e7', { subject_id: SUBJECT, assigned_by: 'rule' } )
+    expect( () => insertEvent( 'e8', { assigned_by: 'robot' } ) ).toThrow( /CHECK/ )
+  } )
+
+  it( 'clears an event\'s goal when the goal goes, and its link to a deleted entry', () => {
+    migrated()
+    insertEntry( 'c-goal', 'calendar', null, GOAL )
+    insertEvent( 'e1', { goal_id: GOAL, time_entry_id: 'c-goal' } )
+    getDatabase().prepare( 'DELETE FROM time_entries WHERE id = ?' ).run( 'c-goal' )
+
+    expect( rows( 'SELECT time_entry_id, goal_id FROM calendar_events' ) )
+      .toEqual( [ { time_entry_id: null, goal_id: GOAL } ] )
+
+    getDatabase().prepare( 'DELETE FROM themis_goals WHERE id = ?' ).run( GOAL )
+
+    expect( rows( 'SELECT goal_id FROM calendar_events' ) ).toEqual( [ { goal_id: null } ] )
+    expect( getDatabase().pragma( 'foreign_key_check' ) ).toEqual( [] )
+  } )
+
+  it( 'removes the account, rules and events with their user', () => {
+    migrated()
+    getDatabase().prepare( `INSERT INTO calendar_account ( user_id, email, refresh_token_enc,
+      scope, status, connected_at )
+      VALUES ( ?, 'max@example.test', 'enc', 'scope', 'connected', ? )` )
+      .run( USER, AT )
+    insertEvent( 'e1' )
+
+    getDatabase().pragma( 'foreign_keys = ON' )
+    getDatabase().prepare( 'DELETE FROM users WHERE id = ?' ).run( USER )
+
+    expect( tableCounts().calendar_account ).toBe( 0 )
+    expect( tableCounts().calendar_events ).toBe( 0 )
+  } )
+} )

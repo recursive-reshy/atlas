@@ -25,14 +25,18 @@ import { app } from '../app.js'
 import { createTestUser, signedInRequest as request } from '../test-support/auth.js'
 import { config } from '../config.js'
 // Clients
-import { AgentError, checkHealth, fetchInstructions } from '../clients/agent.client.js'
+import {
+  AgentError,
+  checkHealth,
+  fetchInstructions,
+  fetchSyllabusInstructions,
+} from '../clients/agent.client.js'
 import { listSummaryModels } from '../clients/anthropicModels.client.js'
 // Melete
 import {
   LOCKED_INSTRUCTIONS_MELETE_GRADING,
   LOCKED_INSTRUCTIONS_MELETE_MAP,
   LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
-  LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
 } from '../melete/prompts.js'
 // Repositories
@@ -54,12 +58,18 @@ vi.mock( '../clients/anthropicModels.client.js' )
 vi.mock( '../clients/agent.client.js', async ( importOriginal ) => {
   const original = await importOriginal< typeof import( '../clients/agent.client.js' ) >()
 
-  return { ...original, checkHealth: vi.fn(), fetchInstructions: vi.fn() }
+  return {
+    ...original,
+    checkHealth: vi.fn(),
+    fetchInstructions: vi.fn(),
+    fetchSyllabusInstructions: vi.fn(),
+  }
 } )
 
 const listMock = vi.mocked( listSummaryModels )
 const healthMock = vi.mocked( checkHealth )
 const instructionsMock = vi.mocked( fetchInstructions )
+const syllabusInstructionsMock = vi.mocked( fetchSyllabusInstructions )
 
 const profileId = ( name: string ): string => {
   return listProfiles( userId ).find( ( profile ) => profile.name === name )?.id ?? ''
@@ -106,11 +116,11 @@ describe( 'GET /api/settings', () => {
         article: LOCKED_INSTRUCTIONS_ARTICLE,
         melete_questions: LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
         melete_grading: LOCKED_INSTRUCTIONS_MELETE_GRADING,
-        melete_syllabus: LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
         melete_map: LOCKED_INSTRUCTIONS_MELETE_MAP,
         melete_suggest: LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
       },
       linker_locked_instructions: null,
+      syllabus_locked_instructions: null,
       agent_status: 'not_configured',
     } )
   } )
@@ -130,12 +140,14 @@ describe( 'GET /api/settings with an agent service', () => {
   it( 'reports the agent as ok and carries its locked instructions', async () => {
     healthMock.mockResolvedValue( 'ok' )
     instructionsMock.mockResolvedValue( 'You link notes.' )
+    syllabusInstructionsMock.mockResolvedValue( 'You draft a syllabus.' )
 
     const body = GetSettingsResponse.parse( ( await request( app ).get( '/api/settings' ) ).body )
 
     expect( body ).toMatchObject( {
       agent_status: 'ok',
       linker_locked_instructions: 'You link notes.',
+      syllabus_locked_instructions: 'You draft a syllabus.',
     } )
   } )
 
@@ -154,11 +166,13 @@ describe( 'GET /api/settings with an agent service', () => {
   it( 'still answers 200 when the instructions cannot be fetched', async () => {
     healthMock.mockResolvedValue( 'ok' )
     instructionsMock.mockRejectedValue( new AgentError( 'Agent service unreachable' ) )
+    syllabusInstructionsMock.mockRejectedValue( new AgentError( 'Agent service unreachable' ) )
 
     const response = await request( app ).get( '/api/settings' )
 
     expect( response.status ).toBe( 200 )
     expect( GetSettingsResponse.parse( response.body ).linker_locked_instructions ).toBeNull()
+    expect( GetSettingsResponse.parse( response.body ).syllabus_locked_instructions ).toBeNull()
   } )
 
   it( 'picks the newest Haiku as the linking model when none is saved', async () => {
@@ -168,6 +182,7 @@ describe( 'GET /api/settings with an agent service', () => {
     ] )
     healthMock.mockResolvedValue( 'ok' )
     instructionsMock.mockResolvedValue( 'x' )
+    syllabusInstructionsMock.mockResolvedValue( 'y' )
 
     const { settings } = GetSettingsResponse.parse(
       ( await request( app ).get( '/api/settings' ) ).body,

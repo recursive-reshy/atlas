@@ -349,7 +349,6 @@ describe( 'PromptPanel, the Melete prompts', () => {
   } )
 
   it.each( [
-    [ MELETE_SYLLABUS_ID, 'Put the foundations first.', 'syllabus drafting', 'a syllabus' ],
     [ MELETE_MAP_ID, 'Prefer one or two concepts.', 'mapping notes', 'a note' ],
     [ MELETE_SUGGEST_ID, 'Prefer free resources.', 'resource suggestions', 'resources' ],
   ] )( 'shows the concept-layer prompt %s with its own locked instructions', (
@@ -365,6 +364,37 @@ describe( 'PromptPanel, the Melete prompts', () => {
       new RegExp( `^Instructions the app always sends for ${ what }: You .* ${ verb }\\.$` ),
     ) ).toBeInTheDocument()
     expect( screen.queryByText( /question generation/ ) ).not.toBeInTheDocument()
+  } )
+
+  it( 'shows the syllabus prompt with the locked instructions the agent serves', () => {
+    renderWithClient( <PromptPanel promptId={ MELETE_SYLLABUS_ID } /> )
+
+    expect( field() ).toHaveValue( 'Put the foundations first.' )
+    expect( screen.getByText(
+      'Instructions the app always sends for syllabus drafting: You draft a syllabus.',
+    ) ).toBeInTheDocument()
+    expect( screen.queryByText( /Unavailable while the agent service is down/ ) )
+      .not.toBeInTheDocument()
+  } )
+
+  it( 'says the syllabus instructions are unavailable while the agent is down', () => {
+    vi.mocked( useSettings ).mockReturnValue(
+      settingsState( { syllabusLockedInstructions: null, agentStatus: 'unavailable' } ),
+    )
+    renderWithClient( <PromptPanel promptId={ MELETE_SYLLABUS_ID } /> )
+
+    expect( field() ).toHaveValue( 'Put the foundations first.' )
+    expect( screen.getByText( 'Unavailable while the agent service is down.' ) )
+      .toBeInTheDocument()
+    expect( screen.queryByText( /always sends for syllabus drafting/ ) ).not.toBeInTheDocument()
+  } )
+
+  it( 'does not show the agent\'s syllabus text on another Melete prompt', () => {
+    renderWithClient( <PromptPanel promptId={ MELETE_GRADING_ID } /> )
+
+    expect( screen.queryByText( /You draft a syllabus/ ) ).not.toBeInTheDocument()
+    expect( screen.queryByText( /Unavailable while the agent service is down/ ) )
+      .not.toBeInTheDocument()
   } )
 
   it( 'saves an edit as a new version of that profile', async () => {

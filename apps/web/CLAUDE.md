@@ -18,7 +18,7 @@ src/
   main.tsx  App.tsx  routes.tsx  theme.ts  queryClient.ts     app wiring, each with its test beside it
   app/            shell, drawer, gate, sign-in, RequireModule, ConfirmDialog, moduleHome; useMe, useSignIn, useSignOut and their api
   lib/            request, apiError, queryKeys, useDebouncedValue and the formatters; imports no feature
-  features/<f>/   jobs, feeds, inbox, gmail, vault, settings, status, admin, melete, themis; each holds
+  features/<f>/   home, jobs, feeds, inbox, gmail, vault, settings, status, admin, melete, themis; each holds
                   components/<Name>/ (<Name>.tsx, <Name>.test.tsx, index.ts), hooks/, api/, fixtures/
   test-support/   render helpers, setup, and test data several features share (me, hook states, notes)
   test/           tests of public/ assets and the browser setup
@@ -33,7 +33,7 @@ A file lives in the feature that owns its data; a second feature imports it by i
 - **Hooks** hold state and effects and call their feature's `api/`. Review drafts live on the server (`useAutosaveDraft`). Browser storage is only a per-viewer convenience, reached from hooks, inside try/catch, and the app works without it.
 - **`api/`** (one per feature) uses relative `/api/…` URLs, parses every response with a shared schema, and throws `ApiError` with a readable message. `send` makes every mutating request JSON (the server requires it). A 401 anywhere invalidates `me` so the gate shows sign-in; the 409 with `VAULT_MISSING_MESSAGE` does the same for the vault page.
 - **`AuthGate`** is the one place that decides what a signed-in user sees; pages never check auth. `RequireModule` layout routes hide a module's pages from a user without it; `moduleHome.ts` says where a user lands.
-- Only route components and the navigation shell touch the router (`useParams`, `useNavigate`, `Link`, `useLocation`). The two exceptions that touch `window.location` are `useSignIn` and `useGmailRedirectNotice`. Downloads are plain `<a href="/api/…">` links.
+- Only route components and the navigation shell touch the router (`useParams`, `useNavigate`, `Link`, `useLocation`). The exceptions that touch `window.location` are `useSignIn`, `useGmailRedirectNotice` and `useConnectCalendar`. Downloads are plain `<a href="/api/…">` links.
 
 ## Note editor (`NoteEditor`)
 

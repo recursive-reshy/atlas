@@ -32,7 +32,9 @@ src/
   worker/         the loops; call services and clients, never repositories
   jobs/lifecycle.ts   the one table of job statuses and allowed moves; imports nothing from services
   summarizer/ melete/ themis/ time/ formatters/   pure functions and constants, no I/O
-  gmail/          OAuth, token cipher, the Gmail client (the only module that calls the Gmail API)
+  google/         shared by Gmail and Calendar: the token cipher and the OAuth state store
+  gmail/          OAuth, the Gmail client (the only module that calls the Gmail API)
+  calendar/       OAuth and the Calendar client (the only module that calls the Calendar API)
   test-support/   in-memory database setup, signed-in Supertest agent, fakes
 ```
 

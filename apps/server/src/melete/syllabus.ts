@@ -1,13 +1,8 @@
 // Shared
 import type { MeleteSyllabusOutput, MeleteTargetLevel } from '@atlas/shared'
 import { MELETE_MAX_CONCEPTS } from '@atlas/shared'
-// Summarizer
-import { wrapSourceContent } from '../summarizer/sourceContent.js'
 // Repositories
 import type { DraftSection } from '../repositories/meleteConcepts.repository.js'
-
-export const MAX_SYLLABUS_NOTES = 60
-export const NOTE_OPENING_CHARACTERS = 300
 
 export const LEVEL_LABELS: Record< MeleteTargetLevel, string > = {
   awareness: 'Awareness',
@@ -22,7 +17,8 @@ export type ProcessedSyllabus = {
   capped: number
 }
 
-// Claude's draft made storable (ADR 0089): trimmed, unique, at most 80 concepts, no empty section
+// The agent's draft made storable (ADR 0089): trimmed, unique, at most 80 concepts, no empty
+// section
 export const processSyllabus = ( { sections }: MeleteSyllabusOutput ): ProcessedSyllabus => {
   const seen = new Set< string >()
   let kept = 0
@@ -54,34 +50,4 @@ export const processSyllabus = ( { sections }: MeleteSyllabusOutput ): Processed
   } )
 
   return { sections: cleaned.filter( ( { concepts } ) => concepts.length > 0 ), capped }
-}
-
-export const noteOpening = ( body: string ): string => {
-  return body.trim().replace( /\s+/g, ' ' ).slice( 0, NOTE_OPENING_CHARACTERS )
-}
-
-type SyllabusInput = {
-  name: string
-  level: MeleteTargetLevel
-  intent: string | null
-  notes: { title: string, opening: string }[]
-}
-
-export const buildSyllabusUser = ( { name, level, intent, notes }: SyllabusInput ): string => {
-  const shown = notes.slice( 0, MAX_SYLLABUS_NOTES )
-
-  return [
-    `Subject: ${ name }`,
-    `Target level: ${ LEVEL_LABELS[ level ] }`,
-    ...intent === null ? [] : [ `Intent: ${ intent }` ],
-    '',
-    ...shown.length === 0
-      ? [ 'No notes yet.' ]
-      : [
-        'Notes already in the folder:',
-        wrapSourceContent( shown.map( ( { title, opening } ) => {
-          return opening === '' ? `- ${ title }` : `- ${ title }: ${ opening }`
-        } ).join( '\n' ) ),
-      ],
-  ].join( '\n' )
 }

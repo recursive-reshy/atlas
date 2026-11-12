@@ -4,9 +4,11 @@ import type { RouteObject } from 'react-router'
 import { App } from './App'
 import { AdminTab } from './features/admin/components/AdminTab'
 import { AuthGate } from './app/AuthGate'
-import { HomePage } from './features/jobs/components/HomePage'
+import { TranscriberHome } from './features/jobs/components/TranscriberHome'
 import { HomeRedirect } from './app/HomeRedirect'
+import { HomeScreen } from './features/home/components/HomeScreen'
 import { JobPage } from './features/jobs/components/JobPage'
+import { LegacyJobRedirect } from './app/LegacyJobRedirect'
 import { MeleteNote } from './features/melete/components/MeleteNote'
 import { MeleteReview } from './features/melete/components/MeleteReview'
 import { MeleteSubject } from './features/melete/components/MeleteSubject'
@@ -18,6 +20,7 @@ import { SettingsIndexRedirect } from './features/settings/components/SettingsIn
 import { SettingsLayout } from './features/settings/components/SettingsLayout'
 import { SignInPage } from './app/SignInPage'
 import { SourcesTab } from './features/settings/components/SourcesTab'
+import { ThemisCalendar } from './features/themis/components/ThemisCalendar'
 import { ThemisGoal } from './features/themis/components/ThemisGoal'
 import { ThemisHome } from './features/themis/components/ThemisHome'
 
@@ -33,17 +36,20 @@ export const routes: RouteObject[] = [
           {
             element: <RequireModule module="themis" />,
             children: [
+              { index: true, element: <HomeScreen /> },
               { path: 'themis', element: <ThemisHome /> },
+              { path: 'themis/calendar', element: <ThemisCalendar /> },
               { path: 'themis/goals/:goalId', element: <ThemisGoal /> },
             ],
           },
           {
             element: <RequireModule module="transcriber" />,
             children: [
-              { index: true, element: <HomePage /> },
-              { path: 'jobs/:id', element: <JobPage /> },
+              { path: 'transcriber', element: <TranscriberHome /> },
+              { path: 'transcriber/jobs/:id', element: <JobPage /> },
             ],
           },
+          { path: 'jobs/:id', element: <LegacyJobRedirect /> },
           {
             element: <RequireModule module="melete" />,
             children: [

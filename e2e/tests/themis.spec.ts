@@ -81,8 +81,8 @@ test( 'areas and goals, a linked subject, measured and logged time, and a check-
     { data: { rating: 'easy', mode: 'quick' } },
   ) ).status() ).toBe( 200 )
 
-  // Themis is the first module, so it is the landing page; it starts empty
-  await page.goto( '/' )
+  // Themis starts empty; Home at / is covered by home-calendar.spec.ts
+  await page.goto( '/themis' )
   await expect( page ).toHaveURL( /\/themis/ )
   await expect( page.getByRole( 'heading', { name: 'Add your first area' } ) ).toBeVisible()
   await page.getByRole( 'textbox', { name: 'Area name' } ).fill( 'Career' )

@@ -1,33 +1,23 @@
-// Node
-import { readFile } from 'node:fs/promises'
-import { join } from 'node:path'
 // Shared
 import type {
+  AgentUsage,
   MeleteSubject,
   MeleteSyllabus,
   MeleteSyllabusEdit,
   SaveMeleteSyllabusResponse,
 } from '@atlas/shared'
 // Clients
-import { draftSyllabus } from '../clients/claude.client.js'
+import { AgentUnavailableError, draftSyllabusWithAgent } from '../clients/agent.client.js'
 // Errors
 import {
   ConflictError,
-  MeleteError,
   NotFoundError,
   ValidationError,
 } from '../errors.js'
 // Melete
-import { LOCKED_INSTRUCTIONS_MELETE_SYLLABUS, buildMeleteSystemPrompt } from '../melete/prompts.js'
 import { recordMeleteRun } from '../melete/runs.js'
-import { splitFrontMatter } from '../melete/scan.js'
 import { planSyllabus } from '../melete/syllabusDiff.js'
-import {
-  MAX_SYLLABUS_NOTES,
-  buildSyllabusUser,
-  noteOpening,
-  processSyllabus,
-} from '../melete/syllabus.js'
+import { processSyllabus } from '../melete/syllabus.js'
 // Repositories
 import { getDatabase } from '../repositories/database.js'
 import {
@@ -42,7 +32,6 @@ import {
   noteIdsWithoutConcepts,
 } from '../repositories/meleteNoteConcepts.repository.js'
 import {
-  listNotesBySubject,
   queueMappingFlagged,
   queueMappingForNotes,
   queueMappingForSubject,
@@ -60,7 +49,7 @@ import { findSubject, updateSubject } from '../repositories/meleteSubjects.repos
 import { subjectName, toMeleteSubject } from './melete.service.js'
 import { resolveMeletePrompt } from './prompts.service.js'
 import { resolveMeleteSyllabusModel } from './settings.service.js'
-import { vaultRootFor } from './vault.service.js'
+import { vaultDirFor, vaultRootFor } from './vault.service.js'
 // Logging
 import { logger } from '../logger.js'
 // Worker
@@ -106,7 +95,9 @@ type Run = {
   subjectId: string
   model: string
   promptVersionId: number
-  usage: { input_tokens: number, output_tokens: number } | undefined
+  usage: Pick< AgentUsage, 'input_tokens' | 'output_tokens' > | undefined
+  turns?: number
+  toolCalls?: number
   now: Date
 }
 
@@ -129,31 +120,10 @@ const failDraft = ( userId: string, subjectId: string, message: string, run?: Ru
   logger.warn( { error: message }, 'Syllabus drafting failed' )
 }
 
-// Title and opening of each note still in the vault; one that can't be read is left out
-const readNotes = async (
-  userId: string,
-  subjectId: string,
-): Promise< { title: string, opening: string }[] > => {
-  const root = vaultRootFor( userId )
-  const notes = listNotesBySubject( userId, subjectId )
-    .filter( ( { missing_at } ) => missing_at === null )
-    .slice( 0, MAX_SYLLABUS_NOTES )
+const UNAVAILABLE = 'Agent service unavailable'
 
-  const read = await Promise.all( notes.map( async ( { path, title } ) => {
-    try {
-      const { body } = splitFrontMatter( await readFile( join( root, path ), 'utf8' ) )
-
-      return [ { title, opening: noteOpening( body ) } ]
-    } catch{
-      return []
-    }
-  } ) )
-
-  return read.flat()
-}
-
-// Drafts the syllabus of one subject the loop has taken; a failure is stored on the subject,
-// never thrown
+// Drafts the syllabus of one subject the loop has taken: the agent reads the subject's folder
+// (ADR 0105). A failure is stored on the subject, never thrown
 export const draftForSubject = async (
   userId: string,
   subjectId: string,
@@ -181,41 +151,62 @@ export const draftForSubject = async (
     const model = await resolveMeleteSyllabusModel( userId )
     const { version } = resolveMeletePrompt( userId, 'melete_syllabus' )
     const run = { subjectId, model, promptVersionId: version.id, now }
-    let outcome: Awaited< ReturnType< typeof draftSyllabus > >
+
+    // Throws if the vault is not chosen or is missing, before the agent is asked
+    vaultRootFor( userId )
+
+    const vaultDir = vaultDirFor( userId )
+
+    if( vaultDir === null ) {
+      throw new Error( 'No vault is chosen' )
+    }
+
+    let outcome: Awaited< ReturnType< typeof draftSyllabusWithAgent > >
 
     try {
-      outcome = await draftSyllabus( {
+      outcome = await draftSyllabusWithAgent( {
+        vault_dir: vaultDir,
+        subject_folder: subject.folder,
+        name: subjectName( subject.folder ),
+        level: subject.target_level,
+        intent: subject.intent,
         model,
-        system: buildMeleteSystemPrompt( LOCKED_INSTRUCTIONS_MELETE_SYLLABUS, version.guidance ),
-        user: buildSyllabusUser( {
-          name: subjectName( subject.folder ),
-          level: subject.target_level,
-          intent: subject.intent,
-          notes: await readNotes( userId, subjectId ),
-        } ),
+        guidance: version.guidance,
       } )
     } catch( error ) {
-      failDraft( userId, subjectId, messageOf( error ), {
-        ...run,
-        usage: error instanceof MeleteError ? error.usage : undefined,
-      } )
+      failDraft(
+        userId,
+        subjectId,
+        error instanceof AgentUnavailableError ? UNAVAILABLE : messageOf( error ),
+        { ...run, usage: undefined },
+      )
 
       return
     }
 
-    const { sections, capped } = processSyllabus( outcome.output )
+    const agentRun = {
+      ...run,
+      usage: outcome.usage,
+      turns: outcome.usage.turns,
+      toolCalls: outcome.usage.tool_calls,
+    }
+
+    if( outcome.outcome === 'failed' ) {
+      failDraft( userId, subjectId, outcome.reason, agentRun )
+
+      return
+    }
+
+    const { sections, capped } = processSyllabus( outcome )
 
     if( sections.length === 0 ) {
-      failDraft( userId, subjectId, 'No usable syllabus came back', {
-        ...run,
-        usage: outcome.usage,
-      } )
+      failDraft( userId, subjectId, 'No usable syllabus came back', agentRun )
 
       return
     }
 
     getDatabase().transaction( () => {
-      recordMeleteRun( userId, { ...run, kind: 'syllabus', usage: outcome.usage } )
+      recordMeleteRun( userId, { ...agentRun, kind: 'syllabus' } )
       replaceSyllabus( userId, subjectId, sections )
       updateSubject( userId, subjectId, { syllabus_status: 'draft', syllabus_error: null } )
     } )()

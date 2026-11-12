@@ -86,6 +86,33 @@ async def test_sends_the_request_with_cache_control_and_tool_blocks() -> None:
         { "type": "tool_result", "tool_use_id": "tool-1", "content": "boom", "is_error": True }
     ]
 
+async def test_sends_cache_control_on_a_text_block_and_a_tool_result_block() -> None:
+    sent: list[ dict[ str, Any ] ] = []
+
+    def handler( request: httpx2.Request ) -> httpx2.Response:
+        sent.append( json.loads( request.content ) )
+        return httpx2.Response( 200, json = message_body() )
+
+    request = make_request()
+    request.messages[ 0 ].content = [ TextBlock( text = "Link this", cache_control = CacheControl() ) ]
+    request.messages[ 2 ].content = [
+        ToolResultBlock( tool_use_id = "tool-1", content = "boom", cache_control = CacheControl() )
+    ]
+    await make_claude( handler ).create_message( request )
+
+    assert sent[ 0 ][ "messages" ][ 0 ][ "content" ] == [
+        { "type": "text", "text": "Link this", "cache_control": { "type": "ephemeral" } }
+    ]
+    assert sent[ 0 ][ "messages" ][ 2 ][ "content" ] == [
+        {
+            "type": "tool_result",
+            "tool_use_id": "tool-1",
+            "content": "boom",
+            "is_error": False,
+            "cache_control": { "type": "ephemeral" }
+        }
+    ]
+
 async def test_maps_text_and_tool_use_blocks_and_usage_with_cache_counts() -> None:
     reply_body = message_body(
         content = [

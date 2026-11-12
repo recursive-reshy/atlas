@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 // App
 import {
+  calendarKeys,
   feedKeys,
   gmailKeys,
   inboxKeys,
@@ -64,5 +65,15 @@ describe( 'melete query keys', () => {
     expect( meleteKeys.review( 's1', 'c1' ) )
       .toEqual( [ 'melete', 'review', 's1', 'concept', 'c1' ] )
     expect( meleteKeys.gaps( 's1' ) ).toEqual( [ 'melete', 'subjects', 's1', 'gaps' ] )
+  } )
+} )
+
+describe( 'calendar query keys', () => {
+  it( 'nests every key under the calendar key', () => {
+    expect( calendarKeys.all ).toEqual( [ 'calendar' ] )
+    expect( calendarKeys.status ).toEqual( [ 'calendar', 'status' ] )
+    expect( calendarKeys.choices ).toEqual( [ 'calendar', 'choices' ] )
+    expect( calendarKeys.drafts ).toEqual( [ 'calendar', 'drafts' ] )
+    expect( calendarKeys.rules ).toEqual( [ 'calendar', 'rules' ] )
   } )
 } )

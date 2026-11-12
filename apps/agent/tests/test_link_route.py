@@ -58,7 +58,7 @@ def test_returns_computed_suggestions_for_a_valid_request( settings: Settings, a
     ]
     assert body[ "usage" ][ "turns" ] == 2
     assert body[ "usage" ][ "tool_calls" ] == 2
-    assert LinkResponse.model_validate( body ).outcome.value == "linked"
+    assert LinkResponse.model_validate( body ).root.outcome.value == "linked"
 
 def test_an_empty_vault_still_gets_concept_suggestions(
     settings: Settings,

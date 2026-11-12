@@ -78,3 +78,11 @@ export const themisKeys = {
   goals: [ 'themis', 'goals' ] as const,
   goal: ( id: string ) => [ 'themis', 'goals', id ] as const,
 }
+
+export const calendarKeys = {
+  all: [ 'calendar' ] as const,
+  status: [ 'calendar', 'status' ] as const,
+  choices: [ 'calendar', 'choices' ] as const,
+  drafts: [ 'calendar', 'drafts' ] as const,
+  rules: [ 'calendar', 'rules' ] as const,
+}

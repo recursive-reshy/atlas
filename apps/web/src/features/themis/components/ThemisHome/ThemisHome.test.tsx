@@ -192,3 +192,22 @@ describe( 'ThemisHome', () => {
     expect( screen.queryByText( 'floating log time' ) ).not.toBeInTheDocument()
   } )
 } )
+
+describe( 'ThemisHome, calendar link', () => {
+  it.each( [ 'connected', 'broken', 'not_connected' ] as const )(
+    'links to the calendar review when the status is %s',
+    ( status ) => {
+      show( { overview: overviewFixture( { calendar_status: status } ) } )
+      renderWithClient( <ThemisHome /> )
+
+      expect( screen.getByRole( 'link', { name: 'Calendar time' } ) )
+        .toHaveAttribute( 'href', '/themis/calendar' )
+    },
+  )
+
+  it( 'leaves it out when Calendar is not configured', () => {
+    renderWithClient( <ThemisHome /> )
+
+    expect( screen.queryByRole( 'link', { name: 'Calendar time' } ) ).not.toBeInTheDocument()
+  } )
+} )

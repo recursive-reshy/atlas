@@ -23,7 +23,7 @@ import {
   getGmailClient,
   withGmail,
 } from './auth.js'
-import { decryptToken, encryptToken } from './tokenCipher.js'
+import { decryptToken, encryptToken } from '../google/tokenCipher.js'
 // Repositories
 import {
   findAccount,

@@ -1,6 +1,6 @@
 // Shared
-import { InstructionsResponse, LinkResponse } from '@atlas/shared'
-import type { LinkRequest } from '@atlas/shared'
+import { InstructionsResponse, LinkResponse, SyllabusResponse } from '@atlas/shared'
+import type { LinkRequest, SyllabusRequest } from '@atlas/shared'
 // Config
 import { config } from '../config.js'
 // Logging
@@ -16,6 +16,14 @@ export class AgentError extends Error {
   }
 }
 
+// The agent could not be reached or did not answer in time: nothing is known about the work
+export class AgentUnavailableError extends AgentError {
+  constructor( message: string ) {
+    super( message )
+    this.name = 'AgentUnavailableError'
+  }
+}
+
 export type AgentHealth = 'ok' | 'unavailable'
 
 let health: { status: AgentHealth, expiresAt: number } | undefined
@@ -24,9 +32,9 @@ export const clearAgentHealthCache = (): void => {
   health = undefined
 }
 
-const requireAgent = (): NonNullable< typeof config.agent > => {
+const requireAgent = ( unconfigured: string ): NonNullable< typeof config.agent > => {
   if( config.agent === null ) {
-    throw new AgentError( 'Linking isn\'t configured' )
+    throw new AgentError( unconfigured )
   }
 
   return config.agent
@@ -41,9 +49,16 @@ const isTimeout = ( error: unknown ): boolean => {
 // Sends the request and returns the parsed JSON, turning every failure into a plain AgentError
 const call = async (
   path: string,
-  init: { method: 'GET' | 'POST', body?: unknown, jobId?: string },
+  init: {
+    method: 'GET' | 'POST'
+    body?: unknown
+    jobId?: string
+    timeoutMs?: number
+    unconfigured?: string
+  },
 ): Promise< unknown > => {
-  const agent = requireAgent()
+  const agent = requireAgent( init.unconfigured ?? 'Linking isn\'t configured' )
+  const timeoutMs = init.timeoutMs ?? agent.timeoutMs
   let response: Response
 
   try {
@@ -55,12 +70,12 @@ const call = async (
         ...init.body === undefined ? {} : { 'Content-Type': 'application/json' },
       },
       body: init.body === undefined ? undefined : JSON.stringify( init.body ),
-      signal: AbortSignal.timeout( agent.timeoutMs ),
+      signal: AbortSignal.timeout( timeoutMs ),
     } )
   } catch( error ) {
-    throw new AgentError(
+    throw new AgentUnavailableError(
       isTimeout( error )
-        ? `Agent service timed out after ${ Math.round( agent.timeoutMs / 1000 ) } s`
+        ? `Agent service timed out after ${ Math.round( timeoutMs / 1000 ) } s`
         : 'Agent service unreachable',
     )
   }
@@ -107,6 +122,41 @@ export const requestLinks = async ( request: LinkRequest ): Promise< LinkRespons
 
 export const fetchInstructions = async (): Promise< string > => {
   const body = await call( '/v1/link/instructions', { method: 'GET' } )
+  const parsed = InstructionsResponse.safeParse( body )
+
+  if( !parsed.success ) {
+    throw new AgentError( 'Agent service returned an invalid response' )
+  }
+
+  return parsed.data.instructions
+}
+
+const SYLLABUS_UNCONFIGURED = 'The agent service isn\'t configured'
+
+// Not a job, so no X-Job-Id
+export const draftSyllabusWithAgent = async (
+  request: SyllabusRequest,
+): Promise< SyllabusResponse > => {
+  const body = await call( '/v1/syllabus', {
+    method: 'POST',
+    body: request,
+    timeoutMs: config.agentSyllabusTimeoutMs,
+    unconfigured: SYLLABUS_UNCONFIGURED,
+  } )
+  const parsed = SyllabusResponse.safeParse( body )
+
+  if( !parsed.success ) {
+    throw new AgentError( 'Agent service returned an invalid response' )
+  }
+
+  return parsed.data
+}
+
+export const fetchSyllabusInstructions = async (): Promise< string > => {
+  const body = await call( '/v1/syllabus/instructions', {
+    method: 'GET',
+    unconfigured: SYLLABUS_UNCONFIGURED,
+  } )
   const parsed = InstructionsResponse.safeParse( body )
 
   if( !parsed.success ) {

@@ -123,11 +123,11 @@ export const settingsFixture = (
       article: 'You summarize an article.',
       melete_questions: 'You write questions.',
       melete_grading: 'You grade answers.',
-      melete_syllabus: 'You draft a syllabus.',
       melete_map: 'You map a note.',
       melete_suggest: 'You suggest resources.',
     },
     linker_locked_instructions: 'You propose links.',
+    syllabus_locked_instructions: 'You draft a syllabus.',
     agent_status: 'ok',
   }
 }

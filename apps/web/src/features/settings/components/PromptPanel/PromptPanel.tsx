@@ -12,34 +12,11 @@ import { usePromptProfiles } from '#src/features/settings/hooks/usePromptProfile
 import { usePromptVersions } from '#src/features/settings/hooks/usePromptVersions'
 import { useSettings } from '#src/features/settings/hooks/useSettings'
 import { useUnsavedChangesGuard } from '#src/features/jobs/hooks/useUnsavedChangesGuard'
-import { LockedInstructions } from '../LockedInstructions'
+import { PromptLockedInstructions } from '../PromptLockedInstructions'
 import { PromptEditor } from '../PromptEditor'
 import { PromptHistory } from '../PromptHistory'
 
 const LINKER = 'linker'
-
-const MELETE_LOCKED = {
-  melete_questions: {
-    key: 'melete_questions',
-    title: 'Instructions the app always sends for question generation',
-  },
-  melete_grading: {
-    key: 'melete_grading',
-    title: 'Instructions the app always sends for grading',
-  },
-  melete_syllabus: {
-    key: 'melete_syllabus',
-    title: 'Instructions the app always sends for syllabus drafting',
-  },
-  melete_map: {
-    key: 'melete_map',
-    title: 'Instructions the app always sends for mapping notes',
-  },
-  melete_suggest: {
-    key: 'melete_suggest',
-    title: 'Instructions the app always sends for resource suggestions',
-  },
-} as const
 
 interface PromptPanelProps {
   // A summary or Melete profile's id, or 'linker'.
@@ -56,7 +33,7 @@ interface Subject {
 
 export function PromptPanel( { promptId }: PromptPanelProps ): ReactElement {
   const isLinker = promptId === LINKER
-  const { settings, lockedInstructions, linkerLockedInstructions } = useSettings()
+  const { settings } = useSettings()
   const state = usePromptProfiles()
   const meleteState = useMeleteProfiles()
   const linkerId = settings?.linker_profile_id ?? null
@@ -68,9 +45,6 @@ export function PromptPanel( { promptId }: PromptPanelProps ): ReactElement {
   const summary = state.profiles.find( ( { id } ) => id === promptId )
   const melete = meleteState.profiles.find( ( { id } ) => id === promptId )
   const profile = summary ?? melete
-  const meleteLocked = melete === undefined
-    ? undefined
-    : MELETE_LOCKED[ melete.purpose as keyof typeof MELETE_LOCKED ]
   const newest = linker.versions[ 0 ]
   let subject: Subject | undefined
 
@@ -134,35 +108,7 @@ export function PromptPanel( { promptId }: PromptPanelProps ): ReactElement {
           clearDraft,
         ) }
       />
-      { !isLinker && melete === undefined && lockedInstructions !== null && (
-        <>
-          <LockedInstructions
-            title="Instructions the app always sends for videos"
-            text={ lockedInstructions.video }
-          />
-          <LockedInstructions
-            title="Instructions the app always sends for articles"
-            text={ lockedInstructions.article }
-          />
-        </>
-      ) }
-      { meleteLocked !== undefined && lockedInstructions !== null && (
-        <LockedInstructions
-          title={ meleteLocked.title }
-          text={ lockedInstructions[ meleteLocked.key ] }
-        />
-      ) }
-      { isLinker && linkerLockedInstructions !== null && (
-        <LockedInstructions
-          title="Instructions the app always sends when linking"
-          text={ linkerLockedInstructions }
-        />
-      ) }
-      { isLinker && linkerLockedInstructions === null && (
-        <Typography variant="body2" color="text.secondary">
-          Unavailable while the agent service is down.
-        </Typography>
-      ) }
+      <PromptLockedInstructions purpose={ isLinker ? 'linker' : profile?.purpose ?? 'summary' } />
       { guard }
     </Stack>
   )

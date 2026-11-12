@@ -12,7 +12,9 @@ import {
   LinkRequest,
   LinkResponse,
   LinkSuggestion,
-  LinkUsage,
+  AgentUsage,
+  SyllabusRequest,
+  SyllabusResponse,
 } from './agent.js'
 
 const examplesPath = fileURLToPath(
@@ -23,9 +25,11 @@ const schemas: Record< string, z.ZodType > = {
   LinkNote,
   LinkRequest,
   LinkSuggestion,
-  LinkUsage,
+  AgentUsage,
   LinkResponse,
   InstructionsResponse,
+  SyllabusRequest,
+  SyllabusResponse,
 }
 
 const requiredValid = [
@@ -35,6 +39,11 @@ const requiredValid = [
   'link-response-linked-empty.json',
   'link-response-failed.json',
   'instructions-response.json',
+  'syllabus-request.json',
+  'syllabus-request-no-intent.json',
+  'syllabus-response-drafted.json',
+  'syllabus-response-failed.json',
+  'syllabus-instructions-response.json',
 ]
 
 const requiredInvalid = [
@@ -46,6 +55,12 @@ const requiredInvalid = [
   'link-response-failed-no-reason.json',
   'link-response-failed-with-suggestions.json',
   'link-response-linked-with-reason.json',
+  'syllabus-request-empty-name.json',
+  'syllabus-request-dotdot-folder.json',
+  'syllabus-request-absolute-folder.json',
+  'syllabus-request-unknown-level.json',
+  'syllabus-response-drafted-with-reason.json',
+  'syllabus-response-failed-no-reason.json',
 ]
 
 type Example = { schema: string, value: unknown }

@@ -1,7 +1,7 @@
 from enum import StrEnum
-from typing import Self
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, Field, RootModel
 
 class SuggestionKind( StrEnum ):
     EXISTING_NOTE = "existing_note"
@@ -32,7 +32,7 @@ class LinkSuggestion( BaseModel ):
     anchor: str | None
     reason: str = Field( min_length = 1, max_length = 300 )
 
-class LinkUsage( BaseModel ):
+class AgentUsage( BaseModel ):
     input_tokens: int
     output_tokens: int
     cache_read_input_tokens: int
@@ -40,24 +40,20 @@ class LinkUsage( BaseModel ):
     tool_calls: int
     turns: int
 
-class LinkResponse( BaseModel ):
-    outcome: LinkOutcome
-    reason: str | None
+class LinkedResponse( BaseModel ):
+    outcome: Literal[ LinkOutcome.LINKED ]
+    reason: None
     suggestions: list[ LinkSuggestion ]
-    usage: LinkUsage
+    usage: AgentUsage
 
-    @model_validator( mode = "after" )
-    def check_outcome( self ) -> Self:
-        if self.outcome == LinkOutcome.LINKED and self.reason is not None:
-            raise ValueError( "reason must be null when outcome is linked" )
+class FailedLinkResponse( BaseModel ):
+    outcome: Literal[ LinkOutcome.FAILED ]
+    reason: str = Field( min_length = 1 )
+    suggestions: list[ LinkSuggestion ] = Field( max_length = 0 )
+    usage: AgentUsage
 
-        if self.outcome == LinkOutcome.FAILED and not self.reason:
-            raise ValueError( "reason is required when outcome is failed" )
-
-        if self.outcome == LinkOutcome.FAILED and self.suggestions:
-            raise ValueError( "suggestions must be empty when outcome is failed" )
-
-        return self
+class LinkResponse( RootModel[ Annotated[ LinkedResponse | FailedLinkResponse, Field( discriminator = "outcome" ) ] ] ):
+    pass
 
 class InstructionsResponse( BaseModel ):
     instructions: str

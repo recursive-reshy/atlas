@@ -59,10 +59,10 @@ const showJob = ( job: Job | null, error: string | null = null ): void => {
 const renderPage = ( id: string = jobId ): ReturnType< typeof renderWithClient > => {
   return renderWithClient(
     <Routes>
-      <Route path="/" element={ <p>Home</p> } />
-      <Route path="/jobs/:id" element={ <JobPage /> } />
+      <Route path="/transcriber" element={ <p>Home</p> } />
+      <Route path="/transcriber/jobs/:id" element={ <JobPage /> } />
     </Routes>,
-    { route: `/jobs/${ id }` },
+    { route: `/transcriber/jobs/${ id }` },
   )
 }
 
@@ -92,7 +92,7 @@ describe( 'JobPage', () => {
   it( 'redirects an invalid job id to the home page', () => {
     const { location } = renderPage( 'not-a-uuid' )
 
-    expect( location().pathname ).toBe( '/' )
+    expect( location().pathname ).toBe( '/transcriber' )
     expect( screen.getByText( 'Home' ) ).toBeInTheDocument()
     expect( lastUseJobArgument() ).toBeNull()
   } )
@@ -112,7 +112,7 @@ describe( 'JobPage', () => {
 
     await user.click( screen.getByRole( 'button', { name: 'Start over' } ) )
 
-    expect( location().pathname ).toBe( '/' )
+    expect( location().pathname ).toBe( '/transcriber' )
   } )
 
   it( 'shows progress without downloads for a running job', () => {
@@ -191,7 +191,7 @@ describe( 'JobPage', () => {
 
       await userEvent.setup().click( screen.getByRole( 'button', { name: 'Save to vault' } ) )
 
-      await vi.waitFor( () => expect( location().pathname ).toBe( '/' ) )
+      await vi.waitFor( () => expect( location().pathname ).toBe( '/transcriber' ) )
       expect( location().state ).toEqual( { savedPath: 'Mnemosyne/How Rust Works.md' } )
     } )
 
@@ -236,7 +236,7 @@ describe( 'JobPage', () => {
 
       await user.click( screen.getByRole( 'button', { name: 'Transcribe another video' } ) )
 
-      expect( location().pathname ).toBe( '/' )
+      expect( location().pathname ).toBe( '/transcriber' )
     } )
   } )
 
@@ -257,7 +257,7 @@ describe( 'JobPage', () => {
     await user.click( screen.getByRole( 'button', { name: 'Try again' } ) )
 
     expect( mockedCreateJob ).toHaveBeenCalledWith( { url: jobFixture().url } )
-    expect( location().pathname ).toBe( `/jobs/${ newJobId }` )
+    expect( location().pathname ).toBe( `/transcriber/jobs/${ newJobId }` )
   } )
 
   it( 'shows a failed retry and stays on the old job', async () => {
@@ -272,7 +272,7 @@ describe( 'JobPage', () => {
 
     expect( screen.getAllByRole( 'alert' ).map( ( alert ) => alert.textContent ) )
       .toContain( 'Could not reach the server' )
-    expect( location().pathname ).toBe( `/jobs/${ jobId }` )
+    expect( location().pathname ).toBe( `/transcriber/jobs/${ jobId }` )
     expect( lastUseJobArgument() ).toBe( jobId )
   } )
 
@@ -283,7 +283,7 @@ describe( 'JobPage', () => {
 
     await user.click( screen.getByRole( 'button', { name: 'Transcribe another video' } ) )
 
-    expect( location().pathname ).toBe( '/' )
+    expect( location().pathname ).toBe( '/transcriber' )
   } )
 } )
 

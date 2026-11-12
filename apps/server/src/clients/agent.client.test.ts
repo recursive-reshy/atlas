@@ -9,13 +9,21 @@ import {
   type MockInstance,
 } from 'vitest'
 // Shared
-import type { LinkRequest, LinkResponse } from '@atlas/shared'
+import type {
+  LinkRequest,
+  LinkResponse,
+  SyllabusRequest,
+  SyllabusResponse,
+} from '@atlas/shared'
 // Clients
 import {
   AgentError,
+  AgentUnavailableError,
   checkHealth,
   clearAgentHealthCache,
+  draftSyllabusWithAgent,
   fetchInstructions,
+  fetchSyllabusInstructions,
   requestLinks,
 } from './agent.client.js'
 // Logging
@@ -24,7 +32,10 @@ import { withLogContext } from '../logContext.js'
 const SECRET = 's3cr3t-'.repeat( 6 )
 
 const { agentConfig } = vi.hoisted( () => ( {
-  agentConfig: { agent: null as { url: string, secret: string, timeoutMs: number } | null },
+  agentConfig: {
+    agent: null as { url: string, secret: string, timeoutMs: number } | null,
+    agentSyllabusTimeoutMs: 200_000,
+  },
 } ) )
 
 vi.mock( '../config.js', () => ( { config: agentConfig } ) )
@@ -310,5 +321,143 @@ describe( 'checkHealth', () => {
     await checkHealth()
 
     expect( fetchMock ).toHaveBeenCalledTimes( 2 )
+  } )
+} )
+
+const syllabusRequest: SyllabusRequest = {
+  vault_dir: 'naresh',
+  subject_folder: 'Learning/Rust',
+  name: 'Rust',
+  level: 'working',
+  intent: null,
+  model: 'claude-sonnet-5-5',
+  guidance: 'Be practical.',
+}
+
+const drafted: SyllabusResponse = {
+  outcome: 'drafted',
+  reason: null,
+  sections: [ { name: 'Basics', concepts: [ { name: 'Ownership', description: 'Who frees.' } ] } ],
+  usage,
+}
+
+describe( 'draftSyllabusWithAgent', () => {
+  beforeEach( () => {
+    fetchMock.mockResolvedValue( json( drafted ) )
+  } )
+
+  it( 'posts the request to /v1/syllabus with the bearer secret', async () => {
+    await draftSyllabusWithAgent( syllabusRequest )
+
+    const [ url, init ] = fetchMock.mock.calls[ 0 ] as [ URL | string, RequestInit ]
+
+    expect( String( url ) ).toBe( 'http://agent:8100/v1/syllabus' )
+    expect( init.method ).toBe( 'POST' )
+    expect( new Headers( init.headers ).get( 'authorization' ) ).toBe( `Bearer ${ SECRET }` )
+    expect( JSON.parse( init.body as string ) ).toEqual( syllabusRequest )
+  } )
+
+  it( 'waits for the syllabus timeout, not the linking one', async () => {
+    const timeout = vi.spyOn( AbortSignal, 'timeout' )
+
+    agentConfig.agentSyllabusTimeoutMs = 200_000
+    await draftSyllabusWithAgent( syllabusRequest )
+
+    expect( timeout ).toHaveBeenCalledWith( 200_000 )
+    expect( timeout ).not.toHaveBeenCalledWith( 120_000 )
+  } )
+
+  it( 'returns a drafted response', async () => {
+    expect( await draftSyllabusWithAgent( syllabusRequest ) ).toEqual( drafted )
+  } )
+
+  it( 'returns a failed outcome instead of throwing', async () => {
+    const failure: SyllabusResponse = {
+      outcome: 'failed',
+      reason: 'Subject folder not found',
+      usage,
+    }
+
+    fetchMock.mockResolvedValue( json( failure ) )
+
+    expect( await draftSyllabusWithAgent( syllabusRequest ) ).toEqual( failure )
+  } )
+
+  it( 'throws AgentUnavailableError when the connection fails', async () => {
+    fetchMock.mockRejectedValue( new TypeError( 'fetch failed' ) )
+
+    const error = await rejection( () => draftSyllabusWithAgent( syllabusRequest ) )
+
+    expect( error ).toBeInstanceOf( AgentUnavailableError )
+    expect( error.message ).toBe( 'Agent service unreachable' )
+  } )
+
+  it( 'throws AgentUnavailableError when the call times out', async () => {
+    fetchMock.mockRejectedValue( new DOMException( 'The operation timed out', 'TimeoutError' ) )
+
+    const error = await rejection( () => draftSyllabusWithAgent( syllabusRequest ) )
+
+    expect( error ).toBeInstanceOf( AgentUnavailableError )
+    expect( error.message ).toBe( 'Agent service timed out after 200 s' )
+  } )
+
+  it.each( [
+    [ 'a server error', () => json( { detail: 'boom' }, 500 ) ],
+    [ 'JSON of the wrong shape', () => json( { outcome: 'maybe' } ) ],
+    [ 'a drafted response with a reason', () => json( { ...drafted, reason: 'x' } ) ],
+    [ 'a link response', () => json( linked ) ],
+  ] )( 'throws a plain AgentError for %s', async ( _name, respond ) => {
+    fetchMock.mockResolvedValue( respond() )
+
+    const error = await rejection( () => draftSyllabusWithAgent( syllabusRequest ) )
+
+    expect( error ).not.toBeInstanceOf( AgentUnavailableError )
+    expect( error.message ).toBe( 'Agent service returned an invalid response' )
+  } )
+
+  it( 'says the secret was rejected on 401 and the vault is unknown on 422', async () => {
+    fetchMock.mockResolvedValueOnce( json( { detail: 'unauthorized' }, 401 ) )
+    expect( ( await rejection( () => draftSyllabusWithAgent( syllabusRequest ) ) ).message )
+      .toBe( 'Agent service rejected the secret' )
+
+    fetchMock.mockResolvedValueOnce( json( { error: 'unknown_vault' }, 422 ) )
+    expect( ( await rejection( () => draftSyllabusWithAgent( syllabusRequest ) ) ).message )
+      .toBe( 'The agent service could not find your vault' )
+  } )
+
+  it( 'says the agent is not configured, not that linking is off', async () => {
+    agentConfig.agent = null
+
+    expect( ( await rejection( () => draftSyllabusWithAgent( syllabusRequest ) ) ).message )
+      .toBe( 'The agent service isn\'t configured' )
+    expect( fetchMock ).not.toHaveBeenCalled()
+  } )
+
+  it( 'sends no job ID, since a syllabus is not a job', async () => {
+    await withLogContext( { job_id: 'job-1' }, () => draftSyllabusWithAgent( syllabusRequest ) )
+
+    const [ , init ] = fetchMock.mock.calls[ 0 ] as [ URL | string, RequestInit ]
+
+    expect( new Headers( init.headers ).has( 'x-job-id' ) ).toBe( false )
+  } )
+} )
+
+describe( 'fetchSyllabusInstructions', () => {
+  it( 'gets the locked text from /v1/syllabus/instructions', async () => {
+    fetchMock.mockResolvedValue( json( { instructions: 'You draft a syllabus.' } ) )
+
+    expect( await fetchSyllabusInstructions() ).toBe( 'You draft a syllabus.' )
+
+    const [ url, init ] = fetchMock.mock.calls[ 0 ] as [ URL | string, RequestInit ]
+
+    expect( String( url ) ).toBe( 'http://agent:8100/v1/syllabus/instructions' )
+    expect( init.method ).toBe( 'GET' )
+  } )
+
+  it( 'throws "invalid response" for the wrong shape', async () => {
+    fetchMock.mockResolvedValue( json( { text: 'x' } ) )
+
+    expect( ( await rejection( () => fetchSyllabusInstructions() ) ).message )
+      .toBe( 'Agent service returned an invalid response' )
   } )
 } )

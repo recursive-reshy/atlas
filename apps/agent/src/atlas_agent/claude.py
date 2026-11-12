@@ -28,6 +28,7 @@ class ToolDefinition( BaseModel ):
 class TextBlock( BaseModel ):
     type: Literal[ "text" ] = "text"
     text: str
+    cache_control: CacheControl | None = None
 
 class ToolUseBlock( BaseModel ):
     type: Literal[ "tool_use" ] = "tool_use"
@@ -40,6 +41,7 @@ class ToolResultBlock( BaseModel ):
     tool_use_id: str
     content: str
     is_error: bool = False
+    cache_control: CacheControl | None = None
 
 class Message( BaseModel ):
     role: Literal[ "user", "assistant" ]

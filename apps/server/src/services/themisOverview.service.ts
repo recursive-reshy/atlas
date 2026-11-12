@@ -1,5 +1,6 @@
 // Shared
 import type {
+  CalendarConnectionStatus,
   GetThemisGoalResponse,
   GetThemisOverviewResponse,
   SetGoalSubjectsBody,
@@ -29,6 +30,7 @@ import {
   setSubjectsForGoal,
 } from '../repositories/meleteSubjects.repository.js'
 import type { SubjectRecord } from '../repositories/meleteSubjects.repository.js'
+import { countEvents } from '../repositories/calendarEvents.repository.js'
 import { listAreas } from '../repositories/themisAreas.repository.js'
 import { listCheckins, listPeriodStarts } from '../repositories/themisCheckins.repository.js'
 import { listGoals } from '../repositories/themisGoals.repository.js'
@@ -37,6 +39,7 @@ import { listMetricUpdates } from '../repositories/themisMetrics.repository.js'
 import { goalTimeByDay, timeByGoal } from '../repositories/timeEntries.repository.js'
 import type { TimeSplit } from '../repositories/timeEntries.repository.js'
 // Services
+import { getCalendar } from './calendar.service.js'
 import { subjectConceptStats, subjectName } from './melete.service.js'
 import { requireGoal, toThemisGoal } from './themis.service.js'
 
@@ -44,9 +47,26 @@ import { requireGoal, toThemisGoal } from './themis.service.js'
 const RECENT = 8
 const WEEKS = 12
 
-const toTime = ( split: TimeSplit = { measured: 0, logged: 0 } ): ThemisTime => ( {
-  ...split,
-  seconds: split.measured + split.logged,
+const NO_TIME: TimeSplit = { measured: 0, logged: 0, calendar: 0 }
+
+// Drafts count only while Calendar is connected; the status tells Home what to offer
+const calendarSummary = (
+  userId: string,
+): { calendar_drafts: number, calendar_status: CalendarConnectionStatus } => {
+  const { status } = getCalendar( userId )
+  const connected = status === 'connected' || status === 'broken'
+
+  return {
+    calendar_drafts: connected ? countEvents( userId, 'draft' ) : 0,
+    calendar_status: status,
+  }
+}
+
+const toTime = ( { measured, logged, calendar }: TimeSplit = NO_TIME ): ThemisTime => ( {
+  measured,
+  logged,
+  calendar,
+  seconds: measured + logged + calendar,
 } )
 
 const linked = ( subjects: SubjectRecord[] ): ThemisLinkedSubject[] => {
@@ -132,6 +152,7 @@ export const getOverview = (
   return {
     period,
     ...range,
+    ...calendarSummary( userId ),
     checkins_due: checkinsDue,
     areas: areas.map( ( area ) => {
       const cards = goals
@@ -146,6 +167,7 @@ export const getOverview = (
         time: toTime( {
           measured: cards.reduce( ( sum, { time } ) => sum + time.measured, 0 ),
           logged: cards.reduce( ( sum, { time } ) => sum + time.logged, 0 ),
+          calendar: cards.reduce( ( sum, { time } ) => sum + time.calendar, 0 ),
         } ),
         goals: cards,
       }
@@ -160,7 +182,7 @@ export const getGoalDetail = (
 ): GetThemisGoalResponse => {
   const { goal, outcome, subjects } = cardFor( userId, requireGoal( userId, id ), toTime() )
   const weeks = recentWeekStarts( studyDay( now ), WEEKS )
-  const perWeek = new Map( weeks.map( ( start ) => [ start, { measured: 0, logged: 0 } ] ) )
+  const perWeek = new Map( weeks.map( ( start ) => [ start, { ...NO_TIME } ] ) )
 
   for( const { day, source, seconds } of goalTimeByDay(
     userId,
@@ -183,7 +205,9 @@ export const getGoalDetail = (
     checkins: listCheckins( userId, id ),
     time_by_week: weeks.map( ( week_start ) => ( {
       week_start,
-      ...perWeek.get( week_start ) ?? { measured: 0, logged: 0 },
+      measured: perWeek.get( week_start )?.measured ?? 0,
+      logged: perWeek.get( week_start )?.logged ?? 0,
+      calendar: perWeek.get( week_start )?.calendar ?? 0,
     } ) ),
   }
 }

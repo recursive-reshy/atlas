@@ -35,10 +35,25 @@ describe( 'GoalTimeByWeek', () => {
 
   it( 'says so when no week has any time', () => {
     render( <GoalTimeByWeek
-      weeks={ [ { week_start: '2026-11-02', measured: 0, logged: 0 } ] }
+      weeks={ [ { week_start: '2026-11-02', measured: 0, logged: 0, calendar: 0 } ] }
     /> )
 
     expect( screen.getByText( 'No time yet' ) ).toBeInTheDocument()
     expect( screen.queryByRole( 'listitem' ) ).not.toBeInTheDocument()
+  } )
+} )
+
+describe( 'GoalTimeByWeek, calendar time', () => {
+  it( 'counts calendar time in the total, the bar and the text', () => {
+    render( <GoalTimeByWeek
+      weeks={ [ { week_start: '2026-11-02', measured: 1800, logged: 900, calendar: 900 } ] }
+    /> )
+
+    const row = screen.getByRole( 'listitem', { name: 'Week of 2026-11-02' } )
+
+    expect( within( row ).getByText( '1 h' ) ).toBeInTheDocument()
+    expect( within( row ).getByText( '30 min measured · 15 min logged · 15 min calendar' ) )
+      .toBeInTheDocument()
+    expect( within( row ).getByRole( 'img', { name: 'Calendar 25%' } ) ).toBeInTheDocument()
   } )
 } )

@@ -18,6 +18,9 @@ const HISTORY = [
   // 1.1 planning docs and its ADRs (0089 on) describe Mnemosyne as one of three modules
   /^docs\/v1\.1\.0\//,
   /^docs\/decisions\/(0089|009\d)-/,
+  // 1.2 planning docs and ADR 0109 name Mnemosyne as a module
+  /^docs\/v1\.2\.0\//,
+  /^docs\/decisions\/(010[3-9])-/,
 ]
 
 // Files that name the module (label), the `mnemosyne` tag or the `Mnemosyne` default folder, or
@@ -53,7 +56,7 @@ const MODULE_TAG_FOLDER = new Set( [
   'apps/web/src/app/AppShell/AppShell.test.tsx',
   'apps/web/src/features/jobs/components/FilenamePreview/FilenamePreview.test.tsx',
   'apps/web/src/features/vault/components/FolderPicker/FolderPicker.test.tsx',
-  'apps/web/src/features/jobs/components/HomePage/HomePage.test.tsx',
+  'apps/web/src/features/jobs/components/TranscriberHome/TranscriberHome.test.tsx',
   'apps/web/src/features/jobs/components/JobPage/JobPage.regenerate.test.tsx',
   'apps/web/src/features/jobs/components/JobPage/JobPage.test.tsx',
   'apps/web/src/features/melete/components/LearningRootSetup/LearningRootSetup.test.tsx',

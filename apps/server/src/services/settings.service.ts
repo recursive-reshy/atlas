@@ -13,7 +13,12 @@ import {
 } from '@atlas/shared'
 import type { ModuleId } from '@atlas/shared'
 // Clients
-import { AgentError, checkHealth, fetchInstructions } from '../clients/agent.client.js'
+import {
+  AgentError,
+  checkHealth,
+  fetchInstructions,
+  fetchSyllabusInstructions,
+} from '../clients/agent.client.js'
 import { resolveFolder } from '../clients/vault.client.js'
 // Config
 import { config } from '../config.js'
@@ -27,7 +32,6 @@ import {
   LOCKED_INSTRUCTIONS_MELETE_MAP,
   LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
   LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
-  LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
   MELETE_GRADING_SEED_KEY,
   MELETE_QUESTIONS_SEED_KEY,
 } from '../melete/prompts.js'
@@ -183,30 +187,54 @@ export const getLockedInstructions = (): GetSettingsResponse[ 'locked_instructio
   article: LOCKED_INSTRUCTIONS_ARTICLE,
   melete_questions: LOCKED_INSTRUCTIONS_MELETE_QUESTIONS,
   melete_grading: LOCKED_INSTRUCTIONS_MELETE_GRADING,
-  melete_syllabus: LOCKED_INSTRUCTIONS_MELETE_SYLLABUS,
   melete_map: LOCKED_INSTRUCTIONS_MELETE_MAP,
   melete_suggest: LOCKED_INSTRUCTIONS_MELETE_SUGGEST,
 } )
 
-const agentSection = async (): Promise<
-  Pick< GetSettingsResponse, 'agent_status' | 'linker_locked_instructions' >
-> => {
-  if( config.agent === null ) {
-    return { agent_status: 'not_configured', linker_locked_instructions: null }
-  }
-
-  if( await checkHealth() === 'unavailable' ) {
-    return { agent_status: 'unavailable', linker_locked_instructions: null }
-  }
-
+// One text that cannot be fetched is null; the other still shows
+const fetchedOrNull = async ( fetchText: () => Promise< string > ): Promise< string | null > => {
   try {
-    return { agent_status: 'ok', linker_locked_instructions: await fetchInstructions() }
+    return await fetchText()
   } catch( error ) {
     if( !( error instanceof AgentError ) ) {
       throw error
     }
 
-    return { agent_status: 'ok', linker_locked_instructions: null }
+    return null
+  }
+}
+
+const agentSection = async (): Promise<
+  Pick<
+    GetSettingsResponse,
+    'agent_status' | 'linker_locked_instructions' | 'syllabus_locked_instructions'
+  >
+> => {
+  if( config.agent === null ) {
+    return {
+      agent_status: 'not_configured',
+      linker_locked_instructions: null,
+      syllabus_locked_instructions: null,
+    }
+  }
+
+  if( await checkHealth() === 'unavailable' ) {
+    return {
+      agent_status: 'unavailable',
+      linker_locked_instructions: null,
+      syllabus_locked_instructions: null,
+    }
+  }
+
+  const [ linker, syllabus ] = await Promise.all( [
+    fetchedOrNull( fetchInstructions ),
+    fetchedOrNull( fetchSyllabusInstructions ),
+  ] )
+
+  return {
+    agent_status: 'ok',
+    linker_locked_instructions: linker,
+    syllabus_locked_instructions: syllabus,
   }
 }
 

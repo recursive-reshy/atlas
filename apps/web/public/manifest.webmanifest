@@ -1,7 +1,7 @@
 {
   "name": "Atlas",
   "short_name": "Atlas",
-  "start_url": "/melete",
+  "start_url": "/",
   "scope": "/",
   "display": "standalone",
   "background_color": "#f4f5f7",

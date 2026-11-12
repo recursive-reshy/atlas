@@ -16,10 +16,11 @@ export const SUBJECT_ID = '7c000000-0000-4000-8000-000000000001'
 
 const CREATED = '2026-10-01T08:00:00.000Z'
 
-export const timeFixture = ( measured = 0, logged = 0 ): ThemisTime => ( {
-  seconds: measured + logged,
+export const timeFixture = ( measured = 0, logged = 0, calendar = 0 ): ThemisTime => ( {
+  seconds: measured + logged + calendar,
   measured,
   logged,
+  calendar,
 } )
 
 const base = {
@@ -114,6 +115,8 @@ export const overviewFixture = (
     period: 'week',
     from: '2026-11-02',
     to: '2026-11-08',
+    calendar_drafts: 0,
+    calendar_status: 'not_configured',
     checkins_due: [],
     areas,
     ...overrides,

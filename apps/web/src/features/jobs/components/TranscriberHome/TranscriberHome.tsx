@@ -48,7 +48,7 @@ const summaryChoices = (
   return choices
 }
 
-export function HomePage(): ReactElement {
+export function TranscriberHome(): ReactElement {
   const navigate = useNavigate()
   const savedPath = readSavedPath( useLocation().state )
   const { jobs, updatedAt } = useJobs()
@@ -68,7 +68,7 @@ export function HomePage(): ReactElement {
       const options = summaryChoices( settings, profileChoice, modelChoice )
       const jobId = await createJob( { ...body, ...options } )
 
-      void navigate( `/jobs/${ jobId }` )
+      void navigate( `/transcriber/jobs/${ jobId }` )
     } catch( caught ) {
       setSubmitError( caught instanceof Error ? caught.message : 'Unexpected error' )
     } finally {

@@ -9,6 +9,7 @@ export const KIND_LABELS = {
   feed: 'Feed',
   gmail_source: 'Gmail source',
   gmail_connection: 'Gmail',
+  calendar_connection: 'Calendar',
   vault_sync: 'Vault sync',
   agent: 'Service',
   transcription: 'Service',

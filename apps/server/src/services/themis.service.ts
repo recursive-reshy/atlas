@@ -39,17 +39,10 @@ import {
 } from '../repositories/themisGoals.repository.js'
 import { insertMetricUpdate } from '../repositories/themisMetrics.repository.js'
 import type { GoalChanges, GoalRecord } from '../repositories/themisGoals.repository.js'
+// Themis
+import { reordered } from '../themis/reorder.js'
 
 // Names are user content: nothing here logs them (ADR 0049)
-
-// Moves `id` to `index` among `ids`, a position past the end meaning the end
-const reordered = ( ids: string[], id: string, index: number ): string[] => {
-  const rest = ids.filter( ( other ) => other !== id )
-
-  rest.splice( Math.min( index, rest.length ), 0, id )
-
-  return rest
-}
 
 export const toThemisGoal = ( record: GoalRecord ): ThemisGoal => ThemisGoal.parse( record )
 

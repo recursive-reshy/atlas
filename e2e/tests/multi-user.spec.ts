@@ -23,7 +23,7 @@ test( 'a member sees only their modules and none of the admin\'s data', async ( 
   const page = await context.newPage()
 
   await signIn( context, { email: 'member@e2e.test', modules: [ 'melete' ] } )
-  await page.goto( '/' )
+  await page.goto( '/transcriber' )
 
   // First sign-in: choose a vault before anything else.
   await expect( page.getByRole( 'heading', { name: 'Choose your vault' } ) ).toBeVisible()

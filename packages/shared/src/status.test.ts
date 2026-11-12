@@ -30,6 +30,7 @@ describe( 'HealthKind', () => {
     'feed',
     'gmail_source',
     'gmail_connection',
+    'calendar_connection',
     'vault_sync',
     'agent',
     'transcription',
@@ -54,6 +55,7 @@ describe( 'AppHealthKind and UserHealthKind', () => {
       'feed',
       'gmail_source',
       'gmail_connection',
+      'calendar_connection',
       'vault_sync',
     ] )
   } )

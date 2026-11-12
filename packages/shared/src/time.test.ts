@@ -2,6 +2,7 @@
 import { describe, expect, it } from 'vitest'
 // Local
 import {
+  EditTimeEntryBody,
   ListTimeEntriesQuery,
   ListTimeEntriesResponse,
   LogTimeBody,
@@ -28,6 +29,16 @@ describe( 'TimeEntry', () => {
   it( 'accepts a logged entry for a subject and a measured one', () => {
     expect( TimeEntry.parse( entry ) ).toEqual( entry )
     expect( TimeEntry.parse( { ...entry, source: 'measured' } ).source ).toBe( 'measured' )
+  } )
+
+  it( 'accepts a calendar entry for a subject or a goal (ADR 0108)', () => {
+    expect( TimeEntry.parse( { ...entry, source: 'calendar' } ).source ).toBe( 'calendar' )
+    expect( TimeEntry.parse( {
+      ...entry,
+      source: 'calendar',
+      subject_id: null,
+      goal_id: '61000000-0000-4000-8000-000000000002',
+    } ).goal_id ).not.toBeNull()
   } )
 
   it( 'refuses an unknown source and no seconds', () => {
@@ -102,5 +113,24 @@ describe( 'ListTimeEntriesQuery', () => {
       .toBe( false )
     expect( ListTimeEntriesQuery.safeParse( { from: '2026-11-08', to: '2026-11-07' } ).success )
       .toBe( false )
+  } )
+} )
+
+describe( 'EditTimeEntryBody', () => {
+  it( 'takes what UpdateTimeEntryBody takes, and one new target', () => {
+    expect( EditTimeEntryBody.parse( { minutes: 20, note: null } ) )
+      .toEqual( { minutes: 20, note: null } )
+    expect( EditTimeEntryBody.parse( { goal_id: id } ) ).toEqual( { goal_id: id } )
+    expect( EditTimeEntryBody.parse( { subject_id: other, day: '2026-11-06' } ).subject_id )
+      .toBe( other )
+  } )
+
+  it( 'refuses an empty body, two targets, a bad id, bad minutes and extra keys', () => {
+    expect( EditTimeEntryBody.safeParse( {} ).success ).toBe( false )
+    expect( EditTimeEntryBody.safeParse( { subject_id: id, goal_id: other } ).success )
+      .toBe( false )
+    expect( EditTimeEntryBody.safeParse( { goal_id: 'nope' } ).success ).toBe( false )
+    expect( EditTimeEntryBody.safeParse( { minutes: 0 } ).success ).toBe( false )
+    expect( EditTimeEntryBody.safeParse( { source: 'logged' } ).success ).toBe( false )
   } )
 } )

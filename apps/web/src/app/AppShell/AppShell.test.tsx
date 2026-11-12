@@ -101,13 +101,13 @@ describe( 'AppShell, narrow', () => {
     const user = userEvent.setup()
     const { location } = renderWithClient(
       <AppShell><p>Page</p></AppShell>,
-      { route: '/jobs/abc' },
+      { route: '/transcriber/jobs/abc' },
     )
 
     await user.click( hamburger() )
     await user.click( await screen.findByRole( 'link', { name: 'Mnemosyne' } ) )
 
-    expect( location().pathname ).toBe( '/' )
+    expect( location().pathname ).toBe( '/transcriber' )
     await waitFor( () => {
       expect( screen.queryByRole( 'link', { name: 'Mnemosyne' } ) ).not.toBeInTheDocument()
     } )

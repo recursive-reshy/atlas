@@ -11,7 +11,7 @@ const here = dirname( fileURLToPath( import.meta.url ) )
 const read = ( path: string ): string => readFileSync( join( here, path ), 'utf8' )
 
 // Only the e2e Compose override sets it, and it is never copied into a real .env
-const TEST_ONLY = [ 'E2E_TEST_SIGNIN', 'FETCH_ALLOW_PRIVATE' ]
+const TEST_ONLY = [ 'E2E_TEST_SIGNIN', 'FETCH_ALLOW_PRIVATE', 'CALENDAR_API_BASE_URL' ]
 
 type Entry = { name: string, comment: boolean, section: string }
 

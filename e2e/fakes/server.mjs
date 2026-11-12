@@ -1,5 +1,5 @@
 import { createServer } from 'node:http'
-import { fileURLToPath } from 'node:url'
+import { URLSearchParams, fileURLToPath } from 'node:url'
 import {
   ARTICLE,
   ARTICLE_2,
@@ -16,6 +16,7 @@ import {
 } from './fixtures.mjs'
 
 const SUBMIT_TOOL = 'submit_suggestions'
+const SYLLABUS_SUBMIT_TOOL = 'submit_syllabus'
 // The Gemini model the e2e stack is configured with (GEMINI_MODEL in docker-compose.e2e.yml)
 const GEMINI_MODEL = 'gemini-e2e'
 const TRANSCRIPT = 'Welcome to the talk. Today we cover ownership.\n\nMemory safety comes free.'
@@ -57,7 +58,6 @@ const SYSTEM_ANSWERS = [
   [ 'You write active-recall questions from one study note and place', MELETE_QUESTIONS_APPROVED ],
   [ 'You write active-recall questions', MELETE_QUESTIONS ],
   [ 'You grade a learner\'s answer', MELETE_GRADE ],
-  [ 'You draft a syllabus ', MELETE_SYLLABUS ],
   [ 'You map a study note ', MELETE_MAP ],
   [ 'You suggest learning resources ', MELETE_SUGGESTIONS ],
 ]
@@ -68,6 +68,47 @@ const firstLine = ( system ) => {
     : system
 
   return typeof value === 'string' ? value.trimStart().split( '\n' )[ 0 ] : ''
+}
+
+const blocksOf = ( request, role, type ) => request.messages
+  .filter( ( item ) => item?.role === role && Array.isArray( item.content ) )
+  .flatMap( ( item ) => item.content.filter( ( block ) => block?.type === type ) )
+
+// The first note the list_notes result named, if any; the agent's tool results are JSON text
+const firstNotePath = ( request ) => {
+  for( const { content } of blocksOf( request, 'user', 'tool_result' ) ) {
+    try {
+      const path = JSON.parse( content )?.notes?.[ 0 ]?.path
+
+      if( typeof path === 'string' ) {
+        return path
+      }
+    } catch{
+      // Another tool's result, which is not JSON
+    }
+  }
+
+  return undefined
+}
+
+// The syllabus agent (v1.2): list the notes, read the first, submit. Each turn is chosen from the
+// tools already called in the conversation, not from a count, so a retry cannot skip a step.
+const syllabusTurn = ( request ) => {
+  const called = blocksOf( request, 'assistant', 'tool_use' ).map( ( { name } ) => name )
+  const path = firstNotePath( request )
+  let call = { name: SYLLABUS_SUBMIT_TOOL, input: MELETE_SYLLABUS }
+
+  if( !called.includes( 'list_notes' ) ) {
+    call = { name: 'list_notes', input: {} }
+  } else if( !called.includes( 'read_note' ) && path !== undefined ) {
+    call = { name: 'read_note', input: { path } }
+  }
+
+  return message(
+    request.model,
+    [ { type: 'tool_use', id: `toolu_e2e_${ called.length }`, ...call } ],
+    'tool_use',
+  )
 }
 
 const answerMessages = ( rawBody ) => {
@@ -94,10 +135,14 @@ const answerMessages = ( rawBody ) => {
     return message( request.model, [ { type: 'text', text: JSON.stringify( answer[ 1 ] ) } ], 'end_turn' )
   }
 
-  const hasSubmit = Array.isArray( request.tools )
-    && request.tools.some( ( tool ) => tool?.name === SUBMIT_TOOL )
+  const hasTool = ( name ) => Array.isArray( request.tools )
+    && request.tools.some( ( tool ) => tool?.name === name )
 
-  if( !hasSubmit ) {
+  if( hasTool( SYLLABUS_SUBMIT_TOOL ) ) {
+    return syllabusTurn( request )
+  }
+
+  if( !hasTool( SUBMIT_TOOL ) ) {
     return refuse( `the tools list does not include ${ SUBMIT_TOOL }` )
   }
 
@@ -108,7 +153,91 @@ const answerMessages = ( rawBody ) => {
   )
 }
 
-export const route = ( method, path, body = '' ) => {
+// The Calendar API the server reads when CALENDAR_API_BASE_URL points here. One calendar; the
+// events are whatever the running spec last PUT to /__calendar/events (never a clock of ours).
+const CALENDAR_ID = 'e2e-cal'
+const CALENDAR_PAGE = 2
+const CALENDAR_ENTRY = { id: CALENDAR_ID, summary: 'E2E calendar', primary: true }
+let calendarEvents = []
+
+const notFound = ( what ) => json( 404, { error: { code: 404, message: `${ what } not found` } } )
+
+const listCalendarEvents = ( query ) => {
+  const from = Date.parse( query.get( 'timeMin' ) ?? '' )
+  const to = Date.parse( query.get( 'timeMax' ) ?? '' )
+  const found = calendarEvents.filter( ( { start, end } ) => (
+    ( Number.isNaN( to ) || Date.parse( start.dateTime ) < to )
+    && ( Number.isNaN( from ) || Date.parse( end.dateTime ) > from )
+  ) )
+  const offset = Number( query.get( 'pageToken' ) ?? 0 )
+  const next = offset + CALENDAR_PAGE
+
+  return json( 200, {
+    kind: 'calendar#events',
+    items: found.slice( offset, next ),
+    ...next < found.length ? { nextPageToken: String( next ) } : {},
+  } )
+}
+
+const setCalendarEvents = ( body ) => {
+  try {
+    const parsed = JSON.parse( body )
+
+    if( !Array.isArray( parsed ) ) {
+      return refuse( 'events must be an array' )
+    }
+
+    calendarEvents = parsed
+
+    return { status: 204, headers: {}, body: '' }
+  } catch {
+    return refuse( 'events must be JSON' )
+  }
+}
+
+const calendarRoute = ( method, path, body, query ) => {
+  if( method === 'POST' && path === '/token' ) {
+    return json( 200, { access_token: 'e2e-access', expires_in: 3600, token_type: 'Bearer' } )
+  }
+
+  if( method === 'PUT' && path === '/__calendar/events' ) {
+    return setCalendarEvents( body )
+  }
+
+  if( method !== 'GET' ) {
+    return undefined
+  }
+
+  if( path === '/calendar/v3/users/me/calendarList' ) {
+    return json( 200, { items: [ CALENDAR_ENTRY ] } )
+  }
+
+  const entry = /^\/calendar\/v3\/users\/me\/calendarList\/([^/]+)$/.exec( path )
+
+  if( entry ) {
+    return decodeURIComponent( entry[ 1 ] ) === CALENDAR_ID
+      ? json( 200, CALENDAR_ENTRY )
+      : notFound( 'calendar' )
+  }
+
+  const events = /^\/calendar\/v3\/calendars\/([^/]+)\/events$/.exec( path )
+
+  if( events ) {
+    return decodeURIComponent( events[ 1 ] ) === CALENDAR_ID
+      ? listCalendarEvents( query )
+      : notFound( 'calendar' )
+  }
+
+  return undefined
+}
+
+export const route = ( method, path, body = '', query = new URLSearchParams() ) => {
+  const calendar = calendarRoute( method, path, body, query )
+
+  if( calendar ) {
+    return calendar
+  }
+
   if( method === 'GET' ) {
     if( path === '/article' ) {
       return text( 'text/html; charset=utf-8', ARTICLE )
@@ -176,8 +305,8 @@ const readBody = async ( request ) => {
 const start = ( port ) => {
   const server = createServer( ( request, response ) => {
     void readBody( request ).then( ( body ) => {
-      const { pathname } = new URL( request.url ?? '/', 'http://fakes' )
-      const result = route( request.method ?? 'GET', pathname, body )
+      const { pathname, searchParams } = new URL( request.url ?? '/', 'http://fakes' )
+      const result = route( request.method ?? 'GET', pathname, body, searchParams )
 
       response.writeHead( result.status, result.headers )
       response.end( result.body )

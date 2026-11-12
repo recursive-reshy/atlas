@@ -235,7 +235,7 @@ describe( 'ThemisGoalOutcome', () => {
 } )
 
 describe( 'GetThemisOverviewResponse', () => {
-  const time = { seconds: 90, measured: 60, logged: 30 }
+  const time = { seconds: 100, measured: 60, logged: 30, calendar: 10 }
   const goal = {
     id,
     area_id: other,
@@ -253,6 +253,8 @@ describe( 'GetThemisOverviewResponse', () => {
       period: 'week',
       from: '2026-11-02',
       to: '2026-11-08',
+      calendar_drafts: 3,
+      calendar_status: 'connected',
       checkins_due: [ {
         goal_id: id,
         goal_name: 'Family',
@@ -282,7 +284,32 @@ describe( 'GetThemisOverviewResponse', () => {
   } )
 
   it( 'refuses time whose parts are negative', () => {
-    expect( ThemisTime.safeParse( { seconds: -1, measured: 0, logged: 0 } ).success ).toBe( false )
+    expect( ThemisTime.safeParse( { seconds: -1, measured: 0, logged: 0, calendar: 0 } ).success )
+      .toBe( false )
+    expect( ThemisTime.safeParse( { seconds: 0, measured: 0, logged: 0, calendar: -1 } ).success )
+      .toBe( false )
+  } )
+
+  it( 'needs the calendar share of time, the draft count and the connection status', () => {
+    expect( ThemisTime.safeParse( { seconds: 0, measured: 0, logged: 0 } ).success ).toBe( false )
+    expect( GetThemisOverviewResponse.safeParse( {
+      period: 'week',
+      from: '2026-11-09',
+      to: '2026-11-15',
+      calendar_drafts: -1,
+      calendar_status: 'connected',
+      checkins_due: [],
+      areas: [],
+    } ).success ).toBe( false )
+    expect( GetThemisOverviewResponse.safeParse( {
+      period: 'week',
+      from: '2026-11-09',
+      to: '2026-11-15',
+      calendar_drafts: 0,
+      calendar_status: 'gone',
+      checkins_due: [],
+      areas: [],
+    } ).success ).toBe( false )
   } )
 } )
 
@@ -306,7 +333,7 @@ describe( 'GetThemisGoalResponse', () => {
       subjects: [],
       metric_updates: [],
       checkins: [],
-      time_by_week: [ { week_start: '2026-11-02', measured: 0, logged: 0 } ],
+      time_by_week: [ { week_start: '2026-11-02', measured: 0, logged: 0, calendar: 0 } ],
     }
 
     expect( GetThemisGoalResponse.parse( detail ) ).toEqual( detail )

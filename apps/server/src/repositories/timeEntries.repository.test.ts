@@ -7,16 +7,20 @@ import {
 } from 'vitest'
 // Repositories
 import {
+  deleteCalendarEntry,
   deleteLoggedEntry,
   extendMeasuredEntry,
   findTimeEntry,
   goalTimeByDay,
+  insertCalendarEntry,
   insertLoggedEntry,
   insertMeasuredEntry,
   latestMeasuredEntry,
   listTimeEntries,
+  measuredIntervals,
   sumSubjectSeconds,
   timeByGoal,
+  updateCalendarEntry,
   updateLoggedEntry,
 } from './timeEntries.repository.js'
 import { setSubjectsForGoal } from './meleteSubjects.repository.js'
@@ -234,6 +238,45 @@ describe( 'listTimeEntries', () => {
   } )
 } )
 
+describe( 'calendar entries (ADR 0108)', () => {
+  const insertCalendar = ( id: string, subject: string | null, goal: string | null ): void => {
+    getDatabase().prepare( `INSERT INTO time_entries ( id, user_id, source, subject_id, goal_id,
+      day, started_at, ended_at, seconds, note, created_at, updated_at )
+      VALUES ( ?, ?, 'calendar', ?, ?, '2026-11-09', '2026-11-09T07:00:00.000Z',
+        '2026-11-09T08:00:00.000Z', 3600, 'Gym', 'now', 'now' )` )
+      .run( id, userId, subject, goal )
+  }
+
+  it( 'reads a calendar entry back, whether it names a subject or a goal', () => {
+    const goal = insertGoal( userId, {
+      area_id: insertArea( userId, 'Health' ).id,
+      name: 'Fit',
+      outcome: 'learning',
+    } ).id
+
+    insertCalendar( 'c1', subjectId, null )
+    insertCalendar( 'c2', null, goal )
+
+    expect( listTimeEntries( userId, '2026-11-09', '2026-11-09' ).map( ( e ) => e.source ) )
+      .toEqual( [ 'calendar', 'calendar' ] )
+    expect( findTimeEntry( userId, 'c2' ) ).toMatchObject( { source: 'calendar', goal_id: goal } )
+  } )
+
+  it( 'splits a goal\'s time with a calendar share', () => {
+    const goal = insertGoal( userId, {
+      area_id: insertArea( userId, 'Health' ).id,
+      name: 'Fit',
+      outcome: 'learning',
+    } ).id
+
+    insertCalendar( 'c2', null, goal )
+    insertLoggedEntry( userId, logged( { goal_id: goal }, '2026-11-09', 60 ) )
+
+    expect( timeByGoal( userId, '2026-11-09', '2026-11-09' )[ goal ] )
+      .toEqual( { measured: 0, logged: 60, calendar: 3600 } )
+  } )
+} )
+
 describe( 'timeByGoal', () => {
   const makeGoal = ( name: string ): string => insertGoal( userId, {
     area_id: insertArea( userId, `Area ${ name }` ).id,
@@ -256,8 +299,8 @@ describe( 'timeByGoal', () => {
     insertMeasuredEntry( userId, unlinked, { ...session( 'b', 'b', '2026-11-10' ), seconds: 1600 } )
 
     expect( timeByGoal( userId, '2026-11-09', '2026-11-15' ) ).toEqual( {
-      [ goal ]: { measured: 100, logged: 600 },
-      [ other ]: { measured: 0, logged: 800 },
+      [ goal ]: { measured: 100, logged: 600, calendar: 0 },
+      [ other ]: { measured: 0, logged: 800, calendar: 0 },
     } )
   } )
 
@@ -270,7 +313,7 @@ describe( 'timeByGoal', () => {
     insertLoggedEntry( userId, logged( { goal_id: goal }, '2026-11-16', 1000 ) )
 
     expect( timeByGoal( userId, '2026-11-09', '2026-11-15' ) )
-      .toEqual( { [ goal ]: { measured: 0, logged: 110 } } )
+      .toEqual( { [ goal ]: { measured: 0, logged: 110, calendar: 0 } } )
     expect( timeByGoal( createTestUser().id, '2026-11-09', '2026-11-15' ) ).toEqual( {} )
   } )
 } )
@@ -294,5 +337,122 @@ describe( 'goalTimeByDay', () => {
       { day: '2026-11-10', source: 'measured', seconds: 150 },
       { day: '2026-11-12', source: 'logged', seconds: 60 },
     ] )
+  } )
+} )
+
+describe( 'measuredIntervals', () => {
+  const WINDOW = { started_at: '2026-11-09T07:00:00.000Z', ended_at: '2026-11-09T08:00:00.000Z' }
+
+  const makeGoal = ( user: string, name: string ): string => insertGoal( user, {
+    area_id: insertArea( user, `Area ${ name }` ).id,
+    name,
+    outcome: 'learning',
+  } ).id
+
+  const measure = ( subject: string, start: string, end: string, user = userId ): void => {
+    insertMeasuredEntry( user, subject, session( start, end, '2026-11-09' ) )
+  }
+
+  it( 'gives the subject\'s measured entries that touch the window', () => {
+    measure( subjectId, '2026-11-09T06:30:00.000Z', '2026-11-09T07:10:00.000Z' )
+    measure( subjectId, '2026-11-09T07:30:00.000Z', '2026-11-09T07:40:00.000Z' )
+    measure( subjectId, '2026-11-09T05:00:00.000Z', '2026-11-09T06:00:00.000Z' )
+    measure( subjectId, '2026-11-09T09:00:00.000Z', '2026-11-09T09:30:00.000Z' )
+
+    expect( measuredIntervals( userId, { subject_id: subjectId }, WINDOW ) ).toEqual( [
+      { started_at: '2026-11-09T06:30:00.000Z', ended_at: '2026-11-09T07:10:00.000Z' },
+      { started_at: '2026-11-09T07:30:00.000Z', ended_at: '2026-11-09T07:40:00.000Z' },
+    ] )
+  } )
+
+  it( 'gives the measured entries of every subject linked to a goal', () => {
+    const goal = makeGoal( userId, 'Fit' )
+    const second = addSubject( userId, 'Learning/Second' )
+    const unlinked = addSubject( userId, 'Learning/Unlinked' )
+
+    setSubjectsForGoal( userId, goal, [ subjectId, second ] )
+    measure( subjectId, '2026-11-09T07:00:00.000Z', '2026-11-09T07:10:00.000Z' )
+    measure( second, '2026-11-09T07:20:00.000Z', '2026-11-09T07:30:00.000Z' )
+    measure( unlinked, '2026-11-09T07:40:00.000Z', '2026-11-09T07:50:00.000Z' )
+
+    expect( measuredIntervals( userId, { goal_id: goal }, WINDOW ) ).toHaveLength( 2 )
+  } )
+
+  it( 'ignores logged and calendar entries and other users\' entries', () => {
+    const other = createTestUser().id
+    const theirs = addSubject( other )
+
+    insertLoggedEntry( userId, logged( { subject_id: subjectId }, '2026-11-09', 60 ) )
+    measure( theirs, '2026-11-09T07:00:00.000Z', '2026-11-09T07:10:00.000Z', other )
+
+    expect( measuredIntervals( userId, { subject_id: subjectId }, WINDOW ) ).toEqual( [] )
+    expect( measuredIntervals( userId, { subject_id: theirs }, WINDOW ) ).toEqual( [] )
+  } )
+} )
+
+describe( 'calendar entries as editable time', () => {
+  const entry = {
+    day: '2026-11-09',
+    started_at: '2026-11-09T07:00:00.000Z',
+    ended_at: '2026-11-09T08:00:00.000Z',
+    seconds: 3000,
+    note: 'Gym',
+  }
+
+  it( 'inserts a calendar entry for a subject, and for a goal', () => {
+    const goal = insertGoal( userId, {
+      area_id: insertArea( userId, 'Health' ).id,
+      name: 'Fit',
+      outcome: 'learning',
+    } ).id
+    const first = insertCalendarEntry( userId, { ...entry, subject_id: subjectId, goal_id: null } )
+    const second = insertCalendarEntry( userId, { ...entry, subject_id: null, goal_id: goal } )
+
+    expect( first ).toMatchObject( { source: 'calendar', subject_id: subjectId, seconds: 3000 } )
+    expect( second ).toMatchObject( { source: 'calendar', goal_id: goal, note: 'Gym' } )
+  } )
+
+  it( 'edits the day, seconds, note and target of a calendar entry', () => {
+    const goal = insertGoal( userId, {
+      area_id: insertArea( userId, 'Health' ).id,
+      name: 'Fit',
+      outcome: 'learning',
+    } ).id
+    const { id } = insertCalendarEntry( userId, { ...entry, subject_id: subjectId, goal_id: null } )
+
+    expect( updateCalendarEntry( userId, id, {
+      day: '2026-11-08',
+      seconds: 600,
+      note: null,
+      subject_id: null,
+      goal_id: goal,
+    } ) ).toMatchObject( {
+      day: '2026-11-08',
+      seconds: 600,
+      note: null,
+      goal_id: goal,
+      subject_id: null,
+    } )
+  } )
+
+  it( 'leaves logged and measured entries to their own functions', () => {
+    const loggedId = insertLoggedEntry(
+      userId,
+      logged( { subject_id: subjectId }, '2026-11-09', 60 ),
+    ).id
+    const measuredId = insertMeasuredEntry( userId, subjectId, session( 'a', 'b' ) )
+
+    expect( updateCalendarEntry( userId, loggedId, { seconds: 5 } ) ).toBeUndefined()
+    expect( deleteCalendarEntry( userId, loggedId ) ).toBe( false )
+    expect( deleteCalendarEntry( userId, measuredId ) ).toBe( false )
+    expect( updateLoggedEntry( userId, loggedId, { seconds: 90 } )?.seconds ).toBe( 90 )
+  } )
+
+  it( 'deletes a calendar entry, and only the user\'s own', () => {
+    const { id } = insertCalendarEntry( userId, { ...entry, subject_id: subjectId, goal_id: null } )
+
+    expect( deleteCalendarEntry( createTestUser().id, id ) ).toBe( false )
+    expect( deleteCalendarEntry( userId, id ) ).toBe( true )
+    expect( findTimeEntry( userId, id ) ).toBeUndefined()
   } )
 } )

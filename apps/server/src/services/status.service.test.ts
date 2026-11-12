@@ -11,6 +11,10 @@ import { GetStatusResponse, type StatusRow } from '@atlas/shared'
 // Errors
 import { NotFoundError } from '../errors.js'
 // Repositories
+import {
+  saveCalendarAccount,
+  setCalendarStatus,
+} from '../repositories/calendarAccount.repository.js'
 import { saveAccount, setAccountStatus } from '../repositories/gmailAccount.repository.js'
 import { insertFeed } from '../repositories/feeds.repository.js'
 import type { StoredFeed } from '../repositories/feeds.repository.js'
@@ -220,6 +224,66 @@ describe( 'getStatus', () => {
       recordFailure( userId, 'gmail_connection', userId, at( 3 ), 'from the check' )
 
       expect( rowOf( 'gmail_connection' ).last_error ).toBe( 'from the check' )
+    } )
+  } )
+
+  describe( 'calendar connection', () => {
+    const connectCalendar = (): void => {
+      saveCalendarAccount( userId, {
+        email: 'naresh@example.com',
+        refresh_token_enc: 'v1:x',
+        scope: 'scope',
+        status: 'connected',
+        error: null,
+        connected_at: at( 0 ),
+      } )
+    }
+
+    it( 'has no row until Calendar is connected', () => {
+      expect( getStatus( userId, true ).rows.map( ( { kind } ) => kind ) )
+        .not.toContain( 'calendar_connection' )
+    } )
+
+    it( 'is ok when connected and nothing failed', () => {
+      connectCalendar()
+
+      expect( rowOf( 'calendar_connection', userId ) )
+        .toMatchObject( { name: 'Calendar connection', state: 'ok', last_error: null } )
+    } )
+
+    it( 'is failing with the account\'s error when the connection is broken', () => {
+      connectCalendar()
+      setCalendarStatus( userId, 'broken', 'Google no longer accepts the access' )
+
+      expect( rowOf( 'calendar_connection', userId ) ).toMatchObject( {
+        state: 'failing',
+        last_error: 'Google no longer accepts the access',
+      } )
+      expect( getStatus( userId, true ).failing_count ).toBe( 1 )
+    } )
+
+    it( 'prefers the health error when there is one', () => {
+      connectCalendar()
+      setCalendarStatus( userId, 'broken', 'from the account' )
+      recordFailure( userId, 'calendar_connection', userId, at( 3 ), 'from the check' )
+
+      expect( rowOf( 'calendar_connection', userId ).last_error ).toBe( 'from the check' )
+    } )
+
+    it( 'is only the user\'s own', () => {
+      connectCalendar()
+
+      expect( getStatus( createTestUser().id, false ).rows.map( ( { kind } ) => kind ) )
+        .not.toContain( 'calendar_connection' )
+    } )
+
+    it( 'has an error history for the user\'s own connection and not for another\'s', () => {
+      connectCalendar()
+      recordFailure( userId, 'calendar_connection', userId, at( 3 ), 'from the check' )
+
+      expect( getHealthErrors( userId, false, 'calendar_connection', userId ) ).toHaveLength( 1 )
+      expect( () => getHealthErrors( createTestUser().id, false, 'calendar_connection', userId ) )
+        .toThrow( 'Status subject not found' )
     } )
   } )
 

@@ -12,12 +12,16 @@ type RunDetails = {
   promptVersionId: number
   usage: { input_tokens: number, output_tokens: number } | undefined
   error?: string
+  // Agent runs only
+  turns?: number
+  toolCalls?: number
   now: Date
 }
 
 // Every Claude attempt leaves a row; tokens and cost are null when the call gave none
 export const recordMeleteRun = ( userId: string, details: RunDetails ): number => {
   const { kind, noteId, questionId, subjectId, model, promptVersionId, usage, error, now } = details
+  const { turns, toolCalls } = details
   const inputTokens = usage?.input_tokens ?? null
   const outputTokens = usage?.output_tokens ?? null
 
@@ -33,6 +37,8 @@ export const recordMeleteRun = ( userId: string, details: RunDetails ): number =
     cost_usd: estimateCostUsd( model, inputTokens, outputTokens ),
     outcome: error === undefined ? 'succeeded' : 'failed',
     error: error ?? null,
+    turns: turns ?? null,
+    tool_calls: toolCalls ?? null,
     created_at: now.toISOString(),
   } )
 }
