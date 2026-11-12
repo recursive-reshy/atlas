@@ -11,10 +11,11 @@ import DialogTitle from '@mui/material/DialogTitle'
 import Stack from '@mui/material/Stack'
 import TextField from '@mui/material/TextField'
 // App
+import { useMe } from '#src/app/useMe'
 import { useLogTime } from '#src/features/themis/hooks/useLogTime'
 import { useTimeTargets } from '#src/features/themis/hooks/useTimeTargets'
 import { TargetSelect } from '../TargetSelect'
-import { daysBefore, localDate } from '#src/lib/localDate'
+import { dayBefore } from '#src/lib/localDate'
 
 interface LogTimeDialogProps {
   // The target it opens on; with neither, the person picks
@@ -40,10 +41,13 @@ export function LogTimeDialog( { subjectId, goalId, onClose }: LogTimeDialogProp
   const titleId = useId()
   const { subjects, goals } = useTimeTargets()
   const logTime = useLogTime()
-  const now = new Date()
+  const { me } = useMe()
+  // The server's study day, never the device's date; the dialog is only reached signed in
+  const today = me?.study_today ?? ''
+  const earliest = today === '' ? undefined : dayBefore( today, MAX_DAYS_BACK )
   const [ target, setTarget ] = useState( startTarget( subjectId, goalId ) )
   const [ minutes, setMinutes ] = useState( '' )
-  const [ day, setDay ] = useState( localDate( now ) )
+  const [ day, setDay ] = useState( today )
   const [ note, setNote ] = useState( '' )
   const count = Number( minutes )
   const isValid = target !== '' && day !== '' && minutes !== ''
@@ -104,7 +108,7 @@ export function LogTimeDialog( { subjectId, goalId, onClose }: LogTimeDialogProp
             onChange={ ( event ) => setDay( event.target.value ) }
             slotProps={ {
               inputLabel: { shrink: true },
-              htmlInput: { min: daysBefore( now, MAX_DAYS_BACK ), max: localDate( now ) },
+              htmlInput: { min: earliest, max: today },
             } }
           />
           <TextField

@@ -5,7 +5,11 @@ import {
   it,
 } from 'vitest'
 // App
-import { daysBefore, localDate } from './localDate'
+import {
+  dayBefore,
+  daysBefore,
+  localDate,
+} from './localDate'
 
 describe( 'localDate', () => {
   it( 'is the calendar date in the device\'s own time zone, padded', () => {
@@ -29,5 +33,13 @@ describe( 'daysBefore', () => {
     daysBefore( now, 10 )
 
     expect( localDate( now ) ).toBe( '2026-06-15' )
+  } )
+} )
+
+describe( 'dayBefore', () => {
+  it( 'goes back whole days from a calendar date, across a month and a year', () => {
+    expect( dayBefore( '2026-01-03', 0 ) ).toBe( '2026-01-03' )
+    expect( dayBefore( '2026-01-03', 3 ) ).toBe( '2025-12-31' )
+    expect( dayBefore( '2026-11-08', 365 ) ).toBe( '2025-11-08' )
   } )
 } )

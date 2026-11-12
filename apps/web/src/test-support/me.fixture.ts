@@ -9,6 +9,7 @@ export const meFixture = ( overrides: Partial< Me > = {} ): Me => ( {
   modules: [ 'transcriber', 'melete' ],
   vault_dir: 'naresh',
   vault_missing: false,
+  study_today: '2026-11-08',
   ...overrides,
 } )
 

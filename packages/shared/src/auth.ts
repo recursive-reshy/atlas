@@ -20,6 +20,7 @@ export const VAULT_MISSING_MESSAGE = 'Your vault folder is missing'
 
 // For the admin, `modules` is always every ModuleId. `vault_missing` is true when `vault_dir` is
 // set but its folder no longer exists; `vault_dir` then keeps the old name (ADR 0070).
+// `study_today` is the server's study day, so the web never reads the device's date for it.
 export const Me = z.object( {
   id: z.uuid(),
   email: z.email(),
@@ -28,6 +29,7 @@ export const Me = z.object( {
   modules: z.array( ModuleId ),
   vault_dir: VaultDir.nullable(),
   vault_missing: z.boolean(),
+  study_today: z.iso.date(),
 } )
 export type Me = z.infer< typeof Me >
 

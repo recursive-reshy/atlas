@@ -36,7 +36,7 @@ const onClose = vi.fn()
 
 const signedInWith = ( modules: ( 'transcriber' | 'melete' | 'themis' )[] ): void => {
   vi.mocked( useMe ).mockReturnValue( {
-    me: meFixture( { modules } ),
+    me: meFixture( { modules, study_today: '2026-11-08' } ),
     isLoading: false,
     error: null,
   } )
@@ -166,7 +166,21 @@ describe( 'LogTimeDialog, the minutes', () => {
 } )
 
 describe( 'LogTimeDialog, the day', () => {
-  it( 'is today on the device, and cannot be later or a year back', () => {
+  it( 'is the server\'s study day, and cannot be later or a year back', () => {
+    open( { subjectId: SUBJECT_ID } )
+
+    const day = screen.getByLabelText( 'Day' )
+
+    expect( day ).toHaveValue( '2026-11-08' )
+    expect( day ).toHaveAttribute( 'max', '2026-11-08' )
+    expect( day ).toHaveAttribute( 'min', '2025-11-08' )
+  } )
+} )
+
+describe( 'LogTimeDialog, the day with the device clock ahead', () => {
+  it( 'still defaults to and is capped at the server\'s study day', () => {
+    // 02:00 on the 9th on the device, while the server is still on the 8th (before the day start)
+    vi.setSystemTime( new Date( 2026, 10, 9, 2, 0 ) )
     open( { subjectId: SUBJECT_ID } )
 
     const day = screen.getByLabelText( 'Day' )

@@ -9,6 +9,7 @@ import {
   expect,
   beforeEach,
   afterEach,
+  vi,
 } from 'vitest'
 // Shared
 import { Me } from '@atlas/shared'
@@ -53,6 +54,25 @@ describe( 'GET /api/me', () => {
       modules: [ 'transcriber', 'melete', 'themis' ],
       vault_dir: null,
     } )
+  } )
+
+  it( 'gives the study day, which turns over at the day start, not at midnight', async () => {
+    const member = createTestUser( { modules: [] } )
+
+    try {
+      // 03:59 and 04:00 in Singapore (UTC+8) with the default day start of 4
+      vi.useFakeTimers( { toFake: [ 'Date' ] } )
+      vi.setSystemTime( new Date( '2026-11-07T19:59:00Z' ) )
+      const before = await signedInRequest( app, member ).get( '/api/me' )
+
+      vi.setSystemTime( new Date( '2026-11-07T20:00:00Z' ) )
+      const after = await signedInRequest( app, member ).get( '/api/me' )
+
+      expect( Me.parse( before.body ).study_today ).toBe( '2026-11-07' )
+      expect( Me.parse( after.body ).study_today ).toBe( '2026-11-08' )
+    } finally {
+      vi.useRealTimers()
+    }
   } )
 
   it( 'gives a member their modules and vault', async () => {

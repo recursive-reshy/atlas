@@ -12,3 +12,10 @@ export const daysBefore = ( date: Date, days: number ): string => {
 
   return localDate( earlier )
 }
+
+// The same, from a YYYY-MM-DD string such as the server's study day
+export const dayBefore = ( day: string, days: number ): string => {
+  const [ year, month, date ] = day.split( '-' ).map( Number )
+
+  return daysBefore( new Date( year, month - 1, date, 12 ), days )
+}

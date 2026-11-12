@@ -21,6 +21,7 @@ const me = {
   modules: [ 'transcriber', 'melete' ],
   vault_dir: 'naresh',
   vault_missing: false,
+  study_today: '2026-11-12',
 }
 
 describe( 'ModuleId, Role and UserStatus', () => {
@@ -76,6 +77,16 @@ describe( 'Me', () => {
 
   it( 'requires vault_missing to be a boolean', () => {
     expect( Me.safeParse( { ...me, vault_missing: 'yes' } ).success ).toBe( false )
+  } )
+
+  it( 'requires study_today to be a calendar date', () => {
+    const without: Partial< typeof me > = { ...me }
+
+    delete without.study_today
+
+    expect( Me.safeParse( without ).success ).toBe( false )
+    expect( Me.safeParse( { ...me, study_today: '12/11/2026' } ).success ).toBe( false )
+    expect( Me.safeParse( { ...me, study_today: '2026-02-30' } ).success ).toBe( false )
   } )
 
   it( 'rejects a bad id, email, role, module or vault_dir', () => {
