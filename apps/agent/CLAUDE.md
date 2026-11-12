@@ -10,7 +10,8 @@ Stateless Python 3.14 / FastAPI service that reads the Obsidian vaults (read-onl
 - **No model choice.** The model comes in the request; never hardcode or default one.
 - **One response shape.** Authorized `/v1/link` answers 200 with a `LinkResponse` and `/v1/syllabus` with a `SyllabusResponse`; a bad request or any agent failure is `outcome: failed` with a reason, never FastAPI's default 422. Only a missing or wrong secret is 401; the one 422 is a well-formed `vault_dir` naming no vault.
 - **`linker/instructions.py` and `syllabus/instructions.py` are Naresh's locked prompts**; change them only when a task says to. The syllabus agent's tools are rooted at the subject folder, so it cannot read outside it. Editable guidance arrives in the request.
-- **Logs are JSON** (`logging_setup.py`); variable parts go in `extra`. Never log the note body, the guidance, `AGENT_SECRET` or `ANTHROPIC_API_KEY`.
+- **Logs are JSON** (`logging_setup.py`); variable parts go in `extra`. Never log the note body, the guidance, `AGENT_SECRET`, `ANTHROPIC_API_KEY` or an identity token.
+- **Claude credential: one mode** (ADR 0110). `config.py` builds `Settings.claude_auth` as `api_key` or `federation` and refuses a mix; under federation `AnthropicClaude( None )` passes no `api_key` and the SDK reads the federation variables from the environment. `GET /health` reports the mode as `claude_credential`.
 - **Dependencies** are added with `uv add` / `uv add --dev`, never by editing `pyproject.toml` by hand, and only when the TRD or an ADR names them. Never `uv init`.
 
 ## Commands

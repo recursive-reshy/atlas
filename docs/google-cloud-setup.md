@@ -6,6 +6,10 @@ Nothing is stored at Google beyond the client itself. Atlas never changes a mail
 
 The hosted setup keeps this client in the same Google Cloud project as the VM, called `atlas` ([`deploy.md`](deploy.md#1-google-cloud-resources)); the client belongs to the project you create it in, so create it there, not in an older project.
 
+## A note on the VM's service account
+
+The VM's service account `atlas-vm` is also how the VM signs in to Claude (ADR 0110): its Google identity token, issued by the metadata server for the audience `https://api.anthropic.com`, is what Anthropic's Workload Identity Federation rule matches. It needs no extra Google role for this, but it must be a **user-managed** service account (not the default compute one), and the rule's `google.compute_engine.project_id` condition names this project. The Console side is in [`deploy.md`](deploy.md#claude-sign-in-workload-identity-federation-from-13).
+
 ## 1. Create the client
 
 1. **Use the `atlas` project** you created for the VM (or create one with that name if you are only running Atlas on your Mac).

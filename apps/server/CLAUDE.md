@@ -13,7 +13,7 @@ Node 24, ESM, TypeScript `strict`, Express 5, Zod, better-sqlite3, pino, `@anthr
 
 ## Environment
 
-Parsed once with Zod in `config.ts`; nothing else reads `process.env`. `apps/server/.env.example` lists every variable, its default and what it does (the root `.env.example` is the Compose subset); `envExample.test.ts` keeps the file and `config.ts` in agreement. Read the file instead of a copy here. Removed variables are listed in `config.ts` (`ignoredEnv`) and logged at `warn` if still set. Keys and secrets live in `.env` (Secret Manager on the VM), are sent in headers never URLs, and never appear in a log or error.
+Parsed once with Zod in `config.ts`; nothing else reads `process.env`. `apps/server/.env.example` lists every variable, its default and what it does (the root `.env.example` is the Compose subset); `envExample.test.ts` keeps the file and `config.ts` in agreement. Read the file instead of a copy here. Removed variables are listed in `config.ts` (`ignoredEnv`) and logged at `warn` if still set. Keys and secrets live in `.env` (Secret Manager on the VM), are sent in headers never URLs, and never appear in a log or error. Claude is reached through the one client in `clients/anthropic.ts`, with an API key on the Mac and federation on the VM (`config.claudeAuth`, ADR 0110); a call passes its own `timeout` and `maxRetries` per request.
 
 ## Layout
 

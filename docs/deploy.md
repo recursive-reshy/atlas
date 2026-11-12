@@ -12,7 +12,8 @@ Checked against vendor documentation on 2026-11-02 (Docker's and Tailscale's Deb
 | --- | --- | --- |
 | VM `atlas` (e2-small, Debian, 20 GB disk) | Compute Engine, `asia-southeast1` | [1](#1-google-cloud-resources), [2](#2-bootstrap-the-vm) |
 | Images `app`, `agent`, `sync` | Artifact Registry repository `atlas` | [1](#1-google-cloud-resources), [first deploy](#5-first-deploy) |
-| Six secrets | Secret Manager | [1](#1-google-cloud-resources) |
+| Five secrets | Secret Manager | [1](#1-google-cloud-resources) |
+| Claude sign-in (no key on the VM) | Claude Console and `atlas.env` | [Claude sign-in](#claude-sign-in-workload-identity-federation-from-13) |
 | Database replica | Cloud Storage bucket | [1](#1-google-cloud-resources) |
 | Private address | Tailscale | [3](#3-tailscale) |
 | Vault files | Obsidian Sync → `/srv/atlas/vaults/<person>` | [6](#6-obsidian-sync-login-per-person) |
@@ -47,7 +48,7 @@ The fixed costs are the VM, its disk and its external IPv4 address; the bucket a
 - Cloud Storage: Standard storage for a few hundred MB, and the operations Litestream makes (it writes about once a second while the app is changing the database).
 - Gemini (Developer API, paid tier): billed per token, per video (a long video is the expensive case; the Usage table in Settings → Admin shows an estimate per month, and the Google Cloud console has the real figure). Google's price list shows the current rates through 2026-12-31 and double from 2027-01-01. The YouTube Data API call that comes with it is free within its daily quota.
 - Artifact Registry: storage for three images (a few hundred MB per version) and the egress to the VM, which is in the same region.
-- Secret Manager: six secrets, a few accesses a day.
+- Secret Manager: five secrets, a few accesses a day.
 
 ## 1. Google Cloud resources
 
@@ -108,25 +109,25 @@ The Gemini API key (ADR 0083). Vertex AI refused YouTube input from the VM's ser
 3. In the Cloud console (APIs & Services → Credentials) open the key, restrict it to the **Generative Language API**, and copy the key string.
 
 Keep that string for the next step.
-The six secrets. Run this in `bash` (type `bash` first on a Mac, where the default shell is zsh). It asks for the four values you already have (the Anthropic key, the YouTube Data API key and the Gemini API key from above, and the Google client secret) and makes the other two; nothing goes into your shell history:
+The five secrets (there is no Claude key: from 1.3 the VM signs in to Claude with [federation](#claude-sign-in-workload-identity-federation-from-13)). Run this in `bash` (type `bash` first on a Mac, where the default shell is zsh). It asks for the three values you already have (the YouTube Data API key and the Gemini API key from above, and the Google client secret) and makes the other two; nothing goes into your shell history:
 
 **You run:**
 
 ```sh
-for name in anthropic-api-key youtube-api-key gemini-api-key google-client-secret; do
+for name in youtube-api-key gemini-api-key google-client-secret; do
   printf '%s: ' "$name"; read -rs value; echo
   printf '%s' "$value" | tr -d '\000-\037\177' | gcloud secrets create "$name" --data-file=-
 done
 printf '%s' "$(openssl rand -hex 32)"    | tr -d '\000-\037\177' | gcloud secrets create agent-secret --data-file=-
 printf '%s' "$(openssl rand -base64 32)" | tr -d '\000-\037\177' | gcloud secrets create token-encryption-key --data-file=-
 
-for name in anthropic-api-key youtube-api-key gemini-api-key agent-secret google-client-secret token-encryption-key; do
+for name in youtube-api-key gemini-api-key agent-secret google-client-secret token-encryption-key; do
   gcloud secrets add-iam-policy-binding "$name" \
     --member="serviceAccount:$SA_EMAIL" --role=roles/secretmanager.secretAccessor
 done
 ```
 
-`google-client-secret` comes from the OAuth client you create below. If you don't have it yet, create the other four now and add this one when you have it (`printf '%s' "$value" | tr -d '\000-\037\177' | gcloud secrets create google-client-secret --data-file=-`, then the binding). A value may not contain a single quote, a line break or any control character (the secrets file cannot hold them, and `fetch-secrets.sh` refuses the value, naming the secret); API keys and the two generated ones never do. The `tr` in each command removes control characters such as the ESC that a paste through `read` can bring along.
+`google-client-secret` comes from the OAuth client you create below. If you don't have it yet, create the other three now and add this one when you have it (`printf '%s' "$value" | tr -d '\000-\037\177' | gcloud secrets create google-client-secret --data-file=-`, then the binding). A value may not contain a single quote, a line break or any control character (the secrets file cannot hold them, and `fetch-secrets.sh` refuses the value, naming the secret); API keys and the two generated ones never do. The `tr` in each command removes control characters such as the ESC that a paste through `read` can bring along.
 
 The firewall. The default network allows SSH, RDP and ICMP from anywhere; remove those and allow SSH only from Google's IAP range, as a fallback if Tailscale is down:
 
@@ -261,6 +262,33 @@ dc restart sync-naresh
 
 Within a minute or two Settings → Sources shows **Vault sync** as OK. Then, in the app, choose the vault (**Choose vault** lists the folder) and the first module works on your real notes. Release check: write a note on the Mac and see it in the VM's folder, and the reverse.
 
+## Claude sign-in: Workload Identity Federation (from 1.3)
+
+Since 1.3 the VM holds no Claude API key (ADR 0110). The app and the agent service sign in to Claude with the VM's Google identity instead: a helper writes the `atlas-vm` service account's identity token to `/run/atlas/identity/token`, each service exchanges it at Anthropic for a Claude API token that lasts minutes, and refreshes it on its own. A leaked token is useless within the hour; there is no key to rotate. Your Mac keeps an API key in `.env` for `pnpm dev`, local Compose and `test:integration`.
+
+**Console setup (you, once, before the 1.3 deploy).** In the Claude Console → Settings → Workload identity → Connect workload → Google Cloud:
+
+1. Issuer: Google, discovery mode (`https://accounts.google.com`).
+2. Create an Anthropic service account `atlas-vm`, and make it a member of the workspace Atlas uses.
+3. Add a rule for that service account: match the `atlas-vm` Google service account (its `email`, or its unique `sub`), pin the audience to `https://api.anthropic.com`, and add the condition `google.compute_engine.project_id` equal to your Atlas project's ID.
+4. Copy four IDs: the rule, the organization, the service account and the workspace.
+
+**The four IDs** go in `/etc/atlas/atlas.env` (`deploy/vm/atlas.env.example` shows the names): `ANTHROPIC_FEDERATION_RULE_ID`, `ANTHROPIC_ORGANIZATION_ID`, `ANTHROPIC_SERVICE_ACCOUNT_ID`, `ANTHROPIC_WORKSPACE_ID`. They are identifiers, not secrets. Never put `ANTHROPIC_API_KEY` there, not even empty: a service refuses to start with both a key and the federation variables, with neither, with only some of them, or with an empty key beside them, and says which.
+
+**The helper.** `bootstrap.sh` and `deploy.sh --files` install `/opt/atlas/fetch-identity-token.sh` and two systemd units: `atlas-identity-token.service` (runs the helper) and `atlas-identity-token.timer` (at boot and every 20 minutes; Google's tokens last an hour). `atlas.service` also runs the helper before the stack starts, so the stack never starts without a token, and refuses to if the metadata server can't issue one. The containers mount the folder `/run/atlas/identity` read-only at `/run/anthropic`.
+
+**Cut-over (the 1.3 deploy).**
+
+1. Do the Console setup and put the four IDs in `/etc/atlas/atlas.env`.
+2. Release and send the files as in [Upgrading](#upgrading), then `sudo /opt/atlas/deploy.sh 1.3.0 --files ~/atlas-src`. It installs the helper and the timer, reads the five remaining secrets and starts the stack.
+3. Check: `systemctl status atlas-identity-token.timer` is active, `ls -l /run/atlas/identity/token` exists, and Settings → Sources shows **Claude API (federation)** OK and the **Agent service** row reading "Claude credential: federation".
+4. Put one of each through: an article or video summary and a Melete syllabus draft.
+5. Only when 1.3 is settled: revoke the old key in the Claude Console and delete the `anthropic-api-key` secret from Secret Manager (`gcloud secrets delete anthropic-api-key`). `fetch-secrets.sh` no longer reads it.
+
+**Rolling back to 1.2 after the key is revoked** needs a new key: make one, add it as the `anthropic-api-key` secret, and restore the 1.2 `fetch-secrets.sh` and Compose files with the 1.2 release. Until you revoke it, the old secret still works for a rollback.
+
+**If Claude API is Failing in Status:** the row shows the error class and status only. `AuthenticationError (status 401)` or `PermissionDeniedError` usually means the rule no longer matches (the service account, the audience or the project condition), or one of the four IDs is wrong. A missing `/run/atlas/identity/token` means the helper can't reach the metadata server: `journalctl -u atlas-identity-token`.
+
 ## Upgrading
 
 An upgrade is one command and a short checklist. Every version from 1.0 on keeps your data: the app migrates its own database when it starts, and the pre-migration copy it writes first is what a rollback uses (ADR 0084).
@@ -343,7 +371,7 @@ Add a version in Secret Manager, then restart the service so it fetches again:
 **You run:**
 
 ```sh
-printf '%s' "$NEW_VALUE" | tr -d '\000-\037\177' | gcloud secrets versions add anthropic-api-key --data-file=-
+printf '%s' "$NEW_VALUE" | tr -d '\000-\037\177' | gcloud secrets versions add youtube-api-key --data-file=-
 ```
 
 On the VM:
@@ -498,7 +526,7 @@ dc logs -f --tail 100 app           # app log (JSON lines; a job's ID is on ever
 dc logs --tail 50 litestream sync-naresh
 ```
 
-The Status panel (Settings → Sources) shows the Agent, Transcription (Gemini), Replication and each person's Vault sync. A failing row shows its last errors.
+The Status panel (Settings → Sources) shows the Agent, Transcription (Gemini), Claude API, Replication and each person's Vault sync. A failing row shows its last errors.
 
 - **`deploy.sh` says the app didn't become healthy.** The last 40 app log lines are printed; fix the cause (often a missing value in `atlas.env`, which the server names when it refuses to start) and run it again, or roll back.
 - **`pull access denied` or `unauthorized` on a pull.** The VM's service account lacks `artifactregistry.reader` on the repository, or `REGISTRY` in `atlas.env` is wrong.
