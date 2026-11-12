@@ -1,4 +1,4 @@
-// fetch-secrets.sh (ADR 0078, TRD 7): reads the six secrets with gcloud, or with curl against the
+// fetch-secrets.sh (ADR 0078, TRD 7): reads the five secrets with gcloud, or with curl against the
 // metadata server and the Secret Manager REST API, and writes them to one env file for Compose.
 // Every test runs the real script against a fake gcloud / curl; nothing touches Google.
 import { spawnSync } from 'node:child_process'
@@ -15,7 +15,6 @@ const root = join( here, '..', '..' )
 
 // Secret name -> variable name -> value. The values are sentinels the output must never show.
 const SECRETS = {
-  'anthropic-api-key': [ 'ANTHROPIC_API_KEY', 'sk-ant-SENTINEL-1' ],
   'youtube-api-key': [ 'YOUTUBE_API_KEY', 'AIza-youtube-SENTINEL-2' ],
   'gemini-api-key': [ 'GEMINI_API_KEY', 'AIza-gemini-SENTINEL-6' ],
   'agent-secret': [ 'AGENT_SECRET', 'a=b$c"d #e f SENTINEL-3' ],

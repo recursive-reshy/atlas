@@ -83,7 +83,7 @@ test( 'the app gets every variable it reads from the shared file', { skip }, () 
   for( const name of [
     'ADMIN_EMAIL', 'APP_ORIGINS', 'GOOGLE_CLIENT_ID', 'GOOGLE_CLIENT_SECRET', 'TOKEN_ENCRYPTION_KEY',
     'GEMINI_MODEL', 'GEMINI_API_KEY', 'YOUTUBE_API_KEY',
-    'ANTHROPIC_API_KEY', 'AGENT_SECRET', 'AGENT_URL', 'APP_TIME_ZONE',
+    'AGENT_SECRET', 'AGENT_URL', 'APP_TIME_ZONE',
     'VAULT_CREATE_ENABLED', 'LOG_LEVEL', 'STATUS_CHECK_INTERVAL_MINUTES',
   ] ) {
     assert.ok( names.includes( name ), `app environment lacks ${ name }` )
@@ -99,8 +99,36 @@ test( 'the app gets every variable it reads from the shared file', { skip }, () 
 } )
 
 test( 'a missing required variable stops the shared file', { skip }, () => {
+  const { AGENT_SECRET: _removed, ...env } = dummyEnv
+  assert.throws( () => render( [ 'docker-compose.yml', imageOnlyFile ], { env } ), /AGENT_SECRET/ )
+} )
+
+// --- Claude credentials (ADR 0110): the key is the Mac's, the VM federates ---
+
+test( 'the shared file names no Claude credential for either service', { skip }, () => {
+  const config = render( [ 'docker-compose.yml', imageOnlyFile ] )
+  for( const name of [ 'app', 'agent' ] ) {
+    assert.ok( !( 'ANTHROPIC_API_KEY' in config.services[ name ].environment ), `${ name } is given the key by the shared file` )
+  }
+} )
+
+test( 'no Compose file passes the key on as a possibly blank value', () => {
+  // An exported empty key makes the SDK take the key path with an empty key instead of federating
+  for( const file of [ 'docker-compose.yml', 'compose.local.yml', 'compose.prod.yml' ] ) {
+    const text = readFileSync( join( root, file ), 'utf8' )
+    assert.doesNotMatch( text, /\$\{ANTHROPIC_API_KEY:?-/, `${ file } blanks the key` )
+  }
+  assert.doesNotMatch( readFileSync( join( root, 'compose.prod.yml' ), 'utf8' ), /ANTHROPIC_API_KEY/ )
+} )
+
+test( 'locally the agent is given the key by name (the app reads .env itself)', { skip }, () => {
+  const config = render( [ 'docker-compose.yml', 'compose.local.yml' ] )
+  assert.equal( config.services.agent.environment.ANTHROPIC_API_KEY, 'dummy' )
+} )
+
+test( 'locally a missing key stops the agent', { skip }, () => {
   const { ANTHROPIC_API_KEY: _removed, ...env } = dummyEnv
-  assert.throws( () => render( [ 'docker-compose.yml', imageOnlyFile ], { env } ), /ANTHROPIC_API_KEY/ )
+  assert.throws( () => render( [ 'docker-compose.yml', 'compose.local.yml' ], { env } ), /ANTHROPIC_API_KEY/ )
 } )
 
 test( 'only the app publishes a port, on 127.0.0.1', { skip }, () => {
@@ -129,6 +157,39 @@ const prodEnv = {
   ATLAS_VERSION: '0.10.0',
   VAULTS_HOST_PATH: '/srv/atlas/vaults',
   LITESTREAM_BUCKET: 'example-bucket',
+  // The four federation IDs from /etc/atlas/atlas.env (ADR 0110)
+  ANTHROPIC_FEDERATION_RULE_ID: 'fdrl_test',
+  ANTHROPIC_ORGANIZATION_ID: 'org-test',
+  ANTHROPIC_SERVICE_ACCOUNT_ID: 'svac_test',
+  ANTHROPIC_WORKSPACE_ID: 'wrkspc_test',
+}
+// No key on the VM: it is not in /etc/atlas/atlas.env or the fetched secrets any more
+delete prodEnv.ANTHROPIC_API_KEY
+
+test( 'production federates both services and gives neither a key', { skip }, () => {
+  const config = render( [ 'docker-compose.yml', 'compose.prod.yml' ], { env: prodEnv } )
+  for( const name of [ 'app', 'agent' ] ) {
+    const { environment, volumes } = config.services[ name ]
+    assert.equal( environment.ANTHROPIC_FEDERATION_RULE_ID, 'fdrl_test', name )
+    assert.equal( environment.ANTHROPIC_ORGANIZATION_ID, 'org-test', name )
+    assert.equal( environment.ANTHROPIC_SERVICE_ACCOUNT_ID, 'svac_test', name )
+    assert.equal( environment.ANTHROPIC_WORKSPACE_ID, 'wrkspc_test', name )
+    assert.equal( environment.ANTHROPIC_IDENTITY_TOKEN_FILE, '/run/anthropic/token', name )
+    assert.ok( !( 'ANTHROPIC_API_KEY' in environment ), `${ name } has a key beside federation` )
+    // The folder, not the file, so the helper's rename is seen
+    const token = volumes.find( ( volume ) => volume.target === '/run/anthropic' )
+    assert.equal( token.source, '/run/atlas/identity', name )
+    assert.equal( token.read_only, true, name )
+  }
+} )
+
+for( const name of [
+  'ANTHROPIC_FEDERATION_RULE_ID', 'ANTHROPIC_ORGANIZATION_ID', 'ANTHROPIC_SERVICE_ACCOUNT_ID', 'ANTHROPIC_WORKSPACE_ID',
+] ) {
+  test( `production stops without ${ name }`, { skip }, () => {
+    const { [ name ]: _removed, ...env } = prodEnv
+    assert.throws( () => render( [ 'docker-compose.yml', 'compose.prod.yml' ], { env } ), new RegExp( name ) )
+  } )
 }
 
 test( 'production pulls images, builds nothing and publishes only the app', { skip }, () => {
@@ -222,6 +283,14 @@ test( 'e2e talks to the fakes for Gemini and YouTube', { skip }, () => {
   }
   assert.ok( config.services.app.volumes.some( ( volume ) => volume.target === '/vaults' ), 'still has the vaults' )
   assert.ok( config.services.app.volumes.some( ( volume ) => volume.target === '/data' ), 'still has the data volume' )
+} )
+
+test( 'atlas.env.example names the four federation IDs and no key', () => {
+  const text = readFileSync( join( root, 'deploy/vm/atlas.env.example' ), 'utf8' )
+  for( const name of [ 'ANTHROPIC_FEDERATION_RULE_ID', 'ANTHROPIC_ORGANIZATION_ID', 'ANTHROPIC_SERVICE_ACCOUNT_ID', 'ANTHROPIC_WORKSPACE_ID' ] ) {
+    assert.match( text, new RegExp( `^${ name }=`, 'm' ), `${ name } is missing` )
+  }
+  assert.doesNotMatch( text, /ANTHROPIC_API_KEY|ANTHROPIC_IDENTITY_TOKEN_FILE/, 'the key is gone and the token file is Compose\'s' )
 } )
 
 test( 'atlas.env.example names the Gemini model and no Vertex settings', () => {

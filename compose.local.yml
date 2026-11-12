@@ -13,5 +13,8 @@ services:
   agent:
     build: apps/agent
     image: atlas-agent:local
+    # The app reads the key from .env above; the agent is given it by name (ADR 0110)
+    environment:
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:?Set ANTHROPIC_API_KEY in .env}
     volumes:
       - ${VAULTS_HOST_PATH:?Set VAULTS_HOST_PATH in .env to the folder that holds the vaults}:/vaults:ro

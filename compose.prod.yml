@@ -19,17 +19,33 @@ services:
     environment:
       LITESTREAM_METRICS_URL: http://litestream:9090/metrics
       VAULT_SYNC_STATUS_DIR: /sync-status
+      # Claude federation (ADR 0110): no key on the VM. Never pass the key on here, not even blank:
+      # an empty key makes the SDK take the key path instead of federating.
+      ANTHROPIC_FEDERATION_RULE_ID: ${ANTHROPIC_FEDERATION_RULE_ID:?Set ANTHROPIC_FEDERATION_RULE_ID in /etc/atlas/atlas.env}
+      ANTHROPIC_ORGANIZATION_ID: ${ANTHROPIC_ORGANIZATION_ID:?Set ANTHROPIC_ORGANIZATION_ID in /etc/atlas/atlas.env}
+      ANTHROPIC_SERVICE_ACCOUNT_ID: ${ANTHROPIC_SERVICE_ACCOUNT_ID:?Set ANTHROPIC_SERVICE_ACCOUNT_ID in /etc/atlas/atlas.env}
+      ANTHROPIC_WORKSPACE_ID: ${ANTHROPIC_WORKSPACE_ID:?Set ANTHROPIC_WORKSPACE_ID in /etc/atlas/atlas.env}
+      ANTHROPIC_IDENTITY_TOKEN_FILE: /run/anthropic/token
     volumes:
       - ${VAULTS_HOST_PATH:?Set VAULTS_HOST_PATH in /etc/atlas/atlas.env}:/vaults
       - sync-status:/sync-status:ro
+      # The folder, not the file: the helper replaces the token by rename (deploy/vm/fetch-identity-token.sh)
+      - /run/atlas/identity:/run/anthropic:ro
     depends_on:
       restore:
         condition: service_completed_successfully
 
   agent:
     image: ${REGISTRY}/agent:${ATLAS_VERSION}
+    environment:
+      ANTHROPIC_FEDERATION_RULE_ID: ${ANTHROPIC_FEDERATION_RULE_ID}
+      ANTHROPIC_ORGANIZATION_ID: ${ANTHROPIC_ORGANIZATION_ID}
+      ANTHROPIC_SERVICE_ACCOUNT_ID: ${ANTHROPIC_SERVICE_ACCOUNT_ID}
+      ANTHROPIC_WORKSPACE_ID: ${ANTHROPIC_WORKSPACE_ID}
+      ANTHROPIC_IDENTITY_TOKEN_FILE: /run/anthropic/token
     volumes:
       - ${VAULTS_HOST_PATH}:/vaults:ro
+      - /run/atlas/identity:/run/anthropic:ro
 
   litestream:
     image: litestream/litestream:0.5.17@sha256:4b02b9859a6b6b4087d8b8944e15f7e984bd7957cba322bbeee38b0e27b9656a

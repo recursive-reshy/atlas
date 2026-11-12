@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Writes the six secrets from Secret Manager to /run/atlas/secrets.env for Compose (ADR 0078).
+# Writes the five secrets from Secret Manager to /run/atlas/secrets.env for Compose (ADR 0078).
 #
 # Run by the atlas systemd unit before the stack starts, as root, using the VM's service account.
 # Uses gcloud when it is installed; otherwise asks the metadata server for a token and calls the
@@ -19,7 +19,6 @@ API=${SECRET_MANAGER_URL:-https://secretmanager.googleapis.com/v1}
 
 # secret name in Secret Manager : variable the stack reads
 SECRETS=(
-  'anthropic-api-key:ANTHROPIC_API_KEY'
   'youtube-api-key:YOUTUBE_API_KEY'
   'gemini-api-key:GEMINI_API_KEY'
   'agent-secret:AGENT_SECRET'
