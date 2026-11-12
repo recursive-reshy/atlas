@@ -25,7 +25,7 @@
     "fixture:gmail": "tsx --conditions=development --env-file-if-exists=.env scripts/save-gmail-fixture.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^1.6.0",
+    "@anthropic-ai/sdk": "^1.8.0",
     "@atlas/shared": "workspace:*",
     "@googleapis/calendar": "20.1.0",
     "@googleapis/gmail": "22.0.2",
