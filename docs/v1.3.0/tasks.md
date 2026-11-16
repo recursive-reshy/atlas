@@ -123,7 +123,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 _(one line per ticked task: id, commit hash, moved or deleted test files)_
 - 1.1: version 1.3.0 everywhere (six package.json, pyproject, uv.lock); README and root CLAUDE.md updated; nameGuard HISTORY gains docs/v1.3.0/ and ADR 0110; no test files moved.
 - 1.1 hash: ba75fca.
-- 1.2: `@anthropic-ai/sdk` ^1.6.0 → ^1.8.0 (newest 1.x pnpm resolves under its default `minimumReleaseAge`: 1.8.0 is ~39 h old; 1.7 was the TRD's floor, no waiver). Server gate green. **Naresh: run `pnpm --filter @atlas/server test:integration` and add the result here.** No test files moved.
+- 1.2: `@anthropic-ai/sdk` ^1.6.0 → ^1.8.0 (newest 1.x pnpm resolves under its default `minimumReleaseAge`: 1.8.0 is ~39 h old; 1.7 was the TRD's floor, no waiver). Server gate green. `test:integration` run by Naresh on 2026-11-16 against SDK 1.8.0: 3 of 3 passed (the first run failed with 401 `invalid x-api-key`, a bad key in `apps/server/.env`, fixed by Naresh; not the SDK). No test files moved.
 - 1.2 hash: 9c90982.
 - 1.3: `applyIntegrationPlaceholders` in `src/test-support/integrationEnv.ts` (tested), wired into `vitest.integration.config.ts` after `.env` loads; empty counts as unset; `configuration.md` gains "A local `.env` for development" (the old dev bullet now points at it). No test files moved.
 - 1.3 hash: f18d944.
