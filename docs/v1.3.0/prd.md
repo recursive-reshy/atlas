@@ -18,6 +18,12 @@ Decided while scoping (2026-11-11 to 2026-11-12):
 - **Metis sources:** one bank, DBS. The debit account comes in as the DBS **CSV export**, parsed exactly, no Claude. The credit card comes in as the monthly **PDF statement**, extracted by Claude, then **reconciled** against the statement's own total: a mismatch blocks the import until he fixes it. Every import is **reviewed before it counts**.
 - **Transfers:** a card bill payment in the debit account and the card's own payment line are matched, so spending isn't counted twice.
 - **Storage:** SQLite, like every other module (not a document store). Raw, bank-specific data (the extraction output, extra CSV columns) goes in JSON columns on the import record.
+- **Accounts:** the DBS **Multiplier** account (CSV) and the DBS credit card (PDF) are imported. Other holdings (CPF, investments, loans) are **manual accounts**: hand-entered balance snapshots, no transactions. Net worth = imported balances plus the latest snapshot of each manual account. He starts with no manual accounts.
+- **Statement files are deleted once an import is posted or discarded.** Only the extracted data stays (transactions, totals, reconciliation, Claude's raw output). Litestream would otherwise copy every statement to GCS.
+- **Categories:** a flat, editable list (no sub-categories), seeded with Food, Groceries, Taxi, Public transport, Shopping, Bills & utilities, Subscriptions, Health, Entertainment, Travel, Income, Transfers. Rules first; the **most specific matching phrase wins** ("GRABFOOD → Food" beats "GRAB → Taxi"). Lines no rule matches go to **one Claude call per import (Haiku by default)**, grouped by full description, choosing only from his categories or "Uncategorised".
+- **Themis:** a Financial goal can track **savings rate** (share of income not spent per month) or **net worth against a target**. Spending caps wait for budgets.
+- **To-dos live in Themis** (`/themis/todos`), one-off with an optional due date and an optional goal link; no recurrence in 1.3. They don't count toward goal progress.
+- **Major bump:** `jsdom` 31.
 - **Design:** an app-wide UX uplift is being designed separately in Claude Design. Metis screens in 1.3 follow the current MUI patterns; the uplift lands in its own release.
 - The business-idea validator waits for the `@naresh/*` platform kit work. The other 1.2 KIV items (Claude suggestions for unmatched calendar drafts, time targets per goal) stay out of 1.3.
 
@@ -64,16 +70,19 @@ Decided while scoping (2026-11-11 to 2026-11-12):
 
 ### 6.3 Metis: accounts and imports
 - [ ] Metis is a module the admin can switch on per user, with its own data per user.
-- [ ] A user adds accounts: name, kind (bank account or credit card), institution (DBS).
+- [ ] A user adds **imported accounts** (name, kind: bank account or credit card, institution: DBS) and **manual accounts** (name, asset or liability).
+- [ ] A manual account has no transactions: the user records a balance snapshot (date, amount) whenever they check it.
 - [ ] **Debit CSV:** uploading a DBS export parses every transaction exactly (date, description, amount, balance where given).
 - [ ] **Credit card PDF:** uploading a statement sends it to Claude, which returns the transactions and the statement's totals. Extracted lines must add up to the statement total, or the import is **blocked** with the difference shown.
+- [ ] **The file is deleted** when the import is posted or discarded; it's kept only while the import is processing, blocked or in review, so a failed one can be retried without re-uploading.
 - [ ] **Review before posting:** every import opens a review where lines can be edited, added, removed or recategorised, then approved (posted to the ledger) or discarded. Nothing counts until approved.
 - [ ] **Duplicates:** a line already in the ledger (overlapping statements, a re-upload) is flagged and skipped by default.
 - [ ] Amounts are exact (integer cents, SGD). A foreign-currency card charge keeps its original amount and currency as a note; the SGD amount is what counts.
 
 ### 6.4 Metis: categories and rules
-- [ ] Categories are the user's own list, seeded with a sensible default set.
-- [ ] **Rules first:** a rule maps a description pattern to a category. Lines that match no rule get a Claude suggestion, shown as a suggestion until confirmed.
+- [ ] Categories are the user's own **flat** list (renamable, mergeable, deletable), seeded with Food, Groceries, Taxi, Public transport, Shopping, Bills & utilities, Subscriptions, Health, Entertainment, Travel, Income, Transfers.
+- [ ] **Rules first:** a rule maps a phrase (case-insensitive, contained in the description) to a category. When several rules match, the **longest phrase wins**, so "GRABFOOD → Food" beats "GRAB → Taxi".
+- [ ] Lines that match no rule go to **one Claude call per import**, grouped by full description (Grab rides and GrabFood stay separate). Claude picks only from the user's categories or "Uncategorised", never a new one. Suggestions are marked as such until confirmed.
 - [ ] Correcting a category offers "always": it saves a rule and reapplies it to unreviewed lines.
 
 ### 6.5 Metis: transfers
@@ -84,15 +93,17 @@ Decided while scoping (2026-11-11 to 2026-11-12):
 - [ ] **Ledger:** every posted transaction across accounts, searchable and filterable (account, category, date, amount), with inline recategorise and "make a rule".
 - [ ] **Overview:** this month's spending against last month, by category, the net worth figure, items needing attention, last import per account.
 - [ ] **Spending:** by category per month and a trend over up to 12 months, drilling down to transactions.
-- [ ] **Net worth:** the sum of account balances over time, by account.
+- [ ] **Net worth:** imported account balances plus the latest snapshot of each manual account (liabilities subtracted), over time and by account.
 - [ ] **Accounts** show statement coverage, which months are imported, with gaps highlighted.
 
 ### 6.7 Metis and Themis
-- [ ] A Themis goal can take a financial outcome signal from Metis (which: open question 3).
+- [ ] A Themis goal can take one of two outcome signals from Metis: **savings rate** (per month: income minus spending, over income; transfers excluded) against a target rate, or **net worth** against a target amount.
 
 ### 6.8 To-dos
-- [ ] A user can add, edit, complete and delete to-dos with an optional due date.
-- [ ] Home gains a **Due today** card: to-dos due today or overdue, plus today's Melete reviews due.
+- [ ] To-dos live in Themis (`/themis/todos`). A user can add, edit, complete and delete to-dos, each with an optional due date and an optional link to one of their goals.
+- [ ] A linked to-do shows on its goal's page. To-dos don't count toward goal progress.
+- [ ] No recurring to-dos in 1.3.
+- [ ] Home gains a **Due today** card: to-dos due today or overdue (ticked off from the card), plus today's Melete reviews due. "Today" is the server's study day.
 
 ## 7. Constraints
 - **Data first (ADRs 0084, 0085):** every schema change is a new locked migration with a seed fixture and an upgrade test. Nothing resets the VM's database.
@@ -104,18 +115,22 @@ Decided while scoping (2026-11-11 to 2026-11-12):
 
 ## 8. Out of scope (KIV)
 - The Metis advisor (agent-service endpoint, next release), budgets, alerts, forecasts.
-- Other banks and file formats; manual accounts beyond what open question 1 settles.
+- Other banks and file formats; transactions for manual accounts (investments, CPF).
+- Sub-categories (e.g. Transport › Taxi), spending caps and budgets.
+- Recurring to-dos.
 - Claude suggestions for unmatched calendar drafts; time targets per goal.
 - The business-idea validator (after the platform kit).
 - The app-wide UX uplift (its own release, from the Claude Design work).
 - `ts-fsrs` 6 and TypeScript 7 (a release each).
 
 ## 9. Open questions
-To settle before the Metis checkpoints are planned (WIF and the kick-off don't depend on them):
-1. **Manual accounts:** in 1.3 or not (cash, investments, CPF, property, loans as hand-entered balance snapshots)?
-2. **Net worth:** bank and card balances only, or with manual accounts?
-3. **Themis signal:** which outcome Metis feeds a goal (savings rate, net worth against a target, spending in a category under a cap)?
-4. **Privacy of extraction:** confirm the full card statement goes to Claude. Is the uploaded PDF kept after the import is approved, or deleted?
-5. **Category suggestions:** model and batching (every unknown merchant in one call per import).
-6. **To-dos:** recurring to-dos, links to goals, and whether they live in Themis or their own module.
-7. **Major bump:** `jsdom` 31 (proposed; `ts-fsrs` 6 and TypeScript 7 each get their own release, ADR 0107).
+None. Settled 2026-11-12 to 2026-11-16:
+1. ~~Manual accounts~~: yes, as balance snapshots (asset or liability), no transactions; none to start with.
+2. ~~Net worth~~: imported balances plus the latest manual snapshots.
+3. ~~Themis signal~~: savings rate or net worth against a target; spending caps wait for budgets.
+4. ~~Statement files~~: the full card statement goes to Claude; files are deleted once an import is posted or discarded.
+5. ~~Category suggestions~~: one call per import, Haiku by default, grouped by full description, only the user's flat categories; the most specific rule wins.
+6. ~~To-dos~~: in Themis, optional due date and goal link, no recurrence.
+7. ~~Major bump~~: `jsdom` 31.
+
+Still needed before checkpoint C: Naresh's redacted DBS CSV export and one or two card statement PDFs (TRD §5.4–5.5).

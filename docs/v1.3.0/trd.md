@@ -1,6 +1,6 @@
 # Atlas v1.3.0 — Technical Requirements
 
-Built from `prd.md` in this folder. Sections 2–4 (kick-off, hygiene, WIF) are decided (2026-11-12, ADR 0110). Sections 5–7 (Metis, to-dos) are **proposals** until PRD §9 is settled; Claude Code doesn't plan checkpoints C–E until they are marked decided.
+Built from `prd.md` in this folder. Sections 2–4 (kick-off, hygiene, WIF) were decided on 2026-11-12 (ADR 0110); sections 5–6 (Metis, to-dos) on 2026-11-16 (ADRs 0111, 0112). Two details wait for Naresh's DBS fixtures: the CSV columns (§5.4) and the reconciliation formula (§5.5).
 
 ## 1. Changes at a glance
 | Area | Change | ADR | State |
@@ -8,11 +8,11 @@ Built from `prd.md` in this folder. Sections 2–4 (kick-off, hygiene, WIF) are 
 | Hygiene | `study_today` on `Me`; Log time dialog uses it | — | Decided |
 | Hygiene | `vitest.integration.config.ts` placeholders; local `.env` list in `configuration.md` | — | Decided |
 | Dependency | `@anthropic-ai/sdk` 1.6 → 1.7 (minor, no ADR) | — | Decided |
-| Dependency | Major bump: `jsdom` 30 → 31 | — | Proposed (PRD §9.7) |
+| Dependency | Major bump: `jsdom` 30 → 31 | — | Decided |
 | Tests | Flaky `linkJob.test.ts`, `promptProfiles.routes.test.ts`: cause or "not reproduced" | — | Decided |
 | Claude auth | WIF on the VM for Express and the agent; API key on the Mac; identity-token helper; Claude status row; migration 20 | 0110 | Decided |
-| Metis | Accounts, imports (CSV, PDF + reconciliation), review, categories and rules, transfers, ledger, dashboards, net worth; migration 21 | 0111 (to write) | Proposed |
-| To-dos | To-dos and Home's Due today card; migration 22 | 0112 (to write) | Proposed |
+| Metis | Imported and manual accounts, imports (CSV, PDF + reconciliation), review, categories and rules, transfers, ledger, dashboards, net worth, Themis signal; migration 21 | 0111 | Decided (CSV columns and reconciliation formula from fixtures) |
+| To-dos | To-dos in Themis and Home's Due today card; migration 22 | 0112 | Decided |
 
 ## 2. Kick-off and hygiene
 
@@ -36,7 +36,7 @@ Version 1.3.0 in every `package.json`, `apps/agent/pyproject.toml` and its `uv.l
 ### 2.4 SDK minor bump
 `@anthropic-ai/sdk` to 1.7, or the newest 1.x that passes `minimumReleaseAge`. Never a `minimumReleaseAgeExclude` waiver. No ADR. Done before §4, because federation relies on the SDK's credential chain. Naresh runs `test:integration` once afterwards.
 
-### 2.5 Major bump: `jsdom` 31 (proposed)
+### 2.5 Major bump: `jsdom` 31
 `apps/web` devDependency `jsdom` ^30 → ^31. Test-only. Read its changelog; fix test-environment breaks without changing component code. ADR 0107 already deferred it to a later release.
 
 ### 2.6 Flaky tests
@@ -46,8 +46,8 @@ Run `pnpm gate` three times. If neither test fails, log "not reproduced in 3 run
 Rules as in the root `CLAUDE.md` and ADRs 0084, 0085, 0099.
 
 - **20 — Claude health kind** (seed `schema-19.sql`): rebuild `health_status` and `health_errors` as migration 13 did, the app-kind `CHECK` becoming `kind IN ( 'agent', 'transcription', 'replication', 'claude' )`. Every row survives. No count change.
-- **21 — Metis** (seed `schema-20.sql`): §5.2. Proposed.
-- **22 — To-dos** (seed `schema-21.sql`): §6. Proposed.
+- **21 — Metis** (seed `schema-20.sql`): §5.2.
+- **22 — To-dos** (seed `schema-21.sql`): §6.
 
 ## 4. Workload Identity Federation (ADR 0110)
 
@@ -108,26 +108,29 @@ In the Claude Console › Settings › Workload identity › Connect workload �
 5. A Mnemosyne summary, a Melete syllabus draft and a Metis import all succeed.
 6. Later: revoke the key and delete the secret.
 
-## 5. Metis (proposed)
+## 5. Metis (ADR 0111)
 
 ### 5.1 Module
 - `ModuleId` gains `metis`. The admin switches it on per user. The drawer shows it after Melete.
 - Routes under `/api/metis/*` behind the module guard (`MODULE_ROUTES`). Web pages under `features/metis`, at `/metis`.
 - Settings › Prompts gains the Metis prompts. Settings › Models gains the two Metis model settings.
 
-### 5.2 Storage (migration 21, sketch)
+### 5.2 Storage (migration 21)
 All money is integer cents (`INTEGER`); all rows carry `user_id` with `ON DELETE CASCADE`.
-- `metis_accounts`: `id`, `user_id`, `name`, `kind` (`bank` | `card`), `institution` (`dbs`), `currency` (`SGD`), `position`, timestamps.
-- `metis_imports`: `id`, `user_id`, `account_id`, `format` (`csv` | `pdf`), `file_name`, `status` (`processing` | `review` | `blocked` | `failed` | `posted` | `discarded`), `period_start`, `period_end`, `statement_total_cents`, `opening_balance_cents`, `closing_balance_cents`, `extracted_total_cents`, `raw` (JSON: extraction output or extra CSV columns), `model`, token usage and cost, `error`, timestamps.
+- `metis_accounts`: `id`, `user_id`, `name`, `kind` (`bank` | `card` | `asset` | `liability`), `institution` (`dbs` for `bank` and `card`, `NULL` for the manual kinds; a `CHECK` ties them), `currency` (`SGD`), `position`, timestamps. `asset` and `liability` are manual accounts: balance snapshots only, never imports or transactions.
+- `metis_imports`: `id`, `user_id`, `account_id` (an imported kind only), `format` (`csv` | `pdf`), `file_name`, `file_path` (nullable; §5.3), `status` (`processing` | `review` | `blocked` | `failed` | `posted` | `discarded`), `period_start`, `period_end`, `statement_total_cents`, `opening_balance_cents`, `closing_balance_cents`, `extracted_total_cents`, `raw` (JSON: extraction output or extra CSV columns), `model`, token usage and cost, `error`, timestamps.
 - `metis_import_lines`: `id`, `import_id`, `position`, `day`, `description`, `amount_cents` (negative = out), `balance_cents`, `original_amount`, `original_currency`, `category_id`, `category_source` (`rule` | `claude` | `hand`), `rule_id`, `duplicate_of` (transaction id), `transfer_candidate` (transaction or line id), `excluded`.
 - `metis_transactions` (posted): `id`, `user_id`, `account_id`, `import_id`, `day`, `description`, `amount_cents`, `category_id`, `transfer_id`, `fingerprint`, `UNIQUE ( account_id, fingerprint )`.
-- `metis_categories`: `id`, `user_id`, `name`, `kind` (`spending` | `income`), `position`; seeded per user when Metis is first opened (not in the migration).
-- `metis_rules`: `id`, `user_id`, `phrase` (case-insensitive contains, like calendar rules), `category_id`, `position`.
+- `metis_categories`: `id`, `user_id`, `name`, `kind` (`spending` | `income` | `transfer`), `position`, `UNIQUE ( user_id, name )`. Flat: no parent. Seeded per user when Metis is first opened (not in the migration): Food, Groceries, Taxi, Public transport, Shopping, Bills & utilities, Subscriptions, Health, Entertainment, Travel (spending), Income (income), Transfers (transfer). A line with no category is "Uncategorised" (`category_id` `NULL`), not a seeded row.
+- `metis_rules`: `id`, `user_id`, `phrase` (case-insensitive contains, stored trimmed and upper-cased), `category_id`, timestamps, `UNIQUE ( user_id, phrase )`. No position: the longest matching phrase wins (§5.6).
 - `metis_transfers`: `id`, `user_id`, `out_transaction_id`, `in_transaction_id`.
-- `metis_balances`: `account_id`, `day`, `balance_cents`, `source` (`statement` | `manual`); the net worth series.
+- `metis_balances`: `account_id`, `day`, `balance_cents`, `source` (`statement` | `manual`), `PRIMARY KEY ( account_id, day )`; the net worth series. Imported accounts get `statement` rows from posted imports (closing balance, or the CSV's last running balance). Manual accounts get `manual` rows from the snapshot form. A liability's balance is stored positive and subtracted in net worth.
 
 ### 5.3 Upload
-`POST /api/metis/accounts/:id/imports` takes the raw file body (`express.raw` for `text/csv` and `application/pdf`, 10 MB limit, file name in a header). No new upload dependency. The file isn't written to disk or the vault. Whether the PDF is kept after posting is PRD §9.4.
+`POST /api/metis/accounts/:id/imports` takes the raw file body (`express.raw` for `text/csv` and `application/pdf`, 10 MB limit, file name in a header). No new upload dependency.
+- **Retention:** the file is written to `/data/metis-uploads/<import id>` (the data volume, outside the SQLite file, so Litestream never copies it; mode 0600) and `file_path` is set. It is deleted, and `file_path` cleared, in the same request that posts or discards the import. It exists only while the import is `processing`, `review`, `blocked` or `failed`, so a retry needs no re-upload.
+- A sweep at startup deletes any upload file whose import is posted, discarded or missing.
+- Never written to the vault, never logged.
 
 ### 5.4 DBS CSV
 A parser in `metis/dbsCsv.ts`, built from Naresh's redacted fixture: skip the export's preamble, map the columns, parse dates and amounts to cents exactly, refuse an unknown header naming the columns found. A small in-repo parser if the export has no quoted commas; otherwise stop and ask about `csv-parse`.
@@ -139,8 +142,8 @@ A parser in `metis/dbsCsv.ts`, built from Naresh's redacted fixture: skip the ex
 - Usage and cost recorded per import and counted in per-user usage as "statement extraction".
 
 ### 5.6 Categorisation
-- Rules first (pure `metis/rules.ts`, first match by position).
-- Every line no rule matched goes into one `suggestCategories` call per import: descriptions and the user's category list in, a category per line out. Model setting `metis_categorise_model` (Haiku by default, PRD §9.5). Lines are marked `claude` until confirmed.
+- Rules first (pure `metis/rules.ts`): every rule whose phrase the upper-cased description contains matches; the **longest phrase wins**, ties broken by the oldest rule. A phrase is plain text, never a pattern.
+- Every line no rule matched goes into **one** `suggestCategories` call per import. Lines are grouped by their normalised full description (trimmed, upper-cased, card and reference numbers stripped), never by brand, so "GRAB*RIDE" and "GRABFOOD" are separate entries. In: the distinct descriptions and the user's category names. Out: one category name or `Uncategorised` per description, never a new name (anything else is treated as `Uncategorised`). Model setting `metis_categorise_model`, Haiku by default; locked instructions plus editable guidance. The instructions may name common Singapore merchants as examples, as guidance, not rules. Lines are marked `claude` until confirmed.
 - A hand correction with "always" saves a rule and reapplies rules to unconfirmed lines in open imports.
 
 ### 5.7 Duplicates and transfers
@@ -151,21 +154,24 @@ A parser in `metis/dbsCsv.ts`, built from Naresh's redacted fixture: skip the ex
 Overview, ledger (paged, filtered), spending (by category per month, 12-month trend), net worth (from `metis_balances`), accounts with coverage. Screens follow current MUI patterns (the uplift is a separate release). Phone layouts for the overview and review.
 
 ### 5.9 Themis
-Depends on PRD §9.3. Proposed: a new goal outcome type `metis` with one metric (e.g. monthly savings rate, net worth vs target), read through a Metis function, not a stored copy.
+- A new Themis goal outcome type `metis`, alongside the 1.1 types, with `metis_metric` `savings_rate` (target: a percentage) or `net_worth` (target: an amount in cents). The goal form offers it only to users with Metis.
+- **Savings rate** for a month = ( income − spending ) / income over posted transactions in that month, transfers excluded; no value for a month with no income. Progress shows the last full month and a 6-month trend against the target.
+- **Net worth** = §5.8's figure on the latest day; progress is current against target.
+- Read through a Metis function (`metis/signals.ts`) at request time, never copied into Themis tables. A goal's metric survives Metis being switched off (it shows "Metis is off").
+- Stored on the goal (migration 21 adds `metis_metric` and the target column to `themis_goals`, or the 1.1 outcome table if that is where targets live: follow the existing shape).
 
-## 6. To-dos (proposed)
-- Migration 22: `todos` (`id`, `user_id`, `title`, `due_day`, `done_at`, `position`, timestamps).
-- Placement depends on PRD §9.6. Proposed: inside Themis (`/themis/todos`, routes under the Themis guard), not a module of its own.
+## 6. To-dos (ADR 0112)
+- Migration 22: `themis_todos` (`id`, `user_id`, `title`, `due_day` nullable, `goal_id` nullable `REFERENCES themis_goals ( id ) ON DELETE SET NULL`, `done_at` nullable, `position`, timestamps).
+- Inside Themis: routes under `/api/themis/todos` behind the Themis guard; page at `/themis/todos`, linked from the Themis home; a goal's page lists its open to-dos.
+- One-off only: no recurrence. Completing sets `done_at`; completed to-dos stay listed under "Done" and can be reopened. To-dos never count toward goal progress.
 - Home: a **Due today** card reading to-dos (due today or overdue, not done) and Melete's due-review count, from their modules (no `/api/home`, ADR 0109), using `study_today` for "today".
 
-## 7. Decisions to settle before checkpoints C–E
-1. Manual accounts and net worth scope (PRD §9.1–9.2) → `metis_balances.source = manual` and an accounts form, or not.
-2. Themis signal (PRD §9.3) → §5.9.
-3. PDF retention and privacy (PRD §9.4) → §5.3.
-4. Categorisation model and batching (PRD §9.5) → §5.6.
-5. To-dos placement, recurrence, goal links (PRD §9.6) → §6.
-6. Reconciliation formula and CSV columns, once the fixtures are in → §5.4, §5.5.
-7. Metis ADR (0111) and to-dos ADR (0112), written when 1–6 are settled.
+## 7. Decisions
+Settled 2026-11-16 (PRD §9): manual accounts as snapshots (§5.2), net worth (§5.8), Themis signal (§5.9), file retention (§5.3), categorisation (§5.6), to-dos (§6), `jsdom` 31 (§2.5). ADR 0111 (Metis) and ADR 0112 (to-dos) record them.
+
+Still open, settled from the fixtures in checkpoint C without a new ADR unless they contradict this TRD:
+1. The DBS CSV columns, preamble and date format (§5.4).
+2. The reconciliation formula for the card statement layout (§5.5).
 
 ## 8. Tests
 - No test reaches the network, the metadata server, Claude or Google. The SDK credential path is tested through constructor spies and the config loaders, not a real exchange.

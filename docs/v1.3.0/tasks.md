@@ -22,7 +22,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
   - any ADR that changes the TRD.
 
   Don't start the next checkpoint until Naresh says so.
-- Never start a task whose checkpoint Plan cell is ⬜. **Checkpoints C–E are 🔒** until TRD §7 is settled and the TRD marks §5–6 decided; don't plan them before that.
+- Never start a task whose checkpoint Plan cell is ⬜. **Checkpoint C's plan waits for Naresh's DBS fixtures** (TRD §7); D and E follow it.
 - Not covered by the PRD, TRD or an ADR? Stop and ask. Record the decision as the next ADR (from 0111; 0111 and 0112 are reserved for Metis and to-dos) and add its number to the task's ADR column.
 - **Behaviour-neutral means behaviour-neutral.** Tasks marked *(neutral)* must not change what any endpoint returns or any page shows. Existing tests pass unchanged except imports; list any other change in the log line.
 - **Data (ADRs 0084, 0085):** each migration is written test-first against the seed of the schema it starts from, and locked only in the release checkpoint. Nothing resets or hand-edits the VM's database.
@@ -42,7 +42,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 | 1.3 | `vitest.integration.config.ts` placeholders for the non-Claude variables; "A local `.env` for development" in `configuration.md` (TRD §2.3) | | ✅ |
 | 1.4 | `study_today` on `Me`; Log time dialog default and max from it; dialog test with the device a day ahead; `themis.spec.ts` green in local time (TRD §2.2) | | ✅ |
 | 1.5 | Flaky tests: three `pnpm gate` runs; cause fixed or "not reproduced in 3 runs" logged, never a raised timeout (TRD §2.6) | | ✅ |
-| 1.6 | Major bump `jsdom` 31 (TRD §2.5) — only once PRD §9.7 is confirmed, else ⏸️ | | ⏸️ |
+| 1.6 | Major bump `jsdom` 31 (TRD §2.5); confirmed 2026-11-16, done before checkpoint C | | ⬜ |
 
 **Checkpoint A done when:** the gate and e2e are green in local time +08, `test:integration` runs with only the key, and the SDK is on 1.7.
 
@@ -65,40 +65,40 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 
 ---
 
-## Checkpoint C: Metis backend 🔒
-**Plan:** ⬜ [`plans/checkpoint-c.md`](plans/checkpoint-c.md) — blocked on TRD §7 and the DBS fixtures
+## Checkpoint C: Metis backend
+**Plan:** ⬜ [`plans/checkpoint-c.md`](plans/checkpoint-c.md) — needs the DBS fixtures (TRD §7)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
-| 3.1 | `ModuleId` gains `metis`; module guard and drawer entry; migration 21 test-first against `schema-20.sql` (TRD §5.1–5.2) | 0111 | 🔒 |
-| 3.2 | Accounts CRUD; category seeding; rules (pure matcher) (TRD §5.2, §5.6) | 0111 | 🔒 |
-| 3.3 | Upload route; DBS CSV parser from the fixture; import → review lines (TRD §5.3–5.4) | 0111 | 🔒 |
-| 3.4 | `extractCardStatement`; pure reconciliation; blocked state; usage recorded (TRD §5.5) | 0111 | 🔒 |
-| 3.5 | `suggestCategories`; "always" saves a rule and reapplies (TRD §5.6) | 0111 | 🔒 |
-| 3.6 | Fingerprints, duplicates, transfer candidates; review edits; post and discard (TRD §5.7) | 0111 | 🔒 |
-| 3.7 | Read endpoints: overview, ledger, spending, net worth, coverage; Themis signal (TRD §5.8–5.9) | 0111 | 🔒 |
+| 3.1 | `ModuleId` gains `metis`; module guard and drawer entry; migration 21 test-first against `schema-20.sql`, not locked; `docs/README.md` lists ADRs 0111 and 0112 (TRD §5.1–5.2) | 0111 | ⬜ |
+| 3.2 | Accounts CRUD (imported and manual kinds); manual balance snapshots; category seeding (flat list); rules with the longest-phrase matcher (pure) (TRD §5.2, §5.6) | 0111 | ⬜ |
+| 3.3 | Upload route; upload file kept under `/data/metis-uploads/` until post or discard, startup sweep; DBS CSV parser from the fixture; import → review lines (TRD §5.3–5.4) | 0111 | ⬜ |
+| 3.4 | `extractCardStatement`; pure reconciliation (formula from the fixture); blocked state; usage recorded (TRD §5.5) | 0111 | ⬜ |
+| 3.5 | `suggestCategories`: one call per import, grouped by normalised description, only the user's categories or Uncategorised; "always" saves a rule and reapplies (TRD §5.6) | 0111 | ⬜ |
+| 3.6 | Fingerprints, duplicates, transfer candidates; review edits; post and discard (each deletes the upload file); statement balances on post (TRD §5.2–5.3, §5.7) | 0111 | ⬜ |
+| 3.7 | Read endpoints: overview, ledger, spending, net worth (imported plus manual, liabilities subtracted), coverage; Themis `metis` outcome type with savings rate and net worth (TRD §5.8–5.9) | 0111 | ⬜ |
 
 ---
 
-## Checkpoint D: Metis UI 🔒
+## Checkpoint D: Metis UI
 **Plan:** ⬜ [`plans/checkpoint-d.md`](plans/checkpoint-d.md)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
-| 4.1 | `features/metis`: overview and accounts | 0111 | 🔒 |
-| 4.2 | Import flow: upload, processing, review with reconciliation, duplicates and transfers; phone layout | 0111 | 🔒 |
-| 4.3 | Ledger, categories and rules | 0111 | 🔒 |
-| 4.4 | Spending and net worth; Settings prompts and models for Metis | 0111 | 🔒 |
+| 4.1 | `features/metis`: overview and accounts, including manual accounts and the snapshot form | 0111 | ⬜ |
+| 4.2 | Import flow: upload, processing, review with reconciliation, duplicates and transfers; phone layout | 0111 | ⬜ |
+| 4.3 | Ledger, categories and rules | 0111 | ⬜ |
+| 4.4 | Spending and net worth; Settings prompts and models for Metis; the Metis goal type in the Themis goal form | 0111 | ⬜ |
 
 ---
 
-## Checkpoint E: To-dos 🔒
+## Checkpoint E: To-dos
 **Plan:** ⬜ [`plans/checkpoint-e.md`](plans/checkpoint-e.md)
 
 | ID | Task | ADRs | Status |
 | --- | --- | --- | --- |
-| 5.1 | Migration 22 test-first against `schema-21.sql`; to-dos API (TRD §6) | 0112 | 🔒 |
-| 5.2 | To-dos UI; Home **Due today** card (to-dos and Melete reviews due) (TRD §6) | 0112, 0109 | 🔒 |
+| 5.1 | Migration 22 (`themis_todos`) test-first against `schema-21.sql`, not locked; to-dos API under the Themis guard (TRD §6) | 0112 | ⬜ |
+| 5.2 | `/themis/todos`; open to-dos on a goal's page; Home **Due today** card (to-dos due or overdue, ticked off there, and Melete reviews due) (TRD §6) | 0112, 0109 | ⬜ |
 
 ---
 
@@ -117,7 +117,7 @@ Built from `prd.md` and `trd.md` in this folder. Tasks run strictly in order. Ea
 ---
 
 ## Deferred
-- 1.6 `jsdom` 31: PRD §9.7 still says "proposed"; not confirmed by Naresh.
+- ~~1.6 `jsdom` 31~~: confirmed by Naresh on 2026-11-16 (PRD §9.7); reopened, do it before planning checkpoint C.
 
 ## Log
 _(one line per ticked task: id, commit hash, moved or deleted test files)_
